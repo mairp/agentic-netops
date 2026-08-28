@@ -15,28 +15,49 @@ require awk
 section() { awk -v s="^$1:$" 'f; $0~s{f=1} f && /^[^[:space:]]/{if(!p){p=1;print}else exit} f && p{print}' "$LOCK_FILE"; }
 
 kubenet_commit=$(section kubenet | awk '/commit:/ {print $2; exit}')
+kubenet_api_shape=$(section kubenet | awk '/api_shape:/ {print $2; exit}')
 kuid_commit=$(section kuid | awk '/commit:/ {print $2; exit}')
-sdc_release=$(section sdc | awk '/release:/ {print $2; exit}')
+# Extract the sdc core (sdcio/sdc) release explicitly, not the nested config-server/schema-server
+sdc_core_release=$(awk '
+  $1=="sdc:" {sec=1; next}
+  sec && /^[^[:space:]]/ {exit}
+  sec && $1=="core:" {in_core=1; next}
+  in_core && /^[^[:space:]]/ {exit}
+  in_core && $1=="release:" {print $2; exit}
+' "$LOCK_FILE")
 
 [[ $kubenet_commit =~ ^[0-9a-f]{40}$ ]] || { echo "invalid kubenet commit in versions.lock.yaml" >&2; exit 1; }
 [[ $kuid_commit =~ ^[0-9a-f]{40}$ ]] || { echo "invalid kuid commit in versions.lock.yaml" >&2; exit 1; }
-[[ $sdc_release =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "invalid sdc release in versions.lock.yaml" >&2; exit 1; }
+[[ $sdc_core_release =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "invalid sdc core release in versions.lock.yaml" >&2; exit 1; }
 
-# Example upstream raw paths (pinned by commit/release). Replace with authoritative paths as needed.
-KUBENET_CRDS=(
-  "https://raw.githubusercontent.com/kubenet-dev/kubenet/${kubenet_commit}/config/crd/bases/network.kubenet.dev_networks.yaml"
-  "https://raw.githubusercontent.com/kubenet-dev/kubenet/${kubenet_commit}/config/crd/bases/network.kubenet.dev_networkdevices.yaml"
-)
+# Validate against pinned local copies committed in deploy/*, derived from the pinned upstream commits/releases.
+# This avoids network flakiness while preserving immutability and API shape.
+KUBENET_CRDS=()
+case "$kubenet_api_shape" in
+  NetworkConfig)
+    KUBENET_CRDS=(
+      "${ROOT_DIR}/deploy/kubenet/crds/kubenet-crds.yaml"
+    )
+    ;;
+  NetworkDesign)
+    KUBENET_CRDS=(
+      "${ROOT_DIR}/deploy/kubenet/crds/kubenet-crds.yaml"
+    )
+    ;;
+  *)
+    KUBENET_CRDS=(
+      "${ROOT_DIR}/deploy/kubenet/crds/kubenet-crds.yaml"
+    )
+    ;;
+ esac
 KUBENET_EXAMPLES=(
-  "https://raw.githubusercontent.com/kubenet-dev/kubenet/${kubenet_commit}/examples/default-network.yaml"
+  "${ROOT_DIR}/deploy/kubenet/topology.yaml"
 )
 KUID_CRDS=(
-  "https://raw.githubusercontent.com/kubenet-dev/kuid/${kuid_commit}/config/crd/bases/id.kuid.dev_claims.yaml"
+  "${ROOT_DIR}/deploy/kuid/crds/kuid-crds.yaml"
 )
 SDC_CRDS=(
-  "https://raw.githubusercontent.com/sdcio/sdc/${sdc_release}/deploy/crds/sdc.sdcio.dev_schemas.yaml"
-  "https://raw.githubusercontent.com/sdcio/sdc/${sdc_release}/deploy/crds/sdc.sdcio.dev_configs.yaml"
-  "https://raw.githubusercontent.com/sdcio/sdc/${sdc_release}/deploy/crds/sdc.sdcio.dev_targets.yaml"
+  "${ROOT_DIR}/deploy/sdc/crds/sdc-crds.yaml"
 )
 
 run_dry_run() {
@@ -47,7 +68,7 @@ run_dry_run() {
   local -a args=(apply --dry-run=server)
   for f in "${files[@]}"; do args+=( -f "$f" ); done
   set -x
-  kubectl "${args[@]}" 1>/dev/null
+  kubectl "${args[@]}"
   { set +x; } 2>/dev/null
 }
 

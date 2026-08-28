@@ -12,7 +12,14 @@ command -v awk >/dev/null 2>&1 || { echo "missing awk" >&2; exit 1; }
 LOCK_FILE="${ROOT}/versions.lock.yaml"
 section() { awk -v s="^$1:$" 'f; $0~s{f=1} f && /^[^[:space:]]/{if(!p){p=1;print}else exit} f && p{print}' "${LOCK_FILE}"; }
 
-sdc_release=$(section sdc | awk '/release:/ {print $2; exit}')
+# Read core SDC release tag (sdcio/sdc), not config/schema server
+sdc_release=$(awk '
+  $1=="sdc:" {sec=1; next}
+  sec && /^[^[:space:]]/ {exit}
+  sec && $1=="core:" {in_core=1; next}
+  in_core && /^[^[:space:]]/ {exit}
+  in_core && $1=="release:" {print $2; exit}
+' "${LOCK_FILE}")
 
 SDC_CRDS=(
   "https://raw.githubusercontent.com/sdcio/sdc/${sdc_release}/deploy/crds/sdc.sdcio.dev_schemas.yaml"

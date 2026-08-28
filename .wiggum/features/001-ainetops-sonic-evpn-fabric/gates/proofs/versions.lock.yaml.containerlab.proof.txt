@@ -1,0 +1,5 @@
+42\tcontainerlab:
+43\t  repo: https://github.com/srl-labs/containerlab
+44\t  version: 0.79.0
+45\t  commit: 89055fd504f1b862c8bbab4fea186025c2ce6647
+46\t

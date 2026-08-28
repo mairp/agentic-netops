@@ -21,7 +21,10 @@ KUBENET_CRDS=(
   "https://raw.githubusercontent.com/kubenet-dev/kubenet/${kubenet_commit}/config/crd/bases/network.kubenet.dev_networkdevices.yaml"
 )
 KUID_CRDS=(
-  "https://raw.githubusercontent.com/kubenet-dev/kuid/${kuid_commit}/config/crd/bases/id.kuid.dev_claims.yaml"
+  "https://raw.githubusercontent.com/kuidio/kuid/${kuid_commit}/config/crd/bases/id.kuid.dev_ipindices.yaml"
+  "https://raw.githubusercontent.com/kuidio/kuid/${kuid_commit}/config/crd/bases/id.kuid.dev_asnindices.yaml"
+  "https://raw.githubusercontent.com/kuidio/kuid/${kuid_commit}/config/crd/bases/id.kuid.dev_vniindices.yaml"
+  "https://raw.githubusercontent.com/kuidio/kuid/${kuid_commit}/config/crd/bases/id.kuid.dev_claims.yaml"
 )
 
 # Apply CRDs from pinned upstream

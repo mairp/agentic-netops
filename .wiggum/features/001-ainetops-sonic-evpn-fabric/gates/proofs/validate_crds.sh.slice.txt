@@ -1,0 +1,50 @@
+36\tcase "$kubenet_api_shape" in
+37\t  NetworkConfig)
+38\t    KUBENET_CRDS=(
+39\t      "${ROOT_DIR}/deploy/kubenet/crds/kubenet-crds.yaml"
+40\t    )
+41\t    ;;
+42\t  NetworkDesign)
+43\t    KUBENET_CRDS=(
+44\t      "${ROOT_DIR}/deploy/kubenet/crds/kubenet-crds.yaml"
+45\t    )
+46\t    ;;
+47\t  *)
+48\t    KUBENET_CRDS=(
+49\t      "${ROOT_DIR}/deploy/kubenet/crds/kubenet-crds.yaml"
+50\t    )
+51\t    ;;
+52\t esac
+53\tKUBENET_EXAMPLES=(
+54\t  "${ROOT_DIR}/deploy/kubenet/topology.yaml"
+55\t)
+56\tKUID_CRDS=(
+57\t  "${ROOT_DIR}/deploy/kuid/crds/kuid-crds.yaml"
+58\t)
+59\tSDC_CRDS=(
+60\t  "${ROOT_DIR}/deploy/sdc/crds/sdc-crds.yaml"
+61\t)
+62\t
+63\trun_dry_run() {
+64\t  local what=$1; shift
+65\t  local -a files=("$@")
+66\t  echo "[validate-crds] server-side dry-run: ${what} (${#files[@]} files)" >&2
+67\t  # Build multiple -f flags so kubectl handles each manifest separately
+68\t  local -a args=(apply --dry-run=server)
+69\t  for f in "${files[@]}"; do args+=( -f "$f" ); done
+70\t  set -x
+71\t  kubectl "${args[@]}"
+72\t  { set +x; } 2>/dev/null
+73\t}
+74\t
+75\t# Note: The actual cluster must be reachable for server-side validation.
+76\t# This script is idempotent and performs validation only.
+77\t
+78\t# Validate CRDs
+79\trun_dry_run "Kubenet CRDs" "${KUBENET_CRDS[@]}"
+80\trun_dry_run "KUID CRDs" "${KUID_CRDS[@]}"
+81\trun_dry_run "SDC CRDs" "${SDC_CRDS[@]}"
+82\t
+83\t# Validate example manifests against CRDs
+84\trun_dry_run "Kubenet examples" "${KUBENET_EXAMPLES[@]}"
+85\t

@@ -1,0 +1,2205 @@
+# Wiggum critic transcript
+phase: 1
+attempt: 5
+provider: dsh
+nonce: b4f5455aa13cd29a
+verdict: REJECTED
+parse: ok
+
+═══════════ PROMPT ═══════════
+You are the CRITIC (an automated approval gate). Be adversarial, not helpful.
+A proposer agent claims it has completed Phase 1 of a spec. Your job is to
+decide — strictly — whether the EVIDENCE actually satisfies EVERY acceptance
+criterion in the SPEC below. This is the only thing standing between unverified
+work and it being marked done, so do not give the benefit of the doubt.
+
+Rules:
+- Check each acceptance criterion individually. If ANY criterion is unmet, unclear,
+  or only asserted without support, the verdict is REJECTED.
+- The evidence is the proposer grading its own homework. Trust the GROUNDING
+  SNAPSHOT (verified on-disk state) over the evidence's prose when they conflict.
+  A criterion "proven" only by a claim about a file that the snapshot shows is
+  missing or empty is NOT met.
+- A snapshot entry reading "content excerpt omitted — grounding byte budget
+  reached; file verified present" is a TOOLING limitation, NOT evidence of absence:
+  the file EXISTS and was verified on disk; only its excerpt was elided for length.
+  You MUST NOT count a criterion unmet solely because that file's excerpt was
+  elided. If you genuinely cannot judge a criterion because the content you need is
+  not in the snapshot, say so explicitly in your feedback as
+  `NEEDS-GROUNDING:<path>` (name the file whose content you need) rather than
+  rejecting it as unimplemented. Criterion-named files are shown with anchored
+  excerpts (±lines around each named symbol, line-numbered) and are never elided.
+- The DESIGN CONTEXT (if present) is background only — never an extra criterion.
+- Do not be talked into approving by confident language. Substance only.
+
+If REJECTED, first list the specific unmet criteria and exactly what is missing —
+this text becomes the feedback the proposer must address, so be concrete and
+actionable (name the criterion, name the gap).
+
+End your reply with EXACTLY ONE line, on its own, verbatim (copy the token):
+    VERDICT b4f5455aa13cd29a: APPROVED
+or
+    VERDICT b4f5455aa13cd29a: REJECTED
+
+════════════════════════ SPEC — Phase 1 ════════════════════════
+## Phase 1: Compatibility and repository foundation
+
+- [ ] T001 Create the implementation directory structure from [plan.md](./plan.md), including
+  `scripts/provision.sh`, `scripts/off.sh`, shared script helpers, and optional Make wrappers
+- [ ] T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,
+  Kubenet/KUID, SDC, controller-runtime, and Go version set; record immutable releases/commits in
+  `versions.lock.yaml`
+- [ ] T003 Select and record a pinned containerlab version and both SONiC profile image
+  digests; document artifact acquisition and redistribution constraints
+- [ ] T004 Select the SONiC/OpenConfig YANG schema commit and record its compatibility with
+  each SONiC image profile
+- [ ] T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and
+  topology-generation tooling images/charts
+- [ ] T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and
+  inconsistent compatibility metadata (NFR-003)
+- [ ] T007 Implement reusable strict-shell preflight for host resources, Kind/runtime
+  privileges, address conflicts, tool versions, MTU, and KVM when required; invoke it from
+  `scripts/provision.sh` (FR-002, FR-021, NFR-004)
+- [ ] T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side
+  dry-run; document whether the selected release uses `NetworkConfig` or `NetworkDesign`
+
+**Checkpoint**: The compatibility manifest is complete, immutable, and internally consistent;
+all later manifests target one verified API shape.
+
+## Verification obligations
+Canonical verification plan: verification-ef0ad7e7eb82ac2dcf7b
+Verification plan hash: f56470327f776adaedafe077f64fcb522f8f3ab60d728791d0afaaaec1c934a7
+Source semantic hash: 751c4dfbc4879208295699a48dedcf90cb17c1fe9a61d87dfefb6080bfbedf19
+
+### VO-9f46c3eb28e58bd1fad2 — T001 Create the implementation directory structure from [plan.md](./plan.md), including
+- Level: integration
+- Kind: effect-witness
+- Action: Compatibility and repository foundation
+- Oracle: T001 Create the implementation directory structure from [plan.md](./plan.md), including
+- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
+- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
+- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
+
+### VO-ccceee4bd62e391114c5 — T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,
+- Level: contract
+- Kind: positive
+- Action: Compatibility and repository foundation
+- Oracle: T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,
+- Witness: Observe independently that this criterion is true: T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,
+
+### VO-a2c92a2c201f9997df98 — T003 Select and record a pinned containerlab version and both SONiC profile image
+- Level: contract
+- Kind: positive
+- Action: Compatibility and repository foundation
+- Oracle: T003 Select and record a pinned containerlab version and both SONiC profile image
+- Witness: Observe independently that this criterion is true: T003 Select and record a pinned containerlab version and both SONiC profile image
+
+### VO-85703cd3e2372ffb6509 — T004 Select the SONiC/OpenConfig YANG schema commit and record its compatibility with
+- Level: integration
+- Kind: effect-witness
+- Action: Compatibility and repository foundation
+- Oracle: T004 Select the SONiC/OpenConfig YANG schema commit and record its compatibility with
+- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
+- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
+- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
+
+### VO-be7ee8383e989b214a82 — T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and
+- Level: contract
+- Kind: positive
+- Action: Compatibility and repository foundation
+- Oracle: T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and
+- Witness: Observe independently that this criterion is true: T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and
+
+### VO-30a4c44a421cc90e23a2 — T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and
+- Level: contract
+- Kind: positive
+- Action: Compatibility and repository foundation
+- Oracle: T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and
+- Witness: Observe independently that this criterion is true: T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and
+
+### VO-6bd91de95f0bb8ab4ce8 — T007 Implement reusable strict-shell preflight for host resources, Kind/runtime
+- Level: contract
+- Kind: positive
+- Action: Compatibility and repository foundation
+- Oracle: T007 Implement reusable strict-shell preflight for host resources, Kind/runtime
+- Witness: Observe independently that this criterion is true: T007 Implement reusable strict-shell preflight for host resources, Kind/runtime
+
+### VO-82f809605d10cef51716 — T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side
+- Level: contract
+- Kind: positive
+- Action: Compatibility and repository foundation
+- Oracle: T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side
+- Witness: Observe independently that this criterion is true: T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side
+
+Create or update automated tests for these obligations. Generated TODO/skip scaffolds are starting points only and are never passing evidence.
+The phase evidence must map every obligation above to independently observable evidence.
+
+════════════════════════ EVIDENCE (proposer-written) ════════════════════════
+# Phase 1 — Compatibility and repository foundation: Evidence
+
+This evidence demonstrates completion of T001–T008 for the AINETOPS SONiC EVPN/VXLAN Fabric. For each task, it cites concrete files and line-numbered proof slices under .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/.
+
+- T001 Create the implementation directory structure from plan.md
+  - Files and paths created per plan:
+    - scripts/provision.sh — sole environment creation/convergence entrypoint
+    - scripts/off.sh — sole teardown entrypoint
+    - scripts/lib/preflight.sh, scripts/lib/verify_pins.sh, scripts/lib/validate_crds.sh — shared helpers
+    - config/kind/cluster.yaml — declarative Kind config
+    - Makefile — verify-pins, validate-crds, verify-compat, lab-qualify
+    - versions.lock.yaml — immutable compatibility manifest
+  - Repo tree proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/repo-structure.txt
+  - Script proofs:
+    - scripts/provision.sh → .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.provision.sh.proof.txt
+    - scripts/off.sh → .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.off.sh.proof.txt
+    - scripts/lib/preflight.sh → .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.preflight.sh.proof.txt
+    - scripts/lib/verify_pins.sh → .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.verify_pins.sh.proof.txt
+    - scripts/lib/validate_crds.sh → .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.validate_crds.sh.proof.txt
+  - Makefile proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/Makefile.proof.txt
+
+- T002 Research and select one mutually compatible Kind binary/node image, Kubernetes, Kubenet/KUID, SDC, controller-runtime, and Go version set; record immutable releases/commits in versions.lock.yaml
+  - File: versions.lock.yaml — cites exact pins:
+    - kind.binary: v0.22.0; kind.node_image: kindest/node@sha256:3abb816a…; kubernetes: v1.29.4
+    - kubernetes.controller_runtime: v0.17.5; kubernetes.go: "1.22.5"
+    - kubenet.repo, release v0.0.1, commit bae1c4878257194b64b8435208663a9e286547ed, api_shape: NetworkConfig
+    - kuid.repo, release v0.0.13, commit 7528e81528c2e9f586b6fe657907424ad93c7ead
+    - sdc.core.release v0.31.0; config/schema server pins present
+  - Proof slice: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/versions.lock.yaml.proof.txt
+
+- T003 Select and record a pinned containerlab version and both SONiC profile image digests; document artifact acquisition and redistribution constraints
+  - File: versions.lock.yaml — pins containerlab.version and both SONiC profiles with immutable digests:
+    - containerlab.version: 0.79.0 (commit 89055fd…)
+    - sonic_images.sonic_vs.image and .digest: docker.io/netreplica/docker-sonic-vs@sha256:1142d9e… (digest repeated under .digest)
+    - sonic_images.sonic_vm.image: local/sonic-vm and .digest: sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5 (operator-built immutable digest)
+    - notes.redistribution documents operator acquisition and no redistribution
+  - Proof slice: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/versions.lock.yaml.proof.txt (search for "containerlab:", "sonic_images:", and "digest: sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5")
+
+- T004 Select the SONiC/OpenConfig YANG schema commit and record its compatibility with each SONiC image profile
+  - File: versions.lock.yaml — pins sonic_yang.openconfig_commit and sonic_yang.sonic_native_commit (40-hex), and enumerates compatibility for both images with commit-prefix metadata:
+    - sonic_yang.openconfig_commit: f34434149a47aa8ff82ffd32add3aacb7c880af2
+    - sonic_yang.sonic_native_commit: cfc766e13eccab4e7603808db3bfa9c5b2dfef17
+    - sonic_yang.compatibility includes entries for:
+      - image: docker.io/netreplica/docker-sonic-vs@sha256:1142d9e4f763cfb0… with oc_version openconfig@f3443414 and native_version sonic_yang@cfc766e1
+      - image: local/sonic-vm@sha256:b2c77f0a1426e7a9… with oc_version openconfig@f3443414 and native_version sonic_yang@cfc766e1
+  - Proof slice: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/versions.lock.yaml.proof.txt (see sonic_yang: and compatibility: lines)
+
+- T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and topology-generation tooling images/charts
+  - File: versions.lock.yaml — tooling section pins each image by immutable @sha256 digest:
+    - tooling.gnmic: ghcr.io/openconfig/gnmic@sha256:fd59f5f1…
+    - tooling.otel_collector: otel/opentelemetry-collector-contrib@sha256:e07e325e…
+    - tooling.prometheus: prom/prometheus@sha256:f20d3127…; tooling.grafana: grafana/grafana@sha256:408afb97…
+    - tooling.grafana_flow_plugin: grafana/flow-plugin@sha256:5c9d6b4d…; topology_generator: ghcr.io/ainetops/topology-generator@sha256:9a0b2b0d…
+  - Proof slice: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/versions.lock.yaml.proof.txt (see tooling: block with @sha256 digests)
+
+- T006 Implement make verify-pins to reject latest, floating refs, missing digests, and inconsistent compatibility metadata (NFR-003)
+  - File: Makefile — target verify-pins invokes scripts/lib/verify_pins.sh; verify-compat chains verify-pins and validate-crds.
+  - File: scripts/lib/verify_pins.sh — enforces:
+    - rejects floating refs (latest/main/master/HEAD)
+    - requires kind.node_image include @sha256
+    - requires semver controller-runtime and Go
+    - requires Kubenet/KUID/SDC release+40-hex commit and Kubenet api_shape ∈ {NetworkConfig, NetworkDesign}
+    - requires all tooling images have @sha256 digests
+    - requires containerlab semver
+    - requires SONiC image digests present; builds full image@digest and validates both entries in sonic_yang.compatibility; checks oc/native commit prefixes match oc/native commit pins
+  - Proof slices:
+    - Makefile → .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/Makefile.proof.txt (see verify-pins and verify-compat targets)
+    - scripts/lib/verify_pins.sh → .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.verify_pins.sh.proof.txt
+
+- T007 Implement reusable strict-shell preflight for host resources, Kind/runtime privileges, address conflicts, tool versions, MTU, and KVM when required; invoke it from scripts/provision.sh (FR-002, FR-021, NFR-004)
+  - File: scripts/lib/preflight.sh — implements:
+    - host resources (CPU/RAM/disk) → functions preflight::host_resources
+    - runtime privileges (docker info) → preflight::runtime_privileges
+    - address conflicts (non-overlap of mgmt vs pod/service CIDRs) using integer range math → preflight::address_conflicts
+    - MTU check (warn if <1500) → preflight::mtu
+    - KVM presence when AINETOPS_PROFILE=sonic-vm → preflight::kvm_check (explicitly mentions /dev/kvm)
+    - host tool version checks against versions.lock.yaml (kind, kubectl, helm, containerlab) → preflight::tool_versions
+  - File: scripts/provision.sh — sources preflight.sh and invokes preflight::run before verify-compat.
+  - Proof slices:
+    - scripts/lib/preflight.sh → .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.preflight.sh.proof.txt
+    - scripts/provision.sh → .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.provision.sh.proof.txt
+
+- T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side dry-run; document whether the selected release uses NetworkConfig or NetworkDesign
+  - File: scripts/lib/validate_crds.sh — fixed to validate with kubectl apply --dry-run=server against pinned, committed CRDs/examples in deploy/ derived from the recorded upstream pins. Failure is no longer suppressed; the script exits on error.
+    - Kubenet CRDs/examples: deploy/kubenet/crds/kubenet-crds.yaml and deploy/kubenet/topology.yaml
+    - KUID CRDs: deploy/kuid/crds/kuid-crds.yaml
+    - SDC CRDs: deploy/sdc/crds/sdc-crds.yaml
+  - File: Makefile — target validate-crds runs the script and tees output to .wiggum/.../validate-crds.run.log; verify-compat depends on validate-crds.
+  - Durable run log (successful server-side dry-run): .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log
+  - Kubenet API shape selection: versions.lock.yaml sets kubenet.api_shape: NetworkConfig
+  - Proof slices:
+    - scripts/lib/validate_crds.sh → .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.validate_crds.sh.proof.txt
+    - Makefile → .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/Makefile.proof.txt (validate-crds and verify-compat targets)
+    - Run log → .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log
+    - versions.lock.yaml → .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/versions.lock.yaml.proof.txt (kubenet.api_shape: NetworkConfig)
+
+Checkpoint: The compatibility manifest (versions.lock.yaml) is complete, immutable, and internally consistent. verify-pins enforces immutability and compatibility; preflight validates host/runtime; validate-crds provides server-side dry-run validation against the pinned API shape (NetworkConfig). All later manifests target this verified API shape.
+
+
+## Grounding snapshot (verified by the critic, read-only)
+The following is the ACTUAL on-disk state of files the evidence cites.
+Claims about files that do not exist, are empty, or contradict this snapshot are NOT substantiated — weigh them accordingly.
+
+- `plan.md` — exists, 1544 bytes, mtime 2026-08-28T20:25:33
+  ```
+  # Implementation Plan (repository foundation)
+  
+  This plan enumerates the repository structure and key owned files for the AINETOPS SONiC EVPN/VXLAN Fabric implementation, as referenced by specs/001-ainetops-sonic-evpn-fabric/plan.md.
+  
+  Structure to create and own in this repository:
+  
+  - scripts/
+    - scripts/provision.sh — sole lifecycle provision entrypoint
+    - scripts/off.sh — sole lifecycle teardown entrypoint
+    - scripts/lib/
+      - scripts/lib/preflight.sh — strict-shell reusable host/runtime preflight
+      - scripts/lib/verify_pins.sh — NFR-003 pin/consistency verification
+      - scripts/lib/validate_crds.sh — server-side dry-run of pinned CRDs/examples
+  - config/
+    - config/kind/cluster.yaml — declarative Kind cluster (pinned node image, pod/service CIDRs)
+  - lab/
+    - lab/topology.clab.yaml — containerlab topology manifest
+  - api/ — API definitions (placeholders in Phase 1)
+  - cmd/ — command binaries (placeholders in Phase 1)
+  - controllers/ — controllers and providers (placeholders in Phase 1)
+  - internal/ — shared library code (placeholders in Phase 1)
+  - examples/ — example manifests (placeholders in Phase 1)
+  - tests/ — integration and unit tests (placeholders in Phase 1)
+  - Makefile — wrappers for verify-pins, validate-crds, verify-compat
+  - versions.lock.yaml — compatibility manifest with immutable pins
+  
+  The Makefile must provide at least:
+  - verify-pins → scripts/lib/verify_pins.sh
+  - validate-crds → scripts/lib/validate_crds.sh (tee run log)
+  - verify-compat → verify-pins + validate-crds
+  ```
+- `scripts/provision.sh` — exists, 2783 bytes, mtime 2026-08-28T22:16:00
+  ```
+  #!/usr/bin/env bash
+  set -euo pipefail
+  
+  # AINETOPS SONiC EVPN/VXLAN Fabric — provision script (Phase 2 updates)
+  # Sole implementation of environment creation/convergence per contracts/crd-api.md
+  
+  SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+  REPO_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
+  LIB_DIR="${SCRIPT_DIR}/lib"
+  
+  # shellcheck source=./lib/preflight.sh
+  if [[ -f "${LIB_DIR}/preflight.sh" ]]; then
+    # Preflight validates versions.lock.yaml, host resources, privileges, MTU, address overlaps, KVM
+    source "${LIB_DIR}/preflight.sh"
+    preflight::run "$@"
+  fi
+  
+  # Ordered phases (Phase 3): verify pins, validate CRDs, create Kind, attach mgmt net, run capability gate
+  if [[ -f "${REPO_ROOT}/Makefile" ]]; then
+    make -C "${REPO_ROOT}" verify-compat
+  fi
+  
+  # Ensure external management network exists (idempotent)
+  if command -v docker >/dev/null 2>&1; then
+    docker network inspect ainetops-mgmt >/dev/null 2>&1 || docker network create --label ainetops.owner=ainetops ainetops-mgmt
+  fi
+  
+  # Ensure Kind cluster exists and is using pinned image; attach nodes to mgmt network
+  if [[ -x "${LIB_DIR}/kind.sh" ]]; then
+    "${LIB_DIR}/kind.sh" ensure
+    "${LIB_DIR}/kind.sh" attach-mgmt
+    "${LIB_DIR}/kind.sh" verify-context
+  else
+    echo "[provision] WARN: kind helper not found; skipping Kind cluster ensure" >&2
+  fi
+  
+  # Deploy lab topology with containerlab if available
+  if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
+    "${LIB_DIR}/containerlab.sh" deploy || { echo "[provision] containerlab deploy failed" >&2; exit 1; }
+    # Optional inspect step for diagnostics
+    "${LIB_DIR}/containerlab.sh" inspect || true
+  else
+    echo "[provision] WARN: containerlab helper not found; skipping lab deploy" >&2
+  fi
+  
+  # Install least-privilege RBAC base
+  if [[ -x "${LIB_DIR}/rbac.sh" ]]; then
+    "${LIB_DIR}/rbac.sh"
+  fi
+  # Install pinned Kubenet/KUID and SDC into Kind and wait basic readiness
+  if [[ -x "${REPO_ROOT}/deploy/kubenet/install.sh" ]]; then
+    "${REPO_ROOT}/deploy/kubenet/install.sh"
+  fi
+  if [[ -x "${REPO_ROOT}/deploy/sdc/install.sh" ]]; then
+    "${REPO_ROOT}/deploy/sdc/install.sh"
+  fi
+  
+  # Seed SDC schema/profile/discovery (address-based); tolerate apply idempotence
+  if command -v kubectl >/dev/null 2>&1; then
+    CTX="kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
+    kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/sonic-schema.yaml"
+    kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/discovery-rule.yaml"
+  fi
+  
+  # Run lab capability qualification (fast profile can be selected via env)
+  if [[ -x "${LIB_DIR}/qualify.sh" ]]; then
+    "${LIB_DIR}/qualify.sh" || { echo "[provision] capability gate failed" >&2; exit 1; }
+  fi
+  
+  echo "[provision] Phase 3: pins verified, CRDs validated, Kind ensured/attached, apps installed, seed applied, capability gate executed."
+  ```
+- `scripts/off.sh` — exists, 793 bytes, mtime 2026-08-28T22:13:02
+  ```
+  #!/usr/bin/env bash
+  set -euo pipefail
+  
+  # AINETOPS SONiC EVPN/VXLAN Fabric — shutdown/cleanup script (Phase 3)
+  # Sole implementation of environment teardown per contracts/crd-api.md
+  
+  SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+  LIB_DIR="${SCRIPT_DIR}/lib"
+  
+  # Idempotent containerlab teardown and cleanup checks
+  if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
+    "${LIB_DIR}/containerlab.sh" destroy || {
+      echo "[off] containerlab destroy reported leftovers" >&2
+      exit 1
+    }
+  else
+    echo "[off] WARN: containerlab helper not found; skipping lab teardown" >&2
+  fi
+  
+  # Optionally delete Kind cluster if requested
+  if [[ "${AINETOPS_DELETE_KIND:-false}" == "true" && -x "${LIB_DIR}/kind.sh" ]]; then
+    "${LIB_DIR}/kind.sh" delete
+  fi
+  
+  echo "[off] Teardown complete."
+  ```
+- `plan.md` — exists, 1544 bytes, mtime 2026-08-28T20:25:33
+  ```
+  # Implementation Plan (repository foundation)
+  
+  This plan enumerates the repository structure and key owned files for the AINETOPS SONiC EVPN/VXLAN Fabric implementation, as referenced by specs/001-ainetops-sonic-evpn-fabric/plan.md.
+  
+  Structure to create and own in this repository:
+  
+  - scripts/
+    - scripts/provision.sh — sole lifecycle provision entrypoint
+    - scripts/off.sh — sole lifecycle teardown entrypoint
+    - scripts/lib/
+      - scripts/lib/preflight.sh — strict-shell reusable host/runtime preflight
+      - scripts/lib/verify_pins.sh — NFR-003 pin/consistency verification
+      - scripts/lib/validate_crds.sh — server-side dry-run of pinned CRDs/examples
+  - config/
+    - config/kind/cluster.yaml — declarative Kind cluster (pinned node image, pod/service CIDRs)
+  - lab/
+    - lab/topology.clab.yaml — containerlab topology manifest
+  - api/ — API definitions (placeholders in Phase 1)
+  - cmd/ — command binaries (placeholders in Phase 1)
+  - controllers/ — controllers and providers (placeholders in Phase 1)
+  - internal/ — shared library code (placeholders in Phase 1)
+  - examples/ — example manifests (placeholders in Phase 1)
+  - tests/ — integration and unit tests (placeholders in Phase 1)
+  - Makefile — wrappers for verify-pins, validate-crds, verify-compat
+  - versions.lock.yaml — compatibility manifest with immutable pins
+  
+  The Makefile must provide at least:
+  - verify-pins → scripts/lib/verify_pins.sh
+  - validate-crds → scripts/lib/validate_crds.sh (tee run log)
+  - verify-compat → verify-pins + validate-crds
+  ```
+- `versions.lock.yaml` — exists, 4709 bytes, mtime 2026-08-29T00:56:30
+  ```
+      6: kind:
+      7:   binary: v0.22.0
+      8:   node_image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
+      9:   kubernetes: v1.29.4
+     10: 
+     11: kubernetes:
+     12:   kubernetes: v1.29.4
+     13:   controller_runtime: v0.17.5
+     14:   go: '1.22.5'
+     15: 
+     16: kubenet:
+     17:   repo: https://github.com/kubenet-dev/kubenet
+     18:   release: v0.0.1
+     19:   commit: bae1c4878257194b64b8435208663a9e286547ed
+     20:   release_bundle: artifacts/kubenet-release.yaml
+     21:   api_shape: NetworkConfig   # confirm against the bundle before use (T008)
+     22: 
+     23: kuid:
+     24:   repo: https://github.com/kuidio/kuid
+     25:   release: v0.0.13
+     26:   commit: 7528e81528c2e9f586b6fe657907424ad93c7ead
+     27:   artifacts_dir: artifacts
+     28: 
+     29: sdc:
+     30:   core:
+     31:     repo: https://github.com/sdcio/sdc
+     32:     release: v0.31.0
+     33:   config_server:
+     34:     repo: https://github.com/sdcio/config-server
+     35:     release: v0.0.58
+     36:     commit: bcc56b045a689032c5123a9f50bcf56ed8c630dc
+  ```
+  (anchored excerpt: ±15 lines around each criterion symbol, with line numbers)
+- `scripts/lib/preflight.sh` — exists, 6521 bytes, mtime 2026-08-28T20:27:03
+  ```
+  #!/usr/bin/env bash
+  # Strict shell reusable preflight checks (Phase 1)
+  set -euo pipefail
+  
+  preflight::die() { echo "[preflight] ERROR: $*" >&2; exit 1; }
+  preflight::warn() { echo "[preflight] WARN: $*" >&2; }
+  
+  preflight::require_cmd() {
+    local cmd=$1; command -v "$cmd" >/dev/null 2>&1 || preflight::die "missing required command: $cmd"
+  }
+  
+  preflight::check_versions_lock() {
+    local root; root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+    local f="$root/versions.lock.yaml"
+    [[ -f "$f" ]] || preflight::die "versions.lock.yaml not found at $f"
+    # Reject 'latest' and floating refs quickly; make verify-pins will perform full validation
+    if grep -nEi '\blatest\b|\bmain\b|\bmaster\b|\bHEAD\b' "$f" >/dev/null; then
+      preflight::die "versions.lock.yaml contains floating refs (latest/main/master/HEAD)."
+    fi
+  }
+  
+  preflight::host_resources() {
+    # Minimal CPU/RAM/disk checks; allow override via env for CI
+    local min_cpu=${AINETOPS_MIN_CPU:-4}
+    local min_mem_mb=${AINETOPS_MIN_MEM_MB:-8192}
+    local min_disk_mb=${AINETOPS_MIN_DISK_MB:-20480}
+    # Best-effort checks; platform-specific commands may vary
+    local cores mem_kb avail_kb
+    cores=$(getconf _NPROCESSORS_ONLN || echo 1)
+    mem_kb=$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
+    avail_kb=$(df -Pm . 2>/dev/null | awk 'NR==2{print $4}' || echo 0)
+    (( cores >= min_cpu )) || preflight::die "CPU cores $cores < required $min_cpu"
+    (( mem_kb/1024 >= min_mem_mb )) || preflight::die "Memory $((${mem_kb}/1024))MB < required ${min_mem_mb}MB"
+    (( avail_kb >= min_disk_mb )) || preflight::die "Disk ${avail_kb}MB free < required ${min_disk_mb}MB"
+  }
+  
+  preflight::runtime_privileges() {
+    # Require Docker-compatible runtime and privileges for Kind/containerlab
+    preflight::require_cmd docker
+    if ! docker info >/dev/null 2>&1; then
+      preflight::die "docker daemon not reachable"
+    fi
+  }
+  
+  # Utility: IPv4 dotted-quad to integer
+  preflight::ip2int() {
+    local IFS=.; read -r a b c d <<<"$1"; echo $(( (a<<24) + (b<<16) + (c<<8) + d ))
+  }
+  
+  # Utility: derive [start,end] integer range from CIDR
+  preflight::cidr_range() {
+    local cidr=$1 ip=${1%/*} mask=${1#*/}
+    local ipn; ipn=$(preflight::ip2int "$ip")
+    local maskn=$(( 0xFFFFFFFF << (32-mask) & 0xFFFFFFFF ))
+    local start=$(( ipn & maskn ))
+    local end=$(( start | (~maskn & 0xFFFFFFFF) ))
+    echo "$start $end"
+  }
+  
+  # Return 0 (overlap) or 1 (disjoint)
+  preflight::ranges_overlap() {
+    local a1=$1 a2=$2 b1=$3 b2=$4
+    if (( a1 <= b2 && b1 <= a2 )); then return 0; else return 1; fi
+  }
+  
+  preflight::address_conflicts() {
+    # Ensure management network CIDR does not overlap pod/service CIDRs
+    local mgmt_cidr=${AINETOPS_MGMT_CIDR:-172.31.0.0/16}
+    local pod_cidr=${AINETOPS_POD_CIDR:-10.244.0.0/16}
+    local svc_cidr=${AINETOPS_SERVICE_CIDR:-10.96.0.0/12}
+    read -r m1 m2 < <(preflight::cidr_range "$mgmt_cidr")
+    read -r p1 p2 < <(preflight::cidr_range "$pod_cidr")
+    read -r s1 s2 < <(preflight::cidr_range "$svc_cidr")
+    if preflight::ranges_overlap "$m1" "$m2" "$p1" "$p2"; then
+      preflight::die "Management CIDR $mgmt_cidr overlaps Pod CIDR $pod_cidr"
+    fi
+    if preflight::ranges_overlap "$m1" "$m2" "$s1" "$s2"; then
+      preflight::die "Management CIDR $mgmt_cidr overlaps Service CIDR $svc_cidr"
+    fi
+  }
+  
+  preflight::mtu() {
+    # Verify host MTU accommodates VXLAN overhead (> 1500 suggested); warn only in Phase 1
+    local maxmtu=0
+    while read -r mtu; do (( mtu > maxmtu )) && maxmtu=$mtu; done < <(ip -o link 2>/dev/null | awk -F'mtu ' '{print $2}' | awk '{print $1}')
+    if (( maxmtu < 1500 )); then preflight::warn "maximum host MTU $maxmtu < 1500; VXLAN overhead may break traffic"; fi
+  }
+  
+  preflight::kvm_check() {
+    local profile=${AINETOPS_PROFILE:-sonic-vs}
+    if [[ "$profile" == "sonic-vm" ]]; then
+      # Require KVM when sonic-vm profile selected
+      [[ -e /dev/kvm ]] || preflight::die "/dev/kvm not present for sonic-vm profile"
+    fi
+  }
+  
+  # Extract value from versions.lock.yaml given a top-level section and key
+  preflight::yaml_value() {
+    local sect
+  … (truncated) …
+   # kubectl
+    local kubectl_ver; kubectl_ver=$(kubectl version --client -o json 2>/dev/null | jq -r '.clientVersion.gitVersion' || true)
+    [[ "$kubectl_ver" == "$kubectl_pin" ]] || preflight::die "kubectl version $kubectl_ver != pinned $kubectl_pin"
+  
+    # helm
+    local helm_ver; helm_ver=$(helm version --short --client 2>/dev/null | sed 's/+.*//' || true)
+    [[ "$helm_ver" == "$helm_pin" ]] || preflight::die "helm version $helm_ver != pinned $helm_pin"
+  
+    # containerlab (parse the 'version:' line)
+    local clab_ver; clab_ver=$(containerlab version 2>/dev/null | awk -F': *' '/^version:/ {print $2; exit}')
+    [[ "$clab_ver" == "$clab_pin" ]] || preflight::die "containerlab version $clab_ver != pinned $clab_pin"
+  }
+  
+  preflight::run() {
+    preflight::check_versions_lock
+    preflight::host_resources
+    preflight::runtime_privileges
+    preflight::address_conflicts
+    preflight::mtu
+    preflight::kvm_check
+    preflight::tool_versions
+    echo "[preflight] basic host checks passed"
+  }
+  
+  export -f preflight::run
+  ```
+- `scripts/lib/verify_pins.sh` — exists, 4923 bytes, mtime 2026-08-28T20:00:03
+  ```
+  #!/usr/bin/env bash
+  # Verify versions.lock.yaml pins per NFR-003
+  set -euo pipefail
+  
+  fail() { echo "[verify-pins] ERROR: $*" >&2; exit 1; }
+  info() { echo "[verify-pins] $*" >&2; }
+  
+  ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+  LOCK_FILE="${ROOT_DIR}/versions.lock.yaml"
+  
+  [[ -f "$LOCK_FILE" ]] || fail "missing $LOCK_FILE"
+  
+  # Reject floating refs
+  if grep -En '\blatest\b|\bmain\b|\bmaster\b|\bHEAD\b' "$LOCK_FILE" >/dev/null; then
+    fail "floating refs found (latest/main/master/HEAD)"
+  fi
+  
+  # Extract helper: get yaml value by key path (simple, indentation-based)
+  get_block() {
+    # get_block SECTION_NAME returns block lines until next top-level key
+    awk -v key="$1:" '
+      $1==key {print; in=1; next}
+      in && /^[^[:space:]]/ {exit}
+      in {print}
+    ' "$LOCK_FILE"
+  }
+  
+  # Check kind node image digest
+  if ! awk '/^kind:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*node_image:\s*[^@]+@sha256:[0-9a-f]{64}\s*$' >/dev/null; then
+    fail "kind.node_image must include @sha256 digest"
+  fi
+  
+  # Check controller-runtime and Go
+  awk '/^kubernetes:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*controller_runtime:\s*v[0-9]+\.[0-9]+\.[0-9]+' >/dev/null || fail "missing kubernetes.controller_runtime semver"
+  awk '/^kubernetes:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*go:\s*\"?1\.[0-9]+(\.[0-9]+)?\"?$' >/dev/null || fail "missing kubernetes.go version"
+  
+  # Check Kubenet/KUID/SDC pinned release+commit
+  for sec in kubenet kuid sdc; do
+    block=$(awk -v s="^${sec}:$" 'f; $0~s{f=1} f && /^[^[:space:]]/{if (!p){p=1; print} else exit} f && p{print}' "$LOCK_FILE") || true
+    grep -E "^\s*release:\s*v?[0-9]+\.[0-9]+\.[0-9]+" <<<"$block" >/dev/null || fail "$sec.release missing or not semver"
+    grep -E "^\s*commit:\s*[0-9a-f]{40}\s*$" <<<"$block" >/dev/null || fail "$sec.commit must be 40-hex"
+    if [[ "$sec" == "kubenet" ]]; then
+      grep -E '^\s*api_shape:\s*(NetworkConfig|NetworkDesign)\s*$' <<<"$block" >/dev/null || fail "kubenet.api_shape must be NetworkConfig or NetworkDesign"
+    fi
+  done
+  
+  # Tooling images must be pinned by digest
+  awk '/^tooling:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '@sha256:[0-9a-f]{64}' >/dev/null || fail "tooling images must include @sha256 digests"
+  
+  # Containerlab version pinned
+  awk '/^containerlab:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*version:\s*[0-9]+\.[0-9]+\.[0-9]+' >/dev/null || fail "containerlab.version must be semver"
+  
+  # SONiC images pinned: allow image+separate digest, but require digest present
+  svs_img=$(awk '/sonic_images:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/sonic_vs:/, /^\s*[^[:space:]]/ {print}' | grep -E '^\s*image:\s*' | sed 's/.*image:\s*//')
+  svs_dig=$(awk '/sonic_images:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/sonic_vs:/, /^\s*[^[:space:]]/ {print}' | grep -E '^\s*digest:\s*' | sed 's/.*digest:\s*//')
+  svm_img=$(awk '/sonic_images:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/sonic_vm:/, /^\s*[^[:space:]]/ {print}' | grep -E '^\s*image:\s*' | sed 's/.*image:\s*//')
+  svm_dig=$(awk '/sonic_images:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/sonic_vm:/, /^\s*[^[:space:]]/ {print}' | grep -E '^\s*digest:\s*' | sed 's/.*digest:\s*//')
+  
+  [[ -n "$svs_img" && -n "$svs_dig" ]] || fail "sonic_vs image and digest required"
+  [[ -n "$svm_img" && -n "$svm_dig" ]] || fail "sonic_vm image and digest required"
+  [[ "$svs_dig" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "sonic_vs digest must be sha256:..."
+  [[ "$svm_dig" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "sonic_vm digest must be sha256:..."
+  
+  svs_full="${svs_img%@*}@${svs_dig}"
+  svm_full="${svm_img%@*}@${svm_dig}"
+  
+  # YANG compatibility must include entries for both images and match commit prefixes
+  oc_commit=$(awk '/^sonic_yang:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*openconfig_commit:' | sed 's/.*openconfig_commit:\s*//')
+  na_commit=$(awk '/^sonic_yang:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*sonic_native_commit:' | sed 's/.*sonic_native_commit:\s*//')
+  [[ "$oc_commit" =~ ^[0-9a-f]{40}$ ]]
+  ```
+- `scripts/lib/validate_crds.sh` — exists, 3006 bytes, mtime 2026-08-29T01:02:51
+  ```
+  #!/usr/bin/env bash
+  # Validate Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side dry-run
+  # Uses pinned commits/releases recorded in versions.lock.yaml
+  set -euo pipefail
+  
+  ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+  LOCK_FILE="${ROOT_DIR}/versions.lock.yaml"
+  
+  require() { command -v "$1" >/dev/null 2>&1 || { echo "missing command: $1" >&2; exit 1; }; }
+  
+  require kubectl
+  require awk
+  
+  # Helper to extract a key's value block between a section and next top-level key
+  section() { awk -v s="^$1:$" 'f; $0~s{f=1} f && /^[^[:space:]]/{if(!p){p=1;print}else exit} f && p{print}' "$LOCK_FILE"; }
+  
+  kubenet_commit=$(section kubenet | awk '/commit:/ {print $2; exit}')
+  kubenet_api_shape=$(section kubenet | awk '/api_shape:/ {print $2; exit}')
+  kuid_commit=$(section kuid | awk '/commit:/ {print $2; exit}')
+  # Extract the sdc core (sdcio/sdc) release explicitly, not the nested config-server/schema-server
+  sdc_core_release=$(awk '
+    $1=="sdc:" {sec=1; next}
+    sec && /^[^[:space:]]/ {exit}
+    sec && $1=="core:" {in_core=1; next}
+    in_core && /^[^[:space:]]/ {exit}
+    in_core && $1=="release:" {print $2; exit}
+  ' "$LOCK_FILE")
+  
+  [[ $kubenet_commit =~ ^[0-9a-f]{40}$ ]] || { echo "invalid kubenet commit in versions.lock.yaml" >&2; exit 1; }
+  [[ $kuid_commit =~ ^[0-9a-f]{40}$ ]] || { echo "invalid kuid commit in versions.lock.yaml" >&2; exit 1; }
+  [[ $sdc_core_release =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "invalid sdc core release in versions.lock.yaml" >&2; exit 1; }
+  
+  # Validate against pinned local copies committed in deploy/*, derived from the pinned upstream commits/releases.
+  # This avoids network flakiness while preserving immutability and API shape.
+  KUBENET_CRDS=()
+  case "$kubenet_api_shape" in
+    NetworkConfig)
+      KUBENET_CRDS=(
+        "${ROOT_DIR}/deploy/kubenet/crds/kubenet-crds.yaml"
+      )
+      ;;
+    NetworkDesign)
+      KUBENET_CRDS=(
+        "${ROOT_DIR}/deploy/kubenet/crds/kubenet-crds.yaml"
+      )
+      ;;
+    *)
+      KUBENET_CRDS=(
+        "${ROOT_DIR}/deploy/kubenet/crds/kubenet-crds.yaml"
+      )
+      ;;
+   esac
+  KUBENET_EXAMPLES=(
+    "${ROOT_DIR}/deploy/kubenet/topology.yaml"
+  )
+  KUID_CRDS=(
+    "${ROOT_DIR}/deploy/kuid/crds/kuid-crds.yaml"
+  )
+  SDC_CRDS=(
+    "${ROOT_DIR}/deploy/sdc/crds/sdc-crds.yaml"
+  )
+  
+  run_dry_run() {
+    local what=$1; shift
+    local -a files=("$@")
+    echo "[validate-crds] server-side dry-run: ${what} (${#files[@]} files)" >&2
+    # Build multiple -f flags so kubectl handles each manifest separately
+    local -a args=(apply --dry-run=server)
+    for f in "${files[@]}"; do args+=( -f "$f" ); done
+    set -x
+    kubectl "${args[@]}"
+    { set +x; } 2>/dev/null
+  }
+  
+  # Note: The actual cluster must be reachable for server-side validation.
+  # This script is idempotent and performs validation only.
+  
+  # Validate CRDs
+  run_dry_run "Kubenet CRDs" "${KUBENET_CRDS[@]}"
+  run_dry_run "KUID CRDs" "${KUID_CRDS[@]}"
+  run_dry_run "SDC CRDs" "${SDC_CRDS[@]}"
+  
+  # Validate example manifests against CRDs
+  run_dry_run "Kubenet examples" "${KUBENET_EXAMPLES[@]}"
+  
+  echo "[validate-crds] OK"
+  ```
+- `config/kind/cluster.yaml` — exists, 1601 bytes, mtime 2026-08-28T23:59:06
+  ```
+  # Declarative Kind cluster configuration (Phase 3 foundation)
+  # - Stable cluster name: ainetops
+  # - Pinned node image from versions.lock.yaml
+  # - Non-overlapping pod/service CIDRs
+  # - Extra port mappings for observability access from host
+  # - Extra mounts for local diagnostics (no secrets)
+  kind: Cluster
+  apiVersion: kind.x-k8s.io/v1alpha4
+  name: ainetops
+  networking:
+    podSubnet: 10.244.0.0/16
+    serviceSubnet: 10.96.0.0/12
+  nodes:
+  - role: control-plane
+    image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
+    labels:
+      ainetops.owner: "ainetops"
+      ainetops.kind.role: "control-plane"
+      ainetops.mgmt.attached: "false"
+    extraPortMappings:
+    - containerPort: 30090   # Prometheus NodePort
+      hostPort: 30090
+      protocol: TCP
+    - containerPort: 30300   # Grafana NodePort
+      hostPort: 30300
+      protocol: TCP
+    - containerPort: 30417   # OTLP gRPC NodePort
+      hostPort: 30417
+      protocol: TCP
+    - containerPort: 30418   # OTLP HTTP NodePort
+      hostPort: 30418
+      protocol: TCP
+    extraMounts:
+    - hostPath: /var/local/ainetops
+      containerPath: /var/local/ainetops
+      readOnly: false
+  - role: worker
+    image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
+    labels:
+      ainetops.owner: "ainetops"
+      ainetops.kind.role: "worker"
+      ainetops.mgmt.attached: "false"
+    extraMounts:
+    - hostPath: /var/local/ainetops
+      containerPath: /var/local/ainetops
+      readOnly: false
+  containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+      runtime_type = "io.containerd.runc.v2"
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/repo-structure.txt` — exists, 355 bytes, mtime 2026-08-28T20:32:15
+  ```
+       1	Repository structure (selected paths):
+       2	scripts/
+       3	scripts/provision.sh
+       4	scripts/off.sh
+       5	scripts/lib/
+       6	scripts/lib/preflight.sh
+       7	scripts/lib/verify_pins.sh
+       8	scripts/lib/validate_crds.sh
+       9	config/
+      10	config/kind/cluster.yaml
+      11	versions.lock.yaml
+      12	Makefile
+      13	plan.md
+      14	README.md
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.provision.sh.proof.txt` — exists, 3274 bytes, mtime 2026-08-29T01:03:36
+  ```
+       1	#!/usr/bin/env bash
+       2	set -euo pipefail
+       3	
+       4	# AINETOPS SONiC EVPN/VXLAN Fabric — provision script (Phase 2 updates)
+       5	# Sole implementation of environment creation/convergence per contracts/crd-api.md
+       6	
+       7	SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+       8	REPO_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
+       9	LIB_DIR="${SCRIPT_DIR}/lib"
+      10	
+      11	# shellcheck source=./lib/preflight.sh
+      12	if [[ -f "${LIB_DIR}/preflight.sh" ]]; then
+      13	  # Preflight validates versions.lock.yaml, host resources, privileges, MTU, address overlaps, KVM
+      14	  source "${LIB_DIR}/preflight.sh"
+      15	  preflight::run "$@"
+      16	fi
+      17	
+      18	# Ordered phases (Phase 3): verify pins, validate CRDs, create Kind, attach mgmt net, run capability gate
+      19	if [[ -f "${REPO_ROOT}/Makefile" ]]; then
+      20	  make -C "${REPO_ROOT}" verify-compat
+      21	fi
+      22	
+      23	# Ensure external management network exists (idempotent)
+      24	if command -v docker >/dev/null 2>&1; then
+      25	  docker network inspect ainetops-mgmt >/dev/null 2>&1 || docker network create --label ainetops.owner=ainetops ainetops-mgmt
+      26	fi
+      27	
+      28	# Ensure Kind cluster exists and is using pinned image; attach nodes to mgmt network
+      29	if [[ -x "${LIB_DIR}/kind.sh" ]]; then
+      30	  "${LIB_DIR}/kind.sh" ensure
+      31	  "${LIB_DIR}/kind.sh" attach-mgmt
+      32	  "${LIB_DIR}/kind.sh" verify-context
+      33	else
+      34	  echo "[provision] WARN: kind helper not found; skipping Kind cluster ensure" >&2
+      35	fi
+      36	
+      37	# Deploy lab topology with containerlab if available
+      38	if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
+      39	  "${LIB_DIR}/containerlab.sh" deploy || { echo "[provision] containerlab deploy failed" >&2; exit 1; }
+      40	  # Optional inspect step for diagnostics
+      41	  "${LIB_DIR}/containerlab.sh" inspect || true
+      42	else
+      43	  echo "[provision] WARN: containerlab helper not found; skipping lab deploy" >&2
+      44	fi
+      45	
+      46	# Install least-privilege RBAC base
+      47	if [[ -x "${LIB_DIR}/rbac.sh" ]]; then
+      48	  "${LIB_DIR}/rbac.sh"
+      49	fi
+      50	# Install pinned Kubenet/KUID and SDC into Kind and wait basic readiness
+      51	if [[ -x "${REPO_ROOT}/deploy/kubenet/install.sh" ]]; then
+      52	  "${REPO_ROOT}/deploy/kubenet/install.sh"
+      53	fi
+      54	if [[ -x "${REPO_ROOT}/deploy/sdc/install.sh" ]]; then
+      55	  "${REPO_ROOT}/deploy/sdc/install.sh"
+      56	fi
+      57	
+      58	# Seed SDC schema/profile/discovery (address-based); tolerate apply idempotence
+      59	if command -v kubectl >/dev/null 2>&1; then
+      60	  CTX="kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
+      61	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/sonic-schema.yaml"
+      62	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/discovery-rule.yaml"
+      63	fi
+      64	
+      65	# Run lab capability qualification (fast profile can be selected via env)
+      66	if [[ -x "${LIB_DIR}/qualify.sh" ]]; then
+      67	  "${LIB_DIR}/qualify.sh" || { echo "[provision] capability gate failed" >&2; exit 1; }
+      68	fi
+      69	
+      70	echo "[provision] Phase 3: pins verified, CRDs validated, Kind ensured/attached, apps installed, seed applied, capability gate executed."
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.off.sh.proof.txt` — exists, 968 bytes, mtime 2026-08-29T01:03:36
+  ```
+       1	#!/usr/bin/env bash
+       2	set -euo pipefail
+       3	
+       4	# AINETOPS SONiC EVPN/VXLAN Fabric — shutdown/cleanup script (Phase 3)
+       5	# Sole implementation of environment teardown per contracts/crd-api.md
+       6	
+       7	SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+       8	LIB_DIR="${SCRIPT_DIR}/lib"
+       9	
+      10	# Idempotent containerlab teardown and cleanup checks
+      11	if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
+      12	  "${LIB_DIR}/containerlab.sh" destroy || {
+      13	    echo "[off] containerlab destroy reported leftovers" >&2
+      14	    exit 1
+      15	  }
+      16	else
+      17	  echo "[off] WARN: containerlab helper not found; skipping lab teardown" >&2
+      18	fi
+      19	
+      20	# Optionally delete Kind cluster if requested
+      21	if [[ "${AINETOPS_DELETE_KIND:-false}" == "true" && -x "${LIB_DIR}/kind.sh" ]]; then
+      22	  "${LIB_DIR}/kind.sh" delete
+      23	fi
+      24	
+      25	echo "[off] Teardown complete."
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.preflight.sh.proof.txt` — exists, 7557 bytes, mtime 2026-08-29T01:03:36
+  ```
+       1	#!/usr/bin/env bash
+       2	# Strict shell reusable preflight checks (Phase 1)
+       3	set -euo pipefail
+       4	
+       5	preflight::die() { echo "[preflight] ERROR: $*" >&2; exit 1; }
+       6	preflight::warn() { echo "[preflight] WARN: $*" >&2; }
+       7	
+       8	preflight::require_cmd() {
+       9	  local cmd=$1; command -v "$cmd" >/dev/null 2>&1 || preflight::die "missing required command: $cmd"
+      10	}
+      11	
+      12	preflight::check_versions_lock() {
+      13	  local root; root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+      14	  local f="$root/versions.lock.yaml"
+      15	  [[ -f "$f" ]] || preflight::die "versions.lock.yaml not found at $f"
+      16	  # Reject 'latest' and floating refs quickly; make verify-pins will perform full validation
+      17	  if grep -nEi '\blatest\b|\bmain\b|\bmaster\b|\bHEAD\b' "$f" >/dev/null; then
+      18	    preflight::die "versions.lock.yaml contains floating refs (latest/main/master/HEAD)."
+      19	  fi
+      20	}
+      21	
+      22	preflight::host_resources() {
+      23	  # Minimal CPU/RAM/disk checks; allow override via env for CI
+      24	  local min_cpu=${AINETOPS_MIN_CPU:-4}
+      25	  local min_mem_mb=${AINETOPS_MIN_MEM_MB:-8192}
+      26	  local min_disk_mb=${AINETOPS_MIN_DISK_MB:-20480}
+      27	  # Best-effort checks; platform-specific commands may vary
+      28	  local cores mem_kb avail_kb
+      29	  cores=$(getconf _NPROCESSORS_ONLN || echo 1)
+      30	  mem_kb=$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
+      31	  avail_kb=$(df -Pm . 2>/dev/null | awk 'NR==2{print $4}' || echo 0)
+      32	  (( cores >= min_cpu )) || preflight::die "CPU cores $cores < required $min_cpu"
+      33	  (( mem_kb/1024 >= min_mem_mb )) || preflight::die "Memory $((${mem_kb}/1024))MB < required ${min_mem_mb}MB"
+      34	  (( avail_kb >= min_disk_mb )) || preflight::die "Disk ${avail_kb}MB free < required ${min_disk_mb}MB"
+      35	}
+      36	
+      37	preflight::runtime_privileges() {
+      38	  # Require Docker-compatible runtime and privileges for Kind/containerlab
+      39	  preflight::require_cmd docker
+      40	  if ! docker info >/dev/null 2>&1; then
+      41	    preflight::die "docker daemon not reachable"
+      42	  fi
+      43	}
+      44	
+      45	# Utility: IPv4 dotted-quad to integer
+      46	preflight::ip2int() {
+      47	  local IFS=.; read -r a b c d <<<"$1"; echo $(( (a<<24) + (b<<16) + (c<<8) + d ))
+      48	}
+      49	
+      50	# Utility: derive [start,end] integer range from CIDR
+      51	preflight::cidr_range() {
+      52	  local cidr=$1 ip=${1%/*} mask=${1#*/}
+      53	  local ipn; ipn=$(preflight::ip2int "$ip")
+      54	  local maskn=$(( 0xFFFFFFFF << (32-mask) & 0xFFFFFFFF ))
+      55	  local start=$(( ipn & maskn ))
+      56	  local end=$(( start | (~maskn & 0xFFFFFFFF) ))
+      57	  echo "$start $end"
+      58	}
+      59	
+      60	# Return 0 (overlap) or 1 (disjoint)
+      61	preflight::ranges_overlap() {
+      62	  local a1=$1 a2=$2 b1=$3 b2=$4
+      63	  if (( a1 <= b2 && b1 <= a2 )); then return 0; else return 1; fi
+      64	}
+      65	
+      66	preflight::address_conflicts() {
+      67	  # Ensure management network CIDR does not overlap pod/service CIDRs
+      68	  local mgmt_cidr=${AINETOPS_MGMT_CIDR:-172.31.0.0/16}
+      69	  local pod_cidr=${AINETOPS_POD_CIDR:-10.244.0.0/16}
+      70	  local svc_cidr=${AINETOPS_SERVICE_CIDR:-10.96.0.0/12}
+      71	  read -r m1 m2 < <(preflight::cidr_range "$mgmt_cidr")
+      72	  read -r p1 p2 < <(preflight::cidr_range "$pod_cidr")
+      73	  read -r s1 s2 < <(preflight::cidr_range "$svc_cidr")
+      74	  if preflight::ranges_overlap "$m1" "$m2" "$p1" "$p2"; then
+      75	    preflight::die "Management CIDR $mgmt_cidr overlaps Pod CIDR $pod_cidr"
+      76	  fi
+      77	  if preflight::ranges_overlap "$m1" "$m2" "$s1" "$s2"; then
+      78	    preflight::die "Management CIDR $mgmt_cidr overlaps Service CIDR $svc_cidr"
+      79	  fi
+      80	}
+      81	
+      82	preflight::mtu() {
+      83	  # Verify host MTU accommodates VXLAN overhead (> 1500 suggested); warn only in Phase 1
+      84	  local maxmtu=0
+      85	  while read -r mtu; do (( mtu >
+  … (truncated) …
+  " == "$kubectl_pin" ]] || preflight::die "kubectl version $kubectl_ver != pinned $kubectl_pin"
+     127	
+     128	  # helm
+     129	  local helm_ver; helm_ver=$(helm version --short --client 2>/dev/null | sed 's/+.*//' || true)
+     130	  [[ "$helm_ver" == "$helm_pin" ]] || preflight::die "helm version $helm_ver != pinned $helm_pin"
+     131	
+     132	  # containerlab (parse the 'version:' line)
+     133	  local clab_ver; clab_ver=$(containerlab version 2>/dev/null | awk -F': *' '/^version:/ {print $2; exit}')
+     134	  [[ "$clab_ver" == "$clab_pin" ]] || preflight::die "containerlab version $clab_ver != pinned $clab_pin"
+     135	}
+     136	
+     137	preflight::run() {
+     138	  preflight::check_versions_lock
+     139	  preflight::host_resources
+     140	  preflight::runtime_privileges
+     141	  preflight::address_conflicts
+     142	  preflight::mtu
+     143	  preflight::kvm_check
+     144	  preflight::tool_versions
+     145	  echo "[preflight] basic host checks passed"
+     146	}
+     147	
+     148	export -f preflight::run
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.verify_pins.sh.proof.txt` — exists, 5525 bytes, mtime 2026-08-29T01:03:36
+  ```
+       1	#!/usr/bin/env bash
+       2	# Verify versions.lock.yaml pins per NFR-003
+       3	set -euo pipefail
+       4	
+       5	fail() { echo "[verify-pins] ERROR: $*" >&2; exit 1; }
+       6	info() { echo "[verify-pins] $*" >&2; }
+       7	
+       8	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+       9	LOCK_FILE="${ROOT_DIR}/versions.lock.yaml"
+      10	
+      11	[[ -f "$LOCK_FILE" ]] || fail "missing $LOCK_FILE"
+      12	
+      13	# Reject floating refs
+      14	if grep -En '\blatest\b|\bmain\b|\bmaster\b|\bHEAD\b' "$LOCK_FILE" >/dev/null; then
+      15	  fail "floating refs found (latest/main/master/HEAD)"
+      16	fi
+      17	
+      18	# Extract helper: get yaml value by key path (simple, indentation-based)
+      19	get_block() {
+      20	  # get_block SECTION_NAME returns block lines until next top-level key
+      21	  awk -v key="$1:" '
+      22	    $1==key {print; in=1; next}
+      23	    in && /^[^[:space:]]/ {exit}
+      24	    in {print}
+      25	  ' "$LOCK_FILE"
+      26	}
+      27	
+      28	# Check kind node image digest
+      29	if ! awk '/^kind:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*node_image:\s*[^@]+@sha256:[0-9a-f]{64}\s*$' >/dev/null; then
+      30	  fail "kind.node_image must include @sha256 digest"
+      31	fi
+      32	
+      33	# Check controller-runtime and Go
+      34	awk '/^kubernetes:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*controller_runtime:\s*v[0-9]+\.[0-9]+\.[0-9]+' >/dev/null || fail "missing kubernetes.controller_runtime semver"
+      35	awk '/^kubernetes:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*go:\s*\"?1\.[0-9]+(\.[0-9]+)?\"?$' >/dev/null || fail "missing kubernetes.go version"
+      36	
+      37	# Check Kubenet/KUID/SDC pinned release+commit
+      38	for sec in kubenet kuid sdc; do
+      39	  block=$(awk -v s="^${sec}:$" 'f; $0~s{f=1} f && /^[^[:space:]]/{if (!p){p=1; print} else exit} f && p{print}' "$LOCK_FILE") || true
+      40	  grep -E "^\s*release:\s*v?[0-9]+\.[0-9]+\.[0-9]+" <<<"$block" >/dev/null || fail "$sec.release missing or not semver"
+      41	  grep -E "^\s*commit:\s*[0-9a-f]{40}\s*$" <<<"$block" >/dev/null || fail "$sec.commit must be 40-hex"
+      42	  if [[ "$sec" == "kubenet" ]]; then
+      43	    grep -E '^\s*api_shape:\s*(NetworkConfig|NetworkDesign)\s*$' <<<"$block" >/dev/null || fail "kubenet.api_shape must be NetworkConfig or NetworkDesign"
+      44	  fi
+      45	done
+      46	
+      47	# Tooling images must be pinned by digest
+      48	awk '/^tooling:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '@sha256:[0-9a-f]{64}' >/dev/null || fail "tooling images must include @sha256 digests"
+      49	
+      50	# Containerlab version pinned
+      51	awk '/^containerlab:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*version:\s*[0-9]+\.[0-9]+\.[0-9]+' >/dev/null || fail "containerlab.version must be semver"
+      52	
+      53	# SONiC images pinned: allow image+separate digest, but require digest present
+      54	svs_img=$(awk '/sonic_images:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/sonic_vs:/, /^\s*[^[:space:]]/ {print}' | grep -E '^\s*image:\s*' | sed 's/.*image:\s*//')
+      55	svs_dig=$(awk '/sonic_images:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/sonic_vs:/, /^\s*[^[:space:]]/ {print}' | grep -E '^\s*digest:\s*' | sed 's/.*digest:\s*//')
+      56	svm_img=$(awk '/sonic_images:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/sonic_vm:/, /^\s*[^[:space:]]/ {print}' | grep -E '^\s*image:\s*' | sed 's/.*image:\s*//')
+      57	svm_dig=$(awk '/sonic_images:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/sonic_vm:/, /^\s*[^[:space:]]/ {print}' | grep -E '^\s*digest:\s*' | sed 's/.*digest:\s*//')
+      58	
+      59	[[ -n "$svs_img" && -n "$svs_dig" ]] || fail "sonic_vs image and digest required"
+      60	[[ -n "$svm_img" && -n "$svm_dig" ]] || fail "sonic_vm image and digest required"
+      61	[[ "$svs_dig" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "sonic_vs digest must be sha256:..."
+      62	[[ "$svm_dig" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "sonic_vm digest must be sha256:..."
+      63	
+      64	svs_full="${svs_img%@*}@${svs_dig
+  … (truncated) …
+   40-hex"
+      71	[[ "$na_commit" =~ ^[0-9a-f]{40}$ ]] || fail "sonic_native_commit must be 40-hex"
+      72	
+      73	oc_pref=${oc_commit:0:8}
+      74	na_pref=${na_commit:0:8}
+      75	
+      76	compat_block=$(awk '/^sonic_yang:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/compatibility:/, /^[^[:space:]]/ {print}')
+      77	
+      78	grep -F "image: ${svs_full}" <<<"$compat_block" >/dev/null || fail "compatibility missing sonic_vs image ${svs_full}"
+      79	
+      80	grep -F "image: ${svm_full}" <<<"$compat_block" >/dev/null || fail "compatibility missing sonic_vm image ${svm_full}"
+      81	
+      82	grep -F "oc_version: openconfig@${oc_pref}" <<<"$compat_block" >/dev/null || fail "compatibility oc_version must match openconfig commit prefix ${oc_pref}"
+      83	
+      84	grep -F "native_version: sonic_yang@${na_pref}" <<<"$compat_block" >/dev/null || fail "compatibility native_version must match native commit prefix ${na_pref}"
+      85	
+      86	info "versions.lock.yaml pins and compatibility are consistent"
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.validate_crds.sh.proof.txt` — exists, 3608 bytes, mtime 2026-08-29T01:03:36
+  ```
+       1	#!/usr/bin/env bash
+       2	# Validate Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side dry-run
+       3	# Uses pinned commits/releases recorded in versions.lock.yaml
+       4	set -euo pipefail
+       5	
+       6	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+       7	LOCK_FILE="${ROOT_DIR}/versions.lock.yaml"
+       8	
+       9	require() { command -v "$1" >/dev/null 2>&1 || { echo "missing command: $1" >&2; exit 1; }; }
+      10	
+      11	require kubectl
+      12	require awk
+      13	
+      14	# Helper to extract a key's value block between a section and next top-level key
+      15	section() { awk -v s="^$1:$" 'f; $0~s{f=1} f && /^[^[:space:]]/{if(!p){p=1;print}else exit} f && p{print}' "$LOCK_FILE"; }
+      16	
+      17	kubenet_commit=$(section kubenet | awk '/commit:/ {print $2; exit}')
+      18	kubenet_api_shape=$(section kubenet | awk '/api_shape:/ {print $2; exit}')
+      19	kuid_commit=$(section kuid | awk '/commit:/ {print $2; exit}')
+      20	# Extract the sdc core (sdcio/sdc) release explicitly, not the nested config-server/schema-server
+      21	sdc_core_release=$(awk '
+      22	  $1=="sdc:" {sec=1; next}
+      23	  sec && /^[^[:space:]]/ {exit}
+      24	  sec && $1=="core:" {in_core=1; next}
+      25	  in_core && /^[^[:space:]]/ {exit}
+      26	  in_core && $1=="release:" {print $2; exit}
+      27	' "$LOCK_FILE")
+      28	
+      29	[[ $kubenet_commit =~ ^[0-9a-f]{40}$ ]] || { echo "invalid kubenet commit in versions.lock.yaml" >&2; exit 1; }
+      30	[[ $kuid_commit =~ ^[0-9a-f]{40}$ ]] || { echo "invalid kuid commit in versions.lock.yaml" >&2; exit 1; }
+      31	[[ $sdc_core_release =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "invalid sdc core release in versions.lock.yaml" >&2; exit 1; }
+      32	
+      33	# Validate against pinned local copies committed in deploy/*, derived from the pinned upstream commits/releases.
+      34	# This avoids network flakiness while preserving immutability and API shape.
+      35	KUBENET_CRDS=()
+      36	case "$kubenet_api_shape" in
+      37	  NetworkConfig)
+      38	    KUBENET_CRDS=(
+      39	      "${ROOT_DIR}/deploy/kubenet/crds/kubenet-crds.yaml"
+      40	    )
+      41	    ;;
+      42	  NetworkDesign)
+      43	    KUBENET_CRDS=(
+      44	      "${ROOT_DIR}/deploy/kubenet/crds/kubenet-crds.yaml"
+      45	    )
+      46	    ;;
+      47	  *)
+      48	    KUBENET_CRDS=(
+      49	      "${ROOT_DIR}/deploy/kubenet/crds/kubenet-crds.yaml"
+      50	    )
+      51	    ;;
+      52	 esac
+      53	KUBENET_EXAMPLES=(
+      54	  "${ROOT_DIR}/deploy/kubenet/topology.yaml"
+      55	)
+      56	KUID_CRDS=(
+      57	  "${ROOT_DIR}/deploy/kuid/crds/kuid-crds.yaml"
+      58	)
+      59	SDC_CRDS=(
+      60	  "${ROOT_DIR}/deploy/sdc/crds/sdc-crds.yaml"
+      61	)
+      62	
+      63	run_dry_run() {
+      64	  local what=$1; shift
+      65	  local -a files=("$@")
+      66	  echo "[validate-crds] server-side dry-run: ${what} (${#files[@]} files)" >&2
+      67	  # Build multiple -f flags so kubectl handles each manifest separately
+      68	  local -a args=(apply --dry-run=server)
+      69	  for f in "${files[@]}"; do args+=( -f "$f" ); done
+      70	  set -x
+      71	  kubectl "${args[@]}"
+      72	  { set +x; } 2>/dev/null
+      73	}
+      74	
+      75	# Note: The actual cluster must be reachable for server-side validation.
+      76	# This script is idempotent and performs validation only.
+      77	
+      78	# Validate CRDs
+      79	run_dry_run "Kubenet CRDs" "${KUBENET_CRDS[@]}"
+      80	run_dry_run "KUID CRDs" "${KUID_CRDS[@]}"
+      81	run_dry_run "SDC CRDs" "${SDC_CRDS[@]}"
+      82	
+      83	# Validate example manifests against CRDs
+      84	run_dry_run "Kubenet examples" "${KUBENET_EXAMPLES[@]}"
+      85	
+      86	echo "[validate-crds] OK"
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/Makefile.proof.txt` — exists, 2878 bytes, mtime 2026-08-29T01:03:36
+  ```
+       1	SHELL := /bin/bash
+       2	.ONESHELL:
+       3	.SHELLFLAGS := -eu -o pipefail -c
+       4	
+       5	.PHONY: help verify-pins validate-crds verify-compat lab-qualify test test-static
+       6	
+       7	help:
+       8		@echo "Targets:"
+       9		@echo "  verify-pins     Validate versions.lock.yaml has immutable pins and consistency"
+      10		@echo "  validate-crds   Server-side dry-run validation of Kubenet/KUID/SDC CRDs and examples"
+      11		@echo "  verify-compat   Run verify-pins and validate-crds together"
+      12		@echo "  lab-qualify     Run lab capability qualification suite (blocks downstream on failure)"
+      13	
+      14	verify-pins:
+      15		@echo "[verify-pins] validating versions.lock.yaml"
+      16		@"$(PWD)/scripts/lib/verify_pins.sh"
+      17	
+      18	validate-crds:
+      19		@echo "[validate-crds] server-side validating CRDs and examples"
+      20		@mkdir -p .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs
+      21		@"$(PWD)/scripts/lib/validate_crds.sh" 2>&1 | tee .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log
+      22	
+      23	verify-compat: verify-pins validate-crds
+      24		@echo "[verify-compat] pins and CRD validations passed"
+      25	
+      26	lab-qualify:
+      27		@echo "[lab-qualify] Running capability gate"
+      28		@"$(PWD)/scripts/lib/qualify.sh"
+      29	
+      30	
+      31	# ---------------------------------------------------------------------------
+      32	# test — the automated gate. Runs only checks that execute for real; nothing
+      33	# here reads a pre-written proof file.
+      34	# ---------------------------------------------------------------------------
+      35	test: test-static
+      36		@echo "PASS: static test suite"
+      37	
+      38	test-static:
+      39		@echo ">> shell syntax"
+      40		@find scripts tests -name '*.sh' -type f -print0 2>/dev/null \
+      41		  | xargs -0 -r -n1 bash -n
+      42		@echo ">> yaml parses"
+      43		@find lab config deploy -name '*.y*ml' -type f -print0 2>/dev/null \
+      44		  | xargs -0 -r -n1 sh -c 'yq e "." "$$0" > /dev/null || { echo "BAD YAML: $$0"; exit 1; }'
+      45		@echo ">> pins are immutable and resolvable"
+      46		@./scripts/install-deps.sh --check
+      47		@echo ">> containerlab topology is valid"
+      48		@test -f lab/topology.clab.yml && containerlab inspect -t lab/topology.clab.yml --all >/dev/null 2>&1 || true
+      49		@echo ">> required tooling present"
+      50		@for t in kubectl kind helm yq gnmic containerlab docker; do \
+      51		   command -v $$t >/dev/null || { echo "MISSING TOOL: $$t"; exit 1; }; \
+      52		 done
+      53		@echo ">> pinned SONiC image present locally"
+      54		@docker images --digests --format '{{.Digest}}' | grep -q "$$(yq e '.sonic_images.sonic_vs.image' versions.lock.yaml | sed 's/.*@//')" \
+      55		  || { echo "SONiC VS image not loaded — run: docker pull $$(yq e '.sonic_images.sonic_vs.image' versions.lock.yaml)"; exit 1; }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/versions.lock.yaml.proof.txt` — exists, 5465 bytes, mtime 2026-08-29T01:03:36
+  ```
+       1	# Compatibility manifest — immutable pins (NFR-003)
+       2	# GENERATED by scripts/install-deps.sh. Every value below was resolved against a
+       3	# live upstream; nothing here is hand-written. Re-run the script to refresh.
+       4	# Resolved: 2026-08-28T20:45:00Z
+       5	
+       6	kind:
+       7	  binary: v0.22.0
+       8	  node_image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
+       9	  kubernetes: v1.29.4
+      10	
+      11	kubernetes:
+      12	  kubernetes: v1.29.4
+      13	  controller_runtime: v0.17.5
+      14	  go: '1.22.5'
+      15	
+      16	kubenet:
+      17	  repo: https://github.com/kubenet-dev/kubenet
+      18	  release: v0.0.1
+      19	  commit: bae1c4878257194b64b8435208663a9e286547ed
+      20	  release_bundle: artifacts/kubenet-release.yaml
+      21	  api_shape: NetworkConfig   # confirm against the bundle before use (T008)
+      22	
+      23	kuid:
+      24	  repo: https://github.com/kuidio/kuid
+      25	  release: v0.0.13
+      26	  commit: 7528e81528c2e9f586b6fe657907424ad93c7ead
+      27	  artifacts_dir: artifacts
+      28	
+      29	sdc:
+      30	  core:
+      31	    repo: https://github.com/sdcio/sdc
+      32	    release: v0.31.0
+      33	  config_server:
+      34	    repo: https://github.com/sdcio/config-server
+      35	    release: v0.0.58
+      36	    commit: bcc56b045a689032c5123a9f50bcf56ed8c630dc
+      37	  schema_server:
+      38	    repo: https://github.com/sdcio/schema-server
+      39	    release: v0.0.34
+      40	    commit: c57e9d699c981251081988fd39bd81149dd3d9b3
+      41	
+      42	containerlab:
+      43	  repo: https://github.com/srl-labs/containerlab
+      44	  version: 0.79.0
+      45	  commit: 89055fd504f1b862c8bbab4fea186025c2ce6647
+      46	
+      47	host_tools:
+      48	  kubectl: v1.29.4
+      49	  helm: v3.14.4
+      50	  yq: v4.44.1
+      51	  gnmic: 0.47.0
+      52	
+      53	# Tooling images/charts pinned by immutable digests
+      54	# Required: gnmic, OTel Collector, Prometheus, Grafana, Grafana Flow plugin, topology generator
+      55	# Note: digests are immutable; registries may vary by operator preference
+      56	
+      57	tooling:
+      58	  gnmic: ghcr.io/openconfig/gnmic@sha256:fd59f5f1c7a98e14ff5b14f85329e5e0a4d49ef1d5b0dddfd910b6caef03b9fb
+      59	  otel_collector: otel/opentelemetry-collector-contrib@sha256:e07e325e303e86f4a87a617491e921b579a92da6d404007394757ac910bf9587
+      60	  prometheus: prom/prometheus@sha256:f20d3127bf2876f4a1df76246fca576b41ddf1125ed1c546fbd8b16ea55117e6
+      61	  grafana: grafana/grafana@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+      62	  grafana_flow_plugin: grafana/flow-plugin@sha256:5c9d6b4d6b899be4a3f3c728b3acb0a8f8c3e6a46c9f5b07d705e8ca3c1a2c44
+      63	  topology_generator: ghcr.io/ainetops/topology-generator@sha256:9a0b2b0d57a4c2b2b5c78a7d34c8a0c1f9a3b7d6e2c4e5f6a7b8c9d0e1f2a3b4
+      64	
+      65	# ---------------------------------------------------------------------------
+      66	# SONiC images
+      67	#   sonic_vs  — pinned by digest to the containerlab-supported community build.
+      68	#   sonic_vm  — built via vrnetlab from a SONiC .img by the operator; pin the
+      69	#               resulting local image digest here. Required only for the SRv6/EVPN
+      70	#               conformance profile when sonic_vs fails the capability gate.
+      71	# ---------------------------------------------------------------------------
+      72	sonic_images:
+      73	  sonic_vs:
+      74	    image: docker.io/netreplica/docker-sonic-vs@sha256:1142d9e4f763cfb0341f0a324f00bc4fad9cf3b40cc130accdc11c40967d0e85
+      75	    digest: sha256:1142d9e4f763cfb0341f0a324f00bc4fad9cf3b40cc130accdc11c40967d0e85
+      76	    tag: 20220111
+      77	    notes: Fast profile; no KVM required; containerlab kind sonic-vs
+      78	  sonic_vm:
+      79	    image: local/sonic-vm
+      80	    digest: sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5
+      81	    notes: Conformance profile; build via vrnetlab; requires KVM; digest is operator-built
+      82	
+      83	# --------------------------------------------------
+  … (truncated) …
+  _native_branch: '202405'
+      92	  sonic_native_commit: cfc766e13eccab4e7603808db3bfa9c5b2dfef17
+      93	  compatibility:
+      94	    - image: docker.io/netreplica/docker-sonic-vs@sha256:1142d9e4f763cfb0341f0a324f00bc4fad9cf3b40cc130accdc11c40967d0e85
+      95	      oc_version: openconfig@f3443414
+      96	      native_version: sonic_yang@cfc766e1
+      97	    - image: local/sonic-vm@sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5
+      98	      oc_version: openconfig@f3443414
+      99	      native_version: sonic_yang@cfc766e1
+     100	  notes: >
+     101	    The provider validates the target SONiC image against these commit pins before
+     102	    generating SDC intent. A mismatch sets SchemaMismatch and blocks downstream.
+     103	
+     104	notes:
+     105	  redistribution: >
+     106	    SONiC images must be acquired by the operator under upstream terms and are
+     107	    not redistributed here. All other artifacts are pinned by immutable digest
+     108	    or tag-resolved commit SHA.
+  ```
+- `deploy/kubenet/crds/kubenet-crds.yaml` — exists, 2033 bytes, mtime 2026-08-29T01:06:35
+  ```
+  # Kubenet CRDs (pinned API shape per versions.lock.yaml; upstream commit: bae1c4878257194b64b8435208663a9e286547ed)
+  ---
+  apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: networkconfigs.network.kubenet.dev
+  spec:
+    group: network.kubenet.dev
+    scope: Namespaced
+    names:
+      plural: networkconfigs
+      singular: networkconfig
+      kind: NetworkConfig
+      shortNames: [netcfg]
+    versions:
+      - name: v1alpha1
+        served: true
+        storage: true
+        schema:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              status:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+  ---
+  apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: networkdevices.network.kubenet.dev
+  spec:
+    group: network.kubenet.dev
+    scope: Namespaced
+    names:
+      plural: networkdevices
+      singular: networkdevice
+      kind: NetworkDevice
+      shortNames: [ndev]
+    versions:
+      - name: v1alpha1
+        served: true
+        storage: true
+        schema:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              status:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+  ---
+  apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: topologies.network.kubenet.dev
+  spec:
+    group: network.kubenet.dev
+    scope: Namespaced
+    names:
+      plural: topologies
+      singular: topology
+      kind: Topology
+    versions:
+      - name: v1alpha1
+        served: true
+        storage: true
+        schema:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              status:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+  ```
+- `deploy/kubenet/topology.yaml` — exists, 405 bytes, mtime 2026-08-28T22:25:37
+  ```
+  # T025: Topology resource (simplified) per pinned API
+  apiVersion: network.kubenet.dev/v1alpha1
+  kind: Topology
+  metadata:
+    name: ainetops-topology
+    namespace: kubenet-system
+  spec:
+    # Simplified node list; actual provider consumes NetworkDevice derived by Kubenet
+    nodes:
+    - name: spine01
+      role: spine
+    - name: spine02
+      role: spine
+    - name: leaf01
+      role: leaf
+    - name: leaf02
+      role: leaf
+  ```
+- `deploy/kuid/crds/kuid-crds.yaml` — exists, 2720 bytes, mtime 2026-08-28T22:23:50
+  ```
+  # Minimal CRD definitions for KUID indices and claims
+  ---
+  apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: ipindices.id.kuid.dev
+  spec:
+    group: id.kuid.dev
+    scope: Namespaced
+    names:
+      plural: ipindices
+      singular: ipindex
+      kind: IPIndex
+    versions:
+      - name: v1alpha1
+        served: true
+        storage: true
+        schema:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                properties:
+                  cidr:
+                    type: string
+              status:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+  ---
+  apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: asnindices.id.kuid.dev
+  spec:
+    group: id.kuid.dev
+    scope: Namespaced
+    names:
+      plural: asnindices
+      singular: asnindex
+      kind: ASNIndex
+    versions:
+      - name: v1alpha1
+        served: true
+        storage: true
+        schema:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                properties:
+                  range:
+                    type: object
+                    properties:
+                      start: { type: integer }
+                      end: { type: integer }
+              status:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+  ---
+  apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: vniindices.id.kuid.dev
+  spec:
+    group: id.kuid.dev
+    scope: Namespaced
+    names:
+      plural: vniindices
+      singular: vniindex
+      kind: VNIIndex
+    versions:
+      - name: v1alpha1
+        served: true
+        storage: true
+        schema:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                properties:
+                  range:
+                    type: object
+                    properties:
+                      start: { type: integer }
+                      end: { type: integer }
+              status:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+  ---
+  apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: claims.id.kuid.dev
+  spec:
+    group: id.kuid.dev
+    scope: Namespaced
+    names:
+      plural: claims
+      singular: claim
+      kind: Claim
+    versions:
+      - name: v1alpha1
+        served: true
+        storage: true
+        schema:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              status:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+  ```
+- `deploy/sdc/crds/sdc-crds.yaml` — exists, 1820 bytes, mtime 2026-08-28T22:23:56
+  ```
+  # Minimal SDC CRDs required for Schema/Config/Target
+  ---
+  apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: schemas.sdc.sdcio.dev
+  spec:
+    group: sdc.sdcio.dev
+    scope: Namespaced
+    names:
+      plural: schemas
+      singular: schema
+      kind: Schema
+    versions:
+      - name: v1alpha1
+        served: true
+        storage: true
+        schema:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              status:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+  ---
+  apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: configs.sdc.sdcio.dev
+  spec:
+    group: sdc.sdcio.dev
+    scope: Namespaced
+    names:
+      plural: configs
+      singular: config
+      kind: Config
+    versions:
+      - name: v1alpha1
+        served: true
+        storage: true
+        schema:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              status:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+  ---
+  apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: targets.sdc.sdcio.dev
+  spec:
+    group: sdc.sdcio.dev
+    scope: Namespaced
+    names:
+      plural: targets
+      singular: target
+      kind: Target
+    versions:
+      - name: v1alpha1
+        served: true
+        storage: true
+        schema:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              status:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log` — exists, 733 bytes, mtime 2026-08-29T01:03:44
+  ```
+  [validate-crds] server-side dry-run: Kubenet CRDs (1 files)
+  + kubectl apply --dry-run=server -f deploy/kubenet/crds/kubenet-crds.yaml
+  customresourcedefinition/applied (server dry-run)
+  [validate-crds] server-side dry-run: KUID CRDs (1 files)
+  + kubectl apply --dry-run=server -f deploy/kuid/crds/kuid-crds.yaml
+  customresourcedefinition/applied (server dry-run)
+  [validate-crds] server-side dry-run: SDC CRDs (1 files)
+  + kubectl apply --dry-run=server -f deploy/sdc/crds/sdc-crds.yaml
+  customresourcedefinition/applied (server dry-run)
+  [validate-crds] server-side dry-run: Kubenet examples (1 files)
+  + kubectl apply --dry-run=server -f deploy/kubenet/topology.yaml
+  topology.network.kubenet.dev/example (server dry-run)
+  [validate-crds] OK
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log` — exists, 733 bytes, mtime 2026-08-29T01:03:44
+  ```
+  [validate-crds] server-side dry-run: Kubenet CRDs (1 files)
+  + kubectl apply --dry-run=server -f deploy/kubenet/crds/kubenet-crds.yaml
+  customresourcedefinition/applied (server dry-run)
+  [validate-crds] server-side dry-run: KUID CRDs (1 files)
+  + kubectl apply --dry-run=server -f deploy/kuid/crds/kuid-crds.yaml
+  customresourcedefinition/applied (server dry-run)
+  [validate-crds] server-side dry-run: SDC CRDs (1 files)
+  + kubectl apply --dry-run=server -f deploy/sdc/crds/sdc-crds.yaml
+  customresourcedefinition/applied (server dry-run)
+  [validate-crds] server-side dry-run: Kubenet examples (1 files)
+  + kubectl apply --dry-run=server -f deploy/kubenet/topology.yaml
+  topology.network.kubenet.dev/example (server dry-run)
+  [validate-crds] OK
+  ```
+
+## CITED BUT NOT AUTO-GROUNDED — verified PRESENT by direct stat
+The critic's path extractor did not include these in the snapshot above, but each DOES exist on disk (confirmed by a direct read-only stat). Their absence from the snapshot is a TOOLING limitation, NOT evidence that the file is missing. Do NOT reject a criterion solely because one of these is 'not in the snapshot':
+- `/dev/kvm` — verified on disk (stat)
+
+════════════════════════ DESIGN CONTEXT (read-only background — NOT acceptance criteria) ════════════════════════
+The following are the feature's design documents. Use them ONLY to understand what
+the criteria mean and whether the evidence is consistent with the intended design.
+They are NOT a checklist: do not reject for anything that is not an explicit
+acceptance criterion in the SPEC section above. Context can inform a rejection of a
+real criterion; it can never become a new one.
+## Context: spec (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/spec.md
+# Feature Specification: AINETOPS SONiC EVPN/VXLAN Fabric
+
+**Feature Branch**: `001-ainetops-sonic-evpn-fabric`  
+**Created**: 2026-08-28  
+**Status**: Draft  
+**Input**: Replace the former vendor-specific router/MPLS use case with a fully open-source,
+Kubernetes-native AINETOPS platform. The lab uses SONiC devices in containerlab, translates
+supported MPLS VPN services to data-center EVPN/VXLAN constructs, orchestrates them with
+Kubenet/KUID and SDC, and observes them with OpenTelemetry, Prometheus, and Grafana.
+
+## Scope and interpretation
+
+"Replace a Cisco router with SONiC" means replace its **logical role and supported service
+intent** with a SONiC leaf, border leaf, or spine. It does not mean SONiC can run on arbitrary
+router hardware or that every WAN/MPLS feature has an EVPN equivalent. The MVP covers a
+containerlab fabric and only the mappings listed in this specification. It contains no
+Crosswork, NSO, CNC, proprietary NED, or vendor-specific controller dependency.
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 - Translate supported MPLS VPN intent (Priority: P2)
+
+A network engineer supplies normalized L2VPN, VPLS, VPWS, or L3VPN service intent. AINETOPS
+validates it and produces Kubenet `Network` intent for a SONiC EVPN/VXLAN fabric without
+silently discarding semantics.
+
+**Why this priority**: Service translation is the business outcome; however the translation
+controller lands after the MVP (Phase 6), so this story is P2 to align with delivery order.
+
+**Independent Test**: Apply one supported L2 service, one L3 service, and one unsupported
+MPLS-TE service. The supported services produce the expected bridge/VRF/VNI/attachment
+resources. The unsupported service is rejected before any device configuration changes.
+
+**Acceptance Scenarios**:
+
+1. **Given** VPLS or multipoint L2VPN intent, **When** translation succeeds, **Then** the
+   result is an EVPN bridge domain with a unique L2VNI, attachment VLANs, and import/export
+   route targets.
+2. **Given** L3VPN intent, **When** translation succeeds, **Then** the result is a tenant VRF,
+   L3VNI, RD, route targets, leaf attachments, and EVPN Type-5 routing where supported by the
+   qualified SONiC image.
+3. **Given** VPWS/E-Line intent, **When** translation succeeds, **Then** the result is a
+   dedicated two-attachment bridge domain and L2VNI and is explicitly marked as not proving
+   full pseudowire/RFC 8214 feature equivalence.
+4. **Given** RSVP-TE, SR-MPLS policy, pseudowire OAM/control-word, multicast VPN, unsupported
+   QoS, or another unmapped property, **When** it is validated, **Then** the request reports
+   the exact unsupported fields and creates no downstream `Network` or SDC `Config` resource.
+
+---
+
+### User Story 2 - Reconcile the fabric declaratively (Priority: P1)
+
+An operator manages topology and services through Kubernetes resources. Kubenet/KUID derive
+the abstract per-device intent and allocations; an AINETOPS SONiC provider renders validated
+… (context truncated at line boundary) …
+
+## Context: plan (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/plan.md
+# Implementation Plan: AINETOPS SONiC EVPN/VXLAN Fabric
+
+**Branch**: `001-ainetops-sonic-evpn-fabric` | **Date**: 2026-08-28 | **Spec**: [spec.md](./spec.md)  
+**Input**: Feature specification from `specs/001-ainetops-sonic-evpn-fabric/spec.md`
+
+## Summary
+
+Build an open-source reference platform that expresses data-center fabric intent with
+Kubernetes, launches SONiC leaf/spine nodes in containerlab, maps supported legacy VPN
+services to Kubenet EVPN/VXLAN `Network` resources, renders per-device configuration through a
+small AINETOPS SONiC provider, and uses SDC for validated gNMI transactions and drift.
+An AINETOPS `SRv6Service` controller adds a bidirectional IPv6 VPN across SONiC headend,
+transit, and End.DT46 endpoint behaviors. In-cluster gNMIc and OpenTelemetry Collector feed
+Prometheus and Grafana topology/service-path observability.
+
+The MVP control path is intentionally direct:
+
+```text
+Kubenet/KUID → NetworkDevice → ainetops-sonic-provider → SDC Config → gNMI → SONiC
+Kubenet/KUID → SRv6Service → ainetops-srv6-controller → SDC Config → gNMI → SONiC
+```
+
+Kubenet's optional rendered-config Git review and SDC Workspace/Rollout remain later
+enhancements after the direct path passes end-to-end acceptance.
+
+## Technical Context
+
+**Controller language**: Go version selected by the pinned Kubernetes/controller-runtime
+compatibility matrix.  
+**Platform**: Linux host, a pinned Kind cluster/node image, Docker-compatible runtime,
+containerlab, and optional KVM/nested virtualization for `sonic-vm`.  
+**Primary dependencies**: pinned Kind/Kubernetes node image, controller-runtime, Kubenet/KUID,
+SDC, SONiC image/YANG compatibility set, containerlab, OpenTelemetry Collector, Prometheus,
+Grafana, with gNMIc as the sole SONiC device-metric collector feeding OTel over OTLP.  
+**Storage**: Kubernetes API for desired/status state; in-cluster PVCs for SDC state required by
+its pinned release and Prometheus metrics. No host application database is added.  
+**Southbound**: gNMI with JSON_IETF and TLS; direct SSH/CLI is excluded.  
+**Testing**: Go unit/golden tests, CRD schema/server dry-run, controller envtest, SDC offline
+validation, Kind provisioning/off idempotence, containerlab integration/traffic/failure tests,
+centralized-workload inventory, and observability assertions.  
+**Reference scale**: 2 spines, 2 leaves, 2 EVPN Linux endpoints, 2 SRv6 Linux endpoints; at
+least one L2VNI, one L3VNI, two isolated VRFs, and one bidirectional SRv6 VPN.  
+**Constraints**: immutable version pins; privileged lab runtime; exact SONiC image/schema
+qualification; no silent migration loss; scoped field ownership; no proprietary runtime.
+
+## Architecture
+
+```text
+                  scripts/provision.sh / scripts/off.sh
+                                  │
+                    owned Docker management network
+             ┌────────────────────┴────────────────────┐
+             │                                         │
+             ▼                                         ▼
+```
+… (context truncated at line boundary) …
+
+## Context: contract:crd-api (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/contracts/crd-api.md
+# Contract: Kubernetes APIs and Generated Resources
+
+**Applies to**: Kubenet/KUID resources, required `SRv6Service`, optional `MigrationPlan`,
+provider-generated SDC resources, status, ownership, and version compatibility.
+
+## API boundary
+
+1. Users express ongoing fabric/service intent with the pinned upstream Kubenet `Network` API.
+2. KUID owns identifier/address allocation through its upstream claim APIs.
+3. Kubenet derives upstream `NetworkDevice` objects.
+4. `ainetops-sonic-provider` creates upstream SDC `Config` resources.
+5. SDC is the only component authorized to mutate device configuration.
+6. The required AINETOPS `SRv6Service` expresses only SRv6 endpoint/path/behavior intent;
+   KUID owns its locator/SID claims and SDC owns its device transactions.
+7. The optional AINETOPS `MigrationPlan` records source translation and cutover evidence; it
+   does not replace `Network`, `NetworkDevice`, or `Config`.
+
+All APIs and their controllers run in the named Kind cluster. Containerlab is not an
+application runtime and hosts only network/endpoint nodes.
+
+## Deployment contract
+
+- `config/kind/cluster.yaml` is the declarative Kind cluster definition; its config API,
+  cluster name, node roles, node image digest, pod/service CIDRs, mounts, labels, and port
+  mappings are version controlled.
+- `scripts/provision.sh` is the sole implementation of complete environment creation and
+  convergence. Make/CI commands may invoke it but may not reimplement its phases.
+- `scripts/off.sh` is the sole implementation of environment shutdown and cleanup.
+- Every platform application is installed into Kind with pinned Kubernetes manifests or Helm
+  releases. Standalone application containers and Compose files are contract violations.
+- Namespaces, Services, PVCs, Secrets, RBAC, monitoring discovery, dashboards, datasources,
+  and alert rules are Kubernetes resources.
+- Kind nodes and containerlab management interfaces share a dedicated labeled Docker network;
+  pod and service CIDRs do not overlap it.
+- Lifecycle scripts resolve the exact cluster, topology, and network targets and refuse broad
+  or unowned deletion.
+
+## Version contract
+
+- Pin one complete Kubenet/KUID release or commit, including CRDs, controllers, examples, and
+  provider input schemas.
+- Pin one SDC release and install only its matching CRDs/controllers.
+- Pin one containerlab release and immutable SONiC image digest per lab profile.
+- Pin one SONiC/OpenConfig YANG schema commit and provider mapping version per SONiC image.
+- Pin gNMIc, the gNMI-path/label mapping, Grafana Flow plugin, and generated topology-asset
+  schema with the observability stack.
+- Publish the five-part compatibility set in deployment metadata and provider status.
+- A mismatch MUST set `SchemaMismatch`, emit no changed SDC spec, and leave the last known
+  valid applied intent intact.
+- `latest`, floating branches, and a mixture of Kubenet tutorial/main API shapes are forbidden.
+
+## Required SRv6Service API
+… (context truncated at line boundary) …
+
+## Context: contract:reconciliation (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/contracts/reconciliation.md
+# Contract: Translation, Reconciliation, and Safety
+
+**Applies to**: Migration translation, the AINETOPS SONiC provider, SDC integration, device
+application, drift, failure, and deletion.
+
+## Rule 1: No silent semantic loss
+
+- A mapping is allowed only when every required source property has a qualified target
+  equivalent.
+- Limited equivalence, such as VPWS represented by a dedicated L2VNI, requires explicit opt-in
+  and a durable status finding.
+- Unsupported fields reject the entire migration plan before allocations, generated Network,
+  or SDC Config mutation.
+- Raw device CLI is never an accepted source format.
+
+## Rule 2: Deterministic, idempotent rendering
+
+- Equivalent normalized input, topology, allocations, schema, and mapping version produce
+  byte-equivalent canonical SDC intent.
+- Resource names, ordering, and hashes are stable.
+- An unchanged render results in no Kubernetes spec write and no gNMI Set.
+- Rendering has no hidden external allocation or mutable local state.
+
+## Rule 3: Dependency gates precede mutation
+
+The provider does not emit changed device intent until:
+
+1. source intent and references are valid;
+2. topology and all required allocations are Ready;
+3. the target and credentials are Ready;
+4. image/schema/mapping compatibility matches;
+5. every rendered path passes offline/schema validation.
+
+Failure sets a current-generation condition and Event. Partial render output is not applied.
+
+## Rule 4: One owner per managed path
+
+- Kubenet/KUID owns intent and allocations; provider owns generated Config specs; SDC owns
+  device transactions.
+- Provider uses scoped paths and server-side apply field ownership.
+- AINETOPS does not overwrite unmanaged device paths.
+- Conflicting ownership or intent priority is a terminal error until explicitly resolved.
+
+## Rule 5: Safe transaction and readiness semantics
+
+- SDC validation and transaction confirmation are mandatory; direct device mutation is
+  forbidden.
+- Aggregate `Ready=True` requires all mandatory per-device operations to be confirmed.
+- A mixed success/failure result is `Degraded`, records every target, and never claims full
+  success.
+- The last valid configuration remains desired when a new generation fails validation.
+- No automated rollback may erase unrelated, shared, or manually owned configuration.
+
+## Rule 6: Drift is explicit
+
+- SDC compares intended and running configuration for owned paths.
+- Lab mode uses documented revertive behavior and verifies restoration.
+- Unmanaged-path changes are observed only if subscribed; they are not reverted or claimed.
+- Production drift policy must be explicitly selected and cannot inherit lab defaults silently.
+
+## Rule 7: Bounded retry and classified errors
+
+- Transient transport/unavailability failures retry with bounded exponential backoff and jitter.
+- Terminal schema, unsupported-feature, ownership, collision, and compatibility errors do not
+  hot-loop; they retry on relevant generation or dependency change.
+… (context truncated at line boundary) …
+
+## Context: data-model (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/data-model.md
+# Data Model: AINETOPS SONiC EVPN/VXLAN Fabric
+
+**Feature**: AINETOPS SONiC EVPN/VXLAN Fabric  
+**Date**: 2026-08-28
+
+## Ownership model
+
+| Layer | Source of truth | Owns | Must not own |
+|---|---|---|---|
+| Migration boundary | Git and optional `MigrationPlan` | Source provenance, mapping findings, cutover decision | Allocations or device configuration |
+| Kubenet/KUID | Existing Kubernetes resources | Topology, abstract network intent, inventory, IP/ASN/VLAN/VNI allocation | Device-specific YANG |
+| AINETOPS SONiC provider | Controller reconciliation | Deterministic `NetworkDevice`/`SRv6Service`-to-SONiC rendering and readiness propagation | Independent allocation or device transaction |
+| SDC | Existing Kubernetes resources and target state | Schemas, device transactions, running/intended comparison, drift | Service semantics |
+| SONiC | Running network state | Applied forwarding/control-plane state | Desired-state authority |
+| Observability | Prometheus | Time-series metrics and alert state | Configuration source of truth |
+
+The same field/path MUST have one owner. AINETOPS uses server-side apply and a dedicated field
+manager for generated SDC resources. Unmanaged SONiC paths remain untouched.
+
+## Runtime and lifecycle model
+
+| Runtime resource | Owner | Contents / behavior |
+|---|---|---|
+| Kind cluster `ainetops` | `scripts/provision.sh` / `scripts/off.sh` | Sole application runtime; pinned node image and declarative cluster configuration |
+| Kind namespaces | Kubernetes manifests/Helm releases | Kubenet/KUID, SDC, AINETOPS, monitoring, and any upstream system namespaces |
+| In-cluster applications | Kubernetes controllers | Kubenet/KUID, SDC, provider/translator/SRv6 controller, gNMIc, OTel Collector, Prometheus, Grafana |
+| AINETOPS management network | Lifecycle scripts | Labeled Docker network shared by Kind nodes and containerlab management interfaces |
+| Containerlab topology | Lifecycle scripts + topology YAML | SONiC spines/leaves and Linux traffic endpoints only |
+| Application state | Kubernetes APIs/PVCs/Secrets | Desired state, metrics retention, credentials, dashboards, alerts, and schema data |
+
+Every owned non-Kubernetes runtime resource carries stable AINETOPS labels or a deterministic
+name so `off.sh` can resolve its exact target without broad globs. The script never deletes a
+Kind cluster or Docker network whose ownership/name does not match its selected cluster.
+
+Lifecycle phases are durable and repeat-safe:
+
+```text
+Absent → NetworkReady → KindReady → LabReady → AppsReady → TargetsReady → FabricReady
+   ▲                                                             │
+   │                                                SRv6Ready → ObservabilityReady
+   │                                                             │
+   └────────── off.sh: evidence → lab removal → Kind deletion → cleanup ───────────┘
+```
+
+Provisioning resumes from the first unmet phase. Shutdown tolerates any phase and treats an
+… (context truncated at line boundary) …
+
+## Context: research (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/research.md
+# Research: AINETOPS Open-Source SONiC Orchestration
+
+**Feature**: AINETOPS SONiC EVPN/VXLAN Fabric  
+**Date**: 2026-08-28  
+**Method**: Independent research agents reviewed the former specification and current official
+Kubenet, SDC, SONiC, containerlab, OpenTelemetry, Prometheus, Grafana, and gNMIc sources.
+
+## Executive decision
+
+Use the smallest declarative control plane that preserves clear ownership:
+
+```text
+Git or kubectl
+      │
+      ▼
+Kubernetes API
+      ├── Kubenet topology + Network intent
+      ├── KUID inventory and identifier claims
+      ├── required SRv6Service
+      └── optional MigrationPlan (audit/cutover only)
+                         │
+                         ▼
+               Kubenet NetworkDevice
+                         │
+                         ▼
+              ainetops-sonic-provider
+                         │
+                         ▼
+                SDC Config / ConfigSet
+                         │  YANG validation + transaction + drift
+                         ▼
+                 gNMI / JSON_IETF
+                         │
+                         ▼
+            containerlab SONiC leaf/spine fabric
+```
+
+This deliberately avoids a second workflow engine. Kubernetes reconciliation is the workflow;
+Kubenet/KUID owns abstract intent and allocation; the AINETOPS provider owns only rendering;
+SDC owns schema-aware target transactions and running-state comparison.
+
+## Decision 1: Reuse Kubenet/KUID instead of defining fabric CRDs
+
+- **Decision**: Pin and reuse Kubenet `Topology`, design/config, `Network`, and
+  `NetworkDevice` APIs plus KUID IP/ASN/VLAN/VNI index and claim APIs.
+- **Rationale**: Kubenet is explicitly designed to use Kubernetes as a declarative,
+  continuously reconciled NOS automation system. Its published examples already model a
+  default underlay plus bridged EVPN, routed EVPN, and IRB networks, then derive per-device
+  `NetworkDevice` objects and SDC `Config` objects.
+- **Important version finding**: The v0.0.1 tutorial uses `NetworkConfig` and fields such as
+  `bridgeDomains`/`routingTables`; newer bundled artifacts may expose `NetworkDesign` and
+  `bridges`/`routers`. Implementation must pin one complete commit/release and validate every
+  example against that release's CRDs. It must not combine tutorial YAML with unpinned main.
+- **Alternative rejected**: A new `Fabric`, `Tenant`, `VRF`, and `Attachment` CRD family would
+  duplicate the upstream intent model and create ambiguous ownership.
+- **Sources**: [Kubenet purpose and components](https://learn.kubenet.dev/),
+  [network configuration](https://learn.kubenet.dev/02-examples/04_networkconfig/),
+  [default network](https://learn.kubenet.dev/02-examples/05_defaultnetwork/),
+  [bridged EVPN](https://learn.kubenet.dev/02-examples/06_bridgednetwork/),
+  [routed EVPN](https://learn.kubenet.dev/02-examples/07_routednetwork/), and
+  [IRB](https://learn.kubenet.dev/02-examples/08_irbnetwork/).
+
+## Decision 2: Use SDC as the only device transaction layer
+… (context truncated at line boundary) …
+
+## Context: quickstart (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/quickstart.md
+# Quickstart: Validate the AINETOPS SONiC Fabric
+
+**Feature**: AINETOPS SONiC EVPN/VXLAN Fabric  
+**Purpose**: Acceptance workflow the implementation MUST make executable. Commands name the
+planned stable targets; their implementation is tracked in [tasks.md](./tasks.md).
+
+## Prerequisites
+
+- Linux host with the CPU/RAM/disk documented in the implementation README.
+- Docker-compatible runtime and permission to launch privileged network containers.
+- `kind`, `kubectl`, `helm`, `containerlab`, `jq`, `curl`, `tcpdump`, and a gNMI client at
+  versions checked by `versions.lock.yaml`.
+- KVM/nested virtualization only when the `sonic-vm` conformance profile is selected.
+- A locally imported immutable SONiC image whose digest matches `versions.lock.yaml`.
+- No production credentials; lab credentials/certificates are generated into Kubernetes
+  Secrets and removed during teardown.
+
+## 1. Provision the complete environment
+
+```bash
+./scripts/provision.sh --profile sonic-vs --cluster-name ainetops
+```
+
+This is the primary and idempotent lifecycle command. It performs:
+
+- pin and host preflight validation;
+- creation of the dedicated labeled Docker management network;
+- creation of the pinned Kind cluster and attachment of its nodes to that network;
+- SONiC capability qualification for the selected profile;
+- deployment of the eight-node containerlab topology;
+- installation inside Kind of Kubenet/KUID, SDC, the AINETOPS provider/translator, OTel
+  Collector, Prometheus, Grafana, Prometheus Operator resources, and gNMIc;
+- application of schemas, discovery, topology, allocation pools, and default fabric intent;
+- bounded waits for all required readiness gates.
+
+Expected: the command completes without an undocumented manual step. Running the same command
+again reports convergence and does not recreate the cluster, churn application releases, or
+issue unchanged device configuration.
+
+If the fast profile fails its unmodified capability gate, use:
+
+```bash
+./scripts/off.sh --cluster-name ainetops
+./scripts/provision.sh --profile sonic-vm --cluster-name ainetops
+```
+
+The gate verifies:
+
+- gNMI Capabilities, Get, Set, and Subscribe;
+- authentication/TLS and JSON_IETF encoding;
+- persistent writable configuration;
+- all YANG paths the provider needs;
+- BGP EVPN/VXLAN services and required route behavior.
+- IPv6 underlay forwarding, SRH processing, H.Encaps.Red, transit End, End.DT46, SID-list/
+  steering programming, `sonic-srv6` gNMI Set/Get, and MySID counters.
+
+The conformance suite MUST NOT skip a failed capability.
+
+## 2. Verify Kind and centralized applications
+
+```bash
+kind get clusters
+kubectl cluster-info --context kind-ainetops
+kubectl get pods -A
+kubectl get helmreleases -A 2>/dev/null || helm list -A
+```
+
+Expected: the `ainetops` Kind cluster exists and every required application is Ready inside it.
+No Kubenet, SDC, AINETOPS, OTel, Prometheus, Grafana, or gNMIc application container runs as a
+standalone host/Compose workload.
+… (context truncated at line boundary) …
+
+## Context: checklist:requirements (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/checklists/requirements.md
+# Specification Quality Checklist: AINETOPS SONiC EVPN/VXLAN Fabric
+
+**Purpose**: Validate the rewritten feature before implementation  
+**Created**: 2026-08-28  
+**Feature**: [spec.md](../spec.md)
+
+## Identity and scope
+
+- [x] Feature and branch use the AINETOPS identity
+- [x] Scope distinguishes logical role/service replacement from installing SONiC on arbitrary
+  legacy router hardware
+- [x] All network nodes are SONiC in containerlab; Linux is limited to endpoints/tooling
+- [x] Proprietary controller, device-package, and runtime dependencies are explicitly excluded
+- [x] Production ASIC equivalence and live automatic cutover are not implied by the lab
+
+## Architecture quality
+
+- [x] Kubernetes reconciliation is the orchestration workflow
+- [x] Kubenet/KUID owns topology, abstract Network intent, and allocation
+- [x] AINETOPS adds only a narrow SONiC provider rather than a second orchestrator
+- [x] The required AINETOPS `SRv6Service` CRD fills only the missing service contract and
+  delegates topology/allocation to Kubenet/KUID and device transactions to SDC
+- [x] SDC is the only device transaction/drift layer
+- [x] Ownership boundaries prevent two reconcilers from managing the same path
+- [x] Direct reconciliation is the MVP; optional GitOps/rollout enhancements are clearly later
+- [x] Upstream APIs are reused rather than duplicated
+
+## Upstream capability and version realism
+
+- [x] The published Kubenet SONiC-provider gap is stated as implementation work
+- [x] `NetworkConfig` versus `NetworkDesign` version drift is identified
+- [x] One complete pinned upstream release/commit is required
+- [x] SONiC image, YANG schema, mapping, and SDC versions form a qualified compatibility set
+- [x] `sonic-vs` has a capability gate and `sonic-vm` conformance fallback
+- [x] Release acceptance cannot skip, mock, or substitute Linux forwarding for SONiC SRv6;
+  one pinned image/SAI profile must pass the complete SRv6 gate
+- [x] Floating versions and `latest` images are forbidden
+
+## Service translation safety
+
+- [x] VPLS/L2VPN, VPWS/E-Line, L3VPN, and IRB mappings are explicit
+- [x] Limited VPWS equivalence requires opt-in and is not claimed as full pseudowire parity
+- [x] TE, pseudowire OAM/control word, multicast VPN, complex QoS/OAM, service chaining, and
+  unknown properties are rejected/deferred
+- [x] Translation is all-or-nothing before downstream mutation
+- [x] Identifier/reference/collision validation is specified
+- [x] Raw device CLI is not an accepted translation input
+
+## API and reconciliation contract
+
+- [x] Existing upstream resources, the required narrow `SRv6Service`, and optional
+  `MigrationPlan` are distinguished
+- [x] Optional `MigrationPlan` does not duplicate `Network` or `Config`
+- [x] Status uses observed generation, standard conditions, stable reasons, and per-device data
+- [x] Determinism, stable names/hashes, idempotence, dependency gates, retries, and finalizers
+  are testable
+- [x] Partial success cannot become aggregate Ready
+… (context truncated at line boundary) …
+════════════════════════ END ════════════════════════
+Remember: end with the single line `VERDICT b4f5455aa13cd29a: APPROVED` or
+`VERDICT b4f5455aa13cd29a: REJECTED` and nothing after it.
+
+═══════════ REPLY ═══════════
+REJECTED criteria and gaps:
+
+- T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side dry-run
+  - The durable run log shows kubectl applied deploy/kubenet/topology.yaml, but the server-side result line reads “topology.network.kubenet.dev/example (server dry-run)”. The current pinned example at deploy/kubenet/topology.yaml has metadata.name: ainetops-topology, not example. This mismatch indicates the log is stale or from a different manifest, so it is not reliable evidence that the current example was validated. Action: Re-run make validate-crds (or scripts/lib/validate_crds.sh) against the current repo state and provide the fresh run log showing the resource name from the present file.
+- T003 Select and record a pinned containerlab version and both SONiC profile image digests; document artifact acquisition and redistribution constraints
+  - NEEDS-GROUNDING:versions.lock.yaml — The grounded excerpt only covers lines 6–36 and does not include the containerlab:, sonic_images:, or notes: blocks. The proof slice claims these exist (version 0.79.0, both SONiC image digests, and redistribution notes), but I cannot independently verify in the actual file content from the snapshot. Action: Provide grounded content for these sections in versions.lock.yaml.
+- T004 Select the SONiC/OpenConfig YANG schema commit and record its compatibility with each SONiC image profile
+  - NEEDS-GROUNDING:versions.lock.yaml — The proof file shows sonic_yang.openconfig_commit, sonic_native_commit, and a compatibility block covering both images, but the grounded excerpt does not include this content. Action: Provide grounded content of the sonic_yang: block and the compatibility entries in versions.lock.yaml.
+- T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and topology-generation tooling images/charts
+  - NEEDS-GROUNDING:versions.lock.yaml — The proof file shows a tooling: block with @sha256 digests for all required images, but this section is not in the grounded excerpt. Action: Provide grounded content of the tooling: block in versions.lock.yaml.
+- T007 Implement reusable strict-shell preflight … tool versions …
+  - NEEDS-GROUNDING:scripts/lib/preflight.sh — The grounded snippet clearly shows kubectl, helm, and containerlab version checks; the evidence claims a kind version check is also enforced. That portion is truncated in the snapshot, so I cannot verify the kind version check exists. Action: Provide the grounded preflight::tool_versions implementation segment that validates kind against the pin in versions.lock.yaml.
+
+VERDICT b4f5455aa13cd29a: REJECTED
+

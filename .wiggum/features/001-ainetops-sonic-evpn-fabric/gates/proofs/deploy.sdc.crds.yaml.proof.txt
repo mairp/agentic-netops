@@ -1,0 +1,79 @@
+     1	# Minimal SDC CRDs required for Schema/Config/Target
+     2	---
+     3	apiVersion: apiextensions.k8s.io/v1
+     4	kind: CustomResourceDefinition
+     5	metadata:
+     6	  name: schemas.sdc.sdcio.dev
+     7	spec:
+     8	  group: sdc.sdcio.dev
+     9	  scope: Namespaced
+    10	  names:
+    11	    plural: schemas
+    12	    singular: schema
+    13	    kind: Schema
+    14	  versions:
+    15	    - name: v1alpha1
+    16	      served: true
+    17	      storage: true
+    18	      schema:
+    19	        openAPIV3Schema:
+    20	          type: object
+    21	          properties:
+    22	            spec:
+    23	              type: object
+    24	              x-kubernetes-preserve-unknown-fields: true
+    25	            status:
+    26	              type: object
+    27	              x-kubernetes-preserve-unknown-fields: true
+    28	---
+    29	apiVersion: apiextensions.k8s.io/v1
+    30	kind: CustomResourceDefinition
+    31	metadata:
+    32	  name: configs.sdc.sdcio.dev
+    33	spec:
+    34	  group: sdc.sdcio.dev
+    35	  scope: Namespaced
+    36	  names:
+    37	    plural: configs
+    38	    singular: config
+    39	    kind: Config
+    40	  versions:
+    41	    - name: v1alpha1
+    42	      served: true
+    43	      storage: true
+    44	      schema:
+    45	        openAPIV3Schema:
+    46	          type: object
+    47	          properties:
+    48	            spec:
+    49	              type: object
+    50	              x-kubernetes-preserve-unknown-fields: true
+    51	            status:
+    52	              type: object
+    53	              x-kubernetes-preserve-unknown-fields: true
+    54	---
+    55	apiVersion: apiextensions.k8s.io/v1
+    56	kind: CustomResourceDefinition
+    57	metadata:
+    58	  name: targets.sdc.sdcio.dev
+    59	spec:
+    60	  group: sdc.sdcio.dev
+    61	  scope: Namespaced
+    62	  names:
+    63	    plural: targets
+    64	    singular: target
+    65	    kind: Target
+    66	  versions:
+    67	    - name: v1alpha1
+    68	      served: true
+    69	      storage: true
+    70	      schema:
+    71	        openAPIV3Schema:
+    72	          type: object
+    73	          properties:
+    74	            spec:
+    75	              type: object
+    76	              x-kubernetes-preserve-unknown-fields: true
+    77	            status:
+    78	              type: object
+    79	              x-kubernetes-preserve-unknown-fields: true

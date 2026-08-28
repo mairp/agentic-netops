@@ -1,55 +1,19 @@
-     1	#!/usr/bin/env bash
-     2	# Install pinned Kubenet/KUID CRDs/controllers into Kind and wait for readiness (Phase 3)
-     3	# This script applies the ACTUAL upstream CRDs pinned by versions.lock.yaml commits/releases.
-     4	set -euo pipefail
-     5	DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-     6	ROOT=$(cd -- "${DIR}/../.." && pwd)
-     7	KIND_CONTEXT="kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
-     8	
-     9	command -v kubectl >/dev/null 2>&1 || { echo "missing kubectl" >&2; exit 1; }
-    10	command -v awk >/dev/null 2>&1 || { echo "missing awk" >&2; exit 1; }
-    11	
-    12	LOCK_FILE="${ROOT}/versions.lock.yaml"
-    13	section() { awk -v s="^$1:$" 'f; $0~s{f=1} f && /^[^[:space:]]/{if(!p){p=1;print}else exit} f && p{print}' "${LOCK_FILE}"; }
-    14	
-    15	kubenet_commit=$(section kubenet | awk '/commit:/ {print $2; exit}')
-    16	kuid_commit=$(section kuid | awk '/commit:/ {print $2; exit}')
-    17	
-    18	# Build pinned upstream CRD URLs from commits
-    19	KUBENET_CRDS=(
-    20	  "https://raw.githubusercontent.com/kubenet-dev/kubenet/${kubenet_commit}/config/crd/bases/network.kubenet.dev_networks.yaml"
-    21	  "https://raw.githubusercontent.com/kubenet-dev/kubenet/${kubenet_commit}/config/crd/bases/network.kubenet.dev_networkdevices.yaml"
-    22	)
-    23	KUID_CRDS=(
-    24	  "https://raw.githubusercontent.com/kubenet-dev/kuid/${kuid_commit}/config/crd/bases/id.kuid.dev_claims.yaml"
-    25	)
-    26	
-    27	# Apply CRDs from pinned upstream
-    28	for u in "${KUBENET_CRDS[@]}"; do
-    29	  kubectl --context "${KIND_CONTEXT}" apply -f "$u"
-    30	done
-    31	for u in "${KUID_CRDS[@]}"; do
-    32	  kubectl --context "${KIND_CONTEXT}" apply -f "$u"
-    33	done
-    34	
-    35	# Install controllers via pinned manifests in repo (images pinned in values)
-    36	kubectl --context "${KIND_CONTEXT}" apply -f "${ROOT}/deploy/kubenet/controllers.yaml"
-    37	
-    38	# Wait for CRDs to establish (tolerate shape drift via best-effort waits)
-    39	for crd in \
-    40	  networkconfigs.network.kubenet.dev \
-    41	  networks.network.kubenet.dev \
-    42	  networkdevices.network.kubenet.dev \
-    43	  topologies.network.kubenet.dev \
-    44	  ipindices.id.kuid.dev \
-    45	  asnindices.id.kuid.dev \
-    46	  vniindices.id.kuid.dev \
-    47	  claims.id.kuid.dev; do
-    48	  kubectl --context "${KIND_CONTEXT}" wait --for=condition=Established --timeout=180s crd/${crd} || true
-    49	done
-    50	
-    51	# Wait for controller pods ready
-    52	kubectl --context "${KIND_CONTEXT}" -n kubenet-system wait --for=condition=Ready --timeout=300s pods -l app.kubernetes.io/name=kubenet-controller || true
-    53	kubectl --context "${KIND_CONTEXT}" -n kuid-system wait --for=condition=Ready --timeout=300s pods -l app.kubernetes.io/name=kuid-controller || true
-    54	
-    55	echo "[kubenet-install] Pinned upstream CRDs and controllers applied; basic readiness achieved"
+  18	# Build pinned upstream CRD URLs from commits
+  19	KUBENET_CRDS=(
+  20	  "https://raw.githubusercontent.com/kubenet-dev/kubenet/${kubenet_commit}/config/crd/bases/network.kubenet.dev_networks.yaml"
+  21	  "https://raw.githubusercontent.com/kubenet-dev/kubenet/${kubenet_commit}/config/crd/bases/network.kubenet.dev_networkdevices.yaml"
+  22	)
+  23	KUID_CRDS=(
+  24	  "https://raw.githubusercontent.com/kuidio/kuid/${kuid_commit}/config/crd/bases/id.kuid.dev_ipindices.yaml"
+  25	  "https://raw.githubusercontent.com/kuidio/kuid/${kuid_commit}/config/crd/bases/id.kuid.dev_asnindices.yaml"
+  26	  "https://raw.githubusercontent.com/kuidio/kuid/${kuid_commit}/config/crd/bases/id.kuid.dev_vniindices.yaml"
+  27	  "https://raw.githubusercontent.com/kuidio/kuid/${kuid_commit}/config/crd/bases/id.kuid.dev_claims.yaml"
+  28	)
+  29	
+  30	# Apply CRDs from pinned upstream
+  31	for u in "${KUBENET_CRDS[@]}"; do
+  32	  kubectl --context "${KIND_CONTEXT}" apply -f "$u"
+  33	done
+  34	for u in "${KUID_CRDS[@]}"; do
+  35	  kubectl --context "${KIND_CONTEXT}" apply -f "$u"
+  36	done

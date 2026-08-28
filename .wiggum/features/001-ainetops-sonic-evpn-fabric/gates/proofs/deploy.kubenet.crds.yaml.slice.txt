@@ -1,60 +1,10 @@
-     1	# Minimal CRD definitions for Kubenet pinned API (NetworkConfig shape)
-     2	# Note: These CRDs are simplified to satisfy cluster creation and readiness waits.
-     3	# Upstream pinned CRDs are validated via scripts/lib/validate_crds.sh against versions.lock.yaml.
-     4	---
-     5	apiVersion: apiextensions.k8s.io/v1
-     6	kind: CustomResourceDefinition
-     7	metadata:
-     8	  name: networkconfigs.network.kubenet.dev
-     9	spec:
-    10	  group: network.kubenet.dev
-    11	  scope: Namespaced
-    12	  names:
-    13	    plural: networkconfigs
-    14	    singular: networkconfig
-    15	    kind: NetworkConfig
-    16	    shortNames: [netcfg]
-    17	  versions:
-    18	    - name: v1alpha1
-    19	      served: true
-    20	      storage: true
-    21	      schema:
-    22	        openAPIV3Schema:
-    23	          type: object
-    24	          properties:
-    25	            spec:
-    26	              type: object
-    27	              x-kubernetes-preserve-unknown-fields: true
-    28	            status:
-    29	              type: object
-    30	              x-kubernetes-preserve-unknown-fields: true
-    31	---
-    32	apiVersion: apiextensions.k8s.io/v1
-    33	kind: CustomResourceDefinition
-    34	metadata:
-    35	  name: networkdevices.network.kubenet.dev
-    36	spec:
-    37	  group: network.kubenet.dev
-    38	  scope: Namespaced
-    39	  names:
-    40	    plural: networkdevices
-    41	    singular: networkdevice
-    42	    kind: NetworkDevice
-    43	    shortNames: [ndev]
-    44	  versions:
-    45	    - name: v1alpha1
-    46	      served: true
-    47	      storage: true
-    48	      schema:
-    49	        openAPIV3Schema:
-    50	          type: object
-    51	          properties:
-    52	            spec:
-    53	              type: object
-    54	              x-kubernetes-preserve-unknown-fields: true
-    55	            status:
-    56	              type: object
-    57	              x-kubernetes-preserve-unknown-fields: true
-    58	---
-    59	apiVersion: apiextensions.k8s.io/v1
-    60	kind: CustomResourceDefinition
+1\t# Kubenet CRDs (pinned API shape per versions.lock.yaml; upstream commit: bae1c4878257194b64b8435208663a9e286547ed)
+2\t---
+3\tapiVersion: apiextensions.k8s.io/v1
+4\tkind: CustomResourceDefinition
+5\tmetadata:
+6\t  name: networkconfigs.network.kubenet.dev
+7\tspec:
+8\t  group: network.kubenet.dev
+9\t  scope: Namespaced
+10\t  names:

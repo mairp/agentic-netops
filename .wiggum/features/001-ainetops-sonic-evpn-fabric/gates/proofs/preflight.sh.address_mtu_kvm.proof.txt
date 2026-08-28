@@ -1,0 +1,30 @@
+66\tpreflight::address_conflicts() {
+67\t  # Ensure management network CIDR does not overlap pod/service CIDRs
+68\t  local mgmt_cidr=${AINETOPS_MGMT_CIDR:-172.31.0.0/16}
+69\t  local pod_cidr=${AINETOPS_POD_CIDR:-10.244.0.0/16}
+70\t  local svc_cidr=${AINETOPS_SERVICE_CIDR:-10.96.0.0/12}
+71\t  read -r m1 m2 < <(preflight::cidr_range "$mgmt_cidr")
+72\t  read -r p1 p2 < <(preflight::cidr_range "$pod_cidr")
+73\t  read -r s1 s2 < <(preflight::cidr_range "$svc_cidr")
+74\t  if preflight::ranges_overlap "$m1" "$m2" "$p1" "$p2"; then
+75\t    preflight::die "Management CIDR $mgmt_cidr overlaps Pod CIDR $pod_cidr"
+76\t  fi
+77\t  if preflight::ranges_overlap "$m1" "$m2" "$s1" "$s2"; then
+78\t    preflight::die "Management CIDR $mgmt_cidr overlaps Service CIDR $svc_cidr"
+79\t  fi
+80\t}
+81\t
+82\tpreflight::mtu() {
+83\t  # Verify host MTU accommodates VXLAN overhead (> 1500 suggested); warn only in Phase 1
+84\t  local maxmtu=0
+85\t  while read -r mtu; do (( mtu > maxmtu )) && maxmtu=$mtu; done < <(ip -o link 2>/dev/null | awk -F'mtu ' '{print $2}' | awk '{print $1}')
+86\t  if (( maxmtu < 1500 )); then preflight::warn "maximum host MTU $maxmtu < 1500; VXLAN overhead may break traffic"; fi
+87\t}
+88\t
+89\tpreflight::kvm_check() {
+90\t  local profile=${AINETOPS_PROFILE:-sonic-vs}
+91\t  if [[ "$profile" == "sonic-vm" ]]; then
+92\t    # Require KVM when sonic-vm profile selected
+93\t    [[ -e /dev/kvm ]] || preflight::die "/dev/kvm not present for sonic-vm profile"
+94\t  fi
+95\t}

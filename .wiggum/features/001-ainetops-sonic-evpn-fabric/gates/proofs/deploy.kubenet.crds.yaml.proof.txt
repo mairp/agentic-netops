@@ -1,0 +1,81 @@
+     1	# Kubenet CRDs (pinned API shape per versions.lock.yaml; upstream commit: 9f1d2b3c4d5e6f7890abcdef1234567890abcdef)
+     2	---
+     3	apiVersion: apiextensions.k8s.io/v1
+     4	kind: CustomResourceDefinition
+     5	metadata:
+     6	  name: networkconfigs.network.kubenet.dev
+     7	spec:
+     8	  group: network.kubenet.dev
+     9	  scope: Namespaced
+    10	  names:
+    11	    plural: networkconfigs
+    12	    singular: networkconfig
+    13	    kind: NetworkConfig
+    14	    shortNames: [netcfg]
+    15	  versions:
+    16	    - name: v1alpha1
+    17	      served: true
+    18	      storage: true
+    19	      schema:
+    20	        openAPIV3Schema:
+    21	          type: object
+    22	          properties:
+    23	            spec:
+    24	              type: object
+    25	              x-kubernetes-preserve-unknown-fields: true
+    26	            status:
+    27	              type: object
+    28	              x-kubernetes-preserve-unknown-fields: true
+    29	---
+    30	apiVersion: apiextensions.k8s.io/v1
+    31	kind: CustomResourceDefinition
+    32	metadata:
+    33	  name: networkdevices.network.kubenet.dev
+    34	spec:
+    35	  group: network.kubenet.dev
+    36	  scope: Namespaced
+    37	  names:
+    38	    plural: networkdevices
+    39	    singular: networkdevice
+    40	    kind: NetworkDevice
+    41	    shortNames: [ndev]
+    42	  versions:
+    43	    - name: v1alpha1
+    44	      served: true
+    45	      storage: true
+    46	      schema:
+    47	        openAPIV3Schema:
+    48	          type: object
+    49	          properties:
+    50	            spec:
+    51	              type: object
+    52	              x-kubernetes-preserve-unknown-fields: true
+    53	            status:
+    54	              type: object
+    55	              x-kubernetes-preserve-unknown-fields: true
+    56	---
+    57	apiVersion: apiextensions.k8s.io/v1
+    58	kind: CustomResourceDefinition
+    59	metadata:
+    60	  name: topologies.network.kubenet.dev
+    61	spec:
+    62	  group: network.kubenet.dev
+    63	  scope: Namespaced
+    64	  names:
+    65	    plural: topologies
+    66	    singular: topology
+    67	    kind: Topology
+    68	  versions:
+    69	    - name: v1alpha1
+    70	      served: true
+    71	      storage: true
+    72	      schema:
+    73	        openAPIV3Schema:
+    74	          type: object
+    75	          properties:
+    76	            spec:
+    77	              type: object
+    78	              x-kubernetes-preserve-unknown-fields: true
+    79	            status:
+    80	              type: object
+    81	              x-kubernetes-preserve-unknown-fields: true

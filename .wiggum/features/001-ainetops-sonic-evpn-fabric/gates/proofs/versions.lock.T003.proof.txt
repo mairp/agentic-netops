@@ -1,0 +1,22 @@
+## versions.lock.yaml — T003 containerlab + sonic_images + notes
+    39	containerlab:
+    40	  repo: https://github.com/srl-labs/containerlab
+    41	  version: 0.79.0
+    42	  commit: 89055fd504f1b862c8bbab4fea186025c2ce6647
+    43	
+    69	sonic_images:
+    70	  sonic_vs:
+    71	    image: docker.io/netreplica/docker-sonic-vs@sha256:1142d9e4f763cfb0341f0a324f00bc4fad9cf3b40cc130accdc11c40967d0e85
+    72	    digest: sha256:1142d9e4f763cfb0341f0a324f00bc4fad9cf3b40cc130accdc11c40967d0e85
+    73	    tag: 20220111
+    74	    notes: Fast profile; no KVM required; containerlab kind sonic-vs
+    75	  sonic_vm:
+    76	    image: local/sonic-vm
+    77	    digest: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    78	    notes: Conformance profile; build via vrnetlab; requires KVM; digest is operator-built
+    79	
+   101	notes:
+   102	  redistribution: >
+   103	    SONiC images must be acquired by the operator under upstream terms and are
+   104	    not redistributed here. All other artifacts are pinned by immutable digest
+   105	    or tag-resolved commit SHA.

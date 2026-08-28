@@ -1,7 +1,7 @@
      1	#!/usr/bin/env bash
      2	set -euo pipefail
      3	
-     4	# AINETOPS SONiC EVPN/VXLAN Fabric — provision script (Phase 1 scaffold)
+     4	# AINETOPS SONiC EVPN/VXLAN Fabric — provision script (Phase 2 updates)
      5	# Sole implementation of environment creation/convergence per contracts/crd-api.md
      6	
      7	SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
@@ -15,9 +15,56 @@
     15	  preflight::run "$@"
     16	fi
     17	
-    18	# Placeholder ordered phases (Phase 1): verify pins and validate CRDs
+    18	# Ordered phases (Phase 3): verify pins, validate CRDs, create Kind, attach mgmt net, run capability gate
     19	if [[ -f "${REPO_ROOT}/Makefile" ]]; then
     20	  make -C "${REPO_ROOT}" verify-compat
     21	fi
     22	
-    23	echo "[provision] Phase 1 scaffold complete: pins verified, CRDs/examples server-validated, and preflight invoked if present."
+    23	# Ensure external management network exists (idempotent)
+    24	if command -v docker >/dev/null 2>&1; then
+    25	  docker network inspect ainetops-mgmt >/dev/null 2>&1 || docker network create --label ainetops.owner=ainetops ainetops-mgmt
+    26	fi
+    27	
+    28	# Ensure Kind cluster exists and is using pinned image; attach nodes to mgmt network
+    29	if [[ -x "${LIB_DIR}/kind.sh" ]]; then
+    30	  "${LIB_DIR}/kind.sh" ensure
+    31	  "${LIB_DIR}/kind.sh" attach-mgmt
+    32	  "${LIB_DIR}/kind.sh" verify-context
+    33	else
+    34	  echo "[provision] WARN: kind helper not found; skipping Kind cluster ensure" >&2
+    35	fi
+    36	
+    37	# Deploy lab topology with containerlab if available
+    38	if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
+    39	  "${LIB_DIR}/containerlab.sh" deploy || { echo "[provision] containerlab deploy failed" >&2; exit 1; }
+    40	  # Optional inspect step for diagnostics
+    41	  "${LIB_DIR}/containerlab.sh" inspect || true
+    42	else
+    43	  echo "[provision] WARN: containerlab helper not found; skipping lab deploy" >&2
+    44	fi
+    45	
+    46	# Install least-privilege RBAC base
+    47	if [[ -x "${LIB_DIR}/rbac.sh" ]]; then
+    48	  "${LIB_DIR}/rbac.sh"
+    49	fi
+    50	# Install pinned Kubenet/KUID and SDC into Kind and wait basic readiness
+    51	if [[ -x "${REPO_ROOT}/deploy/kubenet/install.sh" ]]; then
+    52	  "${REPO_ROOT}/deploy/kubenet/install.sh"
+    53	fi
+    54	if [[ -x "${REPO_ROOT}/deploy/sdc/install.sh" ]]; then
+    55	  "${REPO_ROOT}/deploy/sdc/install.sh"
+    56	fi
+    57	
+    58	# Seed SDC schema/profile/discovery (address-based); tolerate apply idempotence
+    59	if command -v kubectl >/dev/null 2>&1; then
+    60	  CTX="kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
+    61	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/sonic-schema.yaml"
+    62	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/discovery-rule.yaml"
+    63	fi
+    64	
+    65	# Run lab capability qualification (fast profile can be selected via env)
+    66	if [[ -x "${LIB_DIR}/qualify.sh" ]]; then
+    67	  "${LIB_DIR}/qualify.sh" || { echo "[provision] capability gate failed" >&2; exit 1; }
+    68	fi
+    69	
+    70	echo "[provision] Phase 3: pins verified, CRDs validated, Kind ensured/attached, apps installed, seed applied, capability gate executed."

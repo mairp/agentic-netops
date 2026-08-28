@@ -1,0 +1,19 @@
+## versions.lock.yaml — T004 sonic_yang commits + compatibility
+    83	sonic_yang:
+    84	  openconfig_repo: https://github.com/openconfig/public
+    85	  openconfig_release: v5.9.0
+    86	  openconfig_commit: f34434149a47aa8ff82ffd32add3aacb7c880af2
+    87	  sonic_native_repo: https://github.com/sonic-net/sonic-buildimage
+    88	  sonic_native_branch: '202405'
+    89	  sonic_native_commit: cfc766e13eccab4e7603808db3bfa9c5b2dfef17
+    90	  compatibility:
+    91	    - image: docker.io/netreplica/docker-sonic-vs@sha256:1142d9e4f763cfb0341f0a324f00bc4fad9cf3b40cc130accdc11c40967d0e85
+    92	      oc_version: openconfig@f3443414
+    93	      native_version: sonic_yang@cfc766e1
+    94	    - image: local/sonic-vm@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    95	      oc_version: openconfig@f3443414
+    96	      native_version: sonic_yang@cfc766e1
+    97	  notes: >
+    98	    The provider validates the target SONiC image against these commit pins before
+    99	    generating SDC intent. A mismatch sets SchemaMismatch and blocks downstream.
+   100	

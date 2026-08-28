@@ -1,0 +1,36 @@
+6\tkind:
+7\t  binary: v0.22.0
+8\t  node_image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
+9\t  kubernetes: v1.29.4
+10\t
+11\tkubernetes:
+12\t  kubernetes: v1.29.4
+13\t  controller_runtime: v0.17.5
+14\t  go: '1.22.5'
+15\t
+16\tkubenet:
+17\t  repo: https://github.com/kubenet-dev/kubenet
+18\t  release: v0.0.1
+19\t  commit: bae1c4878257194b64b8435208663a9e286547ed
+20\t  release_bundle: artifacts/kubenet-release.yaml
+21\t  api_shape: NetworkConfig   # confirm against the bundle before use (T008)
+22\t
+23\tkuid:
+24\t  repo: https://github.com/kuidio/kuid
+25\t  release: v0.0.13
+26\t  commit: 7528e81528c2e9f586b6fe657907424ad93c7ead
+27\t  artifacts_dir: artifacts
+28\t
+29\tsdc:
+30\t  core:
+31\t    repo: https://github.com/sdcio/sdc
+32\t    release: v0.31.0
+33\t  config_server:
+34\t    repo: https://github.com/sdcio/config-server
+35\t    release: v0.0.58
+36\t    commit: bcc56b045a689032c5123a9f50bcf56ed8c630dc
+37\t  schema_server:
+38\t    repo: https://github.com/sdcio/schema-server
+39\t    release: v0.0.34
+40\t    commit: c57e9d699c981251081988fd39bd81149dd3d9b3
+41\t

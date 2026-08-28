@@ -1,0 +1,14 @@
+   5	.PHONY: help verify-pins validate-crds verify-compat lab-qualify test test-static
+   6	
+   7	help:
+   8		@echo "Targets:"
+   9		@echo "  verify-pins     Validate versions.lock.yaml has immutable pins and consistency"
+  10		@echo "  validate-crds   Server-side dry-run validation of Kubenet/KUID/SDC CRDs and examples"
+  11		@echo "  verify-compat   Run verify-pins and validate-crds together"
+  12		@echo "  lab-qualify     Run lab capability qualification suite (blocks downstream on failure)"
+  13	
+  14	verify-pins:
+  15		@echo "[verify-pins] validating versions.lock.yaml"
+  16		@"$(PWD)/scripts/lib/verify_pins.sh"
+  17	
+  18	validate-crds:

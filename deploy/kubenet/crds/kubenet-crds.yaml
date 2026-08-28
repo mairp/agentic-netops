@@ -1,4 +1,4 @@
-# Kubenet CRDs (pinned API shape per versions.lock.yaml; upstream commit: 9f1d2b3c4d5e6f7890abcdef1234567890abcdef)
+# Kubenet CRDs (pinned API shape per versions.lock.yaml; upstream commit: bae1c4878257194b64b8435208663a9e286547ed)
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition

@@ -1,0 +1,26 @@
+{
+  "buildArtifacts": [],
+  "commands": [
+    {
+      "args": [
+        "test",
+        "./..."
+      ],
+      "commandId": "CMD-7b0518e1174ca872060e",
+      "cwd": "/root/ainetops-demo",
+      "durationMs": 368,
+      "executable": "/usr/lib/go-1.24/bin/go",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "stderr": "",
+      "stdout": "ok  \tgithub.com/mairp/ainetops/internal/lockfile\t0.062s\n"
+    }
+  ],
+  "gateId": "GATE-phase-1",
+  "passed": true,
+  "phase": 1,
+  "planHash": "f56470327f776adaedafe077f64fcb522f8f3ab60d728791d0afaaaec1c934a7",
+  "planId": "verification-ef0ad7e7eb82ac2dcf7b",
+  "summary": "Verification gate GATE-phase-1 passed 1 command(s)"
+}

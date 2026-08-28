@@ -1,10 +1,13 @@
-[validate-crds] server-side validating CRDs and examples
-[validate-crds] server-side dry-run: Kubenet CRDs (2 files)
-+ kubectl apply --dry-run=server -f https://raw.githubusercontent.com/kubenet-dev/kubenet/9f1d2b3c4d5e6f7890abcdef1234567890abcdef/config/crd/bases/network.kubenet.dev_networks.yaml -f https://raw.githubusercontent.com/kubenet-dev/kubenet/9f1d2b3c4d5e6f7890abcdef1234567890abcdef/config/crd/bases/network.kubenet.dev_networkdevices.yaml
+[validate-crds] server-side dry-run: Kubenet CRDs (1 files)
++ kubectl apply --dry-run=server -f deploy/kubenet/crds/kubenet-crds.yaml
+customresourcedefinition/applied (server dry-run)
 [validate-crds] server-side dry-run: KUID CRDs (1 files)
-+ kubectl apply --dry-run=server -f https://raw.githubusercontent.com/kubenet-dev/kuid/1a2b3c4d5e6f7890abcdef1234567890abcdef/config/crd/bases/id.kuid.dev_claims.yaml
-[validate-crds] server-side dry-run: SDC CRDs (3 files)
-+ kubectl apply --dry-run=server -f https://raw.githubusercontent.com/sdcio/sdc/v0.31.0/deploy/crds/sdc.sdcio.dev_schemas.yaml -f https://raw.githubusercontent.com/sdcio/sdc/v0.31.0/deploy/crds/sdc.sdcio.dev_configs.yaml -f https://raw.githubusercontent.com/sdcio/sdc/v0.31.0/deploy/crds/sdc.sdcio.dev_targets.yaml
++ kubectl apply --dry-run=server -f deploy/kuid/crds/kuid-crds.yaml
+customresourcedefinition/applied (server dry-run)
+[validate-crds] server-side dry-run: SDC CRDs (1 files)
++ kubectl apply --dry-run=server -f deploy/sdc/crds/sdc-crds.yaml
+customresourcedefinition/applied (server dry-run)
 [validate-crds] server-side dry-run: Kubenet examples (1 files)
-+ kubectl apply --dry-run=server -f https://raw.githubusercontent.com/kubenet-dev/kubenet/9f1d2b3c4d5e6f7890abcdef1234567890abcdef/examples/default-network.yaml
++ kubectl apply --dry-run=server -f deploy/kubenet/topology.yaml
+topology.network.kubenet.dev/ainetops-topology (server dry-run)
 [validate-crds] OK
