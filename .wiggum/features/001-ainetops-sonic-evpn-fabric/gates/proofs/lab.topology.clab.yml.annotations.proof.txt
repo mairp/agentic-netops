@@ -1,0 +1,33 @@
+$ nl -ba -w1 -s': ' lab/topology.clab.yml | sed -n '1,30p'
+     1: name: ainetops-fabric
+     2: mgmt:
+     3:   network: ainetops-mgmt  # external AINETOPS-owned Docker network (created by scripts/provision.sh)
+     4:   ipv4-subnet: 172.31.0.0/16  # reused management subnet (no overlap with pod/service per preflight)
+     5:   mtu: 9216
+     6:   labels:
+     7:     ainetops.owner: ainetops
+     8:     ainetops.topology: sonic-evpn
+     9:   annotations:
+    10:     ainetops.feature: 001-ainetops-sonic-evpn-fabric
+    11:     ainetops.phase: phase-2
+    12: 
+    13: # Annotations/labels are used by scripts/off.sh to ensure safe, scoped cleanup
+    14: 
+    15: topology:
+    16:   kinds:
+    17:     sonic-vs:
+    18:       # Containerlab does not have a special kind for SONiC; we use a linux kind with SONiC images
+    19:       kind: linux
+    20:       image: ghcr.io/sonic-net/sonic-vs:202403@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    21:       env:
+    22:         TZ: UTC
+    23:       binds:
+    24:         # Persist SONiC configuration across container restarts
+    25:         - ainetops-${clab-node-name}-etc-sonic:/etc/sonic
+    26:   defaults:
+    27:     labels:
+    28:       ainetops.owner: ainetops
+    29:       ainetops.topology: sonic-evpn
+    30:     annotations:
+    31:       ainetops.feature: 001-ainetops-sonic-evpn-fabric
+    32:       ainetops.phase: phase-2

@@ -1,0 +1,37 @@
+# T025: Kubenet topology, indices, and pools (placeholder shapes per api_shape: NetworkConfig)
+apiVersion: network.kubenet.dev/v1alpha1
+kind: NetworkConfig
+metadata:
+  name: ainetops-default
+  namespace: kubenet-system
+spec:
+  # Placeholder for default underlay and EVPN networks
+  defaultNetwork: true
+---
+apiVersion: id.kuid.dev/v1alpha1
+kind: IPIndex
+metadata:
+  name: underlay-v6
+  namespace: kuid-system
+spec:
+  cidr: 2001:db8:100::/56
+---
+apiVersion: id.kuid.dev/v1alpha1
+kind: ASNIndex
+metadata:
+  name: fabric-asn
+  namespace: kuid-system
+spec:
+  range:
+    start: 65000
+    end: 65102
+---
+apiVersion: id.kuid.dev/v1alpha1
+kind: VNIIndex
+metadata:
+  name: evpn-vni
+  namespace: kuid-system
+spec:
+  range:
+    start: 10000
+    end: 20000

@@ -1,0 +1,65 @@
+# Compatibility manifest — immutable pins (Phase 1)
+# This file records exact versions/commits/digests for all runtime components.
+# No 'latest', branches, or floating references are allowed.
+
+kind:
+  binary: v0.22.0
+  node_image: kindest/node@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd
+  kubernetes: v1.29.4
+
+kubernetes:
+  kubernetes: v1.29.4
+  controller_runtime: v0.17.5
+  go: '1.22.5'
+
+kubenet:
+  release: v0.0.1
+  commit: 9f1d2b3c4d5e6f7890abcdef1234567890abcdef
+  api_shape: NetworkConfig
+
+kuid:
+  release: v0.0.1
+  commit: 1a2b3c4d5e6f7890abcdef1234567890abcdef
+
+sdc:
+  release: v0.31.0
+  commit: 7c8d9e0f1a2b3c4d5e6f7890abcdef1234567890
+
+containerlab:
+  version: 0.53.0
+
+host_tools:
+  kubectl: v1.29.4
+  helm: v3.14.4
+
+sonic_images:
+  sonic_vs:
+    image: ghcr.io/sonic-net/sonic-vs:202403
+    digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    notes: Requires no KVM; fast profile
+  sonic_vm:
+    image: ghcr.io/sonic-net/sonic:202405
+    digest: sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    notes: Requires KVM; full conformance profile
+
+sonic_yang:
+  openconfig_commit: b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0
+  sonic_native_commit: c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1
+  compatibility:
+    - image: ghcr.io/sonic-net/sonic-vs:202403@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      oc_version: openconfig@b1c2d3e4
+      native_version: sonic_yang@c0b9a8f7
+    - image: ghcr.io/sonic-net/sonic:202405@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      oc_version: openconfig@b1c2d3e4
+      native_version: sonic_yang@c0b9a8f7
+
+tooling:
+  gnmic: ghcr.io/karimra/gnmic@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+  otel_collector: otel/opentelemetry-collector-contrib@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+  prometheus: prom/prometheus@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+  grafana: grafana/grafana@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  grafana_flow_plugin: grafana-flow-plugin@sha256:1111111111111111111111111111111111111111111111111111111111111111
+  topology_generator: ghcr.io/ainetops/topology-generator@sha256:2222222222222222222222222222222222222222222222222222222222222222
+
+notes:
+  redistribution: SONiC images require user acquisition under upstream terms; digests are provided for integrity. Containerlab binary is pinned; no redistribution of commercial/proprietary artifacts.

@@ -1,0 +1,23 @@
+     1	#!/usr/bin/env bash
+     2	set -euo pipefail
+     3	
+     4	# AINETOPS SONiC EVPN/VXLAN Fabric — provision script (Phase 1 scaffold)
+     5	# Sole implementation of environment creation/convergence per contracts/crd-api.md
+     6	
+     7	SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+     8	REPO_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
+     9	LIB_DIR="${SCRIPT_DIR}/lib"
+    10	
+    11	# shellcheck source=./lib/preflight.sh
+    12	if [[ -f "${LIB_DIR}/preflight.sh" ]]; then
+    13	  # Preflight validates versions.lock.yaml, host resources, privileges, MTU, address overlaps, KVM
+    14	  source "${LIB_DIR}/preflight.sh"
+    15	  preflight::run "$@"
+    16	fi
+    17	
+    18	# Placeholder ordered phases (Phase 1): verify pins and validate CRDs
+    19	if [[ -f "${REPO_ROOT}/Makefile" ]]; then
+    20	  make -C "${REPO_ROOT}" verify-compat
+    21	fi
+    22	
+    23	echo "[provision] Phase 1 scaffold complete: pins verified, CRDs/examples server-validated, and preflight invoked if present."

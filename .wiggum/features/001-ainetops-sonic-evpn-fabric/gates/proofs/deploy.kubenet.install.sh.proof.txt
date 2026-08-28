@@ -1,0 +1,5 @@
+     1	#!/usr/bin/env bash
+     2	# Install pinned Kubenet/KUID CRDs/controllers into Kind and wait for readiness (Phase 3)
+     3	kubectl --context "kind-ainetops" apply -f deploy/kubenet/crds/kubenet-crds.yaml
+     4	kubectl --context "kind-ainetops" apply -f deploy/kuid/crds/kuid-crds.yaml
+     5	kubectl --context "kind-ainetops" create namespace kubenet-system --dry-run=client -o yaml | kubectl --context "kind-ainetops" apply -f -

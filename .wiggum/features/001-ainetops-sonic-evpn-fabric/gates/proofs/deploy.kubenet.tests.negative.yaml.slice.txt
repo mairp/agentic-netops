@@ -1,0 +1,5 @@
+     1	# T025 negative tests
+    14	# Unreachable target: SDC target address that is not routable from Kind (example)
+    15	apiVersion: sdc.sdcio.dev/v1alpha1
+    16	kind: DiscoveryRule
+    17	metadata: { name: unreachable-target, namespace: sdc-system }

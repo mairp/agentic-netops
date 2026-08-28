@@ -1,0 +1,7 @@
+     1	#!/usr/bin/env bash
+     2	set -euo pipefail
+     3	
+     4	# AINETOPS SONiC EVPN/VXLAN Fabric — shutdown/cleanup script (Phase 1 scaffold)
+     5	# Sole implementation of environment teardown per contracts/crd-api.md
+     6	
+     7	echo "[off] Phase 1 scaffold: nothing to tear down yet."

@@ -1,0 +1,25 @@
+1: #!/usr/bin/env bash
+2: # Minimal SONiC VS bootstrap: TLS + gNMI enable only. No underlay config.
+3: set -euo pipefail
+4: 
+5: echo "[bootstrap] starting minimal SONiC bootstrap for gNMI"
+6: 
+7: # 1) Install TLS certs
+8: if [[ -x /etc/sonic/bootstrap/install-gnmi-certs.sh ]]; then
+9:   /etc/sonic/bootstrap/install-gnmi-certs.sh
+10: fi
+11: 
+12: # 2) Enable telemetry/gNMI via CONFIG_DB overlay if present
+13: if [[ -f /etc/sonic/bootstrap/gnmi_config_db.json ]]; then
+14:   jq -s '.[0] * .[1]' /etc/sonic/config_db.json /etc/sonic/bootstrap/gnmi_config_db.json > /etc/sonic/config_db.json.tmp
+15:   mv /etc/sonic/config_db.json.tmp /etc/sonic/config_db.json
+16:   echo "[bootstrap] merged gNMI telemetry settings into CONFIG_DB"
+17: fi
+18: 
+19: # 3) Ensure telemetry service is enabled (systemd inside container)
+20: if command -v systemctl >/dev/null 2>&1; then
+21:   systemctl enable telemetry.service || true
+22:   systemctl restart telemetry.service || true
+23: fi
+24: 
+25: echo "[bootstrap] completed"

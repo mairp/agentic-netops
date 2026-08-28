@@ -1,0 +1,7 @@
+     1	# T025: KUID Claims for IP/ASN/VNI pools (simplified)
+     2	---
+     3	apiVersion: id.kuid.dev/v1alpha1
+     4	kind: Claim
+     5	metadata:
+     6	  name: underlay-v6-claim
+     7	  namespace: kuid-system

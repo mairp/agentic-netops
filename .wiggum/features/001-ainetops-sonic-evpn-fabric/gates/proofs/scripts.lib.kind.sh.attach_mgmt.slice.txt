@@ -1,0 +1,17 @@
+    84	kind::attach_mgmt() {
+    85	  # Attach every Kind node container to the external mgmt network if not already attached
+    86	  require docker
+    87	  local nodes; nodes=$(kind::nodes)
+    88	  [[ -n "${nodes}" ]] || { echo "[kind] no nodes found to attach" >&2; return 0; }
+    89	  # Ensure mgmt network labeled
+    90	  docker network inspect "${MGMT_NET}" >/dev/null 2>&1 || docker network create --label ainetops.owner="${LABEL_OWNER}" "${MGMT_NET}"
+    91	  while read -r n; do
+    92	    [[ -z "${n}" ]] && continue
+    93	    if ! docker network inspect "${MGMT_NET}" -f '{{json .Containers}}' | grep -q "${n}"; then
+    94	      echo "[kind] attaching ${n} to ${MGMT_NET}"
+    95	      docker network connect "${MGMT_NET}" "${n}" || true
+    96	    else
+    97	      echo "[kind] ${n} already attached to ${MGMT_NET} (idempotent)"
+    98	    fi
+    99	  done <<<"${nodes}"
+   100	}

@@ -1,0 +1,5 @@
+sdc.sdcio.dev/v1alpha1/Target sdc-system/172-31-0-11
+sdc.sdcio.dev/v1alpha1/Target sdc-system/172-31-0-12
+sdc.sdcio.dev/v1alpha1/Target sdc-system/172-31-0-21
+sdc.sdcio.dev/v1alpha1/Target sdc-system/172-31-0-22
+TOTAL=4

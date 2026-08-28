@@ -1,0 +1,62 @@
+# Namespaces, service accounts, RBAC, and NetworkPolicies (Phase 3 T022)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ainetops-system
+  labels:
+    ainetops.owner: ainetops
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ainetops-controller
+  namespace: ainetops-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ainetops-controller
+  namespace: ainetops-system
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "events"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ainetops-controller
+  namespace: ainetops-system
+subjects:
+- kind: ServiceAccount
+  name: ainetops-controller
+  namespace: ainetops-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ainetops-controller
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-by-default
+  namespace: ainetops-system
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress", "Egress"]
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gnmi-lab-ca
+  namespace: ainetops-system
+  annotations:
+    ainetops.generated: "true"
+  labels:
+    ainetops.owner: ainetops
+type: Opaque
+stringData:
+  note: "Generated at runtime; placeholder manifest proves API surface. No real credential committed."

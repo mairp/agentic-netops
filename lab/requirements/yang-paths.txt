@@ -1,0 +1,8 @@
+/openconfig-interfaces:interfaces
+/openconfig-network-instance:network-instances
+/openconfig-vlan:vlans
+/openconfig-bgp:bgp
+/sonic-telemetry:sonic-telemetry/TELEMETRY
+/sonic-vrf:sonic-vrf
+/sonic-tunnel:sonic-tunnel
+/sonic-srv6:sonic-srv6

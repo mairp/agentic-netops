@@ -1,0 +1,74 @@
+name: Denylist Scan
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  denylist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
+      - name: Run vendor-agnostic deny-list checks
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          fail=0
+
+          echo "::group::SR Linux runtime artifacts in code/manifests"
+          SR_MATCHES=$(rg -i -n --hidden \
+            --glob '!**/*.md' \
+            --glob '!**/.git/**' \
+            -e '\bsr[ -]?linux\b|ghcr\.io/nokia/srlinux' \
+            controllers config scripts examples tests lab cmd internal deploy || true)
+          # Allow mentions of the visualization reference, not a runtime dependency
+          SR_MATCHES=$(printf "%s" "${SR_MATCHES}" | rg -v 'srl-telemetry-lab' || true)
+          if [ -n "${SR_MATCHES}" ]; then
+            echo "::error title=SR Linux runtime mention found::One or more files mention SR Linux runtime artifacts outside allowed contexts"
+            echo "${SR_MATCHES}"
+            fail=1
+          fi
+          echo "::endgroup::"
+
+          echo "::group::Proprietary NED(s) mentions (blocked everywhere except research/spec boundary)"
+          # Block proprietary NED(s) mentions, allow in research.md and spec.md (boundary statement)
+          PNED_MATCHES=$(rg -i -n -e '\bproprietary\s+neds?\b' \
+            --glob '!**/specs/**/research.md' \
+            --glob '!**/specs/**/spec.md' \
+            --glob '!**/.git/**' \
+            . || true)
+          if [ -n "${PNED_MATCHES}" ]; then
+            echo "::error title=Proprietary NED mention found::Mentions of proprietary NED(s) are not allowed outside research.md and spec.md boundary text"
+            echo "${PNED_MATCHES}"
+            fail=1
+          fi
+          echo "::endgroup::"
+
+          echo "::group::Disallowed platform-app placements (Compose/standalone) in code dirs"
+          # Disallow docker compose / standalone app placements under code directories; ignore markdown
+          PL_MATCHES=$(rg -i -n \
+            --glob '!**/*.md' \
+            --glob '!**/.git/**' \
+            -e '(docker-compose|docker\s+compose|compose\.ya?ml|standalone)' \
+            controllers config scripts examples tests || true)
+          if [ -n "${PL_MATCHES}" ]; then
+            echo "::error title=Disallowed platform placement::Found Compose/standalone indicators for platform apps in code directories"
+            echo "${PL_MATCHES}"
+            fail=1
+          fi
+          echo "::endgroup::"
+
+          if [ "$fail" -ne 0 ]; then
+            echo "Deny-list checks failed"
+            exit 1
+          fi
+          echo "All deny-list checks passed"

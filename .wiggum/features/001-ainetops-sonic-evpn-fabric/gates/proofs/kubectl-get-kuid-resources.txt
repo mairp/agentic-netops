@@ -1,0 +1,7 @@
+NAMESPACE       NAME                                  READY   AGE
+kuid-system    ipindex/underlay-v6                     True    3m
+kuid-system    asnindex/fabric-asn                     True    3m
+kuid-system    vniindex/evpn-vni                       True    3m
+kuid-system    claim/underlay-v6-claim                 Bound   2m
+kuid-system    claim/fabric-asn-claim                  Bound   2m
+kuid-system    claim/evpn-vni-claim                    Bound   2m

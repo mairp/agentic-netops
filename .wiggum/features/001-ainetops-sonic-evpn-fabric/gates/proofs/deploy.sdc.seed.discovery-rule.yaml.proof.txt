@@ -1,0 +1,7 @@
+     1	apiVersion: sdc.sdcio.dev/v1alpha1
+     2	kind: DiscoveryRule
+     3	metadata: { name: sonic-management, namespace: sdc-system }
+     4	spec:
+     5	  addresses: [172.31.0.11, 172.31.0.12, 172.31.0.21, 172.31.0.22]
+     6	  connectionProfileRef: { name: sonic-conn-profile }
+     7	  schemaRef: { name: sonic-oc }

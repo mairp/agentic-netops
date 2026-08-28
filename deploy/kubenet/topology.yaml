@@ -1,0 +1,17 @@
+# T025: Topology resource (simplified) per pinned API
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Topology
+metadata:
+  name: ainetops-topology
+  namespace: kubenet-system
+spec:
+  # Simplified node list; actual provider consumes NetworkDevice derived by Kubenet
+  nodes:
+  - name: spine01
+    role: spine
+  - name: spine02
+    role: spine
+  - name: leaf01
+    role: leaf
+  - name: leaf02
+    role: leaf

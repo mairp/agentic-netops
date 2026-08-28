@@ -1,0 +1,16 @@
+     1	# AINETOPS SONiC lab profile: sonic-vm (conformance overlay)
+     2	profile: sonic-vm
+     3	kind: linux
+     4	image: ghcr.io/sonic-net/sonic:202405@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+     5	runtime:
+     6	  privileged: true
+     7	  devices:
+     8	    - /dev/kvm
+     9	bootstrap:
+    10	  path: lab/profiles/sonic-vs/bootstrap
+    11	  files:
+    12	    - lab/profiles/sonic-vs/bootstrap/init-sonic-bootstrap.sh
+    13	    - lab/profiles/sonic-vs/bootstrap/install-gnmi-certs.sh
+    14	    - lab/profiles/sonic-vs/bootstrap/gnmi_config_db.json
+    15	notes: |
+    16	  Requires KVM/nested virtualization. Reuses sonic-vs minimal bootstrap to enable gNMI/TLS and persistence.

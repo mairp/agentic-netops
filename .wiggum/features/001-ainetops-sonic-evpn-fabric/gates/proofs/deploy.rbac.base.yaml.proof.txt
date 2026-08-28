@@ -1,0 +1,24 @@
+     1	apiVersion: v1
+     2	kind: Namespace
+     3	metadata:
+     4	  name: ainetops-system
+     5	  labels: { ainetops.owner: ainetops }
+     6	---
+     7	apiVersion: v1
+     8	kind: ServiceAccount
+     9	metadata: { name: ainetops-controller, namespace: ainetops-system }
+    10	---
+    11	apiVersion: rbac.authorization.k8s.io/v1
+    12	kind: Role
+    13	metadata: { name: ainetops-controller, namespace: ainetops-system }
+    14	rules:
+    15	- apiGroups: [""]
+    16	  resources: ["configmaps", "events"]
+    17	  verbs: ["get", "list", "watch", "create", "update", "patch"]
+    18	- apiGroups: ["coordination.k8s.io"]
+    19	  resources: ["leases"]
+    20	  verbs: ["get", "list", "watch", "create", "update", "patch"]
+    21	---
+    22	apiVersion: networking.k8s.io/v1
+    23	kind: NetworkPolicy
+    24	metadata: { name: deny-all-by-default, namespace: ainetops-system }

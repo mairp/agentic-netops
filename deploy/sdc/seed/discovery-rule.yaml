@@ -1,0 +1,16 @@
+# T024: Address-based DiscoveryRule creating four Targets
+apiVersion: sdc.sdcio.dev/v1alpha1
+kind: DiscoveryRule
+metadata:
+  name: sonic-management
+  namespace: sdc-system
+spec:
+  addresses:
+  - 172.31.0.11
+  - 172.31.0.12
+  - 172.31.0.21
+  - 172.31.0.22
+  connectionProfileRef:
+    name: sonic-conn-profile
+  schemaRef:
+    name: sonic-oc

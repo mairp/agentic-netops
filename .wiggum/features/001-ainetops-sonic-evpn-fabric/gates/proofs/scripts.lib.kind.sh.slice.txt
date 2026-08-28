@@ -1,0 +1,19 @@
+     1	#!/usr/bin/env bash
+     2	# Idempotent Kind cluster lifecycle and Docker network attachment (Phase 3)
+     3	set -euo pipefail
+     4	
+     5	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+     6	KIND_CLUSTER_NAME=${AINETOPS_CLUSTER_NAME:-ainetops}
+     7	KIND_CONTEXT="kind-${KIND_CLUSTER_NAME}"
+     8	KIND_CONFIG="${ROOT_DIR}/config/kind/cluster.yaml"
+     9	MGMT_NET=${AINETOPS_MGMT_NET:-ainetops-mgmt}
+    10	LABEL_OWNER=${AINETOPS_OWNER_LABEL:-ainetops}
+    11	NODE_IMAGE_PIN=$(awk '/^kind:/,/^[^[:space:]]/ {print}' "${ROOT_DIR}/versions.lock.yaml" | awk -F': *' '/node_image:/ {print $2; exit}')
+    12	...
+   112	case "${1:-}" in
+   113	  ensure) shift; kind::ensure "$@" ;;
+   114	  attach-mgmt) shift; kind::attach_mgmt "$@" ;;
+   115	  delete) shift; kind::delete "$@" ;;
+   116	  verify-context) shift; kind::kube_context "$@" ;;
+   117	  *) echo "usage: $0 {ensure|attach-mgmt|delete|verify-context}" >&2; exit 2 ;;
+   118	 esac

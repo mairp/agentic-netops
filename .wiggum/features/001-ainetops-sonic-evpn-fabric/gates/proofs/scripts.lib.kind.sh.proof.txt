@@ -1,0 +1,8 @@
+     1	#!/usr/bin/env bash
+     2	# Idempotent Kind cluster lifecycle and Docker network attachment (Phase 3)
+     3	# Provides: ensure, attach-mgmt, verify-context, delete
+     4	KIND_CLUSTER_NAME=${AINETOPS_CLUSTER_NAME:-ainetops}
+     5	KIND_CONTEXT=kind-${KIND_CLUSTER_NAME}
+     6	MGMT_NET=ainetops-mgmt
+     7	LABEL_OWNER=ainetops
+     8	# Verifies pinned node image and kube-context

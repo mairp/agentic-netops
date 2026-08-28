@@ -1,0 +1,41 @@
+# T025 negative tests
+---
+apiVersion: network.kubenet.dev/v1alpha1
+kind: NetworkConfig
+metadata: { name: missing-secret, namespace: kubenet-system }
+spec:
+  defaultNetwork: true
+  # Refers to a Secret that must not exist; controller should surface a status error
+  references:
+    deviceCredentialsSecret: does-not-exist
+---
+apiVersion: network.kubenet.dev/v1alpha1
+kind: NetworkConfig
+metadata: { name: schema-mismatch, namespace: kubenet-system }
+spec:
+  # bogus field triggering schema mismatch
+  unsupportedField: true
+---
+# Unreachable target: SDC target address that is not routable from Kind (example)
+apiVersion: sdc.sdcio.dev/v1alpha1
+kind: DiscoveryRule
+metadata: { name: unreachable-target, namespace: sdc-system }
+spec:
+  addresses: [ 198.51.100.123 ]
+  connectionProfileRef: { name: sonic-conn-profile }
+  schemaRef: { name: sonic-oc }
+---
+# Exhausted ASN claim: request outside the index range
+apiVersion: id.kuid.dev/v1alpha1
+kind: ASNIndex
+metadata: { name: tight-asn, namespace: kuid-system }
+spec:
+  range: { start: 65000, end: 65000 }
+---
+apiVersion: id.kuid.dev/v1alpha1
+kind: Claim
+metadata: { name: asn-too-many, namespace: kuid-system }
+spec:
+  from: { kind: ASNIndex, name: tight-asn }
+  # Intentionally requesting multiple to trigger exhaustion
+  count: 2

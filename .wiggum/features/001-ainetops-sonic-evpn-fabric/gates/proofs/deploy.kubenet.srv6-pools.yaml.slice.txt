@@ -1,0 +1,5 @@
+     1	# T025: SRv6 locator, SID, and service-ID pools using KUID (simplified)
+     7	apiVersion: id.kuid.dev/v1alpha1
+     8	kind: Claim
+     9	metadata:
+    10	  name: srv6-locator-claim

@@ -1,0 +1,2 @@
+     1	docker network inspect ainetops-mgmt >/dev/null 2>&1 || docker network create --label ainetops.owner=ainetops "ainetops-mgmt"
+     2	# Shared dedicated management network with ownership labeling (FR-024)

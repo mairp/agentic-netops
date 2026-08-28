@@ -1,0 +1,91 @@
+# Kubenet/KUID controllers minimal Deployments and Services (T020)
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kubenet-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubenet-controller
+  namespace: kubenet-system
+  labels:
+    app.kubernetes.io/name: kubenet-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubenet-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kubenet-controller
+    spec:
+      serviceAccountName: kubenet-controller
+      containers:
+      - name: manager
+        image: ghcr.io/kubenet-dev/kubenet-controller@sha256:1111111111111111111111111111111111111111111111111111111111111111
+        args: ["--health-probe-bind-address=:8081", "--metrics-bind-address=:8080"]
+        ports:
+        - name: healthz
+          containerPort: 8081
+        - name: metrics
+          containerPort: 8080
+        readinessProbe:
+          httpGet: { path: /readyz, port: 8081 }
+          initialDelaySeconds: 5
+        livenessProbe:
+          httpGet: { path: /healthz, port: 8081 }
+          initialDelaySeconds: 10
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubenet-controller
+  namespace: kubenet-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kuid-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuid-controller
+  namespace: kuid-system
+  labels:
+    app.kubernetes.io/name: kuid-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kuid-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kuid-controller
+    spec:
+      serviceAccountName: kuid-controller
+      containers:
+      - name: manager
+        image: ghcr.io/kubenet-dev/kuid-controller@sha256:2222222222222222222222222222222222222222222222222222222222222222
+        args: ["--health-probe-bind-address=:8081", "--metrics-bind-address=:8080"]
+        ports:
+        - name: healthz
+          containerPort: 8081
+        - name: metrics
+          containerPort: 8080
+        readinessProbe:
+          httpGet: { path: /readyz, port: 8081 }
+          initialDelaySeconds: 5
+        livenessProbe:
+          httpGet: { path: /healthz, port: 8081 }
+          initialDelaySeconds: 10
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kuid-controller
+  namespace: kuid-system

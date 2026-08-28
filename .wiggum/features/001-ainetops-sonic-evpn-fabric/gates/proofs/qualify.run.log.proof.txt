@@ -1,0 +1,25 @@
+$ nl -ba -w1 -s': ' .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/qualify.run.log | sed -n '1,200p'
+     1: [qualify] Running Capabilities
+     2: [qualify] Running Get
+     3: [qualify] Running Set
+     4: [qualify] Running Subscribe
+     5: [qualify] Running sonic-srv6
+     6: [qualify] Running persistence pre-set (Set)
+     7: [persist] setting telemetry port to 8099 on all targets
+     8: [persist] restarting SONiC containers
+     9: [persist] verifying telemetry port persists after restart
+    10: [persist] 172.31.0.21:8080 port=8099
+    11: [persist] 172.31.0.22:8080 port=8099
+    12: [persist] persistence verified
+    13: [qualify] Running EVPN-Type2
+    14: [qualify] Running EVPN-Type3
+    15: [qualify] Running EVPN-Type5
+    16: [qualify] Running SRv6-Underlay
+    17: [qualify] Running H.Encaps.Red
+    18: [qualify] Running End
+    19: [qualify] Running End.DT46
+    20: [qualify] Running SID-list
+    21: [qualify] Running Decapsulation
+    22: [qualify] Running Counters
+    23: [qualify] Running YANG-Paths
+    24: [qualify] OK

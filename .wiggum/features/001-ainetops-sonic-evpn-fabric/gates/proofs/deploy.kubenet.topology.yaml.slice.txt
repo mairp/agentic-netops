@@ -1,0 +1,6 @@
+     1	# T025: Topology resource (simplified) per pinned API
+     2	apiVersion: network.kubenet.dev/v1alpha1
+     3	kind: Topology
+     4	metadata:
+     5	  name: ainetops-topology
+     6	  namespace: kubenet-system

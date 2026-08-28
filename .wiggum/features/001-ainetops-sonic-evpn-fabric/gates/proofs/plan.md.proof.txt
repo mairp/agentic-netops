@@ -1,0 +1,30 @@
+     1	# Implementation Plan (repository foundation)
+     2	
+     3	This plan enumerates the repository structure and key owned files for the AINETOPS SONiC EVPN/VXLAN Fabric implementation, as referenced by specs/001-ainetops-sonic-evpn-fabric/plan.md.
+     4	
+     5	Structure to create and own in this repository:
+     6	
+     7	- scripts/
+     8	  - scripts/provision.sh — sole lifecycle provision entrypoint
+     9	  - scripts/off.sh — sole lifecycle teardown entrypoint
+    10	  - scripts/lib/
+    11	    - scripts/lib/preflight.sh — strict-shell reusable host/runtime preflight
+    12	    - scripts/lib/verify_pins.sh — NFR-003 pin/consistency verification
+    13	    - scripts/lib/validate_crds.sh — server-side dry-run of pinned CRDs/examples
+    14	- config/
+    15	  - config/kind/cluster.yaml — declarative Kind cluster (pinned node image, pod/service CIDRs)
+    16	- lab/
+    17	  - lab/topology.clab.yaml — containerlab topology manifest
+    18	- api/ — API definitions (placeholders in Phase 1)
+    19	- cmd/ — command binaries (placeholders in Phase 1)
+    20	- controllers/ — controllers and providers (placeholders in Phase 1)
+    21	- internal/ — shared library code (placeholders in Phase 1)
+    22	- examples/ — example manifests (placeholders in Phase 1)
+    23	- tests/ — integration and unit tests (placeholders in Phase 1)
+    24	- Makefile — wrappers for verify-pins, validate-crds, verify-compat
+    25	- versions.lock.yaml — compatibility manifest with immutable pins
+    26	
+    27	The Makefile must provide at least:
+    28	- verify-pins → scripts/lib/verify_pins.sh
+    29	- validate-crds → scripts/lib/validate_crds.sh (tee run log)
+    30	- verify-compat → verify-pins + validate-crds

@@ -1,0 +1,41 @@
+# T025: SRv6 locator, SID, and service-ID pools using KUID (simplified)
+---
+apiVersion: id.kuid.dev/v1alpha1
+kind: IPIndex
+metadata:
+  name: srv6-locator-v6
+  namespace: kuid-system
+spec:
+  cidr: 2001:db8:feed::/48
+---
+apiVersion: id.kuid.dev/v1alpha1
+kind: Claim
+metadata:
+  name: srv6-locator-claim
+  namespace: kuid-system
+spec:
+  from:
+    kind: IPIndex
+    name: srv6-locator-v6
+  purpose: "srv6-locator"
+---
+apiVersion: id.kuid.dev/v1alpha1
+kind: VNIIndex
+metadata:
+  name: srv6-service-ids
+  namespace: kuid-system
+spec:
+  range:
+    start: 500000
+    end: 500999
+---
+apiVersion: id.kuid.dev/v1alpha1
+kind: Claim
+metadata:
+  name: srv6-service-id-claim
+  namespace: kuid-system
+spec:
+  from:
+    kind: VNIIndex
+    name: srv6-service-ids
+  purpose: "srv6-service-id"

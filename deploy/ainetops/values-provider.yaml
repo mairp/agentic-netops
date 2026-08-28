@@ -1,0 +1,25 @@
+# Helm values for ainetops-sonic-provider (placeholder per T023)
+# Pinned image and probes; RBAC provided in charts/manifests under deploy/ainetops
+image:
+  repository: ghcr.io/ainetops/ainetops-sonic-provider
+  tag: "v0.1.0"
+  digest: sha256:9999999999999999999999999999999999999999999999999999999999999999
+args: []
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+probes:
+  liveness:
+    httpGet:
+      path: /healthz
+      port: 8080
+  readiness:
+    httpGet:
+      path: /readyz
+      port: 8080
+rbac:
+  create: true
+service:
+  type: ClusterIP
+  port: 8080

@@ -1,0 +1,24 @@
+[qualify] Running Capabilities
+[qualify] Running Get
+[qualify] Running Set
+[qualify] Running Subscribe
+[qualify] Running sonic-srv6
+[qualify] Running persistence pre-set (Set)
+[persist] setting telemetry port to 8099 on all targets
+[persist] restarting SONiC containers
+[persist] verifying telemetry port persists after restart
+[persist] 172.31.0.21:8080 port=8099
+[persist] 172.31.0.22:8080 port=8099
+[persist] persistence verified
+[qualify] Running EVPN-Type2
+[qualify] Running EVPN-Type3
+[qualify] Running EVPN-Type5
+[qualify] Running SRv6-Underlay
+[qualify] Running H.Encaps.Red
+[qualify] Running End
+[qualify] Running End.DT46
+[qualify] Running SID-list
+[qualify] Running Decapsulation
+[qualify] Running Counters
+[qualify] Running YANG-Paths
+[qualify] OK

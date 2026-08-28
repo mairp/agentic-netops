@@ -1,0 +1,65 @@
+     1	#!/usr/bin/env bash
+     2	# Validate Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side dry-run
+     3	# Uses pinned commits/releases recorded in versions.lock.yaml
+     4	set -euo pipefail
+     5	
+     6	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+     7	LOCK_FILE="${ROOT_DIR}/versions.lock.yaml"
+     8	
+     9	require() { command -v "$1" >/dev/null 2>&1 || { echo "missing command: $1" >&2; exit 1; }; }
+    10	
+    11	require kubectl
+    12	require awk
+    13	
+    14	# Helper to extract a key's value block between a section and next top-level key
+    15	section() { awk -v s="^$1:$" 'f; $0~s{f=1} f && /^[^[:space:]]/{if(!p){p=1;print}else exit} f && p{print}' "$LOCK_FILE"; }
+    16	
+    17	kubenet_commit=$(section kubenet | awk '/commit:/ {print $2; exit}')
+    18	kuid_commit=$(section kuid | awk '/commit:/ {print $2; exit}')
+    19	sdc_release=$(section sdc | awk '/release:/ {print $2; exit}')
+    20	
+    21	[[ $kubenet_commit =~ ^[0-9a-f]{40}$ ]] || { echo "invalid kubenet commit in versions.lock.yaml" >&2; exit 1; }
+    22	[[ $kuid_commit =~ ^[0-9a-f]{40}$ ]] || { echo "invalid kuid commit in versions.lock.yaml" >&2; exit 1; }
+    23	[[ $sdc_release =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "invalid sdc release in versions.lock.yaml" >&2; exit 1; }
+    24	
+    25	# Example upstream raw paths (pinned by commit/release). Replace with authoritative paths as needed.
+    26	KUBENET_CRDS=(
+    27	  "https://raw.githubusercontent.com/kubenet-dev/kubenet/${kubenet_commit}/config/crd/bases/network.kubenet.dev_networks.yaml"
+    28	  "https://raw.githubusercontent.com/kubenet-dev/kubenet/${kubenet_commit}/config/crd/bases/network.kubenet.dev_networkdevices.yaml"
+    29	)
+    30	KUBENET_EXAMPLES=(
+    31	  "https://raw.githubusercontent.com/kubenet-dev/kubenet/${kubenet_commit}/examples/default-network.yaml"
+    32	)
+    33	KUID_CRDS=(
+    34	  "https://raw.githubusercontent.com/kubenet-dev/kuid/${kuid_commit}/config/crd/bases/id.kuid.dev_claims.yaml"
+    35	)
+    36	SDC_CRDS=(
+    37	  "https://raw.githubusercontent.com/sdcio/sdc/${sdc_release}/deploy/crds/sdc.sdcio.dev_schemas.yaml"
+    38	  "https://raw.githubusercontent.com/sdcio/sdc/${sdc_release}/deploy/crds/sdc.sdcio.dev_configs.yaml"
+    39	  "https://raw.githubusercontent.com/sdcio/sdc/${sdc_release}/deploy/crds/sdc.sdcio.dev_targets.yaml"
+    40	)
+    41	
+    42	run_dry_run() {
+    43	  local what=$1; shift
+    44	  local -a files=("$@")
+    45	  echo "[validate-crds] server-side dry-run: ${what} (${#files[@]} files)" >&2
+    46	  # Build multiple -f flags so kubectl handles each manifest separately
+    47	  local -a args=(apply --dry-run=server)
+    48	  for f in "${files[@]}"; do args+=( -f "$f" ); done
+    49	  set -x
+    50	  kubectl "${args[@]}" 1>/dev/null
+    51	  { set +x; } 2>/dev/null
+    52	}
+    53	
+    54	# Note: The actual cluster must be reachable for server-side validation.
+    55	# This script is idempotent and performs validation only.
+    56	
+    57	# Validate CRDs
+    58	run_dry_run "Kubenet CRDs" "${KUBENET_CRDS[@]}"
+    59	run_dry_run "KUID CRDs" "${KUID_CRDS[@]}"
+    60	run_dry_run "SDC CRDs" "${SDC_CRDS[@]}"
+    61	
+    62	# Validate example manifests against CRDs
+    63	run_dry_run "Kubenet examples" "${KUBENET_EXAMPLES[@]}"
+    64	
+    65	echo "[validate-crds] OK"

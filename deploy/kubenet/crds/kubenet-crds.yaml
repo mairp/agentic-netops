@@ -1,0 +1,83 @@
+# Minimal CRD definitions for Kubenet pinned API (NetworkConfig shape)
+# Note: These CRDs are simplified to satisfy cluster creation and readiness waits.
+# Upstream pinned CRDs are validated via scripts/lib/validate_crds.sh against versions.lock.yaml.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: networkconfigs.network.kubenet.dev
+spec:
+  group: network.kubenet.dev
+  scope: Namespaced
+  names:
+    plural: networkconfigs
+    singular: networkconfig
+    kind: NetworkConfig
+    shortNames: [netcfg]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: networkdevices.network.kubenet.dev
+spec:
+  group: network.kubenet.dev
+  scope: Namespaced
+  names:
+    plural: networkdevices
+    singular: networkdevice
+    kind: NetworkDevice
+    shortNames: [ndev]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: topologies.network.kubenet.dev
+spec:
+  group: network.kubenet.dev
+  scope: Namespaced
+  names:
+    plural: topologies
+    singular: topology
+    kind: Topology
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true

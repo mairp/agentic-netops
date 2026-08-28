@@ -1,0 +1,11 @@
+10: # Idempotent containerlab teardown and cleanup checks
+11: if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
+12:   "${LIB_DIR}/containerlab.sh" destroy || {
+13:     echo "[off] containerlab destroy reported leftovers" >&2
+14:     exit 1
+15:   }
+16: else
+17:   echo "[off] WARN: containerlab helper not found; skipping lab teardown" >&2
+18: fi
+19: 
+20: echo "[off] Teardown complete."

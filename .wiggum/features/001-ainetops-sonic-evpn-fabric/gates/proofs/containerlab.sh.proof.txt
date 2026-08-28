@@ -1,0 +1,56 @@
+     1	#!/usr/bin/env bash
+     2	# Idempotent containerlab deploy/inspect/destroy helpers (Phase 2)
+     3	set -euo pipefail
+     4	
+     5	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+     6	TOPO_FILE="${ROOT_DIR}/lab/topology.clab.yml"
+     7	MGMT_NET="ainetops-mgmt"
+     8	LABEL_OWNER="ainetops"
+     9	
+    10	clab::require() { command -v containerlab >/dev/null 2>&1 || { echo "missing containerlab" >&2; exit 1; }; }
+    11	
+    12	clab::deploy() {
+    13	  clab::require
+    14	  echo "[clab] ensuring external Docker network ${MGMT_NET} exists"
+    15	  docker network inspect "${MGMT_NET}" >/dev/null 2>&1 || docker network create --label ainetops.owner=${LABEL_OWNER} "${MGMT_NET}"
+    16	  echo "[clab] deploying ${TOPO_FILE}"
+    17	  containerlab deploy -t "${TOPO_FILE}" --reconfigure --skip-save -c
+    18	}
+    19	
+    20	clab::inspect() {
+    21	  clab::require
+    22	  containerlab inspect -t "${TOPO_FILE}" -o json
+    23	}
+    24	
+    25	clab::destroy() {
+    26	  clab::require
+    27	  echo "[clab] destroying ${TOPO_FILE}"
+    28	  containerlab destroy -t "${TOPO_FILE}" --cleanup || true
+    29	  # Verify teardown leaves no owned lab containers or volumes
+    30	  local leftovers
+    31	  leftovers=$(docker ps -a --format '{{.Names}} {{.Labels}}' | awk '/ainetops.owner=ainetops/ {print $1}') || true
+    32	  if [[ -n "$leftovers" ]]; then
+    33	    echo "[clab] WARN: leftover AINETOPS containers not removed:\n$leftovers" >&2
+    34	    exit 1
+    35	  fi
+    36	  # Check for owned volumes (persistent /etc/sonic)
+    37	  local vol_left
+    38	  vol_left=$(docker volume ls -q | grep -E '^ainetops-.*-etc-sonic$' || true)
+    39	  if [[ -n "$vol_left" ]]; then
+    40	    echo "[clab] WARN: leftover AINETOPS volumes not removed:\n$vol_left" >&2
+    41	    exit 1
+    42	  fi
+    43	  # Check for generated lab credentials under repo secrets/
+    44	  if [[ -e "${ROOT_DIR}/secrets/gnmi.key" || -e "${ROOT_DIR}/secrets/gnmi.crt" || -e "${ROOT_DIR}/secrets/ca.crt" ]]; then
+    45	    echo "[clab] WARN: leftover lab-generated gNMI credentials under ${ROOT_DIR}/secrets" >&2
+    46	    exit 1
+    47	  fi
+    48	  echo "[clab] destroy complete"
+    49	}
+    50	
+    51	case "${1:-}" in
+    52	  deploy) shift; clab::deploy "$@" ;;
+    53	  inspect) shift; clab::inspect "$@" ;;
+    54	  destroy) shift; clab::destroy "$@" ;;
+    55	  *) echo "usage: $0 {deploy|inspect|destroy}" >&2; exit 2 ;;
+    56	esac

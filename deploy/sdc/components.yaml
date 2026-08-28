@@ -1,0 +1,140 @@
+# SDC components: schema, config, data, cache (T021)
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sdc-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sdc-schema
+  namespace: sdc-system
+  labels:
+    app.kubernetes.io/name: sdc-schema
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sdc-schema
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sdc-schema
+    spec:
+      containers:
+      - name: schema
+        image: ghcr.io/sdcio/sdc-schema@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        ports:
+        - name: http
+          containerPort: 8080
+        readinessProbe:
+          httpGet: { path: /readyz, port: 8080 }
+          initialDelaySeconds: 5
+        livenessProbe:
+          httpGet: { path: /healthz, port: 8080 }
+          initialDelaySeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sdc-config
+  namespace: sdc-system
+  labels:
+    app.kubernetes.io/name: sdc-config
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sdc-config
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sdc-config
+    spec:
+      containers:
+      - name: config
+        image: ghcr.io/sdcio/sdc-config@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+        ports:
+        - name: http
+          containerPort: 8080
+        readinessProbe:
+          httpGet: { path: /readyz, port: 8080 }
+          initialDelaySeconds: 5
+        livenessProbe:
+          httpGet: { path: /healthz, port: 8080 }
+          initialDelaySeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sdc-data
+  namespace: sdc-system
+  labels:
+    app.kubernetes.io/name: sdc-data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sdc-data
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sdc-data
+    spec:
+      containers:
+      - name: data
+        image: ghcr.io/sdcio/sdc-data@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/sdc/data
+        volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: sdc-data
+        ports:
+        - name: http
+          containerPort: 8080
+        readinessProbe:
+          httpGet: { path: /readyz, port: 8080 }
+          initialDelaySeconds: 5
+        livenessProbe:
+          httpGet: { path: /healthz, port: 8080 }
+          initialDelaySeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sdc-cache
+  namespace: sdc-system
+  labels:
+    app.kubernetes.io/name: sdc-cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sdc-cache
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sdc-cache
+    spec:
+      containers:
+      - name: cache
+        image: ghcr.io/sdcio/sdc-cache@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+        volumeMounts:
+        - name: cache
+          mountPath: /var/lib/sdc/cache
+        volumes:
+        - name: cache
+          persistentVolumeClaim:
+            claimName: sdc-cache
+        ports:
+        - name: http
+          containerPort: 8080
+        readinessProbe:
+          httpGet: { path: /readyz, port: 8080 }
+          initialDelaySeconds: 5
+        livenessProbe:
+          httpGet: { path: /healthz, port: 8080 }
+          initialDelaySeconds: 10

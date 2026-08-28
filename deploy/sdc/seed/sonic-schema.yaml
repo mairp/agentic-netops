@@ -1,0 +1,34 @@
+# T024: SONiC Schema and profiles (pinned)
+apiVersion: sdc.sdcio.dev/v1alpha1
+kind: Schema
+metadata:
+  name: sonic-oc
+  namespace: sdc-system
+spec:
+  image: ghcr.io/sonic-net/sonic-vs:202403@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  openconfigCommit: b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0
+  nativeCommit: c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1
+---
+apiVersion: sdc.sdcio.dev/v1alpha1
+kind: Config
+metadata:
+  name: sonic-conn-profile
+  namespace: sdc-system
+spec:
+  type: ConnectionProfile
+  data:
+    encoding: JSON_IETF
+    port: 9339
+    tls: true
+---
+apiVersion: sdc.sdcio.dev/v1alpha1
+kind: Config
+metadata:
+  name: sonic-sync-profile
+  namespace: sdc-system
+spec:
+  type: SyncProfile
+  data:
+    reconcileInterval: 30s
+    subscribe:
+      sampleInterval: 10s

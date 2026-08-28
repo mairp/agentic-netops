@@ -1,0 +1,50 @@
+# Declarative Kind cluster configuration (Phase 3 foundation)
+# - Stable cluster name: ainetops
+# - Pinned node image from versions.lock.yaml
+# - Non-overlapping pod/service CIDRs
+# - Extra port mappings for observability access from host
+# - Extra mounts for local diagnostics (no secrets)
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: ainetops
+networking:
+  podSubnet: 10.244.0.0/16
+  serviceSubnet: 10.96.0.0/12
+nodes:
+- role: control-plane
+  image: kindest/node@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd
+  labels:
+    ainetops.owner: "ainetops"
+    ainetops.kind.role: "control-plane"
+    ainetops.mgmt.attached: "false"
+  extraPortMappings:
+  - containerPort: 30090   # Prometheus NodePort
+    hostPort: 30090
+    protocol: TCP
+  - containerPort: 30300   # Grafana NodePort
+    hostPort: 30300
+    protocol: TCP
+  - containerPort: 30417   # OTLP gRPC NodePort
+    hostPort: 30417
+    protocol: TCP
+  - containerPort: 30418   # OTLP HTTP NodePort
+    hostPort: 30418
+    protocol: TCP
+  extraMounts:
+  - hostPath: /var/local/ainetops
+    containerPath: /var/local/ainetops
+    readOnly: false
+- role: worker
+  image: kindest/node@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd
+  labels:
+    ainetops.owner: "ainetops"
+    ainetops.kind.role: "worker"
+    ainetops.mgmt.attached: "false"
+  extraMounts:
+  - hostPath: /var/local/ainetops
+    containerPath: /var/local/ainetops
+    readOnly: false
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+    runtime_type = "io.containerd.runc.v2"

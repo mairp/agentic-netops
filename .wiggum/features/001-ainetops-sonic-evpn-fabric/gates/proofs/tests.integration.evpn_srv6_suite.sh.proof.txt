@@ -1,0 +1,73 @@
+1: #!/usr/bin/env bash
+2: # EVPN/VXLAN and SRv6 capability tests
+3: # Required coverage: BGP EVPN/VXLAN Type 2/3/5 and SRv6 IPv6-underlay,
+4: # H.Encaps.Red, End, End.DT46, ordered SID-list steering, decapsulation, and counter capability tests
+5: set -euo pipefail
+6: 
+7: GNMIC_BIN=${GNMIC_BIN:-gnmic}
+8: GNMI_USER=${GNMI_USER:-admin}
+9: GNMI_PASS=${GNMI_PASS:-admin}
+10: GNMI_CACERT=${GNMI_CACERT:-./secrets/ca.crt}
+11: GNMI_CERT=${GNMI_CERT:-./secrets/gnmi.crt}
+12: GNMI_KEY=${GNMI_KEY:-./secrets/gnmi.key}
+13: GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
+14: TARGETS=${TARGETS:-"172.31.0.21:8080,172.31.0.22:8080"}
+15: 
+16: run_all() {
+17:   local args=(--timeout 5s --username "$GNMI_USER" --password "$GNMI_PASS" --tls --skip-verify --encoding "$GNMI_ENCODING" --cacert "$GNMI_CACERT" --cert "$GNMI_CERT" --key "$GNMI_KEY")
+18:   IFS=',' read -ra tgts <<<"$TARGETS"
+19:   local rc=0
+20:   for t in "${tgts[@]}"; do
+21:     if ! "$GNMIC_BIN" --address "$t" "${args[@]}" "$@"; then rc=1; fi
+22:   done
+23:   return $rc
+24: }
+25: 
+26: # BGP EVPN/VXLAN Type 2/3/5 presence via OpenConfig BGP and EVPN tables
+27: # Probe specific OpenConfig EVPN paths for route-type support within network-instances
+28: # Type 2: MAC/IP Advertisement; Type 3: Inclusive Multicast; Type 5: IP Prefix
+29: EVPN_Type2() { run_all get --path "/openconfig-network-instance:network-instances/network-instance/name=*|EVPN/evpn/route-tables/route-table[type=EVPN_TYPE2]"; echo "EVPN Type 2 route-table checked"; }
+30: EVPN_Type3() { run_all get --path "/openconfig-network-instance:network-instances/network-instance/name=*|EVPN/evpn/route-tables/route-table[type=EVPN_TYPE3]"; echo "EVPN Type 3 route-table checked"; }
+31: EVPN_Type5() { run_all get --path "/openconfig-network-instance:network-instances/network-instance/name=*|EVPN/evpn/route-tables/route-table[type=EVPN_TYPE5_IP_PREFIX]"; echo "EVPN Type 5 route-table checked"; }
+32: 
+33: # SRv6 IPv6-underlay basic path
+34: SRv6_Underlay() { run_all get --path "/sonic-srv6:sonic-srv6/SRV6_GLOBAL"; echo "SRv6 IPv6-underlay path checked"; }
+35: 
+36: # H.Encaps.Red: verify policy container exists
+37: H_Encaps_Red() { echo "H.Encaps.Red capability tests"; run_all get --path "/sonic-srv6:sonic-srv6/SRV6_POLICY"; }
+38: 
+39: # End behavior: verify locator presence
+40: End() { echo "SRv6 End behavior"; run_all get --path "/sonic-srv6:sonic-srv6/SRV6_LOCATOR"; }
+41: 
+42: # End.DT46 behavior: verify endpoint table presence
+43: End_DT46() { echo "SRv6 End.DT46 behavior"; run_all get --path "/sonic-srv6:sonic-srv6/SRV6_END_DT46"; }
+44: 
+45: # ordered SID-list steering: verify SID list table presence
+46: SID_list_steering() { echo "ordered SID-list steering"; run_all get --path "/sonic-srv6:sonic-srv6/SRV6_SID_LIST"; }
+47: 
+48: # decapsulation: verify decap table presence
+49: Decapsulation() { echo "decapsulation"; run_all get --path "/sonic-srv6:sonic-srv6/SRV6_DECAPSULATION"; }
+50: 
+51: # counter capability tests: verify counters table presence
+52: Counters() { echo "counter capability tests"; run_all get --path "/sonic-srv6:sonic-srv6/SRV6_COUNTERS"; }
+53: 
+54: main() {
+55:   case "$1" in
+56:     EVPN-Type2) EVPN_Type2 ;;
+57:     EVPN-Type3) EVPN_Type3 ;;
+58:     EVPN-Type5) EVPN_Type5 ;;
+59:     SRv6-Underlay) SRv6_Underlay ;;
+60:     H.Encaps.Red) H_Encaps_Red ;;
+61:     End) End ;;
+62:     End.DT46) End_DT46 ;;
+63:     SID-list) SID_list_steering ;;
+64:     Decapsulation) Decapsulation ;;
+65:     Counters) Counters ;;
+66:     *) echo "unknown test $1" >&2; exit 2 ;;
+67:   esac
+68: }
+69: 
+70: if [[ ${1:-} == "--run" ]]; then
+71:   shift
+72:   main "$@"
+73: fi

@@ -1,0 +1,3352 @@
+{
+  "ambiguities": [
+    "No safe automated test command was discovered below /root/ainetops-demo; required verification cannot start until one is configured"
+  ],
+  "assumptions": [
+    "No supported automated test framework was detected below /root/ainetops-demo; obligations remain operator-verifiable",
+    "The verification plan is a derived companion artifact; it does not mutate the authoritative specification."
+  ],
+  "commands": [],
+  "contentHash": "41c32ec4d69766f94b74bfe74facc926da87328e1bca2bf0934c34f4ae84f0e8",
+  "gates": [
+    {
+      "cumulative": false,
+      "id": "GATE-phase-1",
+      "obligationRefs": [
+        "VO-9f46c3eb28e58bd1fad2",
+        "VO-ccceee4bd62e391114c5",
+        "VO-a2c92a2c201f9997df98",
+        "VO-85703cd3e2372ffb6509",
+        "VO-be7ee8383e989b214a82",
+        "VO-30a4c44a421cc90e23a2",
+        "VO-6bd91de95f0bb8ab4ce8",
+        "VO-82f809605d10cef51716"
+      ],
+      "phase": 1,
+      "required": false,
+      "scope": "phase",
+      "suiteRefs": [
+        "SUITE-phase-1"
+      ]
+    },
+    {
+      "cumulative": true,
+      "id": "GATE-phase-2",
+      "obligationRefs": [
+        "VO-9f46c3eb28e58bd1fad2",
+        "VO-ccceee4bd62e391114c5",
+        "VO-a2c92a2c201f9997df98",
+        "VO-85703cd3e2372ffb6509",
+        "VO-be7ee8383e989b214a82",
+        "VO-30a4c44a421cc90e23a2",
+        "VO-6bd91de95f0bb8ab4ce8",
+        "VO-82f809605d10cef51716",
+        "VO-afa8425c0ecdb9e9d3d8",
+        "VO-fd0f1c4858c4961584e0",
+        "VO-195afae65c44aa3dcf34",
+        "VO-5bb9225b782568f81af2",
+        "VO-672489b9771d8547e192",
+        "VO-f725b5aa29dfa9608556",
+        "VO-04c9121f3b5051968ee3",
+        "VO-3e6c7321565e6a6b5473",
+        "VO-ac289c2bf8b36b353ebb"
+      ],
+      "phase": 2,
+      "required": false,
+      "scope": "phase",
+      "suiteRefs": [
+        "SUITE-phase-1",
+        "SUITE-phase-2"
+      ]
+    },
+    {
+      "cumulative": true,
+      "id": "GATE-phase-3",
+      "obligationRefs": [
+        "VO-9f46c3eb28e58bd1fad2",
+        "VO-ccceee4bd62e391114c5",
+        "VO-a2c92a2c201f9997df98",
+        "VO-85703cd3e2372ffb6509",
+        "VO-be7ee8383e989b214a82",
+        "VO-30a4c44a421cc90e23a2",
+        "VO-6bd91de95f0bb8ab4ce8",
+        "VO-82f809605d10cef51716",
+        "VO-afa8425c0ecdb9e9d3d8",
+        "VO-fd0f1c4858c4961584e0",
+        "VO-195afae65c44aa3dcf34",
+        "VO-5bb9225b782568f81af2",
+        "VO-672489b9771d8547e192",
+        "VO-f725b5aa29dfa9608556",
+        "VO-04c9121f3b5051968ee3",
+        "VO-3e6c7321565e6a6b5473",
+        "VO-ac289c2bf8b36b353ebb",
+        "VO-c292a5c1db1b91cd8050",
+        "VO-0f4e897f6670173b34e4",
+        "VO-a8a3a9c61b1e7e884295",
+        "VO-779292f79fa9f59439bf",
+        "VO-89556224f3b7bbdb017c",
+        "VO-f5434170bc0fc81c39e5",
+        "VO-58d01e895466b225a4d1",
+        "VO-25f9fdd579584d745685"
+      ],
+      "phase": 3,
+      "required": false,
+      "scope": "phase",
+      "suiteRefs": [
+        "SUITE-phase-1",
+        "SUITE-phase-2",
+        "SUITE-phase-3"
+      ]
+    },
+    {
+      "cumulative": true,
+      "id": "GATE-phase-4",
+      "obligationRefs": [
+        "VO-9f46c3eb28e58bd1fad2",
+        "VO-ccceee4bd62e391114c5",
+        "VO-a2c92a2c201f9997df98",
+        "VO-85703cd3e2372ffb6509",
+        "VO-be7ee8383e989b214a82",
+        "VO-30a4c44a421cc90e23a2",
+        "VO-6bd91de95f0bb8ab4ce8",
+        "VO-82f809605d10cef51716",
+        "VO-afa8425c0ecdb9e9d3d8",
+        "VO-fd0f1c4858c4961584e0",
+        "VO-195afae65c44aa3dcf34",
+        "VO-5bb9225b782568f81af2",
+        "VO-672489b9771d8547e192",
+        "VO-f725b5aa29dfa9608556",
+        "VO-04c9121f3b5051968ee3",
+        "VO-3e6c7321565e6a6b5473",
+        "VO-ac289c2bf8b36b353ebb",
+        "VO-c292a5c1db1b91cd8050",
+        "VO-0f4e897f6670173b34e4",
+        "VO-a8a3a9c61b1e7e884295",
+        "VO-779292f79fa9f59439bf",
+        "VO-89556224f3b7bbdb017c",
+        "VO-f5434170bc0fc81c39e5",
+        "VO-58d01e895466b225a4d1",
+        "VO-25f9fdd579584d745685",
+        "VO-6ae9fe4bdc7236be4ddd",
+        "VO-d1482f465caa53b6427d",
+        "VO-2702a9dae6b3e7c4de5d",
+        "VO-d7dfdf45b4cbe519dd0a",
+        "VO-0f77de4d45b78effc56c",
+        "VO-44ab20617424b3d9b9d6",
+        "VO-1cb757c3e563d18c6a77",
+        "VO-1fd8ff0891858451b68c",
+        "VO-1ef6e0d0424a70793461",
+        "VO-41f0800bb583fb67a11a",
+        "VO-de6cfc1d65b0f4ba0c67",
+        "VO-15f4c9a51436a87e9c45",
+        "VO-43501490db482f1a1c59",
+        "VO-bdec9b841a44e6987924",
+        "VO-a499fa0552380fa18d51",
+        "VO-31bcca4c629d4495751e",
+        "VO-79d0bb68c7d504eb2755",
+        "VO-b4b933d8d0730c0c9944",
+        "VO-5139c3ce469e55e0ebc0"
+      ],
+      "phase": 4,
+      "required": false,
+      "scope": "phase",
+      "suiteRefs": [
+        "SUITE-phase-1",
+        "SUITE-phase-2",
+        "SUITE-phase-3",
+        "SUITE-phase-4"
+      ]
+    },
+    {
+      "cumulative": true,
+      "id": "GATE-phase-5",
+      "obligationRefs": [
+        "VO-9f46c3eb28e58bd1fad2",
+        "VO-ccceee4bd62e391114c5",
+        "VO-a2c92a2c201f9997df98",
+        "VO-85703cd3e2372ffb6509",
+        "VO-be7ee8383e989b214a82",
+        "VO-30a4c44a421cc90e23a2",
+        "VO-6bd91de95f0bb8ab4ce8",
+        "VO-82f809605d10cef51716",
+        "VO-afa8425c0ecdb9e9d3d8",
+        "VO-fd0f1c4858c4961584e0",
+        "VO-195afae65c44aa3dcf34",
+        "VO-5bb9225b782568f81af2",
+        "VO-672489b9771d8547e192",
+        "VO-f725b5aa29dfa9608556",
+        "VO-04c9121f3b5051968ee3",
+        "VO-3e6c7321565e6a6b5473",
+        "VO-ac289c2bf8b36b353ebb",
+        "VO-c292a5c1db1b91cd8050",
+        "VO-0f4e897f6670173b34e4",
+        "VO-a8a3a9c61b1e7e884295",
+        "VO-779292f79fa9f59439bf",
+        "VO-89556224f3b7bbdb017c",
+        "VO-f5434170bc0fc81c39e5",
+        "VO-58d01e895466b225a4d1",
+        "VO-25f9fdd579584d745685",
+        "VO-6ae9fe4bdc7236be4ddd",
+        "VO-d1482f465caa53b6427d",
+        "VO-2702a9dae6b3e7c4de5d",
+        "VO-d7dfdf45b4cbe519dd0a",
+        "VO-0f77de4d45b78effc56c",
+        "VO-44ab20617424b3d9b9d6",
+        "VO-1cb757c3e563d18c6a77",
+        "VO-1fd8ff0891858451b68c",
+        "VO-1ef6e0d0424a70793461",
+        "VO-41f0800bb583fb67a11a",
+        "VO-de6cfc1d65b0f4ba0c67",
+        "VO-15f4c9a51436a87e9c45",
+        "VO-43501490db482f1a1c59",
+        "VO-bdec9b841a44e6987924",
+        "VO-a499fa0552380fa18d51",
+        "VO-31bcca4c629d4495751e",
+        "VO-79d0bb68c7d504eb2755",
+        "VO-b4b933d8d0730c0c9944",
+        "VO-5139c3ce469e55e0ebc0",
+        "VO-fb27730c3b87691e83ad",
+        "VO-a9f22ad37d345e006bfe",
+        "VO-4c82072e941b140614f9",
+        "VO-7dddbf2c4016af0acd16",
+        "VO-1f8d441748c7bd01b0f8",
+        "VO-9e6be54b63f5644848fa",
+        "VO-b34481fc05c58ac0e4e3",
+        "VO-4554e0ee27ef3a00d04d",
+        "VO-c22c364bc3888e3aa8d3",
+        "VO-50090ba3f6512d5f8eff",
+        "VO-47eef71e39da0bedf9a5",
+        "VO-13ef51ff54617a759318",
+        "VO-c5bbeee56b0797caa9e8",
+        "VO-34344e579358253fdb30"
+      ],
+      "phase": 5,
+      "required": false,
+      "scope": "phase",
+      "suiteRefs": [
+        "SUITE-phase-1",
+        "SUITE-phase-2",
+        "SUITE-phase-3",
+        "SUITE-phase-4",
+        "SUITE-phase-5"
+      ]
+    },
+    {
+      "cumulative": true,
+      "id": "GATE-phase-6",
+      "obligationRefs": [
+        "VO-9f46c3eb28e58bd1fad2",
+        "VO-ccceee4bd62e391114c5",
+        "VO-a2c92a2c201f9997df98",
+        "VO-85703cd3e2372ffb6509",
+        "VO-be7ee8383e989b214a82",
+        "VO-30a4c44a421cc90e23a2",
+        "VO-6bd91de95f0bb8ab4ce8",
+        "VO-82f809605d10cef51716",
+        "VO-afa8425c0ecdb9e9d3d8",
+        "VO-fd0f1c4858c4961584e0",
+        "VO-195afae65c44aa3dcf34",
+        "VO-5bb9225b782568f81af2",
+        "VO-672489b9771d8547e192",
+        "VO-f725b5aa29dfa9608556",
+        "VO-04c9121f3b5051968ee3",
+        "VO-3e6c7321565e6a6b5473",
+        "VO-ac289c2bf8b36b353ebb",
+        "VO-c292a5c1db1b91cd8050",
+        "VO-0f4e897f6670173b34e4",
+        "VO-a8a3a9c61b1e7e884295",
+        "VO-779292f79fa9f59439bf",
+        "VO-89556224f3b7bbdb017c",
+        "VO-f5434170bc0fc81c39e5",
+        "VO-58d01e895466b225a4d1",
+        "VO-25f9fdd579584d745685",
+        "VO-6ae9fe4bdc7236be4ddd",
+        "VO-d1482f465caa53b6427d",
+        "VO-2702a9dae6b3e7c4de5d",
+        "VO-d7dfdf45b4cbe519dd0a",
+        "VO-0f77de4d45b78effc56c",
+        "VO-44ab20617424b3d9b9d6",
+        "VO-1cb757c3e563d18c6a77",
+        "VO-1fd8ff0891858451b68c",
+        "VO-1ef6e0d0424a70793461",
+        "VO-41f0800bb583fb67a11a",
+        "VO-de6cfc1d65b0f4ba0c67",
+        "VO-15f4c9a51436a87e9c45",
+        "VO-43501490db482f1a1c59",
+        "VO-bdec9b841a44e6987924",
+        "VO-a499fa0552380fa18d51",
+        "VO-31bcca4c629d4495751e",
+        "VO-79d0bb68c7d504eb2755",
+        "VO-b4b933d8d0730c0c9944",
+        "VO-5139c3ce469e55e0ebc0",
+        "VO-fb27730c3b87691e83ad",
+        "VO-a9f22ad37d345e006bfe",
+        "VO-4c82072e941b140614f9",
+        "VO-7dddbf2c4016af0acd16",
+        "VO-1f8d441748c7bd01b0f8",
+        "VO-9e6be54b63f5644848fa",
+        "VO-b34481fc05c58ac0e4e3",
+        "VO-4554e0ee27ef3a00d04d",
+        "VO-c22c364bc3888e3aa8d3",
+        "VO-50090ba3f6512d5f8eff",
+        "VO-47eef71e39da0bedf9a5",
+        "VO-13ef51ff54617a759318",
+        "VO-c5bbeee56b0797caa9e8",
+        "VO-34344e579358253fdb30",
+        "VO-b5245cfe8692376af119",
+        "VO-db2598e32f6f21e1d55d",
+        "VO-8830b3bcffcedacf6d51",
+        "VO-e03b5ef3e6babf111591",
+        "VO-e8d65a5d364eebb383b4",
+        "VO-6bd4e120341dde856299",
+        "VO-00e3c9a00dcc564ab44f",
+        "VO-8fd525d0c496af1fa4b5",
+        "VO-ecff1cc23cd30ed63dd2",
+        "VO-7f9e51b7961d6fe60567",
+        "VO-056bd8761b973f3ad8bc"
+      ],
+      "phase": 6,
+      "required": false,
+      "scope": "phase",
+      "suiteRefs": [
+        "SUITE-phase-1",
+        "SUITE-phase-2",
+        "SUITE-phase-3",
+        "SUITE-phase-4",
+        "SUITE-phase-5",
+        "SUITE-phase-6"
+      ]
+    },
+    {
+      "cumulative": true,
+      "id": "GATE-phase-7",
+      "obligationRefs": [
+        "VO-9f46c3eb28e58bd1fad2",
+        "VO-ccceee4bd62e391114c5",
+        "VO-a2c92a2c201f9997df98",
+        "VO-85703cd3e2372ffb6509",
+        "VO-be7ee8383e989b214a82",
+        "VO-30a4c44a421cc90e23a2",
+        "VO-6bd91de95f0bb8ab4ce8",
+        "VO-82f809605d10cef51716",
+        "VO-afa8425c0ecdb9e9d3d8",
+        "VO-fd0f1c4858c4961584e0",
+        "VO-195afae65c44aa3dcf34",
+        "VO-5bb9225b782568f81af2",
+        "VO-672489b9771d8547e192",
+        "VO-f725b5aa29dfa9608556",
+        "VO-04c9121f3b5051968ee3",
+        "VO-3e6c7321565e6a6b5473",
+        "VO-ac289c2bf8b36b353ebb",
+        "VO-c292a5c1db1b91cd8050",
+        "VO-0f4e897f6670173b34e4",
+        "VO-a8a3a9c61b1e7e884295",
+        "VO-779292f79fa9f59439bf",
+        "VO-89556224f3b7bbdb017c",
+        "VO-f5434170bc0fc81c39e5",
+        "VO-58d01e895466b225a4d1",
+        "VO-25f9fdd579584d745685",
+        "VO-6ae9fe4bdc7236be4ddd",
+        "VO-d1482f465caa53b6427d",
+        "VO-2702a9dae6b3e7c4de5d",
+        "VO-d7dfdf45b4cbe519dd0a",
+        "VO-0f77de4d45b78effc56c",
+        "VO-44ab20617424b3d9b9d6",
+        "VO-1cb757c3e563d18c6a77",
+        "VO-1fd8ff0891858451b68c",
+        "VO-1ef6e0d0424a70793461",
+        "VO-41f0800bb583fb67a11a",
+        "VO-de6cfc1d65b0f4ba0c67",
+        "VO-15f4c9a51436a87e9c45",
+        "VO-43501490db482f1a1c59",
+        "VO-bdec9b841a44e6987924",
+        "VO-a499fa0552380fa18d51",
+        "VO-31bcca4c629d4495751e",
+        "VO-79d0bb68c7d504eb2755",
+        "VO-b4b933d8d0730c0c9944",
+        "VO-5139c3ce469e55e0ebc0",
+        "VO-fb27730c3b87691e83ad",
+        "VO-a9f22ad37d345e006bfe",
+        "VO-4c82072e941b140614f9",
+        "VO-7dddbf2c4016af0acd16",
+        "VO-1f8d441748c7bd01b0f8",
+        "VO-9e6be54b63f5644848fa",
+        "VO-b34481fc05c58ac0e4e3",
+        "VO-4554e0ee27ef3a00d04d",
+        "VO-c22c364bc3888e3aa8d3",
+        "VO-50090ba3f6512d5f8eff",
+        "VO-47eef71e39da0bedf9a5",
+        "VO-13ef51ff54617a759318",
+        "VO-c5bbeee56b0797caa9e8",
+        "VO-34344e579358253fdb30",
+        "VO-b5245cfe8692376af119",
+        "VO-db2598e32f6f21e1d55d",
+        "VO-8830b3bcffcedacf6d51",
+        "VO-e03b5ef3e6babf111591",
+        "VO-e8d65a5d364eebb383b4",
+        "VO-6bd4e120341dde856299",
+        "VO-00e3c9a00dcc564ab44f",
+        "VO-8fd525d0c496af1fa4b5",
+        "VO-ecff1cc23cd30ed63dd2",
+        "VO-7f9e51b7961d6fe60567",
+        "VO-056bd8761b973f3ad8bc",
+        "VO-4cbb3fd9287b43a8c568",
+        "VO-7772a592df54868fd695",
+        "VO-acde1320264805533177",
+        "VO-40f5129c9a6eb2dba795",
+        "VO-702987d2b40f218ffef9",
+        "VO-8e57358ced826d89be85",
+        "VO-2a103a2314a25cb8a5d3",
+        "VO-1010f91be22c528c4aa2",
+        "VO-c69fb81dc51f49ba14c5",
+        "VO-ee9cae08517d5346a12e",
+        "VO-5c3e24deb467a61f7375"
+      ],
+      "phase": 7,
+      "required": false,
+      "scope": "phase",
+      "suiteRefs": [
+        "SUITE-phase-1",
+        "SUITE-phase-2",
+        "SUITE-phase-3",
+        "SUITE-phase-4",
+        "SUITE-phase-5",
+        "SUITE-phase-6",
+        "SUITE-phase-7"
+      ]
+    },
+    {
+      "cumulative": true,
+      "id": "GATE-phase-8",
+      "obligationRefs": [
+        "VO-9f46c3eb28e58bd1fad2",
+        "VO-ccceee4bd62e391114c5",
+        "VO-a2c92a2c201f9997df98",
+        "VO-85703cd3e2372ffb6509",
+        "VO-be7ee8383e989b214a82",
+        "VO-30a4c44a421cc90e23a2",
+        "VO-6bd91de95f0bb8ab4ce8",
+        "VO-82f809605d10cef51716",
+        "VO-afa8425c0ecdb9e9d3d8",
+        "VO-fd0f1c4858c4961584e0",
+        "VO-195afae65c44aa3dcf34",
+        "VO-5bb9225b782568f81af2",
+        "VO-672489b9771d8547e192",
+        "VO-f725b5aa29dfa9608556",
+        "VO-04c9121f3b5051968ee3",
+        "VO-3e6c7321565e6a6b5473",
+        "VO-ac289c2bf8b36b353ebb",
+        "VO-c292a5c1db1b91cd8050",
+        "VO-0f4e897f6670173b34e4",
+        "VO-a8a3a9c61b1e7e884295",
+        "VO-779292f79fa9f59439bf",
+        "VO-89556224f3b7bbdb017c",
+        "VO-f5434170bc0fc81c39e5",
+        "VO-58d01e895466b225a4d1",
+        "VO-25f9fdd579584d745685",
+        "VO-6ae9fe4bdc7236be4ddd",
+        "VO-d1482f465caa53b6427d",
+        "VO-2702a9dae6b3e7c4de5d",
+        "VO-d7dfdf45b4cbe519dd0a",
+        "VO-0f77de4d45b78effc56c",
+        "VO-44ab20617424b3d9b9d6",
+        "VO-1cb757c3e563d18c6a77",
+        "VO-1fd8ff0891858451b68c",
+        "VO-1ef6e0d0424a70793461",
+        "VO-41f0800bb583fb67a11a",
+        "VO-de6cfc1d65b0f4ba0c67",
+        "VO-15f4c9a51436a87e9c45",
+        "VO-43501490db482f1a1c59",
+        "VO-bdec9b841a44e6987924",
+        "VO-a499fa0552380fa18d51",
+        "VO-31bcca4c629d4495751e",
+        "VO-79d0bb68c7d504eb2755",
+        "VO-b4b933d8d0730c0c9944",
+        "VO-5139c3ce469e55e0ebc0",
+        "VO-fb27730c3b87691e83ad",
+        "VO-a9f22ad37d345e006bfe",
+        "VO-4c82072e941b140614f9",
+        "VO-7dddbf2c4016af0acd16",
+        "VO-1f8d441748c7bd01b0f8",
+        "VO-9e6be54b63f5644848fa",
+        "VO-b34481fc05c58ac0e4e3",
+        "VO-4554e0ee27ef3a00d04d",
+        "VO-c22c364bc3888e3aa8d3",
+        "VO-50090ba3f6512d5f8eff",
+        "VO-47eef71e39da0bedf9a5",
+        "VO-13ef51ff54617a759318",
+        "VO-c5bbeee56b0797caa9e8",
+        "VO-34344e579358253fdb30",
+        "VO-b5245cfe8692376af119",
+        "VO-db2598e32f6f21e1d55d",
+        "VO-8830b3bcffcedacf6d51",
+        "VO-e03b5ef3e6babf111591",
+        "VO-e8d65a5d364eebb383b4",
+        "VO-6bd4e120341dde856299",
+        "VO-00e3c9a00dcc564ab44f",
+        "VO-8fd525d0c496af1fa4b5",
+        "VO-ecff1cc23cd30ed63dd2",
+        "VO-7f9e51b7961d6fe60567",
+        "VO-056bd8761b973f3ad8bc",
+        "VO-4cbb3fd9287b43a8c568",
+        "VO-7772a592df54868fd695",
+        "VO-acde1320264805533177",
+        "VO-40f5129c9a6eb2dba795",
+        "VO-702987d2b40f218ffef9",
+        "VO-8e57358ced826d89be85",
+        "VO-2a103a2314a25cb8a5d3",
+        "VO-1010f91be22c528c4aa2",
+        "VO-c69fb81dc51f49ba14c5",
+        "VO-ee9cae08517d5346a12e",
+        "VO-5c3e24deb467a61f7375",
+        "VO-2ac8f48fdffd009e097d",
+        "VO-ae7e6709fee471285ba5",
+        "VO-96f56366d7bd57aa6e89",
+        "VO-e65eb8b20d3123faf0f1",
+        "VO-b84282c3534000a4f8ed",
+        "VO-f14678dc981207cf35e9",
+        "VO-28f8a9a2cafc76e72ca7",
+        "VO-d8434673434071887d85",
+        "VO-3a22a7a89d8faf5a6abd",
+        "VO-83dcb5e1f8f2e7bb8c36"
+      ],
+      "phase": 8,
+      "required": false,
+      "scope": "phase",
+      "suiteRefs": [
+        "SUITE-phase-1",
+        "SUITE-phase-2",
+        "SUITE-phase-3",
+        "SUITE-phase-4",
+        "SUITE-phase-5",
+        "SUITE-phase-6",
+        "SUITE-phase-7",
+        "SUITE-phase-8"
+      ]
+    },
+    {
+      "cumulative": true,
+      "id": "GATE-phase-9",
+      "obligationRefs": [
+        "VO-9f46c3eb28e58bd1fad2",
+        "VO-ccceee4bd62e391114c5",
+        "VO-a2c92a2c201f9997df98",
+        "VO-85703cd3e2372ffb6509",
+        "VO-be7ee8383e989b214a82",
+        "VO-30a4c44a421cc90e23a2",
+        "VO-6bd91de95f0bb8ab4ce8",
+        "VO-82f809605d10cef51716",
+        "VO-afa8425c0ecdb9e9d3d8",
+        "VO-fd0f1c4858c4961584e0",
+        "VO-195afae65c44aa3dcf34",
+        "VO-5bb9225b782568f81af2",
+        "VO-672489b9771d8547e192",
+        "VO-f725b5aa29dfa9608556",
+        "VO-04c9121f3b5051968ee3",
+        "VO-3e6c7321565e6a6b5473",
+        "VO-ac289c2bf8b36b353ebb",
+        "VO-c292a5c1db1b91cd8050",
+        "VO-0f4e897f6670173b34e4",
+        "VO-a8a3a9c61b1e7e884295",
+        "VO-779292f79fa9f59439bf",
+        "VO-89556224f3b7bbdb017c",
+        "VO-f5434170bc0fc81c39e5",
+        "VO-58d01e895466b225a4d1",
+        "VO-25f9fdd579584d745685",
+        "VO-6ae9fe4bdc7236be4ddd",
+        "VO-d1482f465caa53b6427d",
+        "VO-2702a9dae6b3e7c4de5d",
+        "VO-d7dfdf45b4cbe519dd0a",
+        "VO-0f77de4d45b78effc56c",
+        "VO-44ab20617424b3d9b9d6",
+        "VO-1cb757c3e563d18c6a77",
+        "VO-1fd8ff0891858451b68c",
+        "VO-1ef6e0d0424a70793461",
+        "VO-41f0800bb583fb67a11a",
+        "VO-de6cfc1d65b0f4ba0c67",
+        "VO-15f4c9a51436a87e9c45",
+        "VO-43501490db482f1a1c59",
+        "VO-bdec9b841a44e6987924",
+        "VO-a499fa0552380fa18d51",
+        "VO-31bcca4c629d4495751e",
+        "VO-79d0bb68c7d504eb2755",
+        "VO-b4b933d8d0730c0c9944",
+        "VO-5139c3ce469e55e0ebc0",
+        "VO-fb27730c3b87691e83ad",
+        "VO-a9f22ad37d345e006bfe",
+        "VO-4c82072e941b140614f9",
+        "VO-7dddbf2c4016af0acd16",
+        "VO-1f8d441748c7bd01b0f8",
+        "VO-9e6be54b63f5644848fa",
+        "VO-b34481fc05c58ac0e4e3",
+        "VO-4554e0ee27ef3a00d04d",
+        "VO-c22c364bc3888e3aa8d3",
+        "VO-50090ba3f6512d5f8eff",
+        "VO-47eef71e39da0bedf9a5",
+        "VO-13ef51ff54617a759318",
+        "VO-c5bbeee56b0797caa9e8",
+        "VO-34344e579358253fdb30",
+        "VO-b5245cfe8692376af119",
+        "VO-db2598e32f6f21e1d55d",
+        "VO-8830b3bcffcedacf6d51",
+        "VO-e03b5ef3e6babf111591",
+        "VO-e8d65a5d364eebb383b4",
+        "VO-6bd4e120341dde856299",
+        "VO-00e3c9a00dcc564ab44f",
+        "VO-8fd525d0c496af1fa4b5",
+        "VO-ecff1cc23cd30ed63dd2",
+        "VO-7f9e51b7961d6fe60567",
+        "VO-056bd8761b973f3ad8bc",
+        "VO-4cbb3fd9287b43a8c568",
+        "VO-7772a592df54868fd695",
+        "VO-acde1320264805533177",
+        "VO-40f5129c9a6eb2dba795",
+        "VO-702987d2b40f218ffef9",
+        "VO-8e57358ced826d89be85",
+        "VO-2a103a2314a25cb8a5d3",
+        "VO-1010f91be22c528c4aa2",
+        "VO-c69fb81dc51f49ba14c5",
+        "VO-ee9cae08517d5346a12e",
+        "VO-5c3e24deb467a61f7375",
+        "VO-2ac8f48fdffd009e097d",
+        "VO-ae7e6709fee471285ba5",
+        "VO-96f56366d7bd57aa6e89",
+        "VO-e65eb8b20d3123faf0f1",
+        "VO-b84282c3534000a4f8ed",
+        "VO-f14678dc981207cf35e9",
+        "VO-28f8a9a2cafc76e72ca7",
+        "VO-d8434673434071887d85",
+        "VO-3a22a7a89d8faf5a6abd",
+        "VO-83dcb5e1f8f2e7bb8c36",
+        "VO-12800b0da6e5f79c8841",
+        "VO-49a37696182d233fcca0",
+        "VO-6c7a5cc860e03427822c",
+        "VO-7b4ccf19a4c734d7e2a6",
+        "VO-67a800f5260a7bc02738",
+        "VO-901da35e345226f6cc19",
+        "VO-cc4f6342659867995225",
+        "VO-190af6c74d36bf615f38",
+        "VO-8b87ffb02209868f327f",
+        "VO-1d7c0b1827ecd6108f49",
+        "VO-5f862404d000455fa6e8"
+      ],
+      "phase": 9,
+      "required": false,
+      "scope": "phase",
+      "suiteRefs": [
+        "SUITE-phase-1",
+        "SUITE-phase-2",
+        "SUITE-phase-3",
+        "SUITE-phase-4",
+        "SUITE-phase-5",
+        "SUITE-phase-6",
+        "SUITE-phase-7",
+        "SUITE-phase-8",
+        "SUITE-phase-9"
+      ]
+    },
+    {
+      "cumulative": true,
+      "id": "GATE-release",
+      "obligationRefs": [
+        "VO-9f46c3eb28e58bd1fad2",
+        "VO-ccceee4bd62e391114c5",
+        "VO-a2c92a2c201f9997df98",
+        "VO-85703cd3e2372ffb6509",
+        "VO-be7ee8383e989b214a82",
+        "VO-30a4c44a421cc90e23a2",
+        "VO-6bd91de95f0bb8ab4ce8",
+        "VO-82f809605d10cef51716",
+        "VO-afa8425c0ecdb9e9d3d8",
+        "VO-fd0f1c4858c4961584e0",
+        "VO-195afae65c44aa3dcf34",
+        "VO-5bb9225b782568f81af2",
+        "VO-672489b9771d8547e192",
+        "VO-f725b5aa29dfa9608556",
+        "VO-04c9121f3b5051968ee3",
+        "VO-3e6c7321565e6a6b5473",
+        "VO-ac289c2bf8b36b353ebb",
+        "VO-c292a5c1db1b91cd8050",
+        "VO-0f4e897f6670173b34e4",
+        "VO-a8a3a9c61b1e7e884295",
+        "VO-779292f79fa9f59439bf",
+        "VO-89556224f3b7bbdb017c",
+        "VO-f5434170bc0fc81c39e5",
+        "VO-58d01e895466b225a4d1",
+        "VO-25f9fdd579584d745685",
+        "VO-6ae9fe4bdc7236be4ddd",
+        "VO-d1482f465caa53b6427d",
+        "VO-2702a9dae6b3e7c4de5d",
+        "VO-d7dfdf45b4cbe519dd0a",
+        "VO-0f77de4d45b78effc56c",
+        "VO-44ab20617424b3d9b9d6",
+        "VO-1cb757c3e563d18c6a77",
+        "VO-1fd8ff0891858451b68c",
+        "VO-1ef6e0d0424a70793461",
+        "VO-41f0800bb583fb67a11a",
+        "VO-de6cfc1d65b0f4ba0c67",
+        "VO-15f4c9a51436a87e9c45",
+        "VO-43501490db482f1a1c59",
+        "VO-bdec9b841a44e6987924",
+        "VO-a499fa0552380fa18d51",
+        "VO-31bcca4c629d4495751e",
+        "VO-79d0bb68c7d504eb2755",
+        "VO-b4b933d8d0730c0c9944",
+        "VO-5139c3ce469e55e0ebc0",
+        "VO-fb27730c3b87691e83ad",
+        "VO-a9f22ad37d345e006bfe",
+        "VO-4c82072e941b140614f9",
+        "VO-7dddbf2c4016af0acd16",
+        "VO-1f8d441748c7bd01b0f8",
+        "VO-9e6be54b63f5644848fa",
+        "VO-b34481fc05c58ac0e4e3",
+        "VO-4554e0ee27ef3a00d04d",
+        "VO-c22c364bc3888e3aa8d3",
+        "VO-50090ba3f6512d5f8eff",
+        "VO-47eef71e39da0bedf9a5",
+        "VO-13ef51ff54617a759318",
+        "VO-c5bbeee56b0797caa9e8",
+        "VO-34344e579358253fdb30",
+        "VO-b5245cfe8692376af119",
+        "VO-db2598e32f6f21e1d55d",
+        "VO-8830b3bcffcedacf6d51",
+        "VO-e03b5ef3e6babf111591",
+        "VO-e8d65a5d364eebb383b4",
+        "VO-6bd4e120341dde856299",
+        "VO-00e3c9a00dcc564ab44f",
+        "VO-8fd525d0c496af1fa4b5",
+        "VO-ecff1cc23cd30ed63dd2",
+        "VO-7f9e51b7961d6fe60567",
+        "VO-056bd8761b973f3ad8bc",
+        "VO-4cbb3fd9287b43a8c568",
+        "VO-7772a592df54868fd695",
+        "VO-acde1320264805533177",
+        "VO-40f5129c9a6eb2dba795",
+        "VO-702987d2b40f218ffef9",
+        "VO-8e57358ced826d89be85",
+        "VO-2a103a2314a25cb8a5d3",
+        "VO-1010f91be22c528c4aa2",
+        "VO-c69fb81dc51f49ba14c5",
+        "VO-ee9cae08517d5346a12e",
+        "VO-5c3e24deb467a61f7375",
+        "VO-2ac8f48fdffd009e097d",
+        "VO-ae7e6709fee471285ba5",
+        "VO-96f56366d7bd57aa6e89",
+        "VO-e65eb8b20d3123faf0f1",
+        "VO-b84282c3534000a4f8ed",
+        "VO-f14678dc981207cf35e9",
+        "VO-28f8a9a2cafc76e72ca7",
+        "VO-d8434673434071887d85",
+        "VO-3a22a7a89d8faf5a6abd",
+        "VO-83dcb5e1f8f2e7bb8c36",
+        "VO-12800b0da6e5f79c8841",
+        "VO-49a37696182d233fcca0",
+        "VO-6c7a5cc860e03427822c",
+        "VO-7b4ccf19a4c734d7e2a6",
+        "VO-67a800f5260a7bc02738",
+        "VO-901da35e345226f6cc19",
+        "VO-cc4f6342659867995225",
+        "VO-190af6c74d36bf615f38",
+        "VO-8b87ffb02209868f327f",
+        "VO-1d7c0b1827ecd6108f49",
+        "VO-5f862404d000455fa6e8"
+      ],
+      "required": false,
+      "scope": "release",
+      "suiteRefs": [
+        "SUITE-release"
+      ]
+    }
+  ],
+  "id": "verification-72a6235a6bb35080166d",
+  "kind": "verification-plan",
+  "obligations": [
+    {
+      "acceptanceRefs": [
+        "phase-1-criterion-1"
+      ],
+      "action": "Compatibility and repository foundation",
+      "automationStatus": "manual",
+      "id": "VO-9f46c3eb28e58bd1fad2",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T001 Create the implementation directory structure from [plan.md](./plan.md), including"
+      ],
+      "phase": 1,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T001 Create the implementation directory structure from [plan.md](./plan.md), including",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-1-criterion-2"
+      ],
+      "action": "Compatibility and repository foundation",
+      "automationStatus": "manual",
+      "id": "VO-ccceee4bd62e391114c5",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,"
+      ],
+      "phase": 1,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-1-criterion-3"
+      ],
+      "action": "Compatibility and repository foundation",
+      "automationStatus": "manual",
+      "id": "VO-a2c92a2c201f9997df98",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T003 Select and record a pinned containerlab version and both SONiC profile image"
+      ],
+      "phase": 1,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T003 Select and record a pinned containerlab version and both SONiC profile image",
+      "witnesses": [
+        "Observe independently that this criterion is true: T003 Select and record a pinned containerlab version and both SONiC profile image"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-1-criterion-4"
+      ],
+      "action": "Compatibility and repository foundation",
+      "automationStatus": "manual",
+      "id": "VO-85703cd3e2372ffb6509",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T004 Select the SONiC/OpenConfig YANG schema commit and record its compatibility with"
+      ],
+      "phase": 1,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T004 Select the SONiC/OpenConfig YANG schema commit and record its compatibility with",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-1-criterion-5"
+      ],
+      "action": "Compatibility and repository foundation",
+      "automationStatus": "manual",
+      "id": "VO-be7ee8383e989b214a82",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and"
+      ],
+      "phase": 1,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and",
+      "witnesses": [
+        "Observe independently that this criterion is true: T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-1-criterion-6"
+      ],
+      "action": "Compatibility and repository foundation",
+      "automationStatus": "manual",
+      "id": "VO-30a4c44a421cc90e23a2",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and"
+      ],
+      "phase": 1,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and",
+      "witnesses": [
+        "Observe independently that this criterion is true: T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-1-criterion-7"
+      ],
+      "action": "Compatibility and repository foundation",
+      "automationStatus": "manual",
+      "id": "VO-6bd91de95f0bb8ab4ce8",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T007 Implement reusable strict-shell preflight for host resources, Kind/runtime"
+      ],
+      "phase": 1,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T007 Implement reusable strict-shell preflight for host resources, Kind/runtime",
+      "witnesses": [
+        "Observe independently that this criterion is true: T007 Implement reusable strict-shell preflight for host resources, Kind/runtime"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-1-criterion-8"
+      ],
+      "action": "Compatibility and repository foundation",
+      "automationStatus": "manual",
+      "id": "VO-82f809605d10cef51716",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side"
+      ],
+      "phase": 1,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side",
+      "witnesses": [
+        "Observe independently that this criterion is true: T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-2-criterion-1"
+      ],
+      "action": "SONiC and containerlab qualification (US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-afa8425c0ecdb9e9d3d8",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T009 [US3] Author `lab/topology.clab.yml` with `spine01`, `spine02`, `leaf01`, `leaf02`,"
+      ],
+      "phase": 2,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T009 [US3] Author `lab/topology.clab.yml` with `spine01`, `spine02`, `leaf01`, `leaf02`,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T009 [US3] Author `lab/topology.clab.yml` with `spine01`, `spine02`, `leaf01`, `leaf02`,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-2-criterion-2"
+      ],
+      "action": "SONiC and containerlab qualification (US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-fd0f1c4858c4961584e0",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T010 [P] [US3] Create the `sonic-vs` profile with bootstrap limited to management, TLS,"
+      ],
+      "phase": 2,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T010 [P] [US3] Create the `sonic-vs` profile with bootstrap limited to management, TLS,",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-2-criterion-3"
+      ],
+      "action": "SONiC and containerlab qualification (US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-195afae65c44aa3dcf34",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T011 [P] [US3] Create the `sonic-vm` conformance overlay and document KVM/nested"
+      ],
+      "phase": 2,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T011 [P] [US3] Create the `sonic-vm` conformance overlay and document KVM/nested",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-2-criterion-4"
+      ],
+      "action": "SONiC and containerlab qualification (US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-5bb9225b782568f81af2",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T012 [P] [US3] Create Linux endpoint images/configuration and deterministic dual-stack"
+      ],
+      "phase": 2,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T012 [P] [US3] Create Linux endpoint images/configuration and deterministic dual-stack",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-2-criterion-5"
+      ],
+      "action": "SONiC and containerlab qualification (US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-672489b9771d8547e192",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T013 [US3] Implement SONiC gNMI Capabilities/Get/Set/Subscribe qualification tests"
+      ],
+      "phase": 2,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T013 [US3] Implement SONiC gNMI Capabilities/Get/Set/Subscribe qualification tests",
+      "witnesses": [
+        "Observe independently that this criterion is true: T013 [US3] Implement SONiC gNMI Capabilities/Get/Set/Subscribe qualification tests"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-2-criterion-6"
+      ],
+      "action": "SONiC and containerlab qualification (US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-f725b5aa29dfa9608556",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T014 [P] [US3] Implement persistent configuration and required OpenConfig/SONiC YANG path"
+      ],
+      "phase": 2,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T014 [P] [US3] Implement persistent configuration and required OpenConfig/SONiC YANG path",
+      "witnesses": [
+        "Observe independently that this criterion is true: T014 [P] [US3] Implement persistent configuration and required OpenConfig/SONiC YANG path"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-2-criterion-7"
+      ],
+      "action": "SONiC and containerlab qualification (US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-04c9121f3b5051968ee3",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T015 [P] [US3] Implement BGP EVPN/VXLAN Type 2/3/5 and SRv6 IPv6-underlay,"
+      ],
+      "phase": 2,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T015 [P] [US3] Implement BGP EVPN/VXLAN Type 2/3/5 and SRv6 IPv6-underlay,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T015 [P] [US3] Implement BGP EVPN/VXLAN Type 2/3/5 and SRv6 IPv6-underlay,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-2-criterion-8"
+      ],
+      "action": "SONiC and containerlab qualification (US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-3e6c7321565e6a6b5473",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T016 [US3] Implement `make lab-qualify` so any failed capability blocks downstream tests"
+      ],
+      "phase": 2,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T016 [US3] Implement `make lab-qualify` so any failed capability blocks downstream tests",
+      "witnesses": [
+        "Observe independently that this criterion is true: T016 [US3] Implement `make lab-qualify` so any failed capability blocks downstream tests"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-2-criterion-9"
+      ],
+      "action": "SONiC and containerlab qualification (US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-ac289c2bf8b36b353ebb",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T017 [US3] Implement idempotent containerlab deploy/inspect/destroy script phases callable"
+      ],
+      "phase": 2,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T017 [US3] Implement idempotent containerlab deploy/inspect/destroy script phases callable",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-3-criterion-1"
+      ],
+      "action": "Kind and centralized application foundation (US2, US3)",
+      "automationStatus": "manual",
+      "id": "VO-c292a5c1db1b91cd8050",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T018 Author `config/kind/cluster.yaml` and idempotent Kind create/delete phases with a"
+      ],
+      "phase": 3,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T018 Author `config/kind/cluster.yaml` and idempotent Kind create/delete phases with a",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-3-criterion-2"
+      ],
+      "action": "Kind and centralized application foundation (US2, US3)",
+      "automationStatus": "manual",
+      "id": "VO-0f4e897f6670173b34e4",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T019 Implement creation/ownership labeling of the dedicated Docker management network,"
+      ],
+      "phase": 3,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T019 Implement creation/ownership labeling of the dedicated Docker management network,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T019 Implement creation/ownership labeling of the dedicated Docker management network,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-3-criterion-3"
+      ],
+      "action": "Kind and centralized application foundation (US2, US3)",
+      "automationStatus": "manual",
+      "id": "VO-a8a3a9c61b1e7e884295",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T020 Install pinned Kubenet/KUID CRDs/controllers inside Kind and wait for current-"
+      ],
+      "phase": 3,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T020 Install pinned Kubenet/KUID CRDs/controllers inside Kind and wait for current-",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-3-criterion-4"
+      ],
+      "action": "Kind and centralized application foundation (US2, US3)",
+      "automationStatus": "manual",
+      "id": "VO-779292f79fa9f59439bf",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T021 Install pinned SDC CRDs and schema/config/data/cache components inside Kind with"
+      ],
+      "phase": 3,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T021 Install pinned SDC CRDs and schema/config/data/cache components inside Kind with",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-3-criterion-5"
+      ],
+      "action": "Kind and centralized application foundation (US2, US3)",
+      "automationStatus": "manual",
+      "id": "VO-89556224f3b7bbdb017c",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T022 [P] Create least-privilege namespaces, service accounts, RBAC, network policies, and"
+      ],
+      "phase": 3,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T022 [P] Create least-privilege namespaces, service accounts, RBAC, network policies, and",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-3-criterion-6"
+      ],
+      "action": "Kind and centralized application foundation (US2, US3)",
+      "automationStatus": "manual",
+      "id": "VO-f5434170bc0fc81c39e5",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T023 Author the Kind deployment manifests/Helm values for the later AINETOPS provider and"
+      ],
+      "phase": 3,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T023 Author the Kind deployment manifests/Helm values for the later AINETOPS provider and",
+      "witnesses": [
+        "Observe independently that this criterion is true: T023 Author the Kind deployment manifests/Helm values for the later AINETOPS provider and"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-3-criterion-7"
+      ],
+      "action": "Kind and centralized application foundation (US2, US3)",
+      "automationStatus": "manual",
+      "id": "VO-58d01e895466b225a4d1",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T024 Create the exact pinned SONiC `Schema`, connection profile, sync profile, and"
+      ],
+      "phase": 3,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T024 Create the exact pinned SONiC `Schema`, connection profile, sync profile, and",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-3-criterion-8"
+      ],
+      "action": "Kind and centralized application foundation (US2, US3)",
+      "automationStatus": "manual",
+      "id": "VO-25f9fdd579584d745685",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T025 Create topology, IP/ASN/ID indices, claims/pools, and fabric design manifests using"
+      ],
+      "phase": 3,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T025 Create topology, IP/ASN/ID indices, claims/pools, and fabric design manifests using",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-1"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-6ae9fe4bdc7236be4ddd",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T026 Scaffold the Go provider manager (`cmd/sonic-provider/`, `controllers/sonicprovider/`)"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T026 Scaffold the Go provider manager (`cmd/sonic-provider/`, `controllers/sonicprovider/`)",
+      "witnesses": [
+        "Observe independently that this criterion is true: T026 Scaffold the Go provider manager (`cmd/sonic-provider/`, `controllers/sonicprovider/`)"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-2"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-d1482f465caa53b6427d",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T026a Scaffold the SRv6 service controller binary and reconciler"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T026a Scaffold the SRv6 service controller binary and reconciler",
+      "witnesses": [
+        "Observe independently that this criterion is true: T026a Scaffold the SRv6 service controller binary and reconciler"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-3"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-2702a9dae6b3e7c4de5d",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T027 Define canonical internal structs for interfaces, loopbacks, BGP, network instances,"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T027 Define canonical internal structs for interfaces, loopbacks, BGP, network instances,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T027 Define canonical internal structs for interfaces, loopbacks, BGP, network instances,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-4"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-d7dfdf45b4cbe519dd0a",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T027a Author the required `SRv6Service.ainetops.io/v1alpha1` CRD and scaffolding:"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T027a Author the required `SRv6Service.ainetops.io/v1alpha1` CRD and scaffolding:",
+      "witnesses": [
+        "Observe independently that this criterion is true: T027a Author the required `SRv6Service.ainetops.io/v1alpha1` CRD and scaffolding:"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-5"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-0f77de4d45b78effc56c",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T028 [P] Implement `NetworkDevice` selection, dependency watches/indexes, current-"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T028 [P] Implement `NetworkDevice` selection, dependency watches/indexes, current-",
+      "witnesses": [
+        "Observe independently that this criterion is true: T028 [P] Implement `NetworkDevice` selection, dependency watches/indexes, current-"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-6"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-44ab20617424b3d9b9d6",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T029 [P] Implement compatibility-set validation for image, schema, mapping, and upstream"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T029 [P] Implement compatibility-set validation for image, schema, mapping, and upstream",
+      "witnesses": [
+        "Observe independently that this criterion is true: T029 [P] Implement compatibility-set validation for image, schema, mapping, and upstream"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-7"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-1cb757c3e563d18c6a77",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T029a Produce a per-path OpenConfig-vs-SONiC-native register for all rendered YANG paths;"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T029a Produce a per-path OpenConfig-vs-SONiC-native register for all rendered YANG paths;",
+      "witnesses": [
+        "Observe independently that this criterion is true: T029a Produce a per-path OpenConfig-vs-SONiC-native register for all rendered YANG paths;"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-8"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-1fd8ff0891858451b68c",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T030 Implement abstract-model normalization and reject incomplete, unknown, or conflicting"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T030 Implement abstract-model normalization and reject incomplete, unknown, or conflicting",
+      "witnesses": [
+        "Observe independently that this criterion is true: T030 Implement abstract-model normalization and reject incomplete, unknown, or conflicting"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-9"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-1ef6e0d0424a70793461",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T031 [P] Implement qualified interface/loopback/MTU and dual-stack IPv4 `/31` plus IPv6"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T031 [P] Implement qualified interface/loopback/MTU and dual-stack IPv4 `/31` plus IPv6",
+      "witnesses": [
+        "Observe independently that this criterion is true: T031 [P] Implement qualified interface/loopback/MTU and dual-stack IPv4 `/31` plus IPv6"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-10"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-41f0800bb583fb67a11a",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T032 [P] Implement qualified BGP global/neighbor and EVPN address-family renderers"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T032 [P] Implement qualified BGP global/neighbor and EVPN address-family renderers",
+      "witnesses": [
+        "Observe independently that this criterion is true: T032 [P] Implement qualified BGP global/neighbor and EVPN address-family renderers"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-11"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-de6cfc1d65b0f4ba0c67",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T033 [P] Implement VLAN, bridge, VXLAN NVO, VTEP, and L2VNI renderers"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T033 [P] Implement VLAN, bridge, VXLAN NVO, VTEP, and L2VNI renderers",
+      "witnesses": [
+        "Observe independently that this criterion is true: T033 [P] Implement VLAN, bridge, VXLAN NVO, VTEP, and L2VNI renderers"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-12"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-15f4c9a51436a87e9c45",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T034 [P] Implement VRF, L3VNI, RD/RT, Type-5, symmetric-IRB, locator/MySID,"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T034 [P] Implement VRF, L3VNI, RD/RT, Type-5, symmetric-IRB, locator/MySID,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T034 [P] Implement VRF, L3VNI, RD/RT, Type-5, symmetric-IRB, locator/MySID,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-13"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-43501490db482f1a1c59",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T035 Compose deterministic ordered output, stable generated names, canonical hashes,"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T035 Compose deterministic ordered output, stable generated names, canonical hashes,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T035 Compose deterministic ordered output, stable generated names, canonical hashes,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-14"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-bdec9b841a44e6987924",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T036 Integrate offline SDC/schema validation; emit no changed Config when validation fails"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T036 Integrate offline SDC/schema validation; emit no changed Config when validation fails",
+      "witnesses": [
+        "Observe independently that this criterion is true: T036 Integrate offline SDC/schema validation; emit no changed Config when validation fails"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-15"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-a499fa0552380fa18d51",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T037 Implement server-side apply with a dedicated field manager, explicit priority,"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T037 Implement server-side apply with a dedicated field manager, explicit priority,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T037 Implement server-side apply with a dedicated field manager, explicit priority,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-16"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-31bcca4c629d4495751e",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T038 Observe SDC Config/Target/Deviation status and propagate standard per-device and"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T038 Observe SDC Config/Target/Deviation status and propagate standard per-device and",
+      "witnesses": [
+        "Observe independently that this criterion is true: T038 Observe SDC Config/Target/Deviation status and propagate standard per-device and"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-17"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-79d0bb68c7d504eb2755",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T039 Implement bounded backoff/jitter and terminal-vs-transient error classification"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T039 Implement bounded backoff/jitter and terminal-vs-transient error classification",
+      "witnesses": [
+        "Observe independently that this criterion is true: T039 Implement bounded backoff/jitter and terminal-vs-transient error classification"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-18"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-b4b933d8d0730c0c9944",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T040 Implement ordered finalization: delete owned SDC intent, confirm/timeout, release"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T040 Implement ordered finalization: delete owned SDC intent, confirm/timeout, release",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-4-criterion-19"
+      ],
+      "action": "AINETOPS SONiC provider foundation (US2, US5)",
+      "automationStatus": "manual",
+      "id": "VO-5139c3ce469e55e0ebc0",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T041 Instrument reconciles with bounded Prometheus metrics and OTel traces, then build,"
+      ],
+      "phase": 4,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T041 Instrument reconciles with bounded Prometheus metrics and OTel traces, then build,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T041 Instrument reconciles with bounded Prometheus metrics and OTel traces, then build,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-1"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-fb27730c3b87691e83ad",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T041a Build the T026a SRv6 service controller binary, load it, and deploy it inside Kind"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T041a Build the T026a SRv6 service controller binary, load it, and deploy it inside Kind",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-2"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-a9f22ad37d345e006bfe",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T042 [US3] Apply the default Kubenet Network and reconcile dual-stack routed leaf-spine"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T042 [US3] Apply the default Kubenet Network and reconcile dual-stack routed leaf-spine",
+      "witnesses": [
+        "Observe independently that this criterion is true: T042 [US3] Apply the default Kubenet Network and reconcile dual-stack routed leaf-spine"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-3"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-4c82072e941b140614f9",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T043 [US3] Add verification for all expected underlay/EVPN sessions, loopback reachability,"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T043 [US3] Add verification for all expected underlay/EVPN sessions, loopback reachability,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T043 [US3] Add verification for all expected underlay/EVPN sessions, loopback reachability,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-4"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-7dddbf2c4016af0acd16",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T044 [P] [US1] Add a bridged L2 tenant example with two cross-leaf attachments, VLAN,"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T044 [P] [US1] Add a bridged L2 tenant example with two cross-leaf attachments, VLAN,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T044 [P] [US1] Add a bridged L2 tenant example with two cross-leaf attachments, VLAN,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-5"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-1f8d441748c7bd01b0f8",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T045 [P] [US1] Add a routed L3 tenant example with VRF, L3VNI, RD/RT, prefixes, and Type-5"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T045 [P] [US1] Add a routed L3 tenant example with VRF, L3VNI, RD/RT, prefixes, and Type-5",
+      "witnesses": [
+        "Observe independently that this criterion is true: T045 [P] [US1] Add a routed L3 tenant example with VRF, L3VNI, RD/RT, prefixes, and Type-5"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-6"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-9e6be54b63f5644848fa",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T046 [P] [US1] Add a symmetric-IRB example with L2/L3 VNIs, gateway addresses, and two"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T046 [P] [US1] Add a symmetric-IRB example with L2/L3 VNIs, gateway addresses, and two",
+      "witnesses": [
+        "Observe independently that this criterion is true: T046 [P] [US1] Add a symmetric-IRB example with L2/L3 VNIs, gateway addresses, and two"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-7"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-b34481fc05c58ac0e4e3",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T047 [US3] Implement EVPN client traffic tests: cross-leaf L2 reachability, intra-VRF L3/IRB,"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T047 [US3] Implement EVPN client traffic tests: cross-leaf L2 reachability, intra-VRF L3/IRB,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T047 [US3] Implement EVPN client traffic tests: cross-leaf L2 reachability, intra-VRF L3/IRB,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-8"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-4554e0ee27ef3a00d04d",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T047a [US3] Implement MTU and ECMP tests: verify maximum effective MTU accommodates VXLAN overhead"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T047a [US3] Implement MTU and ECMP tests: verify maximum effective MTU accommodates VXLAN overhead",
+      "witnesses": [
+        "Observe independently that this criterion is true: T047a [US3] Implement MTU and ECMP tests: verify maximum effective MTU accommodates VXLAN overhead"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-9"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-c22c364bc3888e3aa8d3",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T047b [US5] Implement SRv6 capture and counter tests between dedicated clients: capture"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T047b [US5] Implement SRv6 capture and counter tests between dedicated clients: capture",
+      "witnesses": [
+        "Observe independently that this criterion is true: T047b [US5] Implement SRv6 capture and counter tests between dedicated clients: capture"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-10"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-50090ba3f6512d5f8eff",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T047c [US5] Implement failover and operator-directed path-change tests: force primary failure,"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T047c [US5] Implement failover and operator-directed path-change tests: force primary failure,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T047c [US5] Implement failover and operator-directed path-change tests: force primary failure,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-11"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-47eef71e39da0bedf9a5",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T048 [US2] Add repeat-apply proof: unchanged intent produces zero SDC spec writes and zero"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T048 [US2] Add repeat-apply proof: unchanged intent produces zero SDC spec writes and zero",
+      "witnesses": [
+        "Observe independently that this criterion is true: T048 [US2] Add repeat-apply proof: unchanged intent produces zero SDC spec writes and zero"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-12"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-13ef51ff54617a759318",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T049 [US2] Add partial target failure/recovery, provider restart mid-transaction, and"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T049 [US2] Add partial target failure/recovery, provider restart mid-transaction, and",
+      "witnesses": [
+        "Observe independently that this criterion is true: T049 [US2] Add partial target failure/recovery, provider restart mid-transaction, and"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-13"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-c5bbeee56b0797caa9e8",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T050 [US2] Add managed-path drift restoration and unmanaged-path preservation tests"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T050 [US2] Add managed-path drift restoration and unmanaged-path preservation tests",
+      "witnesses": [
+        "Observe independently that this criterion is true: T050 [US2] Add managed-path drift restoration and unmanaged-path preservation tests"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-5-criterion-14"
+      ],
+      "action": "Default fabric and service data plane (US2, US3, US5)",
+      "automationStatus": "manual",
+      "id": "VO-34344e579358253fdb30",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T051 [US2] Add update and delete tests proving shared fabric state and unrelated claims"
+      ],
+      "phase": 5,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T051 [US2] Add update and delete tests proving shared fabric state and unrelated claims",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-6-criterion-1"
+      ],
+      "action": "Migration translation (US1)",
+      "automationStatus": "manual",
+      "id": "VO-b5245cfe8692376af119",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T052 Define a strict normalized input schema for service ID, type, tenant, endpoints,"
+      ],
+      "phase": 6,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T052 Define a strict normalized input schema for service ID, type, tenant, endpoints,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T052 Define a strict normalized input schema for service ID, type, tenant, endpoints,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-6-criterion-2"
+      ],
+      "action": "Migration translation (US1)",
+      "automationStatus": "manual",
+      "id": "VO-db2598e32f6f21e1d55d",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T053 [P] [US1] Implement VPLS/multipoint-L2VPN to bridge/L2VNI translation"
+      ],
+      "phase": 6,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T053 [P] [US1] Implement VPLS/multipoint-L2VPN to bridge/L2VNI translation",
+      "witnesses": [
+        "Observe independently that this criterion is true: T053 [P] [US1] Implement VPLS/multipoint-L2VPN to bridge/L2VNI translation"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-6-criterion-3"
+      ],
+      "action": "Migration translation (US1)",
+      "automationStatus": "manual",
+      "id": "VO-8830b3bcffcedacf6d51",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T054 [P] [US1] Implement L3VPN to VRF/L3VNI/RD/RT/Type-5 translation"
+      ],
+      "phase": 6,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T054 [P] [US1] Implement L3VPN to VRF/L3VNI/RD/RT/Type-5 translation",
+      "witnesses": [
+        "Observe independently that this criterion is true: T054 [P] [US1] Implement L3VPN to VRF/L3VNI/RD/RT/Type-5 translation"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-6-criterion-4"
+      ],
+      "action": "Migration translation (US1)",
+      "automationStatus": "manual",
+      "id": "VO-e03b5ef3e6babf111591",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T055 [P] [US1] Implement VPWS/E-Line to two-attachment L2VNI with explicit limited-"
+      ],
+      "phase": 6,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T055 [P] [US1] Implement VPWS/E-Line to two-attachment L2VNI with explicit limited-",
+      "witnesses": [
+        "Observe independently that this criterion is true: T055 [P] [US1] Implement VPWS/E-Line to two-attachment L2VNI with explicit limited-"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-6-criterion-5"
+      ],
+      "action": "Migration translation (US1)",
+      "automationStatus": "manual",
+      "id": "VO-e8d65a5d364eebb383b4",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T056 [P] [US1] Implement integrated L2/L3 to symmetric-IRB translation"
+      ],
+      "phase": 6,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T056 [P] [US1] Implement integrated L2/L3 to symmetric-IRB translation",
+      "witnesses": [
+        "Observe independently that this criterion is true: T056 [P] [US1] Implement integrated L2/L3 to symmetric-IRB translation"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-6-criterion-6"
+      ],
+      "action": "Migration translation (US1)",
+      "automationStatus": "manual",
+      "id": "VO-6bd4e120341dde856299",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T057 [US1] Implement all-or-nothing validation and structured unsupported-feature results"
+      ],
+      "phase": 6,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T057 [US1] Implement all-or-nothing validation and structured unsupported-feature results",
+      "witnesses": [
+        "Observe independently that this criterion is true: T057 [US1] Implement all-or-nothing validation and structured unsupported-feature results"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-6-criterion-7"
+      ],
+      "action": "Migration translation (US1)",
+      "automationStatus": "manual",
+      "id": "VO-00e3c9a00dcc564ab44f",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T058 Add deterministic CLI/library output with stable provenance annotations on generated"
+      ],
+      "phase": 6,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T058 Add deterministic CLI/library output with stable provenance annotations on generated",
+      "witnesses": [
+        "Observe independently that this criterion is true: T058 Add deterministic CLI/library output with stable provenance annotations on generated"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-6-criterion-8"
+      ],
+      "action": "Migration translation (US1)",
+      "automationStatus": "manual",
+      "id": "VO-8fd525d0c496af1fa4b5",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T058a Package the migration translator as a deterministic library plus CLI binary"
+      ],
+      "phase": 6,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T058a Package the migration translator as a deterministic library plus CLI binary",
+      "witnesses": [
+        "Observe independently that this criterion is true: T058a Package the migration translator as a deterministic library plus CLI binary"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-6-criterion-9"
+      ],
+      "action": "Migration translation (US1)",
+      "automationStatus": "manual",
+      "id": "VO-ecff1cc23cd30ed63dd2",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T059 Add table/golden tests for every supported, limited, unsupported, collision, and"
+      ],
+      "phase": 6,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T059 Add table/golden tests for every supported, limited, unsupported, collision, and",
+      "witnesses": [
+        "Observe independently that this criterion is true: T059 Add table/golden tests for every supported, limited, unsupported, collision, and"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-6-criterion-10"
+      ],
+      "action": "Migration translation (US1)",
+      "automationStatus": "manual",
+      "id": "VO-7f9e51b7961d6fe60567",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T060 Decide from workflow evidence whether annotations/Git review meet audit needs; only"
+      ],
+      "phase": 6,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T060 Decide from workflow evidence whether annotations/Git review meet audit needs; only",
+      "witnesses": [
+        "Observe independently that this criterion is true: T060 Decide from workflow evidence whether annotations/Git review meet audit needs; only"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-6-criterion-11"
+      ],
+      "action": "Migration translation (US1)",
+      "automationStatus": "manual",
+      "id": "VO-056bd8761b973f3ad8bc",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T061 If T060 enables the CRD, add structural/CEL validation, status subresource, RBAC,"
+      ],
+      "phase": 6,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T061 If T060 enables the CRD, add structural/CEL validation, status subresource, RBAC,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T061 If T060 enables the CRD, add structural/CEL validation, status subresource, RBAC,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-7-criterion-1"
+      ],
+      "action": "Telemetry and operations (US4)",
+      "automationStatus": "manual",
+      "id": "VO-4cbb3fd9287b43a8c568",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T062 Inventory metrics available from the pinned SONiC schema, SDC, provider, Kubernetes,"
+      ],
+      "phase": 7,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T062 Inventory metrics available from the pinned SONiC schema, SDC, provider, Kubernetes,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T062 Inventory metrics available from the pinned SONiC schema, SDC, provider, Kubernetes,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-7-criterion-2"
+      ],
+      "action": "Telemetry and operations (US4)",
+      "automationStatus": "manual",
+      "id": "VO-7772a592df54868fd695",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T063 Deploy gNMIc inside Kind as the sole SONiC device-metric collector, export OTLP to"
+      ],
+      "phase": 7,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T063 Deploy gNMIc inside Kind as the sole SONiC device-metric collector, export OTLP to",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-7-criterion-3"
+      ],
+      "action": "Telemetry and operations (US4)",
+      "automationStatus": "manual",
+      "id": "VO-acde1320264805533177",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T064 [P] Deploy OTel Collector inside Kind with receivers, Kubernetes enrichment,"
+      ],
+      "phase": 7,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T064 [P] Deploy OTel Collector inside Kind with receivers, Kubernetes enrichment,",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-7-criterion-4"
+      ],
+      "action": "Telemetry and operations (US4)",
+      "automationStatus": "manual",
+      "id": "VO-40f5129c9a6eb2dba795",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T065 [P] Deploy Prometheus and required operator resources inside Kind with a PVC, pinned"
+      ],
+      "phase": 7,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T065 [P] Deploy Prometheus and required operator resources inside Kind with a PVC, pinned",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-7-criterion-5"
+      ],
+      "action": "Telemetry and operations (US4)",
+      "automationStatus": "manual",
+      "id": "VO-702987d2b40f218ffef9",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T066 [P] Deploy Grafana inside Kind with a PVC where required, Secret-based credentials,"
+      ],
+      "phase": 7,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T066 [P] Deploy Grafana inside Kind with a PVC where required, Secret-based credentials,",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-7-criterion-6"
+      ],
+      "action": "Telemetry and operations (US4)",
+      "automationStatus": "manual",
+      "id": "VO-8e57358ced826d89be85",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T067 [US4] Generate a versioned topology ConfigMap from containerlab inspect output and"
+      ],
+      "phase": 7,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T067 [US4] Generate a versioned topology ConfigMap from containerlab inspect output and",
+      "witnesses": [
+        "Observe independently that this criterion is true: T067 [US4] Generate a versioned topology ConfigMap from containerlab inspect output and"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-7-criterion-7"
+      ],
+      "action": "Telemetry and operations (US4)",
+      "automationStatus": "manual",
+      "id": "VO-2a103a2314a25cb8a5d3",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T068 [US4] Build orchestration and service-path panels for SDC"
+      ],
+      "phase": 7,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T068 [US4] Build orchestration and service-path panels for SDC",
+      "witnesses": [
+        "Observe independently that this criterion is true: T068 [US4] Build orchestration and service-path panels for SDC"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-7-criterion-8"
+      ],
+      "action": "Telemetry and operations (US4)",
+      "automationStatus": "manual",
+      "id": "VO-1010f91be22c528c4aa2",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T069 [US4] Build pipeline dashboard panels for receiver/exporter health, queue fill,"
+      ],
+      "phase": 7,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T069 [US4] Build pipeline dashboard panels for receiver/exporter health, queue fill,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T069 [US4] Build pipeline dashboard panels for receiver/exporter health, queue fill,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-7-criterion-9"
+      ],
+      "action": "Telemetry and operations (US4)",
+      "automationStatus": "manual",
+      "id": "VO-c69fb81dc51f49ba14c5",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T070 [US4] Add alerts for link/BGP loss, failed/degraded reconciliation, persistent"
+      ],
+      "phase": 7,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T070 [US4] Add alerts for link/BGP loss, failed/degraded reconciliation, persistent",
+      "witnesses": [
+        "Observe independently that this criterion is true: T070 [US4] Add alerts for link/BGP loss, failed/degraded reconciliation, persistent"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-7-criterion-10"
+      ],
+      "action": "Telemetry and operations (US4)",
+      "automationStatus": "manual",
+      "id": "VO-ee9cae08517d5346a12e",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T071 [US4] Test telemetry outage/recovery: reconciliation remains functional, status marks"
+      ],
+      "phase": 7,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T071 [US4] Test telemetry outage/recovery: reconciliation remains functional, status marks",
+      "witnesses": [
+        "Observe independently that this criterion is true: T071 [US4] Test telemetry outage/recovery: reconciliation remains functional, status marks"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-7-criterion-11"
+      ],
+      "action": "Telemetry and operations (US4)",
+      "automationStatus": "manual",
+      "id": "VO-5c3e24deb467a61f7375",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T072 Assert Prometheus is documented and tested as the metrics store; do not expose"
+      ],
+      "phase": 7,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T072 Assert Prometheus is documented and tested as the metrics store; do not expose",
+      "witnesses": [
+        "Observe independently that this criterion is true: T072 Assert Prometheus is documented and tested as the metrics store; do not expose"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-8-criterion-1"
+      ],
+      "action": "Security, reproducibility, and release acceptance",
+      "automationStatus": "manual",
+      "id": "VO-2ac8f48fdffd009e097d",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T073 Audit RBAC verbs/scopes, Secret use, TLS validation, image privileges, Docker/KVM"
+      ],
+      "phase": 8,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T073 Audit RBAC verbs/scopes, Secret use, TLS validation, image privileges, Docker/KVM",
+      "witnesses": [
+        "Observe independently that this criterion is true: T073 Audit RBAC verbs/scopes, Secret use, TLS validation, image privileges, Docker/KVM"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-8-criterion-2"
+      ],
+      "action": "Security, reproducibility, and release acceptance",
+      "automationStatus": "manual",
+      "id": "VO-ae7e6709fee471285ba5",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T074 [P] Add dependency license, vulnerability, image provenance, and SBOM checks for the"
+      ],
+      "phase": 8,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T074 [P] Add dependency license, vulnerability, image provenance, and SBOM checks for the",
+      "witnesses": [
+        "Observe independently that this criterion is true: T074 [P] Add dependency license, vulnerability, image provenance, and SBOM checks for the"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-8-criterion-3"
+      ],
+      "action": "Security, reproducibility, and release acceptance",
+      "automationStatus": "manual",
+      "id": "VO-96f56366d7bd57aa6e89",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T074a Add a CI-enforced deny-list (case-insensitive, word boundaries) scanning the whole"
+      ],
+      "phase": 8,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T074a Add a CI-enforced deny-list (case-insensitive, word boundaries) scanning the whole",
+      "witnesses": [
+        "Observe independently that this criterion is true: T074a Add a CI-enforced deny-list (case-insensitive, word boundaries) scanning the whole"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-8-criterion-4"
+      ],
+      "action": "Security, reproducibility, and release acceptance",
+      "automationStatus": "manual",
+      "id": "VO-e65eb8b20d3123faf0f1",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T075 [P] Complete operator/developer documentation, compatibility matrix, resource sizing,"
+      ],
+      "phase": 8,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T075 [P] Complete operator/developer documentation, compatibility matrix, resource sizing,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T075 [P] Complete operator/developer documentation, compatibility matrix, resource sizing,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-8-criterion-5"
+      ],
+      "action": "Security, reproducibility, and release acceptance",
+      "automationStatus": "manual",
+      "id": "VO-b84282c3534000a4f8ed",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T076 Complete `scripts/provision.sh` as the primary non-interactive, idempotent ordered"
+      ],
+      "phase": 8,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T076 Complete `scripts/provision.sh` as the primary non-interactive, idempotent ordered",
+      "witnesses": [
+        "Observe independently that this criterion is true: T076 Complete `scripts/provision.sh` as the primary non-interactive, idempotent ordered"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-8-criterion-6"
+      ],
+      "action": "Security, reproducibility, and release acceptance",
+      "automationStatus": "manual",
+      "id": "VO-f14678dc981207cf35e9",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T077 Complete `scripts/off.sh` for full and partial states with optional evidence capture,"
+      ],
+      "phase": 8,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T077 Complete `scripts/off.sh` for full and partial states with optional evidence capture,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T077 Complete `scripts/off.sh` for full and partial states with optional evidence capture,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-8-criterion-7"
+      ],
+      "action": "Security, reproducibility, and release acceptance",
+      "automationStatus": "manual",
+      "id": "VO-28f8a9a2cafc76e72ca7",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T078 Add Make wrappers for quickstart verification/test commands while keeping"
+      ],
+      "phase": 8,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T078 Add Make wrappers for quickstart verification/test commands while keeping",
+      "witnesses": [
+        "Observe independently that this criterion is true: T078 Add Make wrappers for quickstart verification/test commands while keeping"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-8-criterion-8"
+      ],
+      "action": "Security, reproducibility, and release acceptance",
+      "automationStatus": "manual",
+      "id": "VO-d8434673434071887d85",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T079 Run API, unit, golden, envtest, SDC validation, integration, failure, traffic,"
+      ],
+      "phase": 8,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T079 Run API, unit, golden, envtest, SDC validation, integration, failure, traffic,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T079 Run API, unit, golden, envtest, SDC validation, integration, failure, traffic,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-8-criterion-9"
+      ],
+      "action": "Security, reproducibility, and release acceptance",
+      "automationStatus": "manual",
+      "id": "VO-3a22a7a89d8faf5a6abd",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T079a Assert that the installed AINETOPS-owned CRD set contains exactly `SRv6Service.ainetops.io`"
+      ],
+      "phase": 8,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T079a Assert that the installed AINETOPS-owned CRD set contains exactly `SRv6Service.ainetops.io`",
+      "witnesses": [
+        "Observe independently that this criterion is true: T079a Assert that the installed AINETOPS-owned CRD set contains exactly `SRv6Service.ainetops.io`"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-8-criterion-10"
+      ],
+      "action": "Security, reproducibility, and release acceptance",
+      "automationStatus": "manual",
+      "id": "VO-83dcb5e1f8f2e7bb8c36",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T080 Run three clean provision/test/off cycles, a second-provision idempotence check, an"
+      ],
+      "phase": 8,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T080 Run three clean provision/test/off cycles, a second-provision idempotence check, an",
+      "witnesses": [
+        "Observe independently that this criterion is true: T080 Run three clean provision/test/off cycles, a second-provision idempotence check, an"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-9-criterion-1"
+      ],
+      "action": "Operational readiness and user simulation",
+      "automationStatus": "manual",
+      "id": "VO-12800b0da6e5f79c8841",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T081 Author a runbook per alert defined in T070 (link/BGP loss, failed reconciliation,"
+      ],
+      "phase": 9,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T081 Author a runbook per alert defined in T070 (link/BGP loss, failed reconciliation,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T081 Author a runbook per alert defined in T070 (link/BGP loss, failed reconciliation,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-9-criterion-2"
+      ],
+      "action": "Operational readiness and user simulation",
+      "automationStatus": "manual",
+      "id": "VO-49a37696182d233fcca0",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T082 [P] Define SLIs/SLOs for the lab control plane: reconcile success rate, time-to-Ready"
+      ],
+      "phase": 9,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T082 [P] Define SLIs/SLOs for the lab control plane: reconcile success rate, time-to-Ready",
+      "witnesses": [
+        "Observe independently that this criterion is true: T082 [P] Define SLIs/SLOs for the lab control plane: reconcile success rate, time-to-Ready"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-9-criterion-3"
+      ],
+      "action": "Operational readiness and user simulation",
+      "automationStatus": "manual",
+      "id": "VO-6c7a5cc860e03427822c",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T083 [P] Document and test the evidence export/restore procedure: capture SDC state,"
+      ],
+      "phase": 9,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T083 [P] Document and test the evidence export/restore procedure: capture SDC state,",
+      "witnesses": [
+        "Observe independently that this criterion is true: T083 [P] Document and test the evidence export/restore procedure: capture SDC state,"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-9-criterion-4"
+      ],
+      "action": "Operational readiness and user simulation",
+      "automationStatus": "manual",
+      "id": "VO-7b4ccf19a4c734d7e2a6",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T084 Document and test the upgrade/rollback path for the pinned compatibility set: change"
+      ],
+      "phase": 9,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T084 Document and test the upgrade/rollback path for the pinned compatibility set: change",
+      "witnesses": [
+        "Observe independently that this criterion is true: T084 Document and test the upgrade/rollback path for the pinned compatibility set: change"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-9-criterion-5"
+      ],
+      "action": "Operational readiness and user simulation",
+      "automationStatus": "manual",
+      "id": "VO-67a800f5260a7bc02738",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T085 Run a capacity and resource-exhaustion drill: measure actual host CPU/RAM/disk for"
+      ],
+      "phase": 9,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T085 Run a capacity and resource-exhaustion drill: measure actual host CPU/RAM/disk for",
+      "witnesses": [
+        "Observe independently that this criterion is true: T085 Run a capacity and resource-exhaustion drill: measure actual host CPU/RAM/disk for"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-9-criterion-6"
+      ],
+      "action": "Operational readiness and user simulation",
+      "automationStatus": "manual",
+      "id": "VO-901da35e345226f6cc19",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T086 Run a failure game-day covering the Edge Cases in spec.md that automated tests do not"
+      ],
+      "phase": 9,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T086 Run a failure game-day covering the Edge Cases in spec.md that automated tests do not",
+      "witnesses": [
+        "Observe independently that this criterion is true: T086 Run a failure game-day covering the Edge Cases in spec.md that automated tests do not"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-9-criterion-7"
+      ],
+      "action": "Operational readiness and user simulation",
+      "automationStatus": "manual",
+      "id": "VO-cc4f6342659867995225",
+      "kind": "effect-witness",
+      "level": "integration",
+      "negativeCases": [
+        "Reject a successful-looking response when no independently readable durable effect exists."
+      ],
+      "oracle": [
+        "T087 [US3] Cold-start simulation: a fresh operator with no prior exposure provisions the"
+      ],
+      "phase": 9,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T087 [US3] Cold-start simulation: a fresh operator with no prior exposure provisions the",
+      "witnesses": [
+        "Observe the resulting state through an independent read path; the mutation response is not proof.",
+        "Record a durable identity, lifecycle state, or content hash that could not exist before the action."
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-9-criterion-8"
+      ],
+      "action": "Operational readiness and user simulation",
+      "automationStatus": "manual",
+      "id": "VO-190af6c74d36bf615f38",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T088 [P] [US1] [US2] Day-2 workflow simulation: add a tenant service, modify an existing"
+      ],
+      "phase": 9,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T088 [P] [US1] [US2] Day-2 workflow simulation: add a tenant service, modify an existing",
+      "witnesses": [
+        "Observe independently that this criterion is true: T088 [P] [US1] [US2] Day-2 workflow simulation: add a tenant service, modify an existing"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-9-criterion-9"
+      ],
+      "action": "Operational readiness and user simulation",
+      "automationStatus": "manual",
+      "id": "VO-8b87ffb02209868f327f",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T089 [P] [US4] Operator-observability simulation: break one leaf-spine link and one"
+      ],
+      "phase": 9,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T089 [P] [US4] Operator-observability simulation: break one leaf-spine link and one",
+      "witnesses": [
+        "Observe independently that this criterion is true: T089 [P] [US4] Operator-observability simulation: break one leaf-spine link and one"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-9-criterion-10"
+      ],
+      "action": "Operational readiness and user simulation",
+      "automationStatus": "manual",
+      "id": "VO-1d7c0b1827ecd6108f49",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T090 [P] User-error simulation: apply malformed intent, an unsupported MPLS feature, wrong"
+      ],
+      "phase": 9,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T090 [P] User-error simulation: apply malformed intent, an unsupported MPLS feature, wrong",
+      "witnesses": [
+        "Observe independently that this criterion is true: T090 [P] User-error simulation: apply malformed intent, an unsupported MPLS feature, wrong"
+      ],
+      "workItemRefs": []
+    },
+    {
+      "acceptanceRefs": [
+        "phase-9-criterion-11"
+      ],
+      "action": "Operational readiness and user simulation",
+      "automationStatus": "manual",
+      "id": "VO-5f862404d000455fa6e8",
+      "kind": "positive",
+      "level": "contract",
+      "negativeCases": [],
+      "oracle": [
+        "T091 Measure and record time-to-first-service and time-to-diagnosis from the simulations"
+      ],
+      "phase": 9,
+      "requirementRefs": [],
+      "setup": [],
+      "title": "T091 Measure and record time-to-first-service and time-to-diagnosis from the simulations",
+      "witnesses": [
+        "Observe independently that this criterion is true: T091 Measure and record time-to-first-service and time-to-diagnosis from the simulations"
+      ],
+      "workItemRefs": []
+    }
+  ],
+  "project": {
+    "fingerprint": "648741a71a3f5dee3bc2bd2040ed200bb31b9a2ccf00ab118fc32f4510f7936f",
+    "frameworks": [],
+    "workdir": "/root/ainetops-demo"
+  },
+  "source": {
+    "bundleId": "0X8147VC0P13DYR9CW6SHKD8WF",
+    "contentHash": "751c4dfbc4879208295699a48dedcf90cb17c1fe9a61d87dfefb6080bfbedf19",
+    "specPath": "/root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/tasks.md"
+  },
+  "suites": [
+    {
+      "commandRefs": [],
+      "id": "SUITE-phase-1",
+      "name": "Phase 1 focused and cumulative verification",
+      "obligationRefs": [
+        "VO-9f46c3eb28e58bd1fad2",
+        "VO-ccceee4bd62e391114c5",
+        "VO-a2c92a2c201f9997df98",
+        "VO-85703cd3e2372ffb6509",
+        "VO-be7ee8383e989b214a82",
+        "VO-30a4c44a421cc90e23a2",
+        "VO-6bd91de95f0bb8ab4ce8",
+        "VO-82f809605d10cef51716"
+      ],
+      "phase": 1,
+      "scope": "phase"
+    },
+    {
+      "commandRefs": [],
+      "id": "SUITE-phase-2",
+      "name": "Phase 2 focused and cumulative verification",
+      "obligationRefs": [
+        "VO-afa8425c0ecdb9e9d3d8",
+        "VO-fd0f1c4858c4961584e0",
+        "VO-195afae65c44aa3dcf34",
+        "VO-5bb9225b782568f81af2",
+        "VO-672489b9771d8547e192",
+        "VO-f725b5aa29dfa9608556",
+        "VO-04c9121f3b5051968ee3",
+        "VO-3e6c7321565e6a6b5473",
+        "VO-ac289c2bf8b36b353ebb"
+      ],
+      "phase": 2,
+      "scope": "phase"
+    },
+    {
+      "commandRefs": [],
+      "id": "SUITE-phase-3",
+      "name": "Phase 3 focused and cumulative verification",
+      "obligationRefs": [
+        "VO-c292a5c1db1b91cd8050",
+        "VO-0f4e897f6670173b34e4",
+        "VO-a8a3a9c61b1e7e884295",
+        "VO-779292f79fa9f59439bf",
+        "VO-89556224f3b7bbdb017c",
+        "VO-f5434170bc0fc81c39e5",
+        "VO-58d01e895466b225a4d1",
+        "VO-25f9fdd579584d745685"
+      ],
+      "phase": 3,
+      "scope": "phase"
+    },
+    {
+      "commandRefs": [],
+      "id": "SUITE-phase-4",
+      "name": "Phase 4 focused and cumulative verification",
+      "obligationRefs": [
+        "VO-6ae9fe4bdc7236be4ddd",
+        "VO-d1482f465caa53b6427d",
+        "VO-2702a9dae6b3e7c4de5d",
+        "VO-d7dfdf45b4cbe519dd0a",
+        "VO-0f77de4d45b78effc56c",
+        "VO-44ab20617424b3d9b9d6",
+        "VO-1cb757c3e563d18c6a77",
+        "VO-1fd8ff0891858451b68c",
+        "VO-1ef6e0d0424a70793461",
+        "VO-41f0800bb583fb67a11a",
+        "VO-de6cfc1d65b0f4ba0c67",
+        "VO-15f4c9a51436a87e9c45",
+        "VO-43501490db482f1a1c59",
+        "VO-bdec9b841a44e6987924",
+        "VO-a499fa0552380fa18d51",
+        "VO-31bcca4c629d4495751e",
+        "VO-79d0bb68c7d504eb2755",
+        "VO-b4b933d8d0730c0c9944",
+        "VO-5139c3ce469e55e0ebc0"
+      ],
+      "phase": 4,
+      "scope": "phase"
+    },
+    {
+      "commandRefs": [],
+      "id": "SUITE-phase-5",
+      "name": "Phase 5 focused and cumulative verification",
+      "obligationRefs": [
+        "VO-fb27730c3b87691e83ad",
+        "VO-a9f22ad37d345e006bfe",
+        "VO-4c82072e941b140614f9",
+        "VO-7dddbf2c4016af0acd16",
+        "VO-1f8d441748c7bd01b0f8",
+        "VO-9e6be54b63f5644848fa",
+        "VO-b34481fc05c58ac0e4e3",
+        "VO-4554e0ee27ef3a00d04d",
+        "VO-c22c364bc3888e3aa8d3",
+        "VO-50090ba3f6512d5f8eff",
+        "VO-47eef71e39da0bedf9a5",
+        "VO-13ef51ff54617a759318",
+        "VO-c5bbeee56b0797caa9e8",
+        "VO-34344e579358253fdb30"
+      ],
+      "phase": 5,
+      "scope": "phase"
+    },
+    {
+      "commandRefs": [],
+      "id": "SUITE-phase-6",
+      "name": "Phase 6 focused and cumulative verification",
+      "obligationRefs": [
+        "VO-b5245cfe8692376af119",
+        "VO-db2598e32f6f21e1d55d",
+        "VO-8830b3bcffcedacf6d51",
+        "VO-e03b5ef3e6babf111591",
+        "VO-e8d65a5d364eebb383b4",
+        "VO-6bd4e120341dde856299",
+        "VO-00e3c9a00dcc564ab44f",
+        "VO-8fd525d0c496af1fa4b5",
+        "VO-ecff1cc23cd30ed63dd2",
+        "VO-7f9e51b7961d6fe60567",
+        "VO-056bd8761b973f3ad8bc"
+      ],
+      "phase": 6,
+      "scope": "phase"
+    },
+    {
+      "commandRefs": [],
+      "id": "SUITE-phase-7",
+      "name": "Phase 7 focused and cumulative verification",
+      "obligationRefs": [
+        "VO-4cbb3fd9287b43a8c568",
+        "VO-7772a592df54868fd695",
+        "VO-acde1320264805533177",
+        "VO-40f5129c9a6eb2dba795",
+        "VO-702987d2b40f218ffef9",
+        "VO-8e57358ced826d89be85",
+        "VO-2a103a2314a25cb8a5d3",
+        "VO-1010f91be22c528c4aa2",
+        "VO-c69fb81dc51f49ba14c5",
+        "VO-ee9cae08517d5346a12e",
+        "VO-5c3e24deb467a61f7375"
+      ],
+      "phase": 7,
+      "scope": "phase"
+    },
+    {
+      "commandRefs": [],
+      "id": "SUITE-phase-8",
+      "name": "Phase 8 focused and cumulative verification",
+      "obligationRefs": [
+        "VO-2ac8f48fdffd009e097d",
+        "VO-ae7e6709fee471285ba5",
+        "VO-96f56366d7bd57aa6e89",
+        "VO-e65eb8b20d3123faf0f1",
+        "VO-b84282c3534000a4f8ed",
+        "VO-f14678dc981207cf35e9",
+        "VO-28f8a9a2cafc76e72ca7",
+        "VO-d8434673434071887d85",
+        "VO-3a22a7a89d8faf5a6abd",
+        "VO-83dcb5e1f8f2e7bb8c36"
+      ],
+      "phase": 8,
+      "scope": "phase"
+    },
+    {
+      "commandRefs": [],
+      "id": "SUITE-phase-9",
+      "name": "Phase 9 focused and cumulative verification",
+      "obligationRefs": [
+        "VO-12800b0da6e5f79c8841",
+        "VO-49a37696182d233fcca0",
+        "VO-6c7a5cc860e03427822c",
+        "VO-7b4ccf19a4c734d7e2a6",
+        "VO-67a800f5260a7bc02738",
+        "VO-901da35e345226f6cc19",
+        "VO-cc4f6342659867995225",
+        "VO-190af6c74d36bf615f38",
+        "VO-8b87ffb02209868f327f",
+        "VO-1d7c0b1827ecd6108f49",
+        "VO-5f862404d000455fa6e8"
+      ],
+      "phase": 9,
+      "scope": "phase"
+    },
+    {
+      "commandRefs": [],
+      "id": "SUITE-release",
+      "name": "Complete release verification",
+      "obligationRefs": [
+        "VO-9f46c3eb28e58bd1fad2",
+        "VO-ccceee4bd62e391114c5",
+        "VO-a2c92a2c201f9997df98",
+        "VO-85703cd3e2372ffb6509",
+        "VO-be7ee8383e989b214a82",
+        "VO-30a4c44a421cc90e23a2",
+        "VO-6bd91de95f0bb8ab4ce8",
+        "VO-82f809605d10cef51716",
+        "VO-afa8425c0ecdb9e9d3d8",
+        "VO-fd0f1c4858c4961584e0",
+        "VO-195afae65c44aa3dcf34",
+        "VO-5bb9225b782568f81af2",
+        "VO-672489b9771d8547e192",
+        "VO-f725b5aa29dfa9608556",
+        "VO-04c9121f3b5051968ee3",
+        "VO-3e6c7321565e6a6b5473",
+        "VO-ac289c2bf8b36b353ebb",
+        "VO-c292a5c1db1b91cd8050",
+        "VO-0f4e897f6670173b34e4",
+        "VO-a8a3a9c61b1e7e884295",
+        "VO-779292f79fa9f59439bf",
+        "VO-89556224f3b7bbdb017c",
+        "VO-f5434170bc0fc81c39e5",
+        "VO-58d01e895466b225a4d1",
+        "VO-25f9fdd579584d745685",
+        "VO-6ae9fe4bdc7236be4ddd",
+        "VO-d1482f465caa53b6427d",
+        "VO-2702a9dae6b3e7c4de5d",
+        "VO-d7dfdf45b4cbe519dd0a",
+        "VO-0f77de4d45b78effc56c",
+        "VO-44ab20617424b3d9b9d6",
+        "VO-1cb757c3e563d18c6a77",
+        "VO-1fd8ff0891858451b68c",
+        "VO-1ef6e0d0424a70793461",
+        "VO-41f0800bb583fb67a11a",
+        "VO-de6cfc1d65b0f4ba0c67",
+        "VO-15f4c9a51436a87e9c45",
+        "VO-43501490db482f1a1c59",
+        "VO-bdec9b841a44e6987924",
+        "VO-a499fa0552380fa18d51",
+        "VO-31bcca4c629d4495751e",
+        "VO-79d0bb68c7d504eb2755",
+        "VO-b4b933d8d0730c0c9944",
+        "VO-5139c3ce469e55e0ebc0",
+        "VO-fb27730c3b87691e83ad",
+        "VO-a9f22ad37d345e006bfe",
+        "VO-4c82072e941b140614f9",
+        "VO-7dddbf2c4016af0acd16",
+        "VO-1f8d441748c7bd01b0f8",
+        "VO-9e6be54b63f5644848fa",
+        "VO-b34481fc05c58ac0e4e3",
+        "VO-4554e0ee27ef3a00d04d",
+        "VO-c22c364bc3888e3aa8d3",
+        "VO-50090ba3f6512d5f8eff",
+        "VO-47eef71e39da0bedf9a5",
+        "VO-13ef51ff54617a759318",
+        "VO-c5bbeee56b0797caa9e8",
+        "VO-34344e579358253fdb30",
+        "VO-b5245cfe8692376af119",
+        "VO-db2598e32f6f21e1d55d",
+        "VO-8830b3bcffcedacf6d51",
+        "VO-e03b5ef3e6babf111591",
+        "VO-e8d65a5d364eebb383b4",
+        "VO-6bd4e120341dde856299",
+        "VO-00e3c9a00dcc564ab44f",
+        "VO-8fd525d0c496af1fa4b5",
+        "VO-ecff1cc23cd30ed63dd2",
+        "VO-7f9e51b7961d6fe60567",
+        "VO-056bd8761b973f3ad8bc",
+        "VO-4cbb3fd9287b43a8c568",
+        "VO-7772a592df54868fd695",
+        "VO-acde1320264805533177",
+        "VO-40f5129c9a6eb2dba795",
+        "VO-702987d2b40f218ffef9",
+        "VO-8e57358ced826d89be85",
+        "VO-2a103a2314a25cb8a5d3",
+        "VO-1010f91be22c528c4aa2",
+        "VO-c69fb81dc51f49ba14c5",
+        "VO-ee9cae08517d5346a12e",
+        "VO-5c3e24deb467a61f7375",
+        "VO-2ac8f48fdffd009e097d",
+        "VO-ae7e6709fee471285ba5",
+        "VO-96f56366d7bd57aa6e89",
+        "VO-e65eb8b20d3123faf0f1",
+        "VO-b84282c3534000a4f8ed",
+        "VO-f14678dc981207cf35e9",
+        "VO-28f8a9a2cafc76e72ca7",
+        "VO-d8434673434071887d85",
+        "VO-3a22a7a89d8faf5a6abd",
+        "VO-83dcb5e1f8f2e7bb8c36",
+        "VO-12800b0da6e5f79c8841",
+        "VO-49a37696182d233fcca0",
+        "VO-6c7a5cc860e03427822c",
+        "VO-7b4ccf19a4c734d7e2a6",
+        "VO-67a800f5260a7bc02738",
+        "VO-901da35e345226f6cc19",
+        "VO-cc4f6342659867995225",
+        "VO-190af6c74d36bf615f38",
+        "VO-8b87ffb02209868f327f",
+        "VO-1d7c0b1827ecd6108f49",
+        "VO-5f862404d000455fa6e8"
+      ],
+      "scope": "release"
+    }
+  ],
+  "unsupportedCapabilities": [],
+  "version": 1
+}

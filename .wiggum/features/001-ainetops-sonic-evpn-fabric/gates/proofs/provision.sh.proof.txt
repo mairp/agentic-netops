@@ -1,0 +1,42 @@
+     1	#!/usr/bin/env bash
+     2	set -euo pipefail
+     3	
+     4	# AINETOPS SONiC EVPN/VXLAN Fabric — provision script (Phase 2 updates)
+     5	# Sole implementation of environment creation/convergence per contracts/crd-api.md
+     6	
+     7	SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+     8	REPO_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
+     9	LIB_DIR="${SCRIPT_DIR}/lib"
+    10	
+    11	# shellcheck source=./lib/preflight.sh
+    12	if [[ -f "${LIB_DIR}/preflight.sh" ]]; then
+    13	  # Preflight validates versions.lock.yaml, host resources, privileges, MTU, address overlaps, KVM
+    14	  source "${LIB_DIR}/preflight.sh"
+    15	  preflight::run "$@"
+    16	fi
+    17	
+    18	# Ordered phases (Phase 2): verify pins, validate CRDs, prepare lab network, run capability gate
+    19	if [[ -f "${REPO_ROOT}/Makefile" ]]; then
+    20	  make -C "${REPO_ROOT}" verify-compat
+    21	fi
+    22	
+    23	# Ensure external management network exists (idempotent)
+    24	if command -v docker >/dev/null 2>&1; then
+    25	  docker network inspect ainetops-mgmt >/dev/null 2>&1 || docker network create --label ainetops.owner=ainetops ainetops-mgmt
+    26	fi
+    27	
+    28	# Deploy lab topology with containerlab if available
+    29	if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
+    30	  "${LIB_DIR}/containerlab.sh" deploy || { echo "[provision] containerlab deploy failed" >&2; exit 1; }
+    31	  # Optional inspect step for diagnostics
+    32	  "${LIB_DIR}/containerlab.sh" inspect || true
+    33	else
+    34	  echo "[provision] WARN: containerlab helper not found; skipping lab deploy" >&2
+    35	fi
+    36	
+    37	# Run lab capability qualification (fast profile can be selected via env)
+    38	if [[ -x "${LIB_DIR}/qualify.sh" ]]; then
+    39	  "${LIB_DIR}/qualify.sh" || { echo "[provision] capability gate failed" >&2; exit 1; }
+    40	fi
+    41	
+    42	echo "[provision] Phase 2: pins verified, CRDs validated, mgmt network ensured, capability gate executed."

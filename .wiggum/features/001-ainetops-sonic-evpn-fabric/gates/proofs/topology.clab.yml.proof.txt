@@ -1,0 +1,114 @@
+     1	name: ainetops-fabric
+     2	mgmt:
+     3	  network: ainetops-mgmt  # external AINETOPS-owned Docker network (created by scripts/provision.sh)
+     4	  ipv4-subnet: 172.31.0.0/16  # reused management subnet (no overlap with pod/service per preflight)
+     5	  mtu: 9216
+     6	  labels:
+     7	    ainetops.owner: ainetops
+     8	    ainetops.topology: sonic-evpn
+     9	
+    10	# Annotations/labels are used by scripts/off.sh to ensure safe, scoped cleanup
+    11	
+    12	topology:
+    13	  kinds:
+    14	    sonic-vs:
+    15	      # Containerlab does not have a special kind for SONiC; we use a linux kind with SONiC images
+    16	      kind: linux
+    17	      image: ghcr.io/sonic-net/sonic-vs:202403@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    18	      env:
+    19	        TZ: UTC
+    20	      binds:
+    21	        # Persist SONiC configuration across container restarts
+    22	        - ainetops-${clab-node-name}-etc-sonic:/etc/sonic
+    23	  nodes:
+    24	    spine01:
+    25	      kind: sonic-vs
+    26	      mgmt_ipv4: 172.31.0.11
+    27	      labels:
+    28	        role: spine
+    29	        asn: "65000"
+    30	    spine02:
+    31	      kind: sonic-vs
+    32	      mgmt_ipv4: 172.31.0.12
+    33	      labels:
+    34	        role: spine
+    35	        asn: "65000"
+    36	    leaf01:
+    37	      kind: sonic-vs
+    38	      mgmt_ipv4: 172.31.0.21
+    39	      labels:
+    40	        role: leaf
+    41	        asn: "65101"
+    42	    leaf02:
+    43	      kind: sonic-vs
+    44	      mgmt_ipv4: 172.31.0.22
+    45	      labels:
+    46	        role: leaf
+    47	        asn: "65102"
+    48	    client01:
+    49	      kind: linux
+    50	      image: ghcr.io/ainetops/linux-net@sha256:4444444444444444444444444444444444444444444444444444444444444444
+    51	      mgmt_ipv4: 172.31.0.101
+    52	      labels:
+    53	        role: evpn-client
+    54	        attach: leaf01
+    55	      exec:
+    56	        - ip link set dev eth1 up
+    57	        - ip addr add 192.0.2.11/31 dev eth1
+    58	        - ip -6 addr add 2001:db8:1::11/127 dev eth1
+    59	    client02:
+    60	      kind: linux
+    61	      image: ghcr.io/ainetops/linux-net@sha256:4444444444444444444444444444444444444444444444444444444444444444
+    62	      mgmt_ipv4: 172.31.0.102
+    63	      labels:
+    64	        role: evpn-client
+    65	        attach: leaf02
+    66	      exec:
+    67	        - ip link set dev eth1 up
+    68	        - ip addr add 192.0.2.21/31 dev eth1
+    69	        - ip -6 addr add 2001:db8:2::21/127 dev eth1
+    70	    srv6-client01:
+    71	      kind: linux
+    72	      image: ghcr.io/ainetops/linux-srv6@sha256:5555555555555555555555555555555555555555555555555555555555555555
+    73	      mgmt_ipv4: 172.31.0.111
+    74	      labels:
+    75	        role: srv6-client
+    76	        attach: leaf01
+    77	      exec:
+    78	        - ip link set dev eth1 up
+    79	        - ip addr add 192.0.2.31/31 dev eth1
+    80	        - ip -6 addr add 2001:db8:3::31/127 dev eth1
+    81	    srv6-client02:
+    82	      kind: linux
+    83	      image: ghcr.io/ainetops/linux-srv6@sha256:5555555555555555555555555555555555555555555555555555555555555555
+    84	      mgmt_ipv4: 172.31.0.112
+    85	      labels:
+    86	        role: srv6-client
+    87	        attach: leaf02
+    88	      exec:
+    89	        - ip link set dev eth1 up
+    90	        - ip addr add 192.0.2.41/31 dev eth1
+    91	        - ip -6 addr add 2001:db8:4::41/127 dev eth1
+    92	
+    93	  links:
+    94	    # Spine-leaf fabric (explicit interface mapping) — MTU applies per link
+    95	    - endpoints: [spine01:eth1, leaf01:eth1]
+    96	      mtu: 9216
+    97	    - endpoints: [spine01:eth2, leaf02:eth1]
+    98	      mtu: 9216
+    99	    - endpoints: [spine02:eth1, leaf01:eth2]
+   100	      mtu: 9216
+   101	    - endpoints: [spine02:eth2, leaf02:eth2]
+   102	      mtu: 9216
+   103	
+   104	    # Leaf to EVPN Linux endpoints
+   105	    - endpoints: [leaf01:eth3, client01:eth1]
+   106	      mtu: 9216
+   107	    - endpoints: [leaf02:eth3, client02:eth1]
+   108	      mtu: 9216
+   109	
+   110	    # Leaf to SRv6 Linux endpoints (one per leaf)
+   111	    - endpoints: [leaf01:eth4, srv6-client01:eth1]
+   112	      mtu: 9216
+   113	    - endpoints: [leaf02:eth4, srv6-client02:eth1]
+   114	      mtu: 9216

@@ -1,0 +1,34 @@
+# T025: KUID Claims for IP/ASN/VNI pools (simplified)
+---
+apiVersion: id.kuid.dev/v1alpha1
+kind: Claim
+metadata:
+  name: underlay-v6-claim
+  namespace: kuid-system
+spec:
+  from:
+    kind: IPIndex
+    name: underlay-v6
+  purpose: "underlay-ipv6"
+---
+apiVersion: id.kuid.dev/v1alpha1
+kind: Claim
+metadata:
+  name: fabric-asn-claim
+  namespace: kuid-system
+spec:
+  from:
+    kind: ASNIndex
+    name: fabric-asn
+  purpose: "fabric-asn"
+---
+apiVersion: id.kuid.dev/v1alpha1
+kind: Claim
+metadata:
+  name: evpn-vni-claim
+  namespace: kuid-system
+spec:
+  from:
+    kind: VNIIndex
+    name: evpn-vni
+  purpose: "evpn-vni"

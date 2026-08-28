@@ -1,0 +1,44 @@
+59:     client01:
+60:       kind: linux
+61:       image: ghcr.io/ainetops/linux-net@sha256:4444444444444444444444444444444444444444444444444444444444444444
+62:       mgmt_ipv4: 172.31.0.101
+63:       labels:
+64:         role: evpn-client
+65:         attach: leaf01
+66:       exec:
+67:         - ip link set dev eth1 up
+68:         - ip addr add 192.0.2.11/31 dev eth1
+69:         - ip -6 addr add 2001:db8:1::11/127 dev eth1
+70:     client02:
+71:       kind: linux
+72:       image: ghcr.io/ainetops/linux-net@sha256:4444444444444444444444444444444444444444444444444444444444444444
+73:       mgmt_ipv4: 172.31.0.102
+74:       labels:
+75:         role: evpn-client
+76:         attach: leaf02
+77:       exec:
+78:         - ip link set dev eth1 up
+79:         - ip addr add 192.0.2.21/31 dev eth1
+80:         - ip -6 addr add 2001:db8:2::21/127 dev eth1
+81:     srv6-client01:
+82:       kind: linux
+83:       image: ghcr.io/ainetops/linux-srv6@sha256:5555555555555555555555555555555555555555555555555555555555555555
+84:       mgmt_ipv4: 172.31.0.111
+85:       labels:
+86:         role: srv6-client
+87:         attach: leaf01
+88:       exec:
+89:         - ip link set dev eth1 up
+90:         - ip addr add 192.0.2.31/31 dev eth1
+91:         - ip -6 addr add 2001:db8:3::31/127 dev eth1
+92:     srv6-client02:
+93:       kind: linux
+94:       image: ghcr.io/ainetops/linux-srv6@sha256:5555555555555555555555555555555555555555555555555555555555555555
+95:       mgmt_ipv4: 172.31.0.112
+96:       labels:
+97:         role: srv6-client
+98:         attach: leaf02
+99:       exec:
+100:         - ip link set dev eth1 up
+101:         - ip addr add 192.0.2.41/31 dev eth1
+102:         - ip -6 addr add 2001:db8:4::41/127 dev eth1

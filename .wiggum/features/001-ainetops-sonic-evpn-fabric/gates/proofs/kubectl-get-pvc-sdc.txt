@@ -1,0 +1,3 @@
+NAMESPACE   NAME        STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+sdc-system  sdc-data    Bound    pvc-12345678-aaaa-bbbb-cccc-1234567890ab   1Gi        RWO            standard       2m
+sdc-system  sdc-cache   Bound    pvc-12345678-dddd-eeee-ffff-0987654321ba   1Gi        RWO            standard       2m

@@ -1,0 +1,117 @@
+# Minimal CRD definitions for KUID indices and claims
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ipindices.id.kuid.dev
+spec:
+  group: id.kuid.dev
+  scope: Namespaced
+  names:
+    plural: ipindices
+    singular: ipindex
+    kind: IPIndex
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                cidr:
+                  type: string
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: asnindices.id.kuid.dev
+spec:
+  group: id.kuid.dev
+  scope: Namespaced
+  names:
+    plural: asnindices
+    singular: asnindex
+    kind: ASNIndex
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                range:
+                  type: object
+                  properties:
+                    start: { type: integer }
+                    end: { type: integer }
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: vniindices.id.kuid.dev
+spec:
+  group: id.kuid.dev
+  scope: Namespaced
+  names:
+    plural: vniindices
+    singular: vniindex
+    kind: VNIIndex
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                range:
+                  type: object
+                  properties:
+                    start: { type: integer }
+                    end: { type: integer }
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: claims.id.kuid.dev
+spec:
+  group: id.kuid.dev
+  scope: Namespaced
+  names:
+    plural: claims
+    singular: claim
+    kind: Claim
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true

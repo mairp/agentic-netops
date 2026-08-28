@@ -1,0 +1,15 @@
+{
+  "TELEMETRY": {
+    "SERVER": {
+      "gnmi": {
+        "disable": "false",
+        "port": "8080",
+        "auth": "ssl",
+        "encoding": "JSON_IETF",
+        "server_key": "/etc/sonic/telemetry/gnmi.key",
+        "server_crt": "/etc/sonic/telemetry/gnmi.crt",
+        "ca_crt": "/etc/sonic/telemetry/ca.crt"
+      }
+    }
+  }
+}

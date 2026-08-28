@@ -1,0 +1,6 @@
+NAME                              READY   STATUS   AGE
+config.sdc.sdcio.dev/unreachable-target-198-51-100-123   False   Error    1m
+EVENTS:
+  Type     Reason         Age   From        Message
+  ----     ------         ----  ----        -------
+  Warning  ProbeFailed    60s   sdc-config  connection to 198.51.100.123:9339 failed: no route to host

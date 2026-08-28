@@ -1,0 +1,7 @@
+     1	# T024: Address-based DiscoveryRule creating four Targets
+     8	spec:
+     9	  addresses:
+    10	  - 172.31.0.11
+    11	  - 172.31.0.12
+    12	  - 172.31.0.21
+    13	  - 172.31.0.22

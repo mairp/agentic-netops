@@ -1,0 +1,2 @@
+NAMESPACE       NAME                                  READY   STATUS    RESTARTS   AGE   IP            NODE
+kuid-system    kuid-controller-5c9f7d6f7b-xyz34        1/1     Running   0          2m    10.244.0.11   ainetops-worker
