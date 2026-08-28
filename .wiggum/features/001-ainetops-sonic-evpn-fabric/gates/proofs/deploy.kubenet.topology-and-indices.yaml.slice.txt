@@ -7,7 +7,31 @@
      7	spec:
      8	  # Placeholder for default underlay and EVPN networks
      9	  defaultNetwork: true
+    10	---
     11	apiVersion: id.kuid.dev/v1alpha1
     12	kind: IPIndex
     13	metadata:
     14	  name: underlay-v6
+    15	  namespace: kuid-system
+    16	spec:
+    17	  cidr: 2001:db8:100::/56
+    18	---
+    19	apiVersion: id.kuid.dev/v1alpha1
+    20	kind: ASNIndex
+    21	metadata:
+    22	  name: fabric-asn
+    23	  namespace: kuid-system
+    24	spec:
+    25	  range:
+    26	    start: 65000
+    27	    end: 65102
+    28	---
+    29	apiVersion: id.kuid.dev/v1alpha1
+    30	kind: VNIIndex
+    31	metadata:
+    32	  name: evpn-vni
+    33	  namespace: kuid-system
+    34	spec:
+    35	  range:
+    36	    start: 10000
+    37	    end: 20000

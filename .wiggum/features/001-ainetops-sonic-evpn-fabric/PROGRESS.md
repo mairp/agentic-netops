@@ -14,18 +14,18 @@ done:
   - T017 containerlab deploy/inspect/destroy idempotent helpers implemented; destroy verifies no leftover containers, volumes, or generated creds.
   - T018 Kind cluster config updated with pinned node image, ports, mounts; scripts/lib/kind.sh implements idempotent create/delete, kube-context verification, and mgmt-network attachment with partial-failure recovery; scripts/provision.sh calls it.
   - T019 Dedicated Docker mgmt network creation/labeling reused and Kind nodes attached idempotently; containerlab shares the same labeled network; deploy/gnmi/gnmi-incluster-job.yaml with apply script and proof log capture validates in-cluster gNMI reachability; separation probe added.
-  - T020 Kubenet/KUID install now applies minimal CRDs and controller Deployments and waits for pod readiness.
-  - T021 SDC CRDs and Deployments for schema/config/data/cache added with PVCs and readiness waits.
+  - T020 Kubenet/KUID install now applies the pinned upstream CRDs from versions.lock.yaml commits (remote raw GitHub URLs) and controller Deployments; waits for pod readiness.
+  - T021 SDC install now applies the pinned upstream SDC CRDs from the versions.lock.yaml release and Deployments for schema/config/data/cache with PVCs and readiness waits.
   - T022 Least-privilege namespaces, ServiceAccounts, RBAC, NetworkPolicy, and Kubernetes-native lab Secrets (gnmi-lab-creds, gnmi-lab-tls) applied via scripts/lib/rbac.sh.
   - T023 Provider and SRv6 controller Deployment/Service manifests and Helm values authored; contract FR-023 prohibition documented.
   - T024 Pinned SONiC Schema, connection profile, sync profile, and address-based DiscoveryRule authored under deploy/sdc/seed/.
-  - T025 Kubenet topology/indices/pools manifests plus SRv6 pools/claims and negative tests for absent Secrets, schema mismatch, unreachable target, and exhausted claims.
+  - T025 Kubenet topology/indices/pools manifests plus SRv6 locator, SID, and service-ID pools/claims and negative tests for absent Secrets, schema mismatch, unreachable target, and exhausted claims.
 verified:
-  - Proof slices added for config/kind/cluster.yaml, scripts/lib/kind.sh, Kubenet/KUID and SDC CRDs/controllers, SDC seed resources, RBAC Secrets, gNMI Job, Kubenet topology/indices/claims/SRv6 pools.
+  - Proof slices added for config/kind/cluster.yaml, scripts/lib/kind.sh (verify_node_image, attach_mgmt, kube_context, recover_partial), Kubenet/KUID and SDC install scripts referencing pinned upstream CRDs, controller manifests, SDC seed resources, RBAC Secrets, gNMI Job, Kubenet topology/indices/claims/SRv6 pools.
   - T019 separation artifacts present: gates/proofs/docker-network-ainetops-mgmt.json, kind-nodes-networks.txt, cidr-separation.txt; lab/topology.clab.yml proves mgmt.network ainetops-mgmt and ownership labels.
   - T020/T021 effect-witness artifacts present: kubectl-get-crds-*.txt, kubectl-get-pods-*.txt, kubectl-get-pvc-sdc.txt.
   - T024 target discovery witness present: kubectl-get-targets-names.txt (exactly 4) and kubectl-get-targets.txt (TOTAL=4).
-  - T025 readiness and negative test artifacts present: kubectl-get-kuid-resources.txt, kubectl-get-topology.txt, negative-*.status.txt.
+  - T025 readiness and negative test artifacts present: kubectl-get-kuid-resources.txt, kubectl-get-kuid-resources-srv6.txt, kubectl-get-topology.txt, negative-*.status.txt.
 blocked:
   - none
 next:

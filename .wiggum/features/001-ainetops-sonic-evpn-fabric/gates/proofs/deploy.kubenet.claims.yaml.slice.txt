@@ -5,3 +5,30 @@
      5	metadata:
      6	  name: underlay-v6-claim
      7	  namespace: kuid-system
+     8	spec:
+     9	  from:
+    10	    kind: IPIndex
+    11	    name: underlay-v6
+    12	  purpose: "underlay-ipv6"
+    13	---
+    14	apiVersion: id.kuid.dev/v1alpha1
+    15	kind: Claim
+    16	metadata:
+    17	  name: fabric-asn-claim
+    18	  namespace: kuid-system
+    19	spec:
+    20	  from:
+    21	    kind: ASNIndex
+    22	    name: fabric-asn
+    23	  purpose: "fabric-asn"
+    24	---
+    25	apiVersion: id.kuid.dev/v1alpha1
+    26	kind: Claim
+    27	metadata:
+    28	  name: evpn-vni-claim
+    29	  namespace: kuid-system
+    30	spec:
+    31	  from:
+    32	    kind: VNIIndex
+    33	    name: evpn-vni
+    34	  purpose: "evpn-vni"

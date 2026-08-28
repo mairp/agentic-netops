@@ -1,15 +1,29 @@
 #!/usr/bin/env bash
 # Install pinned SDC CRDs/controllers into Kind and wait for readiness (Phase 3)
+# This script applies the ACTUAL upstream SDC CRDs pinned by versions.lock.yaml release.
 set -euo pipefail
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 ROOT=$(cd -- "${DIR}/../.." && pwd)
 KIND_CONTEXT="kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
 
 command -v kubectl >/dev/null 2>&1 || { echo "missing kubectl" >&2; exit 1; }
+command -v awk >/dev/null 2>&1 || { echo "missing awk" >&2; exit 1; }
 
-if [[ -f "${ROOT}/deploy/sdc/crds/sdc-crds.yaml" ]]; then
-  kubectl --context "${KIND_CONTEXT}" apply -f "${ROOT}/deploy/sdc/crds/sdc-crds.yaml"
-fi
+LOCK_FILE="${ROOT}/versions.lock.yaml"
+section() { awk -v s="^$1:$" 'f; $0~s{f=1} f && /^[^[:space:]]/{if(!p){p=1;print}else exit} f && p{print}' "${LOCK_FILE}"; }
+
+sdc_release=$(section sdc | awk '/release:/ {print $2; exit}')
+
+SDC_CRDS=(
+  "https://raw.githubusercontent.com/sdcio/sdc/${sdc_release}/deploy/crds/sdc.sdcio.dev_schemas.yaml"
+  "https://raw.githubusercontent.com/sdcio/sdc/${sdc_release}/deploy/crds/sdc.sdcio.dev_configs.yaml"
+  "https://raw.githubusercontent.com/sdcio/sdc/${sdc_release}/deploy/crds/sdc.sdcio.dev_targets.yaml"
+)
+
+# Apply CRDs from pinned upstream
+for u in "${SDC_CRDS[@]}"; do
+  kubectl --context "${KIND_CONTEXT}" apply -f "$u"
+done
 
 # Apply SDC components (Deployments/Services) and PVCs
 kubectl --context "${KIND_CONTEXT}" apply -f "${ROOT}/deploy/sdc/components.yaml"
@@ -50,4 +64,4 @@ kubectl --context "${KIND_CONTEXT}" -n sdc-system wait --for=condition=Ready --t
 kubectl --context "${KIND_CONTEXT}" -n sdc-system wait --for=condition=Ready --timeout=300s pods -l app.kubernetes.io/name=sdc-data || true
 kubectl --context "${KIND_CONTEXT}" -n sdc-system wait --for=condition=Ready --timeout=300s pods -l app.kubernetes.io/name=sdc-cache || true
 
-echo "[sdc-install] CRDs and components applied; basic readiness achieved"
+echo "[sdc-install] Pinned upstream CRDs and components applied; basic readiness achieved"

@@ -19,6 +19,26 @@ spec:
     name: srv6-locator-v6
   purpose: "srv6-locator"
 ---
+# Dedicated SRv6 SID pool within the locator (allocate 64-bit SID space under a /64)
+apiVersion: id.kuid.dev/v1alpha1
+kind: IPIndex
+metadata:
+  name: srv6-sids-v6
+  namespace: kuid-system
+spec:
+  cidr: 2001:db8:feed:100::/64
+---
+apiVersion: id.kuid.dev/v1alpha1
+kind: Claim
+metadata:
+  name: srv6-sid-claim
+  namespace: kuid-system
+spec:
+  from:
+    kind: IPIndex
+    name: srv6-sids-v6
+  purpose: "srv6-sid"
+---
 apiVersion: id.kuid.dev/v1alpha1
 kind: VNIIndex
 metadata:
