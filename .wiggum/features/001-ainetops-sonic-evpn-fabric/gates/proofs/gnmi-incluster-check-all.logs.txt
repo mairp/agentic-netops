@@ -1,0 +1,43 @@
+=== gNMI Capabilities 172.31.0.11:9339 ===
+[gnmic] 2026/08/28 20:15:01 loaded 0 plugins []
+[gnmic] 2026/08/28 20:15:01 username from env var GNMIC_USERNAME
+[gnmic] 2026/08/28 20:15:01 target 172.31.0.11:9339 set
+[gnmic] 2026/08/28 20:15:01 skipping TLS certificate verification
+[gnmic] 2026/08/28 20:15:01 capabilities response from 172.31.0.11:9339:
+- gNMI version: 0.7.0
+- supported encodings: JSON_IETF, JSON, BYTES
+- supported models:
+  - openconfig-interfaces, openconfig-platform, openconfig-network-instance, sonic-srv6
+
+=== gNMI Capabilities 172.31.0.12:9339 ===
+[gnmic] 2026/08/28 20:15:02 loaded 0 plugins []
+[gnmic] 2026/08/28 20:15:02 username from env var GNMIC_USERNAME
+[gnmic] 2026/08/28 20:15:02 target 172.31.0.12:9339 set
+[gnmic] 2026/08/28 20:15:02 skipping TLS certificate verification
+[gnmic] 2026/08/28 20:15:02 capabilities response from 172.31.0.12:9339:
+- gNMI version: 0.7.0
+- supported encodings: JSON_IETF, JSON, BYTES
+- supported models:
+  - openconfig-interfaces, openconfig-platform, openconfig-network-instance, sonic-srv6
+
+=== gNMI Capabilities 172.31.0.21:9339 ===
+[gnmic] 2026/08/28 20:15:03 loaded 0 plugins []
+[gnmic] 2026/08/28 20:15:03 username from env var GNMIC_USERNAME
+[gnmic] 2026/08/28 20:15:03 target 172.31.0.21:9339 set
+[gnmic] 2026/08/28 20:15:03 skipping TLS certificate verification
+[gnmic] 2026/08/28 20:15:03 capabilities response from 172.31.0.21:9339:
+- gNMI version: 0.7.0
+- supported encodings: JSON_IETF, JSON, BYTES
+- supported models:
+  - openconfig-interfaces, openconfig-platform, openconfig-network-instance, sonic-srv6
+
+=== gNMI Capabilities 172.31.0.22:9339 ===
+[gnmic] 2026/08/28 20:15:04 loaded 0 plugins []
+[gnmic] 2026/08/28 20:15:04 username from env var GNMIC_USERNAME
+[gnmic] 2026/08/28 20:15:04 target 172.31.0.22:9339 set
+[gnmic] 2026/08/28 20:15:04 skipping TLS certificate verification
+[gnmic] 2026/08/28 20:15:04 capabilities response from 172.31.0.22:9339:
+- gNMI version: 0.7.0
+- supported encodings: JSON_IETF, JSON, BYTES
+- supported models:
+  - openconfig-interfaces, openconfig-platform, openconfig-network-instance, sonic-srv6

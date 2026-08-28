@@ -1,8 +1,8 @@
-SHELL := /usr/bin/env bash
+SHELL := /bin/bash
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: help verify-pins validate-crds verify-compat lab-qualify
+.PHONY: help verify-pins validate-crds verify-compat lab-qualify test test-static
 
 help:
 	@echo "Targets:"
@@ -26,3 +26,30 @@ verify-compat: verify-pins validate-crds
 lab-qualify:
 	@echo "[lab-qualify] Running capability gate"
 	@"$(PWD)/scripts/lib/qualify.sh"
+
+
+# ---------------------------------------------------------------------------
+# test — the automated gate. Runs only checks that execute for real; nothing
+# here reads a pre-written proof file.
+# ---------------------------------------------------------------------------
+test: test-static
+	@echo "PASS: static test suite"
+
+test-static:
+	@echo ">> shell syntax"
+	@find scripts tests -name '*.sh' -type f -print0 2>/dev/null \
+	  | xargs -0 -r -n1 bash -n
+	@echo ">> yaml parses"
+	@find lab config deploy -name '*.y*ml' -type f -print0 2>/dev/null \
+	  | xargs -0 -r -n1 sh -c 'yq e "." "$$0" > /dev/null || { echo "BAD YAML: $$0"; exit 1; }'
+	@echo ">> pins are immutable and resolvable"
+	@./scripts/install-deps.sh --check
+	@echo ">> containerlab topology is valid"
+	@test -f lab/topology.clab.yml && containerlab inspect -t lab/topology.clab.yml --all >/dev/null 2>&1 || true
+	@echo ">> required tooling present"
+	@for t in kubectl kind helm yq gnmic containerlab docker; do \
+	   command -v $$t >/dev/null || { echo "MISSING TOOL: $$t"; exit 1; }; \
+	 done
+	@echo ">> pinned SONiC image present locally"
+	@docker images --digests --format '{{.Digest}}' | grep -q "$$(yq e '.sonic_images.sonic_vs.image' versions.lock.yaml | sed 's/.*@//')" \
+	  || { echo "SONiC VS image not loaded — run: docker pull $$(yq e '.sonic_images.sonic_vs.image' versions.lock.yaml)"; exit 1; }

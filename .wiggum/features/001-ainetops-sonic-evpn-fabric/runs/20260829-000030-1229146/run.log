@@ -1,0 +1,1 @@
+verification_plan.py: required verification is blocked: No safe automated test command was discovered below /root/ainetops-demo; required verification cannot start until one is configured

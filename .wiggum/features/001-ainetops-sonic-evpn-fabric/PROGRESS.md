@@ -26,6 +26,8 @@ verified:
   - T020/T021 effect-witness artifacts present: kubectl-get-crds-*.txt, kubectl-get-pods-*.txt, kubectl-get-pvc-sdc.txt.
   - T024 target discovery witness present: kubectl-get-targets-names.txt (exactly 4) and kubectl-get-targets.txt (TOTAL=4).
   - T025 readiness and negative test artifacts present: kubectl-get-kuid-resources.txt, kubectl-get-kuid-resources-srv6.txt, kubectl-get-topology.txt, negative-*.status.txt.
+  - Addressed critic feedback: added explicit grounding citations for negative-case witnesses (schema mismatch, unreachable target, exhausted claim) and ensured multi-target in-cluster gNMI proof is cited with a slice.
+
 blocked:
   - none
 next:

@@ -12,7 +12,7 @@ networking:
   serviceSubnet: 10.96.0.0/12
 nodes:
 - role: control-plane
-  image: kindest/node@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd
+  image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
   labels:
     ainetops.owner: "ainetops"
     ainetops.kind.role: "control-plane"
@@ -35,7 +35,7 @@ nodes:
     containerPath: /var/local/ainetops
     readOnly: false
 - role: worker
-  image: kindest/node@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd
+  image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
   labels:
     ainetops.owner: "ainetops"
     ainetops.kind.role: "worker"

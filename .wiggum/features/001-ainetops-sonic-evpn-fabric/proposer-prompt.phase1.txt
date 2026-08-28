@@ -559,11 +559,11 @@ standalone host/Compose workload.
 … (context truncated at line boundary) …
 
 ## Verification obligations
-Canonical verification plan: verification-987c222a700e52cba023
-Verification plan hash: 5be81b9cf0c62976f6d81bf031228df07042c1a9c82e97b8fa81943b6e2ce553
-Source semantic hash: 63ef0c8717bc8009bf39a5cabf104bc207cde33a691a406142a9048e79e79c6d
+Canonical verification plan: verification-ef0ad7e7eb82ac2dcf7b
+Verification plan hash: f56470327f776adaedafe077f64fcb522f8f3ab60d728791d0afaaaec1c934a7
+Source semantic hash: 751c4dfbc4879208295699a48dedcf90cb17c1fe9a61d87dfefb6080bfbedf19
 
-### VO-bd6175563ecae1b99f0b — T001 Create the implementation directory structure from [plan.md](./plan.md), including
+### VO-9f46c3eb28e58bd1fad2 — T001 Create the implementation directory structure from [plan.md](./plan.md), including
 - Level: integration
 - Kind: effect-witness
 - Action: Compatibility and repository foundation
@@ -572,21 +572,21 @@ Source semantic hash: 63ef0c8717bc8009bf39a5cabf104bc207cde33a691a406142a9048e79
 - Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
 - Negative case: Reject a successful-looking response when no independently readable durable effect exists.
 
-### VO-5aa7675f6fa8c2fc3eb6 — T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,
+### VO-ccceee4bd62e391114c5 — T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,
 - Level: contract
 - Kind: positive
 - Action: Compatibility and repository foundation
 - Oracle: T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,
 - Witness: Observe independently that this criterion is true: T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,
 
-### VO-2f7b6f1c4f6dc2df9455 — T003 Select and record a pinned containerlab version and both SONiC profile image
+### VO-a2c92a2c201f9997df98 — T003 Select and record a pinned containerlab version and both SONiC profile image
 - Level: contract
 - Kind: positive
 - Action: Compatibility and repository foundation
 - Oracle: T003 Select and record a pinned containerlab version and both SONiC profile image
 - Witness: Observe independently that this criterion is true: T003 Select and record a pinned containerlab version and both SONiC profile image
 
-### VO-32b740856afca4c9b66f — T004 Select the SONiC/OpenConfig YANG schema commit and record its compatibility with
+### VO-85703cd3e2372ffb6509 — T004 Select the SONiC/OpenConfig YANG schema commit and record its compatibility with
 - Level: integration
 - Kind: effect-witness
 - Action: Compatibility and repository foundation
@@ -595,28 +595,28 @@ Source semantic hash: 63ef0c8717bc8009bf39a5cabf104bc207cde33a691a406142a9048e79
 - Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
 - Negative case: Reject a successful-looking response when no independently readable durable effect exists.
 
-### VO-1de037b6e43606d7bb6e — T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and
+### VO-be7ee8383e989b214a82 — T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and
 - Level: contract
 - Kind: positive
 - Action: Compatibility and repository foundation
 - Oracle: T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and
 - Witness: Observe independently that this criterion is true: T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and
 
-### VO-2e73e51cb9965320d711 — T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and
+### VO-30a4c44a421cc90e23a2 — T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and
 - Level: contract
 - Kind: positive
 - Action: Compatibility and repository foundation
 - Oracle: T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and
 - Witness: Observe independently that this criterion is true: T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and
 
-### VO-cb6b2b433f93863f2deb — T007 Implement reusable strict-shell preflight for host resources, Kind/runtime
+### VO-6bd91de95f0bb8ab4ce8 — T007 Implement reusable strict-shell preflight for host resources, Kind/runtime
 - Level: contract
 - Kind: positive
 - Action: Compatibility and repository foundation
 - Oracle: T007 Implement reusable strict-shell preflight for host resources, Kind/runtime
 - Witness: Observe independently that this criterion is true: T007 Implement reusable strict-shell preflight for host resources, Kind/runtime
 
-### VO-9805146069aae09e0d0d — T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side
+### VO-82f809605d10cef51716 — T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side
 - Level: contract
 - Kind: positive
 - Action: Compatibility and repository foundation
@@ -625,26 +625,3 @@ Source semantic hash: 63ef0c8717bc8009bf39a5cabf104bc207cde33a691a406142a9048e79
 
 Create or update automated tests for these obligations. Generated TODO/skip scaffolds are starting points only and are never passing evidence.
 The phase evidence must map every obligation above to independently observable evidence.
-
-## A PRIOR ATTEMPT WAS REJECTED — this is attempt 4 of 30
-The critic rejected your last evidence. Read the feedback below and address
-EVERY point before re-writing .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/GATE1-EVIDENCE.md. Do not merely
-reassert; fix the actual gaps.
-
-### Critic feedback (.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/GATE1-FEEDBACK.md)
-# Phase 1 — critic feedback (REJECTED)
-
-The following must be addressed before re-writing GATE1-EVIDENCE.md:
-
-Unmet or unclear criteria and specific gaps:
-
-- T007 Implement reusable strict-shell preflight for host resources, Kind/runtime privileges, address conflicts, tool versions, MTU, and KVM when required
-  - The evidence claims tool version validation includes kind, kubectl, helm, and containerlab. However, the visible preflight::tool_versions logic in scripts/lib/preflight.sh only shows explicit checks for kubectl, helm, and containerlab; there is no independently observable check for the Kind binary version being enforced against versions.lock.yaml.kind.binary.
-  - Actionable gap: Add and show a preflight check that reads the pinned kind.binary from versions.lock.yaml and compares it to the local kind version (e.g., parsing “kind version …”). Ensure it fails on mismatch.
-  - NEEDS-GROUNDING:scripts/lib/preflight.sh
-
-VERDICT 437f787791791922: REJECTED
-
-
-### Earlier attempts were already rejected for THESE reasons — do NOT repeat those fixes
-- attempt2: Tool versions are not verified: preflight::tool_versions only checks presence of commands; it does not verify their versions against the pinned versions/constra

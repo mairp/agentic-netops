@@ -564,102 +564,7 @@ standalone host/Compose workload.
 - [x] Partial success cannot become aggregate Ready
 … (context truncated at line boundary) …
 
-## Verification obligations
-Canonical verification plan: verification-72a6235a6bb35080166d
-Verification plan hash: 41c32ec4d69766f94b74bfe74facc926da87328e1bca2bf0934c34f4ae84f0e8
-Source semantic hash: 751c4dfbc4879208295699a48dedcf90cb17c1fe9a61d87dfefb6080bfbedf19
-
-### VO-c292a5c1db1b91cd8050 — T018 Author `config/kind/cluster.yaml` and idempotent Kind create/delete phases with a
-- Level: integration
-- Kind: effect-witness
-- Action: Kind and centralized application foundation (US2, US3)
-- Oracle: T018 Author `config/kind/cluster.yaml` and idempotent Kind create/delete phases with a
-- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
-- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
-- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
-
-### VO-0f4e897f6670173b34e4 — T019 Implement creation/ownership labeling of the dedicated Docker management network,
-- Level: contract
-- Kind: positive
-- Action: Kind and centralized application foundation (US2, US3)
-- Oracle: T019 Implement creation/ownership labeling of the dedicated Docker management network,
-- Witness: Observe independently that this criterion is true: T019 Implement creation/ownership labeling of the dedicated Docker management network,
-
-### VO-a8a3a9c61b1e7e884295 — T020 Install pinned Kubenet/KUID CRDs/controllers inside Kind and wait for current-
-- Level: integration
-- Kind: effect-witness
-- Action: Kind and centralized application foundation (US2, US3)
-- Oracle: T020 Install pinned Kubenet/KUID CRDs/controllers inside Kind and wait for current-
-- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
-- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
-- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
-
-### VO-779292f79fa9f59439bf — T021 Install pinned SDC CRDs and schema/config/data/cache components inside Kind with
-- Level: integration
-- Kind: effect-witness
-- Action: Kind and centralized application foundation (US2, US3)
-- Oracle: T021 Install pinned SDC CRDs and schema/config/data/cache components inside Kind with
-- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
-- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
-- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
-
-### VO-89556224f3b7bbdb017c — T022 [P] Create least-privilege namespaces, service accounts, RBAC, network policies, and
-- Level: integration
-- Kind: effect-witness
-- Action: Kind and centralized application foundation (US2, US3)
-- Oracle: T022 [P] Create least-privilege namespaces, service accounts, RBAC, network policies, and
-- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
-- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
-- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
-
-### VO-f5434170bc0fc81c39e5 — T023 Author the Kind deployment manifests/Helm values for the later AINETOPS provider and
-- Level: contract
-- Kind: positive
-- Action: Kind and centralized application foundation (US2, US3)
-- Oracle: T023 Author the Kind deployment manifests/Helm values for the later AINETOPS provider and
-- Witness: Observe independently that this criterion is true: T023 Author the Kind deployment manifests/Helm values for the later AINETOPS provider and
-
-### VO-58d01e895466b225a4d1 — T024 Create the exact pinned SONiC `Schema`, connection profile, sync profile, and
-- Level: integration
-- Kind: effect-witness
-- Action: Kind and centralized application foundation (US2, US3)
-- Oracle: T024 Create the exact pinned SONiC `Schema`, connection profile, sync profile, and
-- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
-- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
-- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
-
-### VO-25f9fdd579584d745685 — T025 Create topology, IP/ASN/ID indices, claims/pools, and fabric design manifests using
-- Level: integration
-- Kind: effect-witness
-- Action: Kind and centralized application foundation (US2, US3)
-- Oracle: T025 Create topology, IP/ASN/ID indices, claims/pools, and fabric design manifests using
-- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
-- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
-- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
-
-### Inherited obligations from earlier approved phases (regression context — already gated, not new work; the cumulative gate still re-checks them):
-- VO-9f46c3eb28e58bd1fad2 — T001 Create the implementation directory structure from [plan.md](./plan.md), including
-- VO-ccceee4bd62e391114c5 — T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,
-- VO-a2c92a2c201f9997df98 — T003 Select and record a pinned containerlab version and both SONiC profile image
-- VO-85703cd3e2372ffb6509 — T004 Select the SONiC/OpenConfig YANG schema commit and record its compatibility with
-- VO-be7ee8383e989b214a82 — T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and
-- VO-30a4c44a421cc90e23a2 — T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and
-- VO-6bd91de95f0bb8ab4ce8 — T007 Implement reusable strict-shell preflight for host resources, Kind/runtime
-- VO-82f809605d10cef51716 — T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side
-- VO-afa8425c0ecdb9e9d3d8 — T009 [US3] Author `lab/topology.clab.yml` with `spine01`, `spine02`, `leaf01`, `leaf02`,
-- VO-fd0f1c4858c4961584e0 — T010 [P] [US3] Create the `sonic-vs` profile with bootstrap limited to management, TLS,
-- VO-195afae65c44aa3dcf34 — T011 [P] [US3] Create the `sonic-vm` conformance overlay and document KVM/nested
-- VO-5bb9225b782568f81af2 — T012 [P] [US3] Create Linux endpoint images/configuration and deterministic dual-stack
-- VO-672489b9771d8547e192 — T013 [US3] Implement SONiC gNMI Capabilities/Get/Set/Subscribe qualification tests
-- VO-f725b5aa29dfa9608556 — T014 [P] [US3] Implement persistent configuration and required OpenConfig/SONiC YANG path
-- VO-04c9121f3b5051968ee3 — T015 [P] [US3] Implement BGP EVPN/VXLAN Type 2/3/5 and SRv6 IPv6-underlay,
-- VO-3e6c7321565e6a6b5473 — T016 [US3] Implement `make lab-qualify` so any failed capability blocks downstream tests
-- VO-ac289c2bf8b36b353ebb — T017 [US3] Implement idempotent containerlab deploy/inspect/destroy script phases callable
-
-Create or update automated tests for these obligations. Generated TODO/skip scaffolds are starting points only and are never passing evidence.
-The phase evidence must map every obligation above to independently observable evidence.
-
-## A PRIOR ATTEMPT WAS REJECTED — this is attempt 5 of 30
+## A PRIOR ATTEMPT WAS REJECTED — this is attempt 2 of 30
 The critic rejected your last evidence. Read the feedback below and address
 EVERY point before re-writing .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/GATE3-EVIDENCE.md. Do not merely
 reassert; fix the actual gaps.
@@ -669,25 +574,27 @@ reassert; fix the actual gaps.
 
 The following must be addressed before re-writing GATE3-EVIDENCE.md:
 
-Unmet acceptance criteria and concrete gaps:
+REJECTED — unmet or unproven acceptance criteria
 
-- Phase 3 Checkpoint — “The named Kind cluster can reach all SONiC nodes”
-  - Gap: The only in-cluster gNMI reachability evidence is a single Job to 172.31.0.11 (gnmi-incluster-check.logs.txt). There is no independent witness showing reachability from inside Kind to the other three SONiC nodes (172.31.0.12, 172.31.0.21, 172.31.0.22).
-  - Actionable fix: Provide independent logs or pod/job output proving successful gNMI operations (e.g., Capabilities) to all four target addresses from inside the cluster, or a consolidated job that iterates all addresses and records per-target success.
+- T025 Create topology, IP/ASN/ID indices, claims/pools, and fabric design manifests…; add negative tests…
+  - Gap: Only one negative-case witness is grounded (“missing secret”). The spec requires negative tests for absent Secret, schema mismatch, unreachable target, and exhausted or colliding claims. You cited witness files for the other three cases but their contents are not in the snapshot, so the results are not independently verifiable.
+    - Provide grounded status/Event outputs (independent read path) for:
+      - Schema mismatch rejection
+        NEEDS-GROUNDING:.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/negative-schema-mismatch.status.txt
+      - Unreachable target rejection
+        NEEDS-GROUNDING:.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/negative-unreachable-target.status.txt
+      - Exhausted claim rejection
+        NEEDS-GROUNDING:.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/negative-exhausted-claim.status.txt
+  - What to add: For each of the three, include kubectl outputs/events showing the resource Name, Ready/Status=False, a stable Reason (e.g., SchemaMismatch, TargetUnreachable, Exhausted), and controller Events that mention the exact offending reference/condition, analogous to your existing missing-secret witness.
 
-VERDICT e973444be4703477: REJECTED
+VERDICT 9762da7c3d75c9b2: REJECTED
 
 
 
 ---
 ## Grounding transparency (machine-generated — read this)
-These files you cited EXIST on disk, but the critic's grounding extractor could not include them in its snapshot, so the critic cannot 'see' their contents. This is a TOOLING limitation, NOT a missing file. Do NOT re-create, copy, or promote them — they are already present and correct. If a criterion depends on one, either cite it a different way (e.g. a slash path like `./deploy.ainetops.srv6-controller.yaml.proof.txt`) or state in your evidence that grounding cannot reach it:
-- `deploy.ainetops.srv6-controller.yaml.proof.txt`
-- `deploy.ainetops.values-provider.yaml.slice.txt`
-- `deploy.ainetops.values-srv6-controller.yaml.slice.txt`
-- `deploy.kubenet.claims.yaml.slice.txt`
-- `deploy.rbac.secret-generator-job.yaml.slice.txt`
-- `deploy.rbac.secrets.yaml.slice.txt`
-- `deploy.sdc.seed.discovery-rule.yaml.slice.txt`
-- `gnmi-incluster-check.pod.yaml`
+These files you cited EXIST on disk, but the critic's grounding extractor could not include them in its snapshot, so the critic cannot 'see' their contents. This is a TOOLING limitation, NOT a missing file. Do NOT re-create, copy, or promote them — they are already present and correct. If a criterion depends on one, either cite it a different way (e.g. a slash path like `./negative-exhausted-claim.status.txt`) or state in your evidence that grounding cannot reach it:
+- `negative-exhausted-claim.status.txt`
+- `negative-schema-mismatch.status.txt`
+- `negative-unreachable-target.status.txt`
 - `versions.lock.yaml`

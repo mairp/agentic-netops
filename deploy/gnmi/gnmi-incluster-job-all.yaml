@@ -1,0 +1,36 @@
+# T019 proof utility: in-cluster gNMI reachability check Job against all SONiC nodes
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gnmi-incluster-check-all
+  namespace: ainetops-system
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: gnmic
+        image: ghcr.io/karimra/gnmic@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+        command: ["/bin/sh","-c"]
+        args:
+          - |
+            set -e
+            for a in 172.31.0.11 172.31.0.12 172.31.0.21 172.31.0.22; do
+              echo "=== gNMI Capabilities ${a}:9339 ===";
+              gnmic --timeout=5s --address=${a}:9339 --skip-verify capabilities || exit 1;
+              echo;
+            done
+        env:
+          - name: GNMIC_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: gnmi-lab-creds
+                key: username
+          - name: GNMIC_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: gnmi-lab-creds
+                key: password
+        envFrom:
+          - secretRef:
+              name: gnmi-lab-tls

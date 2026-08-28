@@ -70,7 +70,7 @@ exec "$ORCH" \
   -s "$SPEC" \
   --spec-format speckit-tasks \
   --feature "$FEATURE" \
-  --verification plan \
+  --verification required \
   "${LIVE[@]}" \
   --telemetry --loki-url http://127.0.0.1:3100 \
   --otel --otel-url http://127.0.0.1:4318
