@@ -563,8 +563,8 @@ standalone host/Compose workload.
 … (context truncated at line boundary) …
 
 ## Verification obligations
-Canonical verification plan: verification-72a6235a6bb35080166d
-Verification plan hash: 41c32ec4d69766f94b74bfe74facc926da87328e1bca2bf0934c34f4ae84f0e8
+Canonical verification plan: verification-ef0ad7e7eb82ac2dcf7b
+Verification plan hash: f56470327f776adaedafe077f64fcb522f8f3ab60d728791d0afaaaec1c934a7
 Source semantic hash: 751c4dfbc4879208295699a48dedcf90cb17c1fe9a61d87dfefb6080bfbedf19
 
 ### VO-afa8425c0ecdb9e9d3d8 — T009 [US3] Author `lab/topology.clab.yml` with `spine01`, `spine02`, `leaf01`, `leaf02`,
@@ -650,30 +650,3 @@ Source semantic hash: 751c4dfbc4879208295699a48dedcf90cb17c1fe9a61d87dfefb6080bf
 
 Create or update automated tests for these obligations. Generated TODO/skip scaffolds are starting points only and are never passing evidence.
 The phase evidence must map every obligation above to independently observable evidence.
-
-## A PRIOR ATTEMPT WAS REJECTED — this is attempt 3 of 30
-The critic rejected your last evidence. Read the feedback below and address
-EVERY point before re-writing .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/GATE2-EVIDENCE.md. Do not merely
-reassert; fix the actual gaps.
-
-### Critic feedback (.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/GATE2-FEEDBACK.md)
-# Phase 2 — critic feedback (REJECTED)
-
-The following must be addressed before re-writing GATE2-EVIDENCE.md:
-
-Unmet or unclear acceptance criteria
-
-- T009 [US3] lab/topology.clab.yml must explicitly reuse the external AINETOPS-owned Docker management network
-  - Gap: The grounded excerpt from lab/topology.clab.yml does not show an mgmt: block or the mgmt network reference (e.g., mgmt.network: ainetops-mgmt). While a proof slice claims it, the acceptance requires verification in the actual topology file. Without the mgmt block in the grounded excerpt, reuse of the external management network is not independently confirmed.
-  - Action: Ensure lab/topology.clab.yml contains a top-level mgmt: section with network: ainetops-mgmt (and MTU/labels/annotations as required).
-  - NEEDS-GROUNDING: lab/topology.clab.yml
-
-VERDICT 94ca874e8ddbfc9d: REJECTED
-
-
-
----
-## Grounding transparency (machine-generated — read this)
-These files you cited EXIST on disk, but the critic's grounding extractor could not include them in its snapshot, so the critic cannot 'see' their contents. This is a TOOLING limitation, NOT a missing file. Do NOT re-create, copy, or promote them — they are already present and correct. If a criterion depends on one, either cite it a different way (e.g. a slash path like `./kvm`) or state in your evidence that grounding cannot reach it:
-- `/dev/kvm`
-- `scripts.lib.verify_pins.sh.proof.txt`
