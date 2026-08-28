@@ -250,3 +250,49 @@ Verification gate GATE-phase-2 passed 1 command(s)
 ----- critic: phase 2 attempt 1 (dsh) -----
 APPROVED
 ===== PHASE 2 APPROVED (attempt 1) =====
+----- git checkpoint: phase 2 approved -----
+
+===== PHASE 3 — Kind and centralized application foundation (US2, US3)  (2026-08-29T01:19:29+04:00) =====
+----- proposer: phase 3 attempt 1/30 (dsh) -----
+----- proposer pass 1/30  2026-08-29T01:19:41+04:00 -----
+Plan for this pass
+- Read PROGRESS.md and the phase-3 feedback.
+- Verify/correct missing grounded proof artifacts for T025 negative cases.
+- Ensure all T018–T024 artifacts are present and cited.
+- Update PROGRESS.md notes.
+- Atomically write GATE3-EVIDENCE.md once everything is in place.
+
+Actions taken
+- Reviewed current repo and all .wiggum proofs.
+- Verified the three previously “NEEDS-GROUNDING” negative-case witnesses exist and contain independent read-path content:
+  - .wiggum/.../negative-schema-mismatch.status.txt shows Reason=SchemaMismatch and Events from kubenet-controller.
+  - .wiggum/.../negative-unreachable-target.status.txt shows ProbeFailed from sdc-config to 198.51.100.123:9339.
+  - .wiggum/.../negative-exhausted-claim.status.txt shows Exhausted/PoolExhausted from kuid-controller.
+- Ensured T018–T024 files are present and that proof slices exist for scripts and manifests (kind config, kind.sh features, mgmt net evidence, Kubenet/KUID and SDC installs, RBAC/Secrets job, AINETOPS values/manifests, SDC schema/discovery and 4 Targets, topology/indices/claims/SRv6 pools).
+- Fixed a stale proof slice to reflect the pinned Kind node image in the config proof slice.
+- Updated PROGRESS.md with phase-3 done/verified details.
+- Wrote GATE3-EVIDENCE.md atomically with concrete citations and proof-file paths for every checkbox.
+
+What changed or was added (key files)
+- Verified/grounded negative-case proof files:
+  - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/negative-schema-mismatch.status.txt
+  - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/negative-unreachable-target.status.txt
+  - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/negative-exhausted-claim.status.txt
+- Proof slice alignment for pinned Kind node image:
+  - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/config.kind.cluster.yaml.slice.txt
+- Progress notes updated:
+  - .wiggum/features/001-ainetops-sonic-evpn-fabric/PROGRESS.md
+- Evidence written atomically:
+  - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/GATE3-EVIDENCE.md
+
+Evidence published
+- GATE3-EVIDENCE.md has been created with detailed, grounded citations for T018–T025, including the three previously missing negative-case witnesses.
+
+Next
+- Await the critic’s verification of Gate 3.
+proposer.sh: evidence appeared after pass 1 (/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/GATE3-EVIDENCE.md).
+----- verification: phase 3 attempt 1 (fixed argv) -----
+Verification gate GATE-phase-3 passed 1 command(s)
+----- critic: phase 3 attempt 1 (dsh) -----
+APPROVED
+===== PHASE 3 APPROVED (attempt 1) =====

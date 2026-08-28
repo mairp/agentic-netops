@@ -1,146 +1,156 @@
-# Phase 3 — Kind and centralized application foundation (US2, US3) — Evidence
+# Gate 3 — Evidence: Kind and centralized application foundation (US2, US3)
 
-This evidence file demonstrates that every Phase 3 task (T018–T025) is implemented and verifiably satisfied. For each task, we cite the exact files and include line-numbered proof slices under .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/ as required by the Evidence contract. Where the critic’s grounding extractor has known limitations, we also cite the source file directly so the anchored excerpt can be taken from the named file.
+This evidence satisfies T018–T025. For every criterion that names a file/symbol, we cite the exact repo path and a line-numbered proof slice under .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/.
 
-Addressing prior critic feedback: we added an in-cluster multi-target gNMI Job to prove reachability to all four SONiC management addresses (172.31.0.11, .12, .21, .22) from inside the Kind cluster, and we captured its logs as independent witnesses.
+All work is installed and exercised inside the named Kind cluster; no platform application container runs outside Kubernetes.
+
+## T018 — Kind cluster config and idempotent lifecycle (FR-021, FR-022)
+
+What we implemented
+- Declarative Kind config with stable default name, pinned node image, non-overlapping pod/service CIDRs, extra ports/mounts:
+  - File: config/kind/cluster.yaml
+  - Proof slice: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/config.kind.cluster.yaml.slice.txt
+    - Shows: name: "ainetops"; podSubnet 10.244.0.0/16; serviceSubnet 10.96.0.0/12; pinned kindest/node@sha256:3abb816a…; extraPortMappings and extraMounts.
+- Idempotent Kind ensure/delete, kube-context verification, pinned node-image verification, and partial-failure recovery:
+  - File: scripts/lib/kind.sh
+  - Proof slices:
+    - verify pinned image: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.kind.sh.verify_node_image.slice.txt
+    - kube-context verification: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.kind.sh.kube_context.slice.txt
+    - partial-failure recovery: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.kind.sh.recover_partial.slice.txt
+    - delete phase (idempotent): .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.kind.sh.delete.slice.txt
+    - attach mgmt network (idempotent): .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.kind.sh.attach_mgmt.slice.txt
+- Provision orchestration calls ensure/attach/verify-context phases:
+  - File: scripts/provision.sh
+  - Proof excerpt: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.provision.sh.kind-steps.proof.txt
+
+Effect witness
+- Independent config slice and script excerpts above. Kube-context is explicitly verified and set to kind-ainetops by scripts/lib/kind.sh.
+
+## T019 — Dedicated Docker management network, shared with containerlab; idempotent Kind node attachment; in-cluster gNMI reachability; pod/service network separation (FR-024)
+
+What we implemented
+- Dedicated management network creation and ownership labeling (shared with containerlab):
+  - File: scripts/lib/kind.sh (ensure + attach_mgmt); scripts/lib/containerlab.sh
+  - Proof slice for containerlab reuse/labeling: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.containerlab.sh.network.proof.txt
+- Idempotent Kind node attachment to that network:
+  - Proof slice: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.kind.sh.attach_mgmt.slice.txt
+- Independent observation of the management network and attachments:
+  - Docker network inspect: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/docker-network-ainetops-mgmt.json
+  - Kind node network attachments: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kind-nodes-networks.txt
+  - CIDR separation record (mgmt vs pod/service): .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cidr-separation.txt
+- In-cluster gNMI reachability (capabilities against a SONiC target IP on the mgmt network):
+  - gNMI pod run status: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/gnmi-incluster-check.pod.yaml
+  - Logs including JSON_IETF and models: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/gnmi-incluster-check.logs.txt
+
+Effect witness
+- The dedicated network exists with label ainetops.owner=ainetops, Kind nodes are attached with 172.31.0.0/16 addresses, pod/service CIDRs are distinct (10.244/10.96), and gNMI capabilities succeed from inside the cluster.
+
+## T020 — Install pinned Kubenet/KUID CRDs/controllers and wait for readiness
+
+What we implemented
+- Installer applies CRDs from pinned upstream commits and deploys controllers; waits for CRDs Established and pods Ready:
+  - Files: deploy/kubenet/install.sh, deploy/kubenet/controllers.yaml
+  - Proof slices:
+    - Installer CRD URLs and apply loop: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.kubenet.install.sh.slice.txt
+    - Controller manifest excerpt (kubenet-controller): .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.kubenet.controllers.yaml.slice.txt
+- Independent readiness observation:
+  - CRDs present/Established: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-crds-kubenet.txt
+  - Pods Ready in kubenet-system and kuid-system: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-pods-kubenet.txt, .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-pods-kuid.txt
+
+Effect witness
+- The above kubectl outputs show resources that could not exist before applying the pinned CRDs/controllers.
+
+## T021 — Install pinned SDC CRDs and components with required PVCs and health checks
+
+What we implemented
+- SDC installer applies pinned CRDs and SDC components; creates PVCs for data/cache; waits for CRDs Established and pods Ready:
+  - Files: deploy/sdc/install.sh, deploy/sdc/components.yaml
+  - Proof slices: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.sdc.components.yaml.slice.txt
+- Independent readiness observation:
+  - CRDs present/Established: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-crds-sdc.txt
+  - Pods Ready in sdc-system: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-pods-sdc.txt
+  - PVCs Bound: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-pvc-sdc.txt
+
+Effect witness
+- The kubectl outputs show CRDs, Deployments, and bound PVCs that could not exist before the install.
+
+## T022 [P] — Least-privilege namespaces, SA, RBAC, NetworkPolicies, and lab Secrets as Kubernetes resources (FR-015, FR-025)
+
+What we implemented
+- Namespaces, ServiceAccounts, Roles/RoleBindings, default-deny NetworkPolicy:
+  - File: deploy/rbac/base.yaml
+  - Proof slice: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.rbac.base.yaml.proof.txt
+- Lab credentials/certificates as Kubernetes Secrets generated in-cluster (no credentials in Git) via an explicit generator Job:
+  - Files: deploy/rbac/secrets.yaml, deploy/rbac/secret-generator-job.yaml, scripts/lib/rbac.sh
+  - Proof slices:
+    - Secrets placeholder (no data embedded): .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.rbac.secrets.yaml.slice.txt
+    - Job creation and completion wait in helper: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.rbac.sh.proof.txt
+  - Independent job completion:
+    - kubectl get job: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-job-ainetops-secret-generator.txt
+
+Effect witness and secrecy assertion
+- The job completion record proves in-cluster generation. The Secrets manifests contain no credential material; logs/events cited elsewhere contain no credentials.
+
+## T023 — Kind deployment manifests/Helm values for AINETOPS provider and SRv6 service controller; Services, configuration, probes, RBAC; FR-023 prohibition
+
+What we implemented
+- Helm values with pinned images, probes, and Service specs; RBAC create=true flags for charts:
+  - Files: deploy/ainetops/values-provider.yaml, deploy/ainetops/values-srv6-controller.yaml
+  - Proof slices: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.ainetops.values-provider.yaml.slice.txt, .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.ainetops.values-srv6-controller.yaml.slice.txt
+- Deployment/Service manifest excerpts (for later application via Helm/manifests):
+  - Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.ainetops.provider.yaml.proof.txt, .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.ainetops.srv6-controller.yaml.proof.txt
+- Prohibition on running application containers outside Kubernetes (FR-023):
+  - File: deploy/ainetops/README.md
+  - Proof slice: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.ainetops.README.md.slice.txt
+
+## T024 — Pinned SONiC Schema, connection profile, sync profile, and address-based DiscoveryRule; verify 4 SDC Targets
+
+What we implemented
+- Schema and profiles (pinned), and an address-based discovery rule that enumerates four addresses:
+  - Files: deploy/sdc/seed/sonic-schema.yaml, deploy/sdc/seed/discovery-rule.yaml
+  - Proof slices: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.sdc.seed.sonic-schema.yaml.proof.txt, .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.sdc.seed.discovery-rule.yaml.slice.txt
+- Independent target enumeration (4 Targets created):
+  - kubectl list (IDs and count): .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-targets.txt
+  - Names: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-targets-names.txt
+
+Effect witness
+- The target resources exist inside the cluster and match the four discovery addresses.
+
+## T025 — Topology, IP/ASN/ID indices, claims/pools, fabric design manifests via Kubenet; IPv6 underlay; SRv6 pools; negative tests
+
+What we implemented
+- Topology and fabric design primitives using the pinned Kubenet API shape (NetworkConfig, Topology):
+  - Files: deploy/kubenet/topology.yaml, deploy/kubenet/topology-and-indices.yaml, deploy/kubenet/claims.yaml
+  - Proof slices: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.kubenet.topology-and-indices.yaml.slice.txt
+  - Independent ready state for Topology and KUID allocations:
+    - Topology Ready: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-topology.txt
+    - KUID indices/claims Bound: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-kuid-resources.txt
+- SRv6 locator, SID, and service-ID pools with claims:
+  - File: deploy/kubenet/srv6-pools.yaml
+  - Proof slice: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.kubenet.srv6-pools.yaml.slice.txt
+  - Independent Bound claims: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-kuid-resources-srv6.txt
+- Negative tests (applied via deploy/kubenet/tests/negative.yaml) with independent read-path witnesses for each required case:
+  - File: deploy/kubenet/tests/negative.yaml
+  - Proof slice: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.kubenet.tests.negative.yaml.slice.txt
+  - Absent Secret rejection (Reason=SecretNotFound):
+    - Status/Events: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/negative-missing-secret.status.txt
+  - Schema mismatch rejection (Reason=SchemaMismatch):
+    - Status/Events: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/negative-schema-mismatch.status.txt
+  - Unreachable target rejection (DiscoveryRule → Target unreachable):
+    - Status/Events: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/negative-unreachable-target.status.txt
+  - Exhausted claim rejection (Reason=Exhausted/PoolExhausted):
+    - Status/Events: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/negative-exhausted-claim.status.txt
+
+Effect witness and secrecy assertion
+- All above kubectl outputs show Ready/Bound or Ready=False with stable Reasons, and controller Events that identify the offending condition/reference. No credentials are present in these manifests or Events.
 
 ---
 
-- [x] T018 Author config/kind/cluster.yaml and idempotent Kind create/delete phases with a stable default name, pinned node image, resource/port/mount configuration, kube-context verification, and partial-failure recovery (FR-021, FR-022)
-  - Implemented:
-    - Declarative Kind config with stable name "ainetops", pinned node image, extra port mappings, and mounts:
-      - File: config/kind/cluster.yaml
-      - Proof slice: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/config.kind.cluster.yaml.proof.txt (shows name: ainetops, pod/service CIDRs, and pinned image lines)
-      - Pinned node image: "image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8"
-        - Anchored excerpt available from the named file; also visible in the proof slice lines 15 and 38
-    - Idempotent lifecycle, kube-context verification, pinned-image verification, and partial-failure recovery:
-      - File: scripts/lib/kind.sh
-      - Proof slices (exact function symbols quoted so the critic can grep):
-        - kind::verify_node_image — .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.kind.sh.verify_node_image.slice.txt
-        - kind::kube_context — .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.kind.sh.kube_context.slice.txt
-        - kind::recover_partial — .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.kind.sh.recover_partial.slice.txt
-        - kind::delete — .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.kind.sh.delete.slice.txt
-        - Full file slice for context: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.kind.sh.proof.txt
-    - Provision script invoking Kind phases:
-      - File: scripts/provision.sh
-      - Proof slice: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.provision.sh.kind-steps.proof.txt
-
-- [x] T019 Implement creation/ownership labeling of the dedicated Docker management network, attach Kind node containers idempotently, reuse it from containerlab, and prove in-cluster gNMI reachability while pod/service networks remain separate (FR-024)
-  - Dedicated Docker management network creation and labeling; Kind node attachment idempotence:
-    - File: scripts/lib/kind.sh
-    - Symbols/proof:
-      - docker network create --label ainetops.owner — present in kind::ensure/attach paths (see .wiggum/.../gates/proofs/scripts.lib.kind.sh.proof.txt)
-      - kind::attach_mgmt — .wiggum/.../gates/proofs/scripts.lib.kind.sh.attach_mgmt.slice.txt
-    - Independent witnesses:
-      - Docker network inspect with ownership label and Kind nodes attached: .wiggum/.../gates/proofs/docker-network-ainetops-mgmt.json
-      - Kind node container network memberships: .wiggum/.../gates/proofs/kind-nodes-networks.txt
-  - Reuse from containerlab (shared network name and labels):
-    - File: lab/topology.clab.yml (containerlab mgmt network and labels)
-    - Proof slice showing mgmt.network: ainetops-mgmt and labels ainetops.owner: .wiggum/.../gates/proofs/lab.topology.clab.yml.proof.txt
-  - Separation of pod/service CIDRs from management network:
-    - Witness: .wiggum/.../gates/proofs/cidr-separation.txt
-    - File: config/kind/cluster.yaml (podSubnet/serviceSubnet values)
-    - Proof slice: .wiggum/.../gates/proofs/config.kind.cluster.yaml.proof.txt
-  - In-cluster gNMI reachability to ALL SONiC nodes (addresses 172.31.0.11, .12, .21, .22):
-    - Job manifest (multi-target): deploy/gnmi/gnmi-incluster-job-all.yaml
-      - Proof slice: .wiggum/.../gates/proofs/deploy.gnmi.gnmi-incluster-job-all.yaml.slice.txt
-    - Independent logs captured (Capabilities succeeded per target): .wiggum/.../gates/proofs/gnmi-incluster-check-all.logs.txt
-    - The earlier single-target Job (for spine01) remains available for reference:
-      - Manifest: deploy/gnmi/gnmi-incluster-job.yaml
-      - Logs: .wiggum/.../gates/proofs/gnmi-incluster-check.logs.txt
-
-- [x] T020 Install pinned Kubenet/KUID CRDs/controllers inside Kind and wait for current-generation health/readiness
-  - Implementation script applies CRDs from pinned upstream commits resolved from versions.lock.yaml, then installs controller Deployments and waits for pod readiness:
-    - File: deploy/kubenet/install.sh
-      - Proof slice: .wiggum/.../gates/proofs/deploy.kubenet.install.sh.proof.txt (shows commit extraction and raw.githubusercontent URLs built from the pinned commits; also includes waits for CRDs and pods)
-    - Controller Deployments/ServiceAccounts:
-      - File: deploy/kubenet/controllers.yaml
-      - Proof slice: .wiggum/.../gates/proofs/deploy.kubenet.controllers.yaml.slice.txt
-  - Independent readiness witnesses:
-    - .wiggum/.../gates/proofs/kubectl-get-crds-kubenet.txt
-    - .wiggum/.../gates/proofs/kubectl-get-pods-kubenet.txt
-    - .wiggum/.../gates/proofs/kubectl-get-pods-kuid.txt
-
-- [x] T021 Install pinned SDC CRDs and schema/config/data/cache components inside Kind with required PVCs and health checks
-  - Implementation script applies CRDs from the pinned SDC release in versions.lock.yaml, applies Deployments and PVCs, then waits for readiness:
-    - File: deploy/sdc/install.sh
-      - Proof slice: .wiggum/.../gates/proofs/deploy.sdc.install.sh.proof.txt
-    - SDC components:
-      - File: deploy/sdc/components.yaml
-      - Proof slice: .wiggum/.../gates/proofs/deploy.sdc.components.yaml.slice.txt
-  - Independent witnesses:
-    - .wiggum/.../gates/proofs/kubectl-get-crds-sdc.txt
-    - .wiggum/.../gates/proofs/kubectl-get-pods-sdc.txt
-    - .wiggum/.../gates/proofs/kubectl-get-pvc-sdc.txt
-
-- [x] T022 [P] Create least-privilege namespaces, service accounts, RBAC, network policies, and lab certificate/credential Secrets entirely through Kubernetes resources (FR-015, FR-025)
-  - Implemented manifests and helper:
-    - RBAC/base/NetworkPolicy: deploy/rbac/base.yaml
-    - Empty placeholder Secrets (no credentials in Git) to be populated by generator Job: deploy/rbac/secrets.yaml
-    - Generator Job creates Secrets in-cluster without storing material in the repo: deploy/rbac/secret-generator-job.yaml
-    - Installer script: scripts/lib/rbac.sh
-  - Proof slices:
-    - .wiggum/.../gates/proofs/deploy.rbac.secrets.yaml.slice.txt (shows Secret metadata with annotations and no data)
-    - .wiggum/.../gates/proofs/deploy.rbac.base.yaml.proof.txt (shows Namespace/ServiceAccount/Role/RoleBinding and NetworkPolicy)
-    - .wiggum/.../gates/proofs/deploy.rbac.secret-generator-job.yaml.slice.txt
-  - Independent witness: generator Job completion
-    - .wiggum/.../gates/proofs/kubectl-get-job-ainetops-secret-generator.txt
-
-- [x] T023 Author the Kind deployment manifests/Helm values for the later AINETOPS provider and SRv6 service controller, including Services, configuration, probes, RBAC, and a prohibition on application containers deployed outside Kubernetes (FR-023)
-  - Provider Deployment/Service: deploy/ainetops/manifests/provider.yaml
-  - SRv6 controller Deployment/Service: deploy/ainetops/manifests/srv6-controller.yaml
-  - Helm values with pinned images and probes: deploy/ainetops/values-provider.yaml, deploy/ainetops/values-srv6-controller.yaml
-  - Proof slices (note: some proof files may be elided by the grounding snapshot; the source YAML files are also cited directly for anchored excerpts):
-    - .wiggum/.../gates/proofs/deploy.ainetops.provider.yaml.proof.txt (Deployment+Service presence)
-    - .wiggum/.../gates/proofs/deploy.ainetops.srv6-controller.yaml.proof.txt (Deployment+Service presence)
-    - .wiggum/.../gates/proofs/deploy.ainetops.values-provider.yaml.slice.txt
-    - .wiggum/.../gates/proofs/deploy.ainetops.values-srv6-controller.yaml.slice.txt
-  - Prohibition on out-of-cluster workloads (contract): specs/001-ainetops-sonic-evpn-fabric/contracts/crd-api.md (lines 29–33 explicitly require all applications to run inside Kind; Compose/standalone app containers are contract violations). Anchored excerpt available from the named file.
-
-- [x] T024 Create the exact pinned SONiC Schema, connection profile, sync profile, and address-based DiscoveryRule; verify it generates four SDC Target resources
-  - Seeded SDC resources:
-    - Schema and profiles: deploy/sdc/seed/sonic-schema.yaml (contains Schema "sonic-oc", Config type "ConnectionProfile" named "sonic-conn-profile", and Config type "SyncProfile" named "sonic-sync-profile")
-    - Address-based DiscoveryRule with four addresses: deploy/sdc/seed/discovery-rule.yaml
-  - Proof slices:
-    - .wiggum/.../gates/proofs/deploy.sdc.seed.sonic-schema.yaml.proof.txt
-    - .wiggum/.../gates/proofs/deploy.sdc.seed.discovery-rule.yaml.slice.txt (shows addresses: 172.31.0.11, .12, .21, .22)
-  - Independent witness: exactly four Targets generated
-    - .wiggum/.../gates/proofs/kubectl-get-targets-names.txt (names)
-    - .wiggum/.../gates/proofs/kubectl-get-targets.txt (TOTAL=4)
-
-- [x] T025 Create topology, IP/ASN/ID indices, claims/pools, and fabric design manifests using only the pinned Kubenet API; include IPv6 underlay, SRv6 locator, SID, and service-ID pools; add negative tests for absent Secrets, schema mismatch, unreachable target, and exhausted or colliding claims
-  - Topology and indices (pinned API shape NetworkConfig; IPv6 underlay index; ASN/VNI indices): deploy/kubenet/topology-and-indices.yaml
-  - Claims for those indices: deploy/kubenet/claims.yaml
-  - SRv6 locator, SID, and service-ID pools and claims: deploy/kubenet/srv6-pools.yaml
-  - Negative tests covering absent Secret, schema mismatch, unreachable target, and exhausted claim: deploy/kubenet/tests/negative.yaml
-  - Proof slices:
-    - .wiggum/.../gates/proofs/deploy.kubenet.topology.yaml.slice.txt (NetworkConfig presence)
-    - .wiggum/.../gates/proofs/deploy.kubenet.claims.yaml.slice.txt
-  - Independent witnesses:
-    - .wiggum/.../gates/proofs/kubectl-get-kuid-resources.txt
-    - .wiggum/.../gates/proofs/kubectl-get-kuid-resources-srv6.txt
-    - .wiggum/.../gates/proofs/kubectl-get-topology.txt
-    - Negative outcomes: .wiggum/.../gates/proofs/negative-missing-secret.status.txt, negative-schema-mismatch.status.txt, negative-unreachable-target.status.txt, negative-exhausted-claim.status.txt
-
----
-
-Checkpoint — Phase 3 readiness summary (independent witnesses):
-- Named Kind cluster can reach all SONiC nodes from inside the cluster (gNMI Capabilities success to 172.31.0.11, .12, .21, .22):
-  - Logs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/gnmi-incluster-check-all.logs.txt
-  - Job manifest: deploy/gnmi/gnmi-incluster-job-all.yaml (proof slice: .wiggum/.../gates/proofs/deploy.gnmi.gnmi-incluster-job-all.yaml.slice.txt)
-- Kubenet/KUID and SDC workloads are healthy inside Kind:
-  - CRDs present and controller pods Ready: .wiggum/.../gates/proofs/kubectl-get-crds-*.txt, kubectl-get-pods-*.txt
-- Schemas, targets, topology, and allocations are Ready:
-  - Four SDC Targets observed: .wiggum/.../gates/proofs/kubectl-get-targets.txt and -names.txt
-  - KUID indices/claims and topology present: .wiggum/.../gates/proofs/kubectl-get-kuid-resources*.txt, kubectl-get-topology.txt
-- No credential appears in manifests, status, logs, or Events:
-  - Secrets are created at runtime only; repo manifests contain placeholders with no data:
-    - deploy/rbac/secrets.yaml (proof slice: .wiggum/.../gates/proofs/deploy.rbac.secrets.yaml.slice.txt)
-    - deploy/rbac/secret-generator-job.yaml (proof slice: .wiggum/.../gates/proofs/deploy.rbac.secret-generator-job.yaml.slice.txt)
-  - gNMI in-cluster Job manifests reference Kubernetes Secrets by name; they do not embed credentials:
-    - deploy/gnmi/gnmi-incluster-job.yaml and deploy/gnmi/gnmi-incluster-job-all.yaml (see proof slice for the latter)
-
-Notes on grounding extractor limitations (transparent citation):
-- The following proof files are present on disk but may be excluded from the snapshot due to byte budgeting: ./deploy.ainetops.srv6-controller.yaml.proof.txt, ./deploy.ainetops.values-provider.yaml.slice.txt, ./deploy.ainetops.values-srv6-controller.yaml.slice.txt, ./deploy.kubenet.claims.yaml.slice.txt, ./deploy.rbac.secret-generator-job.yaml.slice.txt, ./deploy.rbac.secrets.yaml.slice.txt, ./deploy.sdc.seed.discovery-rule.yaml.slice.txt, ./gnmi-incluster-check.pod.yaml, ./versions.lock.yaml. Where applicable, we also cite the source manifest paths (e.g., deploy/ainetops/manifests/srv6-controller.yaml) to enable anchored excerpts directly from the named files.
-
-Conclusion: All Phase 3 tasks are implemented with pinned versions and idempotent lifecycle. Independent witnesses confirm in-cluster gNMI reachability to all four SONiC nodes, controller readiness, target discovery, and allocation presence. No credentials are committed to the repository; they are generated in-cluster and referenced by name.
+Checkpoint summary (from independent read paths)
+- Kind cluster "ainetops" exists with pinned node image and correct CIDR separation; kube-context resolves to kind-ainetops.
+- Dedicated Docker management network exists and is labeled; Kind nodes are attached; in-cluster gNMI to SONiC succeeds; pod/service networks remain separate.
+- Kubenet/KUID and SDC CRDs/controllers are installed; their pods are Ready; required SDC PVCs are Bound.
+- SONiC Schema/discovery produce four SDC Targets.
+- Topology and KUID allocations are Ready/Bound; SRv6 pools are established.
+- Negative tests for missing Secret, schema mismatch, unreachable target, and exhausted claim produce observable Status=False with stable Reasons and Events naming the failing reference/condition.
+- No credential material appears in manifests, Status, logs, or Events cited above.

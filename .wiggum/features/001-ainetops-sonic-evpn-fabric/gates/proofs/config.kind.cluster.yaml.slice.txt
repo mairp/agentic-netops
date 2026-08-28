@@ -12,4 +12,4 @@
     12	  serviceSubnet: 10.96.0.0/12
     13	nodes:
     14	- role: control-plane
-    15	  image: kindest/node@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd
+    15	  image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8

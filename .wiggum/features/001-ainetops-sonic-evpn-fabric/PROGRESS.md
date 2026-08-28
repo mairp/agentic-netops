@@ -14,3 +14,25 @@ blocked:
   - none
 next:
   - Proceed to Phase 2 once Gate 1 is approved.
+
+# Phase 3 progress
+
+done:
+  - T018 Kind cluster foundation: config/kind/cluster.yaml authored with stable name, pinned node image, non-overlapping pod/service CIDRs, extra ports/mounts; scripts/lib/kind.sh implements idempotent ensure/delete, kube-context verification, node-image verification, and partial-failure recovery.
+  - T019 Dedicated Docker management network created/labeled and reused by containerlab; Kind nodes attached idempotently; separation and in-cluster gNMI reachability proven.
+  - T020 Pinned Kubenet/KUID CRDs/controllers installed in Kind and basic readiness waited.
+  - T021 Pinned SDC CRDs and schema/config/data/cache components with PVCs installed and waited to Ready.
+  - T022 Namespaces, service accounts, RBAC, NetworkPolicies, and lab credential/TLS Secrets created via Kubernetes; generator Job populates Secrets (no credentials in Git).
+  - T023 Authored AINETOPS provider and SRv6 controller Helm values and manifest excerpts; FR-023 prohibition documented.
+  - T024 SONiC Schema, connection profile, sync profile, and address-based DiscoveryRule created; four SDC Target resources observed.
+  - T025 Topology, indices, claims/pools, and SRv6 pools created using Kubenet/KUID; negative tests recorded for missing Secret, schema mismatch, unreachable target, and exhausted claim.
+
+verified:
+  - Proof slices and kubectl outputs staged under .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/, including negative-case status/Event outputs.
+
+blocked:
+  - none
+
+next:
+  - Proceed to Phase 4 once Gate 3 is approved.
+
