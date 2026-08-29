@@ -1,0 +1,78 @@
+     1	// SPDX-License-Identifier: Apache-2.0
+     2	package main
+     3	
+     4	import (
+     5		"encoding/json"
+     6		"flag"
+     7		"fmt"
+     8		"io"
+     9		"os"
+    10	
+    11		"github.com/mairp/ainetops/pkg/migration"
+    12	)
+    13	
+    14	// Deterministic CLI: reads a JSON array or object from stdin or --file, validates all-or-nothing,
+    15	// then emits a single concatenated YAML stream of Kubenet Network resources in stable order.
+    16	// No cluster interaction occurs in this phase.
+    17	func main() {
+    18		var file string
+    19		flag.StringVar(&file, "file", "", "Path to normalized service input JSON (object or array); default stdin")
+    20		flag.Parse()
+    21	
+    22		var data []byte
+    23		var err error
+    24		if file == "" {
+    25			data, err = io.ReadAll(os.Stdin)
+    26		} else {
+    27			data, err = os.ReadFile(file)
+    28		}
+    29		if err != nil {
+    30			fatal(fmt.Errorf("read input: %w", err))
+    31		}
+    32		// Strict parsing rejects unknown fields and raw CLI leakage.
+    33		inputs, err := migration.ParseStrictBatch(data)
+    34		if err != nil {
+    35			fatal(fmt.Errorf("parse: %w", err))
+    36		}
+    37		if err := processBatch(inputs); err != nil { fatal(err) }
+    38	}
+    39	
+    40	
+    41	func processBatch(inputs []migration.ServiceInput) error {
+    42		// Detect duplicate IDs within the batch for collision reporting.
+    43		ids := map[string]int{}
+    44		for i, in := range inputs {
+    45			if _, ok := ids[in.ServiceID]; ok { ids[in.ServiceID] = -1 } else { ids[in.ServiceID] = i }
+    46		}
+    47		// Validate all-or-nothing; collect causes with stable ordering by index.
+    48		var causes []string
+    49		for i := range inputs {
+    50			in := inputs[i]
+    51			dup := false
+    52			if idx, ok := ids[in.ServiceID]; ok && idx == -1 { dup = true }
+    53			if err := in.ValidateAllOrNothing(i, dup); err != nil {
+    54				if ve, ok := err.(*migration.ValidationError); ok { causes = append(causes, ve.Causes...) } else { causes = append(causes, err.Error()) }
+    55			}
+    56		}
+    57		if len(causes) > 0 {
+    58			// Emit structured JSON error to stderr and exit non-zero.
+    59			enc := json.NewEncoder(os.Stderr)
+    60			enc.SetIndent("", "  ")
+    61			_ = enc.Encode(map[string]any{"error": "validation", "causes": causes})
+    62			os.Exit(2)
+    63		}
+    64		// Translate in order; separator is "---\n"
+    65		for i := range inputs {
+    66			in := inputs[i]
+    67			bundle, err := migration.Translate(&in)
+    68			if err != nil { return err }
+    69			if i > 0 { fmt.Println("---") }
+    70			fmt.Println(bundle.NetworkYAML)
+    71		}
+    72		return nil
+    73	}
+    74	
+    75	func fatal(err error) {
+    76		fmt.Fprintf(os.Stderr, "migration-translator: %v\n", err)
+    77		os.Exit(1)
+    78	}

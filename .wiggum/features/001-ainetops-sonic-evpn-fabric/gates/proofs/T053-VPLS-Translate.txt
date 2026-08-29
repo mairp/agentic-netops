@@ -1,0 +1,20 @@
+# pkg/migration/translate.go — VPLS translation to bridge/l2vni and attachments
+27:// BridgeDomain rendered for VPLS/VPWS and IRB.
+28:type BridgeDomain struct {
+31:	L2VNI int    `json:"l2vni,omitempty"`
+56:	BridgeDomains []BridgeDomain `json:"bridgeDomains,omitempty"`
+106:	case ServiceVPLS, ServiceVPWS:
+107:		bd := BridgeDomain{
+110:			L2VNI: in.L2VNI,
+113:		spec.BridgeDomains = []BridgeDomain{bd}
+114:		spec.Attachments = attachmentsForL2(in.Endpoints)
+117:			ann["ainetops.io/limited-equivalence"] = "vpws-to-l2vni"
+136:		bd := BridgeDomain{
+139:			L2VNI: in.L2VNI,
+143:		spec.BridgeDomains = []BridgeDomain{bd}
+144:		spec.Attachments = attachmentsForL2(in.Endpoints)
+195:	// BridgeDomains
+196:	if len(n.Spec.BridgeDomains) > 0 {
+198:		for _, bd := range n.Spec.BridgeDomains {
+201:			if bd.L2VNI != 0 { fmt.Fprintf(b, "    l2vni: %d\n", bd.L2VNI) }
+270:func attachmentsForL2(eps []Endpoint) []Attachment {

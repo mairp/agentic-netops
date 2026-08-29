@@ -1,0 +1,28 @@
+78: // ServiceInput is the strict normalized migration input schema.
+79: // Raw CLI is explicitly forbidden; unknown fields cause validation failure.
+80: // Deterministic translation requires RD/RT and VNI inputs to be explicit.
+81: type ServiceInput struct {
+82: 	// Identity
+83: 	ServiceID string      `json:"serviceId"`
+84: 	Type      ServiceType `json:"type"`      // VPLS | L3VPN | VPWS | L2L3-IRB
+85: 	Tenant    string      `json:"tenant"`
+86: 
+87: 	// VPN properties
+88: 	RDRT   *RdRt            `json:"rdRt,omitempty"`
+89: 	L2VNI  int              `json:"l2vni,omitempty"` // for VPLS/VPWS/IRB bridge domains
+90: 	L3VNI  int              `json:"l3vni,omitempty"` // for L3VPN/IRB VRFs
+91: 	AF     *AddressFamilies `json:"addressFamilies,omitempty"`
+92: 
+93: 	// IRB per-BD gateways (when Type == L2L3-IRB)
+94: 	IRBGateway *IRBGateway `json:"irbGateway,omitempty"`
+95: 
+96: 	// Endpoints
+97: 	Endpoints []Endpoint `json:"endpoints"`
+98: 
+99: 	// Explicit policy opt-ins
+100: 	Policies Policies `json:"policies,omitempty"`
+101: 
+102: 	// Explicitly modeled unsupported features — any presence rejects the request.
+103: 	Unsupported UnsupportedClaims `json:"unsupported,omitempty"`
+104: }
+105: 

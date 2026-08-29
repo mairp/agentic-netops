@@ -1,0 +1,95 @@
+   169	func buildYAML(n *KubenetNetwork) string {
+   170		b := &strings.Builder{}
+   171		fmt.Fprintf(b, "apiVersion: %s\n", n.APIVersion)
+   172		fmt.Fprintf(b, "kind: %s\n", n.Kind)
+   173		fmt.Fprintf(b, "metadata:\n")
+   174		fmt.Fprintf(b, "  name: %s\n", n.Metadata["name"].(string))
+   175		fmt.Fprintf(b, "  namespace: %s\n", n.Metadata["namespace"].(string))
+   176		anns := n.Metadata["annotations"].(map[string]string)
+   177		fmt.Fprintf(b, "  annotations:\n")
+   178		// stable annotation order
+   179		keys := []string{
+   180			"ainetops.io/translator",
+   181			"ainetops.io/translator-version",
+   182			"ainetops.io/mapping-version",
+   183			"ainetops.io/migration-input-hash",
+   184			"ainetops.io/tenant",
+   185			"ainetops.io/service-type",
+   186			"ainetops.io/limited-equivalence",
+   187		}
+   188		for _, k := range keys {
+   189			if v, ok := anns[k]; ok {
+   190				fmt.Fprintf(b, "    %s: %s\n", k, v)
+   191			}
+   192		}
+   193		fmt.Fprintf(b, "spec:\n")
+   194		fmt.Fprintf(b, "  description: %s\n", n.Spec.Description)
+   195		// BridgeDomains
+   196		if len(n.Spec.BridgeDomains) > 0 {
+   197			fmt.Fprintf(b, "  bridgeDomains:\n")
+   198			for _, bd := range n.Spec.BridgeDomains {
+   199				fmt.Fprintf(b, "  - name: %s\n", bd.Name)
+   200				if bd.VLAN != 0 { fmt.Fprintf(b, "    vlan: %d\n", bd.VLAN) }
+   201				if bd.L2VNI != 0 { fmt.Fprintf(b, "    l2vni: %d\n", bd.L2VNI) }
+   202				if bd.EVPN != nil {
+   203					fmt.Fprintf(b, "    evpn:\n")
+   204					fmt.Fprintf(b, "      routeTargets:\n")
+   205					if len(bd.EVPN.RouteTargets.Import) > 0 {
+   206						fmt.Fprintf(b, "        import:\n")
+   207						for _, rt := range bd.EVPN.RouteTargets.Import {
+   208							fmt.Fprintf(b, "        - \"%s\"\n", rt)
+   209						}
+   210					}
+   211					if len(bd.EVPN.RouteTargets.Export) > 0 {
+   212						fmt.Fprintf(b, "        export:\n")
+   213						for _, rt := range bd.EVPN.RouteTargets.Export {
+   214							fmt.Fprintf(b, "        - \"%s\"\n", rt)
+   215						}
+   216					}
+   217				}
+   218				if bd.IRB != nil {
+   219					fmt.Fprintf(b, "    irb:\n")
+   220					fmt.Fprintf(b, "      vrf: %s\n", bd.IRB.VRF)
+   221					if bd.IRB.GatewayV4 != "" { fmt.Fprintf(b, "      gatewayIPv4: %s\n", bd.IRB.GatewayV4) }
+   222					if bd.IRB.GatewayV6 != "" { fmt.Fprintf(b, "      gatewayIPv6: %s\n", bd.IRB.GatewayV6) }
+   223				}
+   224			}
+   225		}
+   226		// Routers
+   227		if len(n.Spec.Routers) > 0 {
+   228			fmt.Fprintf(b, "  routers:\n")
+   229			for _, r := range n.Spec.Routers {
+   230				fmt.Fprintf(b, "  - name: %s\n", r.Name)
+   231				fmt.Fprintf(b, "    rd: %s\n", r.RD)
+   232				fmt.Fprintf(b, "    routeTargets:\n")
+   233				if len(r.RouteTargets.Import) > 0 {
+   234					fmt.Fprintf(b, "      import:\n")
+   235					for _, rt := range r.RouteTargets.Import {
+   236						fmt.Fprintf(b, "      - \"%s\"\n", rt)
+   237					}
+   238				}
+   239				if len(r.RouteTargets.Export) > 0 {
+   240					fmt.Fprintf(b, "      export:\n")
+   241					for _, rt := range r.RouteTargets.Export {
+   242						fmt.Fprintf(b, "      - \"%s\"\n", rt)
+   243					}
+   244				}
+   245				if r.L3VNI != 0 { fmt.Fprintf(b, "    l3vni: %d\n", r.L3VNI) }
+   246				if len(r.Prefixes) > 0 {
+   247					fmt.Fprintf(b, "    prefixes:\n")
+   248					for _, p := range r.Prefixes { fmt.Fprintf(b, "    - %s\n", p) }
+   249				}
+   250			}
+   251		}
+   252		// Attachments
+   253		if len(n.Spec.Attachments) > 0 {
+   254			fmt.Fprintf(b, "  attachments:\n")
+   255			for _, a := range n.Spec.Attachments {
+   256				fmt.Fprintf(b, "  - node: %s\n", a.Node)
+   257				if a.VLAN != 0 { fmt.Fprintf(b, "    vlan: %d\n", a.VLAN) }
+   258				if a.VRF != "" { fmt.Fprintf(b, "    vrf: %s\n", a.VRF) }
+   259				fmt.Fprintf(b, "    attachment: %s\n", a.Attachment)
+   260			}
+   261		}
+   262		return b.String()
+   263	}

@@ -1,0 +1,18 @@
+1: // Translate produces a Kubenet Network with deterministic fields and annotations.
+2: // It assumes ValidateAllOrNothing has already passed for 'in'.
+3: func Translate(in *ServiceInput) (*OutputBundle, error) {
+4: 	if in == nil {
+5: 		return nil, fmt.Errorf("nil input")
+6: 	}
+7: 	hash, err := in.CanonicalHash()
+8: 	if err != nil {
+9: 		return nil, err
+10: 	}
+11: 
+12: 	name := fmt.Sprintf("migr-%s", in.ServiceID)
+13: 	metadata := map[string]any{
+14: 		"name":      name,
+15: 		"namespace": "kubenet-system",
+16: 		"annotations": map[string]string{
+17: 			"ainetops.io/translator":          TranslatorName,
+18: 			"ainetops.io/translator-version":  TranslatorVersion,

@@ -1,0 +1,16 @@
+1: 	name := fmt.Sprintf("migr-%s", in.ServiceID)
+2: 	metadata := map[string]any{
+3: 		"name":      name,
+4: 		"namespace": "kubenet-system",
+5: 		"annotations": map[string]string{
+6: 			"ainetops.io/translator":          TranslatorName,
+7: 			"ainetops.io/translator-version":  TranslatorVersion,
+8: 			"ainetops.io/mapping-version":     MappingVersion,
+9: 			"ainetops.io/migration-input-hash": hash,
+10: 			"ainetops.io/tenant":              in.Tenant,
+11: 			"ainetops.io/service-type":        string(in.Type),
+12: 		},
+13: 	}
+14: 
+15: 	spec := NetworkSpec{Description: fmt.Sprintf("Migrated service %s (%s)", in.ServiceID, in.Type)}
+16: 	switch in.Type {

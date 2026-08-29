@@ -1,0 +1,24 @@
+[
+  {
+    "serviceId": "dup-svc",
+    "type": "VPLS",
+    "tenant": "A",
+    "rdRt": {"rd": "65000:610", "importRT": ["65000:610"], "exportRT": ["65000:610"]},
+    "l2vni": 10610,
+    "endpoints": [
+      {"node": "leaf01", "attachment": "c1", "vlan": 10},
+      {"node": "leaf02", "attachment": "c2", "vlan": 10}
+    ]
+  },
+  {
+    "serviceId": "dup-svc",
+    "type": "VPLS",
+    "tenant": "A",
+    "rdRt": {"rd": "65000:611", "importRT": ["65000:611"], "exportRT": ["65000:611"]},
+    "l2vni": 10611,
+    "endpoints": [
+      {"node": "leaf01", "attachment": "c1b", "vlan": 10},
+      {"node": "leaf02", "attachment": "c2b", "vlan": 10}
+    ]
+  }
+]

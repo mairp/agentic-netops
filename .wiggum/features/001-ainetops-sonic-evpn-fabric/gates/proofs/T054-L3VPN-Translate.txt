@@ -1,0 +1,18 @@
+# pkg/migration/translate.go — L3VPN translation to VRF/L3VNI/RD/RT/Type-5 (prefixes)
+17:	RouteTargets RouteTargets `json:"routeTargets,omitempty"`
+37:type Router struct {
+40:	RouteTargets RouteTargets `json:"routeTargets,omitempty"`
+41:	L3VNI        int          `json:"l3vni,omitempty"`
+42:	Prefixes     []string     `json:"prefixes,omitempty"`
+119:	case ServiceL3VPN:
+124:			L3VNI:        in.L3VNI,
+125:			Prefixes:     concatPrefixes(in.AF),
+134:			L3VNI:        in.L3VNI,
+204:				fmt.Fprintf(b, "      routeTargets:\n")
+232:			fmt.Fprintf(b, "    routeTargets:\n")
+245:			if r.L3VNI != 0 { fmt.Fprintf(b, "    l3vni: %d\n", r.L3VNI) }
+246:			if len(r.Prefixes) > 0 {
+248:				for _, p := range r.Prefixes { fmt.Fprintf(b, "    - %s\n", p) }
+286:func concatPrefixes(af *AddressFamilies) []string {
+289:	out = append(out, af.IPv4Prefixes...)
+290:	out = append(out, af.IPv6Prefixes...)

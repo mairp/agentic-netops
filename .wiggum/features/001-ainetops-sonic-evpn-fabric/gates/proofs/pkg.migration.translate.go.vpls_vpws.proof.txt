@@ -1,0 +1,31 @@
+1: 			"ainetops.io/service-type":        string(in.Type),
+2: 		},
+3: 	}
+4: 
+5: 	spec := NetworkSpec{Description: fmt.Sprintf("Migrated service %s (%s)", in.ServiceID, in.Type)}
+6: 	switch in.Type {
+7: 	case ServiceVPLS, ServiceVPWS:
+8: 		bd := BridgeDomain{
+9: 			Name:  fmt.Sprintf("bd-%s", in.ServiceID),
+10: 			VLAN:  endpointVLAN(in.Endpoints),
+11: 			L2VNI: in.L2VNI,
+12: 			EVPN:  &EVPN{RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT}},
+13: 		}
+14: 		spec.BridgeDomains = []BridgeDomain{bd}
+15: 		spec.Attachments = attachmentsForL2(in.Endpoints)
+16: 		if in.Type == ServiceVPWS {
+17: 			ann := metadata["annotations"].(map[string]string)
+18: 			ann["ainetops.io/limited-equivalence"] = "vpws-to-l2vni"
+19: 		}
+20: 	case ServiceL3VPN:
+21: 		r := Router{
+22: 			Name:         fmt.Sprintf("vrf-%s", in.ServiceID),
+23: 			RD:           in.RDRT.RD,
+24: 			RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT},
+25: 			L3VNI:        in.L3VNI,
+26: 			Prefixes:     concatPrefixes(in.AF),
+27: 		}
+28: 		spec.Routers = []Router{r}
+29: 		spec.Attachments = attachmentsForL3(in.Endpoints, r.Name)
+30: 	case ServiceIRB:
+31: 		r := Router{

@@ -1,0 +1,19 @@
+1: spec:
+2:   description: Migrated service svc3 (VPWS)
+3:   bridgeDomains:
+4:   - name: bd-svc3
+5:     vlan: 30
+6:     l2vni: 10300
+7:     evpn:
+8:       routeTargets:
+9:         import:
+10:         - "65000:300"
+11:         export:
+12:         - "65000:300"
+13:   attachments:
+14:   - node: leaf01
+15:     vlan: 30
+16:     attachment: client01
+17:   - node: leaf02
+18:     vlan: 30
+19:     attachment: client02

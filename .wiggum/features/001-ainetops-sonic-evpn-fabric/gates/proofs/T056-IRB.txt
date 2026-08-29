@@ -1,0 +1,11 @@
+# pkg/migration/input.go — IRB gateway schema
+54:type IRBGateway struct {
+94:	IRBGateway *IRBGateway `json:"irbGateway,omitempty"`
+197:		if in.IRBGateway == nil { causes = append(causes, "irbGateway: required for IRB") }
+199:			if in.IRBGateway.VRF == "" { causes = append(causes, "irbGateway.vrf: required") }
+200:			if in.IRBGateway.GatewayV4 == "" { causes = append(causes, "irbGateway.gatewayIPv4: required") }
+201:			if in.IRBGateway.GatewayV6 == "" { causes = append(causes, "irbGateway.gatewayIPv6: required") }
+# pkg/migration/translate.go — IRB translation (case ServiceIRB)
+21:type IRB struct {
+129:	case ServiceIRB:
+140:			IRB:   &IRB{VRF: in.IRBGateway.VRF, GatewayV4: in.IRBGateway.GatewayV4, GatewayV6: in.IRBGateway.GatewayV6},

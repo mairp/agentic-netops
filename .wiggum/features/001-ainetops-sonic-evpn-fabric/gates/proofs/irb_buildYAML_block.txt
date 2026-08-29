@@ -1,0 +1,6 @@
+218: 			if bd.IRB != nil {
+219: 				fmt.Fprintf(b, "    irb:\n")
+220: 				fmt.Fprintf(b, "      vrf: %s\n", bd.IRB.VRF)
+221: 				if bd.IRB.GatewayV4 != "" { fmt.Fprintf(b, "      gatewayIPv4: %s\n", bd.IRB.GatewayV4) }
+222: 				if bd.IRB.GatewayV6 != "" { fmt.Fprintf(b, "      gatewayIPv6: %s\n", bd.IRB.GatewayV6) }
+223: 			}

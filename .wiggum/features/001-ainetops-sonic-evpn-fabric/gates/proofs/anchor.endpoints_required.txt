@@ -1,0 +1,1 @@
+161:	if len(in.Endpoints) == 0 { causes = append(causes, "endpoints: at least one endpoint is required") }

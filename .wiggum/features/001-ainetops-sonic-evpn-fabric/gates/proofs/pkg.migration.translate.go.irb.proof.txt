@@ -1,0 +1,17 @@
+1: 		r := Router{
+2: 			Name:         fmt.Sprintf("vrf-%s", in.ServiceID),
+3: 			RD:           in.RDRT.RD,
+4: 			RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT},
+5: 			L3VNI:        in.L3VNI,
+6: 		}
+7: 		bd := BridgeDomain{
+8: 			Name:  fmt.Sprintf("bd-%s", in.ServiceID),
+9: 			VLAN:  endpointVLAN(in.Endpoints),
+10: 			L2VNI: in.L2VNI,
+11: 			IRB:   &IRB{VRF: in.IRBGateway.VRF, GatewayV4: in.IRBGateway.GatewayV4, GatewayV6: in.IRBGateway.GatewayV6},
+12: 		}
+13: 		spec.Routers = []Router{r}
+14: 		spec.BridgeDomains = []BridgeDomain{bd}
+15: 		spec.Attachments = attachmentsForL2(in.Endpoints)
+16: 	default:
+17: 		return nil, fmt.Errorf("unsupported type: %s", in.Type)

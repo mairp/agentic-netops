@@ -1,0 +1,11 @@
+1: func TestReject_UnsupportedTE(t *testing.T) {
+2: 	b, err := os.ReadFile(filepath.Join("testdata", "migration", "unsupported_te.json"))
+3: 	if err != nil { t.Fatal(err) }
+4: 	inputs, err := migration.ParseStrictBatch(b)
+5: 	if err != nil { t.Fatalf("parse: %v", err) }
+6: 	outs, err := migration.RenderBatch(inputs)
+7: 	if err == nil { t.Fatalf("expected error for unsupported TE policy") }
+8: 	if len(outs) != 0 { t.Fatalf("expected no outputs on failure") }
+9: }
+10: 
+11: func TestIRB_Golden(t *testing.T) {

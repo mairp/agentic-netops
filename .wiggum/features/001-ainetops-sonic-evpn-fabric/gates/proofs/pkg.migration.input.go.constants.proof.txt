@@ -1,0 +1,8 @@
+1: // Version constants for deterministic provenance.
+2: const (
+3: 	TranslatorName    = "ainetops-migration-translator"
+4: 	TranslatorVersion = "v0.1.0"
+5: 	MappingVersion    = "v0.1.0"
+6: )
+7: 
+8: // ServiceType enumerates supported normalized service kinds.

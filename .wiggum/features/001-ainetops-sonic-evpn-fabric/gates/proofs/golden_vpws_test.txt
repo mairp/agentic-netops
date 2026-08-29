@@ -1,0 +1,15 @@
+46: func TestGolden_VPWS_OptIn(t *testing.T) {
+47: 	b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpws_optin.json"))
+48: 	if err != nil { t.Fatal(err) }
+49: 	inputs, err := migration.ParseStrictBatch(b)
+50: 	if err != nil { t.Fatalf("parse: %v", err) }
+51: 	outs, err := migration.RenderBatch(inputs)
+52: 	if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+53: 	if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+54: 	spec := extractYAMLSnippet(outs[0], "spec:")
+55: 	gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpws.spec.golden.yaml"))
+56: 	if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+57: 		_ = os.WriteFile(filepath.Join(os.TempDir(), "vpws.spec.actual.yaml"), []byte(spec), 0o644)
+58: 		t.Fatalf("golden mismatch for VPWS spec")
+59: 	}
+60: }

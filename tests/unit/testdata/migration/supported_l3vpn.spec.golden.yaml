@@ -1,0 +1,21 @@
+spec:
+  description: Migrated service svc2 (L3VPN)
+  routers:
+  - name: vrf-svc2
+    rd: 65000:200
+    routeTargets:
+      import:
+      - "65000:200"
+      export:
+      - "65000:200"
+    l3vni: 10200
+    prefixes:
+    - 10.0.10.0/24
+    - 2001:db8:10::/64
+  attachments:
+  - node: leaf01
+    vrf: vrf-svc2
+    attachment: client01
+  - node: leaf02
+    vrf: vrf-svc2
+    attachment: client02

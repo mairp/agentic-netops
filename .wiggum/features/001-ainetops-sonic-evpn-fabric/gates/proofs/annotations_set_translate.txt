@@ -1,0 +1,13 @@
+90: 	name := fmt.Sprintf("migr-%s", in.ServiceID)
+91: 	metadata := map[string]any{
+92: 		"name":      name,
+93: 		"namespace": "kubenet-system",
+94: 		"annotations": map[string]string{
+95: 			"ainetops.io/translator":          TranslatorName,
+96: 			"ainetops.io/translator-version":  TranslatorVersion,
+97: 			"ainetops.io/mapping-version":     MappingVersion,
+98: 			"ainetops.io/migration-input-hash": hash,
+99: 			"ainetops.io/tenant":              in.Tenant,
+100: 			"ainetops.io/service-type":        string(in.Type),
+101: 		},
+102: 	}

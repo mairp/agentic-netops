@@ -1,0 +1,33 @@
+# pkg/migration/input.go — deterministic provenance constants
+17:	TranslatorName    = "ainetops-migration-translator"
+18:	TranslatorVersion = "v0.1.0"
+19:	MappingVersion    = "v0.1.0"
+# pkg/migration/translate.go — annotations including migration-input-hash
+95:			"ainetops.io/translator":          TranslatorName,
+96:			"ainetops.io/translator-version":  TranslatorVersion,
+97:			"ainetops.io/mapping-version":     MappingVersion,
+98:			"ainetops.io/migration-input-hash": hash,
+99:			"ainetops.io/tenant":              in.Tenant,
+100:			"ainetops.io/service-type":        string(in.Type),
+180:		"ainetops.io/translator",
+181:		"ainetops.io/translator-version",
+182:		"ainetops.io/mapping-version",
+183:		"ainetops.io/migration-input-hash",
+184:		"ainetops.io/tenant",
+185:		"ainetops.io/service-type",
+# pkg/migration/translate.go — buildYAML enforces deterministic key order
+45:// Attachment rendered in attachments list; either VLAN or VRF is set.
+56:	BridgeDomains []BridgeDomain `json:"bridgeDomains,omitempty"`
+57:	Routers       []Router       `json:"routers,omitempty"`
+58:	Attachments   []Attachment   `json:"attachments,omitempty"`
+114:		spec.Attachments = attachmentsForL2(in.Endpoints)
+128:		spec.Attachments = attachmentsForL3(in.Endpoints, r.Name)
+144:		spec.Attachments = attachmentsForL2(in.Endpoints)
+156:	yml := buildYAML(&net)
+169:func buildYAML(n *KubenetNetwork) string {
+178:	// stable annotation order
+197:		fmt.Fprintf(b, "  bridgeDomains:\n")
+228:		fmt.Fprintf(b, "  routers:\n")
+254:		fmt.Fprintf(b, "  attachments:\n")
+270:func attachmentsForL2(eps []Endpoint) []Attachment {
+278:func attachmentsForL3(eps []Endpoint, vrf string) []Attachment {

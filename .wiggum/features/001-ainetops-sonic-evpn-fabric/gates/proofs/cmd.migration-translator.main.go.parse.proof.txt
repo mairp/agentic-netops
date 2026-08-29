@@ -1,0 +1,28 @@
+1: // Deterministic CLI: reads a JSON array or object from stdin or --file, validates all-or-nothing,
+2: // then emits a single concatenated YAML stream of Kubenet Network resources in stable order.
+3: // No cluster interaction occurs in this phase.
+4: func main() {
+5: 	var file string
+6: 	flag.StringVar(&file, "file", "", "Path to normalized service input JSON (object or array); default stdin")
+7: 	flag.Parse()
+8: 
+9: 	var data []byte
+10: 	var err error
+11: 	if file == "" {
+12: 		data, err = io.ReadAll(os.Stdin)
+13: 	} else {
+14: 		data, err = os.ReadFile(file)
+15: 	}
+16: 	if err != nil {
+17: 		fatal(fmt.Errorf("read input: %w", err))
+18: 	}
+19: 	// Strict parsing rejects unknown fields and raw CLI leakage.
+20: 	inputs, err := migration.ParseStrictBatch(data)
+21: 	if err != nil {
+22: 		// Emit structured JSON error (consistent shape) before any output.
+23: 		msg := migration.MarshalError(err)
+24: 		fmt.Fprintln(os.Stderr, msg)
+25: 		os.Exit(2)
+26: 	}
+27: 	if err := processBatch(inputs); err != nil { fatal(err) }
+28: }

@@ -1,0 +1,6 @@
+# api/v1alpha1 contents (no MigrationPlan CRD present)
+     1	groupversion_info.go
+     2	srv6service_types.go
+     3	zz_generated.deepcopy.go
+
+# grep for MigrationPlan kind under api/ — expected no results

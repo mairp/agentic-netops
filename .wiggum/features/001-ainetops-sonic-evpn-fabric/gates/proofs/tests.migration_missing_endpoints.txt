@@ -1,0 +1,53 @@
+     1	package unit
+     2	
+     3	import (
+     4		"strings"
+     5		"testing"
+     6	
+     7		"github.com/mairp/ainetops/pkg/migration"
+     8	)
+     9	
+    10	func TestReject_MissingEndpoints_VPLS(t *testing.T) {
+    11		in := migration.ServiceInput{
+    12			ServiceID: "noep-vpls",
+    13			Type:      migration.ServiceVPLS,
+    14			Tenant:    "T",
+    15			RDRT:      &migration.RdRt{RD: "65000:101", ImportRT: []string{"65000:101"}, ExportRT: []string{"65000:101"}},
+    16			L2VNI:     10101,
+    17			Endpoints: []migration.Endpoint{},
+    18		}
+    19		outs, err := migration.RenderBatch([]migration.ServiceInput{in})
+    20		if err == nil {
+    21			t.Fatalf("expected error for missing endpoints (VPLS)")
+    22		}
+    23		if len(outs) != 0 {
+    24			t.Fatalf("expected no outputs on failure")
+    25		}
+    26		msg := migration.MarshalError(err)
+    27		if !strings.Contains(msg, "endpoints:") {
+    28			t.Fatalf("expected endpoints cause, got: %s", msg)
+    29		}
+    30	}
+    31	
+    32	func TestReject_MissingEndpoints_L3VPN(t *testing.T) {
+    33		in := migration.ServiceInput{
+    34			ServiceID: "noep-l3",
+    35			Type:      migration.ServiceL3VPN,
+    36			Tenant:    "T",
+    37			RDRT:      &migration.RdRt{RD: "65000:102", ImportRT: []string{"65000:102"}, ExportRT: []string{"65000:102"}},
+    38			L3VNI:     20102,
+    39			AF:        &migration.AddressFamilies{IPv4Prefixes: []string{"10.1.2.0/24"}},
+    40			Endpoints: []migration.Endpoint{},
+    41		}
+    42		outs, err := migration.RenderBatch([]migration.ServiceInput{in})
+    43		if err == nil {
+    44			t.Fatalf("expected error for missing endpoints (L3VPN)")
+    45		}
+    46		if len(outs) != 0 {
+    47			t.Fatalf("expected no outputs on failure")
+    48		}
+    49		msg := migration.MarshalError(err)
+    50		if !strings.Contains(msg, "L3VPN requires >=1 endpoint") {
+    51			t.Fatalf("expected L3VPN endpoints cause, got: %s", msg)
+    52		}
+    53	}

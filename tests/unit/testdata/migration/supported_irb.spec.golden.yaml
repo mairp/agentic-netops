@@ -1,0 +1,26 @@
+spec:
+  description: Migrated service irb1 (L2L3-IRB)
+  bridgeDomains:
+  - name: bd-irb1
+    vlan: 20
+    l2vni: 10401
+    irb:
+      vrf: vrf-b1
+      gatewayIPv4: 10.0.20.1/24
+      gatewayIPv6: 2001:db8:20::1/64
+  routers:
+  - name: vrf-irb1
+    rd: 65000:401
+    routeTargets:
+      import:
+      - "65000:401"
+      export:
+      - "65000:401"
+    l3vni: 20401
+  attachments:
+  - node: leaf01
+    vlan: 20
+    attachment: client01
+  - node: leaf02
+    vlan: 20
+    attachment: client02

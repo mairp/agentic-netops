@@ -1,0 +1,21 @@
+File: cmd/migration-translator/main.go — CLI entrypoint
+     1	// SPDX-License-Identifier: Apache-2.0
+     2	package main
+     3	
+     4	import (
+     5		"encoding/json"
+     6		"flag"
+     7		"fmt"
+     8		"io"
+     9		"os"
+    10	
+    11		"github.com/mairp/ainetops/pkg/migration"
+    12	)
+    13	
+    14	// Deterministic CLI: reads a JSON array or object from stdin or --file, validates all-or-nothing,
+    15	// then emits a single concatenated YAML stream of Kubenet Network resources in stable order.
+    16	// No cluster interaction occurs in this phase.
+    17	func main() {
+    18		var file string
+    19		flag.StringVar(&file, "file", "", "Path to normalized service input JSON (object or array); default stdin")
+    20		flag.Parse()

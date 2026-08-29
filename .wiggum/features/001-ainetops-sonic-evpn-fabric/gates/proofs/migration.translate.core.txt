@@ -1,0 +1,89 @@
+    79	// Translate produces a Kubenet Network with deterministic fields and annotations.
+    80	// It assumes ValidateAllOrNothing has already passed for 'in'.
+    81	func Translate(in *ServiceInput) (*OutputBundle, error) {
+    82		if in == nil {
+    83			return nil, fmt.Errorf("nil input")
+    84		}
+    85		hash, err := in.CanonicalHash()
+    86		if err != nil {
+    87			return nil, err
+    88		}
+    89	
+    90		name := fmt.Sprintf("migr-%s", in.ServiceID)
+    91		metadata := map[string]any{
+    92			"name":      name,
+    93			"namespace": "kubenet-system",
+    94			"annotations": map[string]string{
+    95				"ainetops.io/translator":          TranslatorName,
+    96				"ainetops.io/translator-version":  TranslatorVersion,
+    97				"ainetops.io/mapping-version":     MappingVersion,
+    98				"ainetops.io/migration-input-hash": hash,
+    99				"ainetops.io/tenant":              in.Tenant,
+   100				"ainetops.io/service-type":        string(in.Type),
+   101			},
+   102		}
+   103	
+   104		spec := NetworkSpec{Description: fmt.Sprintf("Migrated service %s (%s)", in.ServiceID, in.Type)}
+   105		switch in.Type {
+   106		case ServiceVPLS, ServiceVPWS:
+   107			bd := BridgeDomain{
+   108				Name:  fmt.Sprintf("bd-%s", in.ServiceID),
+   109				VLAN:  endpointVLAN(in.Endpoints),
+   110				L2VNI: in.L2VNI,
+   111				EVPN:  &EVPN{RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT}},
+   112			}
+   113			spec.BridgeDomains = []BridgeDomain{bd}
+   114			spec.Attachments = attachmentsForL2(in.Endpoints)
+   115			if in.Type == ServiceVPWS {
+   116				ann := metadata["annotations"].(map[string]string)
+   117				ann["ainetops.io/limited-equivalence"] = "vpws-to-l2vni"
+   118			}
+   119		case ServiceL3VPN:
+   120			r := Router{
+   121				Name:         fmt.Sprintf("vrf-%s", in.ServiceID),
+   122				RD:           in.RDRT.RD,
+   123				RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT},
+   124				L3VNI:        in.L3VNI,
+   125				Prefixes:     concatPrefixes(in.AF),
+   126			}
+   127			spec.Routers = []Router{r}
+   128			spec.Attachments = attachmentsForL3(in.Endpoints, r.Name)
+   129		case ServiceIRB:
+   130			r := Router{
+   131				Name:         fmt.Sprintf("vrf-%s", in.ServiceID),
+   132				RD:           in.RDRT.RD,
+   133				RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT},
+   134				L3VNI:        in.L3VNI,
+   135			}
+   136			bd := BridgeDomain{
+   137				Name:  fmt.Sprintf("bd-%s", in.ServiceID),
+   138				VLAN:  endpointVLAN(in.Endpoints),
+   139				L2VNI: in.L2VNI,
+   140				IRB:   &IRB{VRF: in.IRBGateway.VRF, GatewayV4: in.IRBGateway.GatewayV4, GatewayV6: in.IRBGateway.GatewayV6},
+   141			}
+   142			spec.Routers = []Router{r}
+   143			spec.BridgeDomains = []BridgeDomain{bd}
+   144			spec.Attachments = attachmentsForL2(in.Endpoints)
+   145		default:
+   146			return nil, fmt.Errorf("unsupported type: %s", in.Type)
+   147		}
+   148	
+   149		net := KubenetNetwork{
+   150			APIVersion: "network.kubenet.dev/v1alpha1",
+   151			Kind:       "Network",
+   152			Metadata:   metadata,
+   153			Spec:       spec,
+   154		}
+   155		// Manually assemble YAML to achieve deterministic key order for golden tests.
+   156		yml := buildYAML(&net)
+   157	
+   158		out := &OutputBundle{
+   159			Translator:  TranslatorName,
+   160			Version:     TranslatorVersion,
+   161			Mapping:     MappingVersion,
+   162			InputHash:   hash,
+   163			Annotations: metadata["annotations"].(map[string]string),
+   164			NetworkYAML: yml,
+   165		}
+   166		return out, nil
+   167	}

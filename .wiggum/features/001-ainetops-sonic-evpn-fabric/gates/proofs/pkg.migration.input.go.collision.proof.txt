@@ -1,0 +1,31 @@
+1: // - absent endpoints and count mismatches;
+2: // - presence of unsupported claims;
+3: // - collisions detected by the caller across a batch (detected via index arg).
+4: func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) error {
+5: 	var causes []string
+6: 	if in.ServiceID == "" {
+7: 		causes = append(causes, "serviceId: required")
+8: 	}
+9: 	if in.Tenant == "" {
+10: 		causes = append(causes, "tenant: required")
+11: 	}
+12: 	if in.Type == "" {
+13: 		causes = append(causes, "type: required")
+14: 	}
+15: 	if dupServiceID {
+16: 		causes = append(causes, fmt.Sprintf("collision: duplicate serviceId '%s' in batch", in.ServiceID))
+17: 	}
+18: 	// Unsupported claims
+19: 	u := in.Unsupported
+20: 	if u.TEPolicy != nil { causes = append(causes, "unsupported: tePolicy") }
+21: 	if u.PseudowireOAM != nil { causes = append(causes, "unsupported: pseudowireOAM") }
+22: 	if u.ControlWord != nil { causes = append(causes, "unsupported: controlWord") }
+23: 	if u.MulticastVPN != nil { causes = append(causes, "unsupported: multicastVPN") }
+24: 	if u.ComplexQoS != nil { causes = append(causes, "unsupported: complexQoS") }
+25: 	if u.ServiceChain != nil { causes = append(causes, "unsupported: serviceChain") }
+26: 	if u.RawCLI != nil { causes = append(causes, "unsupported: rawCLI") }
+27: 
+28: 	// Endpoints basics
+29: 	if len(in.Endpoints) == 0 { causes = append(causes, "endpoints: at least one endpoint is required") }
+30: 
+31: 	switch in.Type {

@@ -1,0 +1,11 @@
+10: // ParseStrictBatch decodes a JSON object or array of ServiceInput with
+11: // DisallowUnknownFields to ensure unknown properties are rejected.
+12: func ParseStrictBatch(data []byte) ([]ServiceInput, error) {
+13: 	trim := bytes.TrimSpace(data)
+14: 	if len(trim) == 0 {
+15: 		return nil, fmt.Errorf("empty input")
+16: 	}
+17: 	switch trim[0] {
+18: 	case '[':
+19: 		var raws []json.RawMessage
+20: 		if err := json.Unmarshal(trim, &raws); err != nil {

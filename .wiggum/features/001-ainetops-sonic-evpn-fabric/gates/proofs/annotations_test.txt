@@ -1,0 +1,26 @@
+9: func TestAnnotationsPresent(t *testing.T) {
+10: 	in := migration.ServiceInput{
+11: 		ServiceID: "svcA",
+12: 		Type:      migration.ServiceVPLS,
+13: 		Tenant:    "TenA",
+14: 		RDRT:      &migration.RdRt{RD: "65000:1", ImportRT: []string{"65000:1"}, ExportRT: []string{"65000:1"}},
+15: 		L2VNI:     10001,
+16: 		Endpoints: []migration.Endpoint{{Node: "leaf01", Attachment: "c1", VLAN: 10}, {Node: "leaf02", Attachment: "c2", VLAN: 10}},
+17: 	}
+18: 	if err := in.ValidateAllOrNothing(0, false); err != nil { t.Fatalf("validate: %v", err) }
+19: 	bundle, err := migration.Translate(&in)
+20: 	if err != nil { t.Fatalf("translate: %v", err) }
+21: 	y := bundle.NetworkYAML
+22: 	for _, k := range []string{
+23: 		"ainetops.io/translator:",
+24: 		"ainetops.io/translator-version:",
+25: 		"ainetops.io/mapping-version:",
+26: 		"ainetops.io/migration-input-hash:",
+27: 		"ainetops.io/tenant:",
+28: 		"ainetops.io/service-type:",
+29: 	} {
+30: 		if !strings.Contains(y, k) {
+31: 			t.Fatalf("missing annotation key %s", k)
+32: 		}
+33: 	}
+34: }

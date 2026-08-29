@@ -1,0 +1,17 @@
+44: func TestVPWSLimitedEquivalenceRequired(t *testing.T) {
+45: 	in := migration.ServiceInput{
+46: 		ServiceID: "svc3",
+47: 		Type:      migration.ServiceVPWS,
+48: 		Tenant:    "A",
+49: 		RDRT:      &migration.RdRt{RD: "65000:300", ImportRT: []string{"65000:300"}, ExportRT: []string{"65000:300"}},
+50: 		L2VNI:     10300,
+51: 		Endpoints: []migration.Endpoint{{Node: "leaf01", Attachment: "client01", VLAN: 30}, {Node: "leaf02", Attachment: "client02", VLAN: 30}},
+52: 		Policies:  migration.Policies{VPWSLimitedEquivalence: false},
+53: 	}
+54: 	if err := in.ValidateAllOrNothing(0, false); err == nil { t.Fatalf("expected validation error without opt-in") }
+55: 	in.Policies.VPWSLimitedEquivalence = true
+56: 	if err := in.ValidateAllOrNothing(0, false); err != nil { t.Fatalf("validate after opt-in: %v", err) }
+57: 	out, err := migration.Translate(&in)
+58: 	if err != nil { t.Fatalf("translate: %v", err) }
+59: 	if !strings.Contains(out.NetworkYAML, "limited-equivalence") { t.Fatalf("expected limited-equivalence annotation") }
+60: }

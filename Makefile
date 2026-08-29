@@ -2,7 +2,7 @@ SHELL := /bin/bash
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: help verify-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest
+.PHONY: help verify-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest build build-migration-cli
 
 help:
 	@echo "Targets:"
@@ -11,6 +11,8 @@ help:
 	@echo "  verify-register   Guard: fail if any rendered path is missing from the OC-vs-SONiC register"
 	@echo "  verify-compat     Run verify-pins and validate-crds together"
 	@echo "  lab-qualify       Run lab capability qualification suite (blocks downstream on failure)"
+	@echo "  build             Build provider, SRv6 controller, and migration CLI"
+	@echo "  build-migration-cli  Build only cmd/migration-translator"
 
 verify-pins:
 	@echo "[verify-pins] validating versions.lock.yaml"
@@ -22,7 +24,18 @@ validate-crds:
 	@"$(PWD)/scripts/lib/validate_crds.sh" 2>&1 | tee .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log
 
 verify-compat: verify-pins validate-crds verify-register
-	@echo "[verify-compat] pins, CRD, and register validations passed"
+	@echo "[verify-compat] pins, CRD, and register validations passed" 
+
+build:
+	@echo "[build] building provider, SRv6 controller, and migration CLI"
+	@for d in cmd/sonic-provider cmd/srv6-controller cmd/migration-translator; do \
+	  echo "Building $$d"; \
+	  GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -buildid=" ./$$d; \
+	done
+
+build-migration-cli:
+	@echo "[build] building cmd/migration-translator"
+	@GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -buildid=" ./cmd/migration-translator
 
 lab-qualify:
 	@echo "[lab-qualify] Running capability gate"

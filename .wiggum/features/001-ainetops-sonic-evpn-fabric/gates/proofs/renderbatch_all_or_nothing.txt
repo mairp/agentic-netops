@@ -1,0 +1,38 @@
+9: // RenderBatch validates a batch all-or-nothing and returns one YAML document per
+10: // valid service in the input order. On validation failure, returns a ValidationError
+11: // with aggregated causes and no output documents.
+12: func RenderBatch(inputs []ServiceInput) ([]string, error) {
+13: 	// Detect duplicates
+14: 	ids := map[string]int{}
+15: 	for i, in := range inputs {
+16: 		if _, ok := ids[in.ServiceID]; ok {
+17: 			ids[in.ServiceID] = -1
+18: 		} else {
+19: 			ids[in.ServiceID] = i
+20: 		}
+21: 	}
+22: 	var causes []string
+23: 	for i := range inputs {
+24: 		in := inputs[i]
+25: 		dup := false
+26: 		if idx, ok := ids[in.ServiceID]; ok && idx == -1 { dup = true }
+27: 		if err := in.ValidateAllOrNothing(i, dup); err != nil {
+28: 			if ve, ok := err.(*ValidationError); ok {
+29: 				causes = append(causes, ve.Causes...)
+30: 			} else {
+31: 				causes = append(causes, err.Error())
+32: 			}
+33: 		}
+34: 	}
+35: 	if len(causes) > 0 {
+36: 		return nil, &ValidationError{Causes: causes}
+37: 	}
+38: 	out := make([]string, 0, len(inputs))
+39: 	for i := range inputs {
+40: 		in := inputs[i]
+41: 		bundle, err := Translate(&in)
+42: 		if err != nil { return nil, err }
+43: 		out = append(out, bundle.NetworkYAML)
+44: 	}
+45: 	return out, nil
+46: }

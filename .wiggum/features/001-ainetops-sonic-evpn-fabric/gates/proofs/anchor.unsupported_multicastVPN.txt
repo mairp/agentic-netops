@@ -1,0 +1,1 @@
+155:	if u.MulticastVPN != nil { causes = append(causes, "unsupported: multicastVPN") }

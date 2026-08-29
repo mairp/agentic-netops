@@ -1,0 +1,19 @@
+spec:
+  description: Migrated service svc1 (VPLS)
+  bridgeDomains:
+  - name: bd-svc1
+    vlan: 10
+    l2vni: 10010
+    evpn:
+      routeTargets:
+        import:
+        - "65000:100"
+        export:
+        - "65000:100"
+  attachments:
+  - node: leaf01
+    vlan: 10
+    attachment: client01
+  - node: leaf02
+    vlan: 10
+    attachment: client02

@@ -1,0 +1,11 @@
+# Makefile — build-migration-cli target with reproducible flags
+5:.PHONY: help verify-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest build build-migration-cli
+15:	@echo "  build-migration-cli  Build only cmd/migration-translator"
+33:	  GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -buildid=" ./$$d; \
+36:build-migration-cli:
+38:	@GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -buildid=" ./cmd/migration-translator
+# cmd/migration-translator/main.go — CLI entrypoint exists
+2:package main
+17:func main() {
+37:	if err := processBatch(inputs); err != nil { fatal(err) }
+41:func processBatch(inputs []migration.ServiceInput) error {

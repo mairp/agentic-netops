@@ -13,9 +13,11 @@ done:
   - T049 Implemented partial failure/recovery, provider restart mid-transaction, invalid-YANG, partial SRv6 endpoint programming, and false Ready prohibition (tests/integration/failure_recovery_invalid_yang.sh)
   - T050 Implemented managed-path drift restoration and unmanaged-path preservation tests (tests/integration/drift_preservation.sh)
   - T051 Implemented update/delete survivability tests (tests/integration/update_delete_survivability.sh)
+  - Phase 6: Implemented normalized migration schema, VPLS/L3VPN/VPWS/IRB translations, deterministic CLI/library with provenance, all-or-nothing validation, and golden+table tests.
+  - Phase 6 fixes: Addressed critic by (a) anchoring L3VPN RD/RT assignment in translate.go and YAML output, (b) emitting structured JSON for unknown fields in CLI parse path, and (c) adding proofs and tests for collisions and malformed/unknown fixtures with zero outputs.
 verified:
   - cmd/srv6-controller/main.go exposes --metrics-bind/--health-probe-bind and leader election; deploy/ainetops/manifests/srv6-controller.yaml includes HTTP probes and Service; scripts/provision.sh performs rollout status waits and captures kubectl proof
 blocked:
   - None
 next:
-  - Author Phase 5 gate evidence (GATE5-EVIDENCE.md) referencing concrete proof slices, then proceed to the next phase once approved
+  - Publish corrected GATE6 evidence and await critic approval.

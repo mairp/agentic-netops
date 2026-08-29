@@ -1,0 +1,98 @@
+   120	// ValidateAllOrNothing enforces the FR-011 contract and returns an error with
+   121	// structured causes; it does not modify input and does not perform allocation.
+   122	type ValidationError struct {
+   123		Causes []string `json:"causes"`
+   124	}
+   125	
+   126	func (e *ValidationError) Error() string {
+   127		return fmt.Sprintf("validation failed: %v", e.Causes)
+   128	}
+   129	
+   130	// ValidateAllOrNothing performs strict validation, including:
+   131	// - required fields by type;
+   132	// - explicit opt-ins for limited equivalence;
+   133	// - absent endpoints and count mismatches;
+   134	// - presence of unsupported claims;
+   135	// - collisions detected by the caller across a batch (detected via index arg).
+   136	func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) error {
+   137		var causes []string
+   138		if in.ServiceID == "" {
+   139			causes = append(causes, "serviceId: required")
+   140		}
+   141		if in.Tenant == "" {
+   142			causes = append(causes, "tenant: required")
+   143		}
+   144		if in.Type == "" {
+   145			causes = append(causes, "type: required")
+   146		}
+   147		if dupServiceID {
+   148			causes = append(causes, fmt.Sprintf("collision: duplicate serviceId '%s' in batch", in.ServiceID))
+   149		}
+   150		// Unsupported claims
+   151		u := in.Unsupported
+   152		if u.TEPolicy != nil { causes = append(causes, "unsupported: tePolicy") }
+   153		if u.PseudowireOAM != nil { causes = append(causes, "unsupported: pseudowireOAM") }
+   154		if u.ControlWord != nil { causes = append(causes, "unsupported: controlWord") }
+   155		if u.MulticastVPN != nil { causes = append(causes, "unsupported: multicastVPN") }
+   156		if u.ComplexQoS != nil { causes = append(causes, "unsupported: complexQoS") }
+   157		if u.ServiceChain != nil { causes = append(causes, "unsupported: serviceChain") }
+   158		if u.RawCLI != nil { causes = append(causes, "unsupported: rawCLI") }
+   159	
+   160		// Endpoints basics
+   161		if len(in.Endpoints) == 0 { causes = append(causes, "endpoints: at least one endpoint is required") }
+   162	
+   163		switch in.Type {
+   164		case ServiceVPLS:
+   165			if in.L2VNI == 0 { causes = append(causes, "l2vni: required for VPLS") }
+   166			if in.RDRT == nil { causes = append(causes, "rdRt: required for VPLS") }
+   167			if len(in.Endpoints) < 2 { causes = append(causes, "endpoints: VPLS requires >=2 endpoints") }
+   168			// All endpoints must specify same VLAN
+   169			var vlan int
+   170			for i, ep := range in.Endpoints {
+   171				if ep.VLAN == 0 { causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for VPLS", i)) }
+   172				if i == 0 { vlan = ep.VLAN } else if ep.VLAN != vlan { causes = append(causes, "endpoints.vlan: must be equal across all endpoints for VPLS") }
+   173			}
+   174		case ServiceL3VPN:
+   175			if in.L3VNI == 0 { causes = append(causes, "l3vni: required for L3VPN") }
+   176			if in.RDRT == nil { causes = append(causes, "rdRt: required for L3VPN") }
+   177			if in.AF == nil || (len(in.AF.IPv4Prefixes) == 0 && len(in.AF.IPv6Prefixes) == 0) {
+   178				causes = append(causes, "addressFamilies: at least one prefix is required for L3VPN")
+   179			}
+   180			if len(in.Endpoints) < 1 { causes = append(causes, "endpoints: L3VPN requires >=1 endpoint") }
+   181	
+   182			for i, ep := range in.Endpoints {
+   183				if ep.VRF == "" { causes = append(causes, fmt.Sprintf("endpoints[%d].vrf: required for L3VPN", i)) }
+   184			}
+   185		case ServiceVPWS:
+   186			if in.L2VNI == 0 { causes = append(causes, "l2vni: required for VPWS") }
+   187			if in.RDRT == nil { causes = append(causes, "rdRt: required for VPWS") }
+   188			if len(in.Endpoints) != 2 { causes = append(causes, "endpoints: VPWS requires exactly 2 endpoints") }
+   189			for i, ep := range in.Endpoints {
+   190				if ep.VLAN == 0 { causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for VPWS", i)) }
+   191			}
+   192			if !in.Policies.VPWSLimitedEquivalence {
+   193				causes = append(causes, "policy: vpwsLimitedEquivalence must be true to allow limited equivalence mapping")
+   194			}
+   195		case ServiceIRB:
+   196			if in.L2VNI == 0 { causes = append(causes, "l2vni: required for IRB bridge domain") }
+   197			if in.L3VNI == 0 { causes = append(causes, "l3vni: required for IRB VRF") }
+   198			if in.RDRT == nil { causes = append(causes, "rdRt: required for IRB VRF") }
+   199			if in.IRBGateway == nil { causes = append(causes, "irbGateway: required for IRB") }
+   200			if in.IRBGateway != nil {
+   201				if in.IRBGateway.VRF == "" { causes = append(causes, "irbGateway.vrf: required") }
+   202				if in.IRBGateway.GatewayV4 == "" { causes = append(causes, "irbGateway.gatewayIPv4: required") }
+   203				if in.IRBGateway.GatewayV6 == "" { causes = append(causes, "irbGateway.gatewayIPv6: required") }
+   204			}
+   205			if len(in.Endpoints) < 1 { causes = append(causes, "endpoints: IRB requires at least one endpoint") }
+   206			for i, ep := range in.Endpoints {
+   207				if ep.VLAN == 0 { causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for IRB", i)) }
+   208			}
+   209		default:
+   210			causes = append(causes, fmt.Sprintf("type: unsupported '%s'", in.Type))
+   211		}
+   212	
+   213		if len(causes) > 0 {
+   214			return &ValidationError{Causes: causes}
+   215		}
+   216		return nil
+   217	}

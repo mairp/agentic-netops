@@ -1,0 +1,8 @@
+# tests/unit — golden and rejection tests
+tests/unit/migration_batch_test.go:20:func TestBatchAllOrNothing(t *testing.T) {
+tests/unit/migration_batch_test.go:34:func TestBatchAllOrNothing_MixedUnsupported(t *testing.T) {
+tests/unit/migration_golden_test.go:12:func TestGolden_VPLS(t *testing.T) {
+tests/unit/migration_golden_test.go:30:func TestGolden_L3VPN(t *testing.T) {
+tests/unit/migration_golden_test.go:46:func TestGolden_VPWS_OptIn(t *testing.T) {
+tests/unit/migration_golden_test.go:62:func TestReject_UnsupportedTE(t *testing.T) {
+tests/unit/migration_golden_test.go:72:func TestReject_MalformedUnknownField(t *testing.T) {

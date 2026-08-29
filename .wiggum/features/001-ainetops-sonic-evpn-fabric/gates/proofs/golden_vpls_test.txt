@@ -1,0 +1,17 @@
+12: func TestGolden_VPLS(t *testing.T) {
+13: 	b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpls.json"))
+14: 	if err != nil { t.Fatal(err) }
+15: 	inputs, err := migration.ParseStrictBatch(b)
+16: 	if err != nil { t.Fatalf("parse: %v", err) }
+17: 	outs, err := migration.RenderBatch(inputs)
+18: 	if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+19: 	if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+20: 	// Compare only the spec subtree for stability.
+21: 	spec := extractYAMLSnippet(outs[0], "spec:")
+22: 	gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpls.spec.golden.yaml"))
+23: 	if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+24: 		// optional: write a diff for debugging
+25: 		_ = os.WriteFile(filepath.Join(os.TempDir(), "vpls.spec.actual.yaml"), []byte(spec), 0o644)
+26: 		t.Fatalf("golden mismatch for VPLS spec")
+27: 	}
+28: }

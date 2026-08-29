@@ -1,0 +1,23 @@
+File: pkg/migration/input.go — Policies.VPWSLimitedEquivalence and validation
+     1	// Policies are explicit allow-listed options.
+     2	type Policies struct {
+     3		// VPWSLimitedEquivalence must be true to allow VPWS-to-L2VNI mapping.
+     4		VPWSLimitedEquivalence bool `json:"vpwsLimitedEquivalence,omitempty"`
+     5	}
+     6	
+     1			if in.L2VNI == 0 { causes = append(causes, "l2vni: required for VPWS") }
+     2			if in.RDRT == nil { causes = append(causes, "rdRt: required for VPWS") }
+     3			if len(in.Endpoints) != 2 { causes = append(causes, "endpoints: VPWS requires exactly 2 endpoints") }
+     4			for i, ep := range in.Endpoints {
+     5				if ep.VLAN == 0 { causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for VPWS", i)) }
+     6			}
+     7			if !in.Policies.VPWSLimitedEquivalence {
+     8				causes = append(causes, "policy: vpwsLimitedEquivalence must be true to allow limited equivalence mapping")
+     9			}
+    10		case ServiceIRB:
+File: pkg/migration/translate.go — limited-equivalence annotation when ServiceVPWS
+     1			spec.Attachments = attachmentsForL2(in.Endpoints)
+     2			if in.Type == ServiceVPWS {
+     3				ann := metadata["annotations"].(map[string]string)
+     4				ann["ainetops.io/limited-equivalence"] = "vpws-to-l2vni"
+     5			}

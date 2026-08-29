@@ -1,0 +1,191 @@
+File: tests/unit/migration_golden_test.go — golden tests for VPLS/L3VPN/VPWS/IRB and rejects
+     1	func TestGolden_VPLS(t *testing.T) {
+     2		b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpls.json"))
+     3		if err != nil { t.Fatal(err) }
+     4		inputs, err := migration.ParseStrictBatch(b)
+     5		if err != nil { t.Fatalf("parse: %v", err) }
+     6		outs, err := migration.RenderBatch(inputs)
+     7		if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+     8		if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+     9		// Compare only the spec subtree for stability.
+    10		spec := extractYAMLSnippet(outs[0], "spec:")
+    11		gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpls.spec.golden.yaml"))
+    12		if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+    13			// optional: write a diff for debugging
+    14			_ = os.WriteFile(filepath.Join(os.TempDir(), "vpls.spec.actual.yaml"), []byte(spec), 0o644)
+    15			t.Fatalf("golden mismatch for VPLS spec")
+    16		}
+    17	}
+    18	
+    19	func TestGolden_L3VPN(t *testing.T) {
+    20		b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_l3vpn.json"))
+    21		if err != nil { t.Fatal(err) }
+    22		inputs, err := migration.ParseStrictBatch(b)
+    23		if err != nil { t.Fatalf("parse: %v", err) }
+    24		outs, err := migration.RenderBatch(inputs)
+    25		if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+    26		if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+    27		spec := extractYAMLSnippet(outs[0], "spec:")
+    28		gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_l3vpn.spec.golden.yaml"))
+    29		if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+    30			_ = os.WriteFile(filepath.Join(os.TempDir(), "l3vpn.spec.actual.yaml"), []byte(spec), 0o644)
+    31			t.Fatalf("golden mismatch for L3VPN spec")
+    32		}
+    33	}
+    34	
+    35	func TestGolden_VPWS_OptIn(t *testing.T) {
+    36		b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpws_optin.json"))
+    37		if err != nil { t.Fatal(err) }
+    38		inputs, err := migration.ParseStrictBatch(b)
+    39		if err != nil { t.Fatalf("parse: %v", err) }
+    40		outs, err := migration.RenderBatch(inputs)
+    41		if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+    42		if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+    43		spec := extractYAMLSnippet(outs[0], "spec:")
+    44		gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpws.spec.golden.yaml"))
+    45		if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+    46			_ = os.WriteFile(filepath.Join(os.TempDir(), "vpws.spec.actual.yaml"), []byte(spec), 0o644)
+    47			t.Fatalf("golden mismatch for VPWS spec")
+    48		}
+    49	}
+--- Additional golden and reject sections ---
+     1	func TestReject_UnsupportedTE(t *testing.T) {
+     2		b, err := os.ReadFile(filepath.Join("testdata", "migration", "unsupported_te.json"))
+     3		if err != nil { t.Fatal(err) }
+     4		inputs, err := migration.ParseStrictBatch(b)
+     5		if err != nil { t.Fatalf("parse: %v", err) }
+     6		outs, err := migration.RenderBatch(inputs)
+     7		if err == nil { t.Fatalf("expected error for unsupported TE policy") }
+     8		if len(outs) != 0 { t.Fatalf("expected no outputs on failure") }
+     9	}
+    10	
+    11	func TestIRB_Golden(t *testing.T) {
+    12		b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_irb.json"))
+    13		if err != nil { t.Fatal(err) }
+    14		inputs, err := migration.ParseStrictBatch(b)
+    15		if err != nil { t.Fatalf("parse: %v", err) }
+    16		outs, err := migration.RenderBatch(inputs)
+    17		if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+    18		if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+    19		spec := extractYAMLSnippet(outs[0], "spec:")
+    20		gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_irb.spec.golden.yaml"))
+    21		if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+    22			_ = os.WriteFile(filepath.Join(os.TempDir(), "irb.spec.actual.yaml"), []byte(spec), 0o644)
+    23			t.Fatalf("golden mismatch for IRB spec")
+    24		}
+    25	}
+    26	
+    27	func TestReject_MalformedUnknownField(t *testing.T) {
+    28		b, err := os.ReadFile(filepath.Join("testdata", "migration", "malformed_unknown_field.json"))
+    29		if err != nil { t.Fatal(err) }
+    30		if _, err := migration.ParseStrictBatch(b); err == nil {
+    31			t.Fatalf("expected parse error due to unknown field")
+    32		}
+    33	}
+    34	
+    35	// extractYAMLSnippet returns the YAML starting at the given key name to EOF.
+    36	func extractYAMLSnippet(doc, start string) string {
+    37		idx := strings.Index(doc, start)
+    38		if idx < 0 { return "" }
+    39		return doc[idx:]
+    40	}
+File: tests/unit/migration_missing_endpoints_test.go — absent endpoints rejected
+     1	func TestReject_MissingEndpoints_VPLS(t *testing.T) {
+     2		in := migration.ServiceInput{
+     3			ServiceID: "noep-vpls",
+     4			Type:      migration.ServiceVPLS,
+     5			Tenant:    "T",
+     6			RDRT:      &migration.RdRt{RD: "65000:101", ImportRT: []string{"65000:101"}, ExportRT: []string{"65000:101"}},
+     7			L2VNI:     10101,
+     8			Endpoints: []migration.Endpoint{},
+     9		}
+    10		outs, err := migration.RenderBatch([]migration.ServiceInput{in})
+    11		if err == nil {
+    12			t.Fatalf("expected error for missing endpoints (VPLS)")
+    13		}
+    14		if len(outs) != 0 {
+    15			t.Fatalf("expected no outputs on failure")
+    16		}
+    17		msg := migration.MarshalError(err)
+    18		if !strings.Contains(msg, "endpoints:") {
+    19			t.Fatalf("expected endpoints cause, got: %s", msg)
+    20		}
+    21	}
+File: tests/unit/migration_collision_fixture_test.go — duplicate serviceId collision fixture parsed and rejected with no outputs
+     1	package unit
+     2	
+     3	import (
+     4		"os"
+     5		"path/filepath"
+     6		"strings"
+     7		"testing"
+     8	
+     9		"github.com/mairp/ainetops/pkg/migration"
+    10	)
+    11	
+    12	func TestCollisionFixture_DuplicateServiceId(t *testing.T) {
+    13		b, err := os.ReadFile(filepath.Join("testdata", "migration", "collision_duplicate.json"))
+    14		if err != nil { t.Fatal(err) }
+    15		inputs, err := migration.ParseStrictBatch(b)
+    16		if err != nil { t.Fatalf("parse: %v", err) }
+    17		outs, err := migration.RenderBatch(inputs)
+    18		if err == nil { t.Fatalf("expected collision error") }
+    19		if len(outs) != 0 { t.Fatalf("expected no outputs on collision") }
+    20		msg := migration.MarshalError(err)
+    21		if !strings.Contains(msg, "duplicate serviceId") { t.Fatalf("missing duplicate cause: %s", msg) }
+    22	}
+File: tests/unit/testdata/migration/collision_duplicate.json — collision batch fixture (duplicate serviceId)
+     1	[
+     2	  {
+     3	    "serviceId": "dup-svc",
+     4	    "type": "VPLS",
+     5	    "tenant": "A",
+     6	    "rdRt": {"rd": "65000:610", "importRT": ["65000:610"], "exportRT": ["65000:610"]},
+     7	    "l2vni": 10610,
+     8	    "endpoints": [
+     9	      {"node": "leaf01", "attachment": "c1", "vlan": 10},
+    10	      {"node": "leaf02", "attachment": "c2", "vlan": 10}
+    11	    ]
+    12	  },
+    13	  {
+    14	    "serviceId": "dup-svc",
+    15	    "type": "VPLS",
+    16	    "tenant": "A",
+    17	    "rdRt": {"rd": "65000:611", "importRT": ["65000:611"], "exportRT": ["65000:611"]},
+    18	    "l2vni": 10611,
+    19	    "endpoints": [
+    20	      {"node": "leaf01", "attachment": "c1b", "vlan": 10},
+    21	      {"node": "leaf02", "attachment": "c2b", "vlan": 10}
+    22	    ]
+    23	  }
+    24	]
+File: tests/unit/migration_cli_collision_test.go — CLI rejects collision without YAML
+     1	package unit
+     2	
+     3	import (
+     4		"os/exec"
+     5		"path/filepath"
+     6		"strings"
+     7		"testing"
+     8	)
+     9	
+    10	// Ensure the CLI rejects duplicate serviceId collision with structured JSON and no YAML outputs.
+    11	func TestMigrationCLI_RejectsCollision_NoOutput(t *testing.T) {
+    12		cmd := exec.Command("go", "run", "./cmd/migration-translator", "--file", "tests/unit/testdata/migration/collision_duplicate.json")
+    13		cmd.Dir = filepath.Join("..", "..")
+    14		out, err := cmd.CombinedOutput()
+    15		if err == nil {
+    16			// some environments may not have go toolchain; we still assert behavior on stderr/stdout content
+    17			// but keep the failure to maintain strong signal in CI
+    18			t.Fatalf("expected non-zero exit; output=%s", string(out))
+    19		}
+    20		if !strings.Contains(string(out), "\"error\": \"validation\"") {
+    21			t.Fatalf("missing structured validation error: %s", string(out))
+    22		}
+    23		if !strings.Contains(string(out), "duplicate serviceId") {
+    24			t.Fatalf("missing duplicate cause in CLI output: %s", string(out))
+    25		}
+    26		if strings.Contains(string(out), "spec:") {
+    27			t.Fatalf("unexpected YAML output on validation failure: %s", string(out))
+    28		}
+    29	}

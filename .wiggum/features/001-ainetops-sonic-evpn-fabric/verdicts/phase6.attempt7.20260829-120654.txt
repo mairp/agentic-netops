@@ -1,0 +1,2642 @@
+# Wiggum critic transcript
+phase: 6
+attempt: 7
+provider: dsh
+nonce: 122dde9ced82f1b7
+verdict: REJECTED
+parse: ok
+
+═══════════ PROMPT ═══════════
+You are the CRITIC (an automated approval gate). Be adversarial, not helpful.
+A proposer agent claims it has completed Phase 6 of a spec. Your job is to
+decide — strictly — whether the EVIDENCE actually satisfies EVERY acceptance
+criterion in the SPEC below. This is the only thing standing between unverified
+work and it being marked done, so do not give the benefit of the doubt.
+
+Rules:
+- Check each acceptance criterion individually. If ANY criterion is unmet, unclear,
+  or only asserted without support, the verdict is REJECTED.
+- The evidence is the proposer grading its own homework. Trust the GROUNDING
+  SNAPSHOT (verified on-disk state) over the evidence's prose when they conflict.
+  A criterion "proven" only by a claim about a file that the snapshot shows is
+  missing or empty is NOT met.
+- A snapshot entry reading "content excerpt omitted — grounding byte budget
+  reached; file verified present" is a TOOLING limitation, NOT evidence of absence:
+  the file EXISTS and was verified on disk; only its excerpt was elided for length.
+  You MUST NOT count a criterion unmet solely because that file's excerpt was
+  elided. If you genuinely cannot judge a criterion because the content you need is
+  not in the snapshot, say so explicitly in your feedback as
+  `NEEDS-GROUNDING:<path>` (name the file whose content you need) rather than
+  rejecting it as unimplemented. Criterion-named files are shown with anchored
+  excerpts (±lines around each named symbol, line-numbered) and are never elided.
+- The DESIGN CONTEXT (if present) is background only — never an extra criterion.
+- Do not be talked into approving by confident language. Substance only.
+
+If REJECTED, first list the specific unmet criteria and exactly what is missing —
+this text becomes the feedback the proposer must address, so be concrete and
+actionable (name the criterion, name the gap).
+
+End your reply with EXACTLY ONE line, on its own, verbatim (copy the token):
+    VERDICT 122dde9ced82f1b7: APPROVED
+or
+    VERDICT 122dde9ced82f1b7: REJECTED
+
+════════════════════════ SPEC — Phase 6 ════════════════════════
+## Phase 6: Migration translation (US1)
+
+- [ ] T052 Define a strict normalized input schema for service ID, type, tenant, endpoints,
+  address families, RD/RTs, and allow-listed policies; explicitly forbid raw CLI
+- [ ] T053 [P] [US1] Implement VPLS/multipoint-L2VPN to bridge/L2VNI translation
+- [ ] T054 [P] [US1] Implement L3VPN to VRF/L3VNI/RD/RT/Type-5 translation
+- [ ] T055 [P] [US1] Implement VPWS/E-Line to two-attachment L2VNI with explicit limited-
+  equivalence opt-in
+- [ ] T056 [P] [US1] Implement integrated L2/L3 to symmetric-IRB translation
+- [ ] T057 [US1] Implement all-or-nothing validation and structured unsupported-feature results
+  for TE, pseudowire OAM/control-word, multicast VPN, complex QoS/OAM, service chain, unknown
+  fields, collisions, and absent endpoints (FR-011)
+- [ ] T058 Add deterministic CLI/library output with stable provenance annotations on generated
+  Kubenet Networks
+- [ ] T058a Package the migration translator as a deterministic library plus CLI binary
+  (`cmd/migration-translator/`) with reproducible output; per plan.md section 7 no in-cluster
+  workload is created at this stage. If and only if T060 enables `MigrationPlan`, T061
+  additionally deploys the controller inside Kind using T023's manifests
+- [ ] T059 Add table/golden tests for every supported, limited, unsupported, collision, and
+  malformed fixture; prove rejected fixtures cause no downstream resources
+- [ ] T060 Decide from workflow evidence whether annotations/Git review meet audit needs; only
+  if not, implement `MigrationPlan.ainetops.io/v1alpha1` per [crd-api.md](./contracts/crd-api.md)
+- [ ] T061 If T060 enables the CRD, add structural/CEL validation, status subresource, RBAC,
+  controller, conversion strategy, examples, and server-side dry-run/envtest coverage
+
+**Checkpoint**: Supported intent maps predictably, limited equivalence requires opt-in, and
+unsupported intent is rejected before mutation. No duplicate service/fabric CRD exists.
+
+## Verification obligations
+Canonical verification plan: verification-414756f43ac96fab9bbe
+Verification plan hash: 7945037a1699da067636b84b6d773a3afa1801994b89672f8b4be583e04e6531
+Source semantic hash: 751c4dfbc4879208295699a48dedcf90cb17c1fe9a61d87dfefb6080bfbedf19
+
+### VO-b5245cfe8692376af119 — T052 Define a strict normalized input schema for service ID, type, tenant, endpoints,
+- Level: contract
+- Kind: positive
+- Action: Migration translation (US1)
+- Oracle: T052 Define a strict normalized input schema for service ID, type, tenant, endpoints,
+- Witness: Observe independently that this criterion is true: T052 Define a strict normalized input schema for service ID, type, tenant, endpoints,
+
+### VO-db2598e32f6f21e1d55d — T053 [P] [US1] Implement VPLS/multipoint-L2VPN to bridge/L2VNI translation
+- Level: contract
+- Kind: positive
+- Action: Migration translation (US1)
+- Oracle: T053 [P] [US1] Implement VPLS/multipoint-L2VPN to bridge/L2VNI translation
+- Witness: Observe independently that this criterion is true: T053 [P] [US1] Implement VPLS/multipoint-L2VPN to bridge/L2VNI translation
+
+### VO-8830b3bcffcedacf6d51 — T054 [P] [US1] Implement L3VPN to VRF/L3VNI/RD/RT/Type-5 translation
+- Level: contract
+- Kind: positive
+- Action: Migration translation (US1)
+- Oracle: T054 [P] [US1] Implement L3VPN to VRF/L3VNI/RD/RT/Type-5 translation
+- Witness: Observe independently that this criterion is true: T054 [P] [US1] Implement L3VPN to VRF/L3VNI/RD/RT/Type-5 translation
+
+### VO-e03b5ef3e6babf111591 — T055 [P] [US1] Implement VPWS/E-Line to two-attachment L2VNI with explicit limited-
+- Level: contract
+- Kind: positive
+- Action: Migration translation (US1)
+- Oracle: T055 [P] [US1] Implement VPWS/E-Line to two-attachment L2VNI with explicit limited-
+- Witness: Observe independently that this criterion is true: T055 [P] [US1] Implement VPWS/E-Line to two-attachment L2VNI with explicit limited-
+
+### VO-e8d65a5d364eebb383b4 — T056 [P] [US1] Implement integrated L2/L3 to symmetric-IRB translation
+- Level: contract
+- Kind: positive
+- Action: Migration translation (US1)
+- Oracle: T056 [P] [US1] Implement integrated L2/L3 to symmetric-IRB translation
+- Witness: Observe independently that this criterion is true: T056 [P] [US1] Implement integrated L2/L3 to symmetric-IRB translation
+
+### VO-6bd4e120341dde856299 — T057 [US1] Implement all-or-nothing validation and structured unsupported-feature results
+- Level: contract
+- Kind: positive
+- Action: Migration translation (US1)
+- Oracle: T057 [US1] Implement all-or-nothing validation and structured unsupported-feature results
+- Witness: Observe independently that this criterion is true: T057 [US1] Implement all-or-nothing validation and structured unsupported-feature results
+
+### VO-00e3c9a00dcc564ab44f — T058 Add deterministic CLI/library output with stable provenance annotations on generated
+- Level: contract
+- Kind: positive
+- Action: Migration translation (US1)
+- Oracle: T058 Add deterministic CLI/library output with stable provenance annotations on generated
+- Witness: Observe independently that this criterion is true: T058 Add deterministic CLI/library output with stable provenance annotations on generated
+
+### VO-8fd525d0c496af1fa4b5 — T058a Package the migration translator as a deterministic library plus CLI binary
+- Level: contract
+- Kind: positive
+- Action: Migration translation (US1)
+- Oracle: T058a Package the migration translator as a deterministic library plus CLI binary
+- Witness: Observe independently that this criterion is true: T058a Package the migration translator as a deterministic library plus CLI binary
+
+### VO-ecff1cc23cd30ed63dd2 — T059 Add table/golden tests for every supported, limited, unsupported, collision, and
+- Level: contract
+- Kind: positive
+- Action: Migration translation (US1)
+- Oracle: T059 Add table/golden tests for every supported, limited, unsupported, collision, and
+- Witness: Observe independently that this criterion is true: T059 Add table/golden tests for every supported, limited, unsupported, collision, and
+
+### VO-7f9e51b7961d6fe60567 — T060 Decide from workflow evidence whether annotations/Git review meet audit needs; only
+- Level: contract
+- Kind: positive
+- Action: Migration translation (US1)
+- Oracle: T060 Decide from workflow evidence whether annotations/Git review meet audit needs; only
+- Witness: Observe independently that this criterion is true: T060 Decide from workflow evidence whether annotations/Git review meet audit needs; only
+
+### VO-056bd8761b973f3ad8bc — T061 If T060 enables the CRD, add structural/CEL validation, status subresource, RBAC,
+- Level: contract
+- Kind: positive
+- Action: Migration translation (US1)
+- Oracle: T061 If T060 enables the CRD, add structural/CEL validation, status subresource, RBAC,
+- Witness: Observe independently that this criterion is true: T061 If T060 enables the CRD, add structural/CEL validation, status subresource, RBAC,
+
+### Inherited obligations from earlier approved phases (regression context — already gated, not new work; the cumulative gate still re-checks them):
+- VO-9f46c3eb28e58bd1fad2 — T001 Create the implementation directory structure from [plan.md](./plan.md), including
+- VO-ccceee4bd62e391114c5 — T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,
+- VO-a2c92a2c201f9997df98 — T003 Select and record a pinned containerlab version and both SONiC profile image
+- VO-85703cd3e2372ffb6509 — T004 Select the SONiC/OpenConfig YANG schema commit and record its compatibility with
+- VO-be7ee8383e989b214a82 — T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and
+- VO-30a4c44a421cc90e23a2 — T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and
+- VO-6bd91de95f0bb8ab4ce8 — T007 Implement reusable strict-shell preflight for host resources, Kind/runtime
+- VO-82f809605d10cef51716 — T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side
+- VO-afa8425c0ecdb9e9d3d8 — T009 [US3] Author `lab/topology.clab.yml` with `spine01`, `spine02`, `leaf01`, `leaf02`,
+- VO-fd0f1c4858c4961584e0 — T010 [P] [US3] Create the `sonic-vs` profile with bootstrap limited to management, TLS,
+- VO-195afae65c44aa3dcf34 — T011 [P] [US3] Create the `sonic-vm` conformance overlay and document KVM/nested
+- VO-5bb9225b782568f81af2 — T012 [P] [US3] Create Linux endpoint images/configuration and deterministic dual-stack
+- VO-672489b9771d8547e192 — T013 [US3] Implement SONiC gNMI Capabilities/Get/Set/Subscribe qualification tests
+- VO-f725b5aa29dfa9608556 — T014 [P] [US3] Implement persistent configuration and required OpenConfig/SONiC YANG path
+- VO-04c9121f3b5051968ee3 — T015 [P] [US3] Implement BGP EVPN/VXLAN Type 2/3/5 and SRv6 IPv6-underlay,
+- VO-3e6c7321565e6a6b5473 — T016 [US3] Implement `make lab-qualify` so any failed capability blocks downstream tests
+- VO-ac289c2bf8b36b353ebb — T017 [US3] Implement idempotent containerlab deploy/inspect/destroy script phases callable
+- VO-c292a5c1db1b91cd8050 — T018 Author `config/kind/cluster.yaml` and idempotent Kind create/delete phases with a
+- VO-0f4e897f6670173b34e4 — T019 Implement creation/ownership labeling of the dedicated Docker management network,
+- VO-a8a3a9c61b1e7e884295 — T020 Install pinned Kubenet/KUID CRDs/controllers inside Kind and wait for current-
+- VO-779292f79fa9f59439bf — T021 Install pinned SDC CRDs and schema/config/data/cache components inside Kind with
+- VO-89556224f3b7bbdb017c — T022 [P] Create least-privilege namespaces, service accounts, RBAC, network policies, and
+- VO-f5434170bc0fc81c39e5 — T023 Author the Kind deployment manifests/Helm values for the later AINETOPS provider and
+- VO-58d01e895466b225a4d1 — T024 Create the exact pinned SONiC `Schema`, connection profile, sync profile, and
+- VO-25f9fdd579584d745685 — T025 Create topology, IP/ASN/ID indices, claims/pools, and fabric design manifests using
+- VO-6ae9fe4bdc7236be4ddd — T026 Scaffold the Go provider manager (`cmd/sonic-provider/`, `controllers/sonicprovider/`)
+- VO-d1482f465caa53b6427d — T026a Scaffold the SRv6 service controller binary and reconciler
+- VO-2702a9dae6b3e7c4de5d — T027 Define canonical internal structs for interfaces, loopbacks, BGP, network instances,
+- VO-d7dfdf45b4cbe519dd0a — T027a Author the required `SRv6Service.ainetops.io/v1alpha1` CRD and scaffolding:
+- VO-0f77de4d45b78effc56c — T028 [P] Implement `NetworkDevice` selection, dependency watches/indexes, current-
+- VO-44ab20617424b3d9b9d6 — T029 [P] Implement compatibility-set validation for image, schema, mapping, and upstream
+- VO-1cb757c3e563d18c6a77 — T029a Produce a per-path OpenConfig-vs-SONiC-native register for all rendered YANG paths;
+- VO-1fd8ff0891858451b68c — T030 Implement abstract-model normalization and reject incomplete, unknown, or conflicting
+- VO-1ef6e0d0424a70793461 — T031 [P] Implement qualified interface/loopback/MTU and dual-stack IPv4 `/31` plus IPv6
+- VO-41f0800bb583fb67a11a — T032 [P] Implement qualified BGP global/neighbor and EVPN address-family renderers
+- VO-de6cfc1d65b0f4ba0c67 — T033 [P] Implement VLAN, bridge, VXLAN NVO, VTEP, and L2VNI renderers
+- VO-15f4c9a51436a87e9c45 — T034 [P] Implement VRF, L3VNI, RD/RT, Type-5, symmetric-IRB, locator/MySID,
+- VO-43501490db482f1a1c59 — T035 Compose deterministic ordered output, stable generated names, canonical hashes,
+- VO-bdec9b841a44e6987924 — T036 Integrate offline SDC/schema validation; emit no changed Config when validation fails
+- VO-a499fa0552380fa18d51 — T037 Implement server-side apply with a dedicated field manager, explicit priority,
+- VO-31bcca4c629d4495751e — T038 Observe SDC Config/Target/Deviation status and propagate standard per-device and
+- VO-79d0bb68c7d504eb2755 — T039 Implement bounded backoff/jitter and terminal-vs-transient error classification
+- VO-b4b933d8d0730c0c9944 — T040 Implement ordered finalization: delete owned SDC intent, confirm/timeout, release
+- VO-5139c3ce469e55e0ebc0 — T041 Instrument reconciles with bounded Prometheus metrics and OTel traces, then build,
+- VO-fb27730c3b87691e83ad — T041a Build the T026a SRv6 service controller binary, load it, and deploy it inside Kind
+- VO-a9f22ad37d345e006bfe — T042 [US3] Apply the default Kubenet Network and reconcile dual-stack routed leaf-spine
+- VO-4c82072e941b140614f9 — T043 [US3] Add verification for all expected underlay/EVPN sessions, loopback reachability,
+- VO-7dddbf2c4016af0acd16 — T044 [P] [US1] Add a bridged L2 tenant example with two cross-leaf attachments, VLAN,
+- VO-1f8d441748c7bd01b0f8 — T045 [P] [US1] Add a routed L3 tenant example with VRF, L3VNI, RD/RT, prefixes, and Type-5
+- VO-9e6be54b63f5644848fa — T046 [P] [US1] Add a symmetric-IRB example with L2/L3 VNIs, gateway addresses, and two
+- VO-b34481fc05c58ac0e4e3 — T047 [US3] Implement EVPN client traffic tests: cross-leaf L2 reachability, intra-VRF L3/IRB,
+- VO-4554e0ee27ef3a00d04d — T047a [US3] Implement MTU and ECMP tests: verify maximum effective MTU accommodates VXLAN overhead
+- VO-c22c364bc3888e3aa8d3 — T047b [US5] Implement SRv6 capture and counter tests between dedicated clients: capture
+- VO-50090ba3f6512d5f8eff — T047c [US5] Implement failover and operator-directed path-change tests: force primary failure,
+- VO-47eef71e39da0bedf9a5 — T048 [US2] Add repeat-apply proof: unchanged intent produces zero SDC spec writes and zero
+- VO-13ef51ff54617a759318 — T049 [US2] Add partial target failure/recovery, provider restart mid-transaction, and
+- VO-c5bbeee56b0797caa9e8 — T050 [US2] Add managed-path drift restoration and unmanaged-path preservation tests
+- VO-34344e579358253fdb30 — T051 [US2] Add update and delete tests proving shared fabric state and unrelated claims
+
+Create or update automated tests for these obligations. Generated TODO/skip scaffolds are starting points only and are never passing evidence.
+The phase evidence must map every obligation above to independently observable evidence.
+
+════════════════════════ EVIDENCE (proposer-written) ════════════════════════
+# Phase 6 — Migration translation (US1): Evidence
+
+This evidence demonstrates that every acceptance criterion (T052–T061) is implemented, with concrete file paths and anchored, line-numbered proof slices under .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/.
+
+New and changed artifacts in this phase (not exhaustive, highlights for this gate):
+- Library: pkg/migration/{input.go,parse.go,batch.go,translate.go,yaml.go}
+- CLI: cmd/migration-translator/main.go
+- Tests (golden/table/CLI):
+  - tests/unit/migration_golden_test.go
+  - tests/unit/migration_missing_endpoints_test.go
+  - tests/unit/migration_batch_test.go
+  - tests/unit/migration_annotations_test.go
+  - tests/unit/migration_cli_test.go
+  - tests/unit/migration_cli_te_test.go
+  - tests/unit/migration_collision_fixture_test.go (added to satisfy critic)
+  - tests/unit/migration_cli_collision_test.go (added to satisfy critic)
+- Test fixtures (golden and negative):
+  - tests/unit/testdata/migration/supported_vpls.json
+  - tests/unit/testdata/migration/supported_l3vpn.json
+  - tests/unit/testdata/migration/supported_vpws_optin.json
+  - tests/unit/testdata/migration/supported_irb.json
+  - tests/unit/testdata/migration/unsupported_te.json
+  - tests/unit/testdata/migration/malformed_unknown_field.json
+  - tests/unit/testdata/migration/collision_duplicate.json (added to satisfy critic)
+  - Golden outputs: tests/unit/testdata/migration/*.{spec.golden.yaml}
+- Decision record: docs/migration/DECISION-T060.md
+
+Acceptance criteria evidence
+
+- T052 Define a strict normalized input schema for service ID, type, tenant, endpoints, address families, RD/RTs, and allow-listed policies; explicitly forbid raw CLI
+  - Implemented in pkg/migration/input.go with strict typed schema, explicit Policies, and UnsupportedClaims (including RawCLI) enforced by validation; strict JSON decoding via ParseStrictBatch DisallowUnknownFields in pkg/migration/parse.go forbids unknown properties.
+  - Files:
+    - pkg/migration/input.go
+    - pkg/migration/parse.go
+  - Proofs:
+    - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T052-input-schema.proof.txt
+    - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T052-parse-strict.proof.txt
+
+- T053 [P] [US1] Implement VPLS/multipoint-L2VPN to bridge/L2VNI translation
+  - Implemented in pkg/migration/translate.go: VPLS maps to a single BridgeDomain with L2VNI and EVPN route-targets; attachments render VLANs per endpoint.
+  - Files:
+    - pkg/migration/translate.go
+    - Golden: tests/unit/testdata/migration/supported_vpls.json and supported_vpls.spec.golden.yaml
+  - Proof:
+    - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T053-vpls-translation.proof.txt
+
+- T054 [P] [US1] Implement L3VPN to VRF/L3VNI/RD/RT/Type-5 translation
+  - Implemented in pkg/migration/translate.go: Router (VRF) with RD, import/export routeTargets, L3VNI, and Prefixes (Type-5 semantics); attachments bind nodes to the VRF.
+  - Files:
+    - pkg/migration/translate.go
+    - Golden: tests/unit/testdata/migration/supported_l3vpn.json and supported_l3vpn.spec.golden.yaml
+  - Proof:
+    - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T054-l3vpn-translation.proof.txt
+
+- T055 [P] [US1] Implement VPWS/E-Line to two-attachment L2VNI with explicit limited-equivalence opt-in
+  - Validation in pkg/migration/input.go requires exactly two endpoints and Policies.VPWSLimitedEquivalence=true; translation annotates limited equivalence ainetops.io/limited-equivalence: vpws-to-l2vni; golden fixture exercises opt-in.
+  - Files:
+    - pkg/migration/input.go
+    - pkg/migration/translate.go
+    - Golden: tests/unit/testdata/migration/supported_vpws_optin.json and supported_vpws.spec.golden.yaml
+  - Proof:
+    - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T055-vpws-equivalence.proof.txt
+
+- T056 [P] [US1] Implement integrated L2/L3 to symmetric-IRB translation
+  - Implemented in pkg/migration/translate.go: IRB struct and IRB case that renders both a BridgeDomain (with IRB gateway) and a Router (VRF) with RD/RT/L3VNI; golden IRB fixture and output.
+  - Files:
+    - pkg/migration/translate.go
+    - Golden: tests/unit/testdata/migration/supported_irb.json and supported_irb.spec.golden.yaml
+  - Proof:
+    - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T056-irb-translation.proof.txt
+
+- T057 [US1] Implement all-or-nothing validation and structured unsupported-feature results for TE, pseudowire OAM/control-word, multicast VPN, complex QoS/OAM, service chain, unknown fields, collisions, and absent endpoints (FR-011)
+  - All-or-nothing RenderBatch returns a ValidationError with aggregated causes and zero outputs; MarshalError emits deterministic structured JSON. Validation covers TE, pseudowire OAM, controlWord, multicastVPN, complexQoS, serviceChain, rawCLI; missing endpoints per type; batch duplicate serviceId collision detection. CLI prints structured JSON to stderr and no YAML on failure.
+  - Files:
+    - pkg/migration/batch.go
+    - pkg/migration/input.go
+    - cmd/migration-translator/main.go
+    - Tests: tests/unit/migration_golden_test.go (unsupported TE, unknown field), tests/unit/migration_missing_endpoints_test.go (absent endpoints), tests/unit/migration_batch_test.go (programmatic duplicate), tests/unit/migration_cli_te_test.go (CLI no YAML on TE)
+  - Proof:
+    - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T057-validation.proof.txt
+
+- T058 Add deterministic CLI/library output with stable provenance annotations on generated Kubenet Networks
+  - Translate() produces deterministic YAML with stable key order and embedded provenance annotations: ainetops.io/translator, ainetops.io/translator-version, ainetops.io/mapping-version, ainetops.io/migration-input-hash, ainetops.io/tenant, ainetops.io/service-type, and optional ainetops.io/limited-equivalence. CLI deterministically reads JSON and emits YAML or structured errors.
+  - Files:
+    - pkg/migration/translate.go
+    - cmd/migration-translator/main.go
+    - tests/unit/migration_annotations_test.go
+  - Proof:
+    - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T058-deterministic-cli.proof.txt
+
+- T058a Package the migration translator as a deterministic library plus CLI binary (cmd/migration-translator/) with reproducible output
+  - CLI entrypoint present, uses the library; no in-cluster workload in this phase per plan.md; binary path: cmd/migration-translator/main.go.
+  - Files:
+    - cmd/migration-translator/main.go
+  - Proof:
+    - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T058a-cli-binary.proof.txt
+
+- T059 Add table/golden tests for every supported, limited, unsupported, collision, and malformed fixture; prove rejected fixtures cause no downstream resources
+  - Golden tests cover supported VPLS, L3VPN, VPWS (limited-equivalence opt-in), IRB; unsupported TE and malformed unknown-field fixtures are rejected pre-render; collision batch fixture added as requested by critic and verified via library and CLI tests; all rejected cases assert len(outputs)==0 and CLI emits structured JSON with no YAML (“spec:”) on stdout.
+  - Files:
+    - tests/unit/migration_golden_test.go
+    - tests/unit/migration_missing_endpoints_test.go
+    - tests/unit/migration_batch_test.go
+    - tests/unit/migration_collision_fixture_test.go (NEW)
+    - tests/unit/migration_cli_collision_test.go (NEW)
+    - tests/unit/testdata/migration/collision_duplicate.json (NEW)
+  - Proof:
+    - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T059-tests-and-fixtures.proof.txt
+
+- T060 Decide from workflow evidence whether annotations/Git review meet audit needs; only if not, implement MigrationPlan.ainetops.io/v1alpha1 per contracts/crd-api.md
+  - Decision captured: do not enable or implement MigrationPlan CRD in Phase 6; deterministic annotations + Git review meet audit needs (per plan.md section 7). No in-cluster MigrationPlan added.
+  - File:
+    - docs/migration/DECISION-T060.md
+  - Proof:
+    - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T060-decision.proof.txt
+
+- T061 If T060 enables the CRD, add structural/CEL validation, status subresource, RBAC, controller, conversion strategy, examples, and server-side dry-run/envtest coverage
+  - Not applicable because T060 explicitly did not enable the CRD; no duplicate service/fabric CRD exists.
+  - Proof:
+    - .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T061-na.proof.txt
+
+Checkpoint summary
+- Supported intent maps predictably (golden tests for VPLS, L3VPN, IRB; VPWS with explicit limited-equivalence opt-in), stable provenance annotations present.
+- Unsupported and malformed intent (TE policy, unknown field) is rejected before any mutation; batch collisions and absent endpoints are rejected all-or-nothing; CLI produces structured errors and no YAML on failure.
+- No duplicate service/fabric CRD exists; optional MigrationPlan CRD not enabled per decision.
+
+
+## Grounding snapshot (verified by the critic, read-only)
+The following is the ACTUAL on-disk state of files the evidence cites.
+Claims about files that do not exist, are empty, or contradict this snapshot are NOT substantiated — weigh them accordingly.
+
+- `plan.md` — exists, 1544 bytes, mtime 2026-08-28T20:25:33
+  ```
+  # Implementation Plan (repository foundation)
+  
+  This plan enumerates the repository structure and key owned files for the AINETOPS SONiC EVPN/VXLAN Fabric implementation, as referenced by specs/001-ainetops-sonic-evpn-fabric/plan.md.
+  
+  Structure to create and own in this repository:
+  
+  - scripts/
+    - scripts/provision.sh — sole lifecycle provision entrypoint
+    - scripts/off.sh — sole lifecycle teardown entrypoint
+    - scripts/lib/
+      - scripts/lib/preflight.sh — strict-shell reusable host/runtime preflight
+      - scripts/lib/verify_pins.sh — NFR-003 pin/consistency verification
+      - scripts/lib/validate_crds.sh — server-side dry-run of pinned CRDs/examples
+  - config/
+    - config/kind/cluster.yaml — declarative Kind cluster (pinned node image, pod/service CIDRs)
+  - lab/
+    - lab/topology.clab.yaml — containerlab topology manifest
+  - api/ — API definitions (placeholders in Phase 1)
+  - cmd/ — command binaries (placeholders in Phase 1)
+  - controllers/ — controllers and providers (placeholders in Phase 1)
+  - internal/ — shared library code (placeholders in Phase 1)
+  - examples/ — example manifests (placeholders in Phase 1)
+  - tests/ — integration and unit tests (placeholders in Phase 1)
+  - Makefile — wrappers for verify-pins, validate-crds, verify-compat
+  - versions.lock.yaml — compatibility manifest with immutable pins
+  
+  The Makefile must provide at least:
+  - verify-pins → scripts/lib/verify_pins.sh
+  - validate-crds → scripts/lib/validate_crds.sh (tee run log)
+  - verify-compat → verify-pins + validate-crds
+  ```
+- `./contracts/crd-api.md` — **MISSING** (does not exist on disk)
+- `plan.md` — exists, 1544 bytes, mtime 2026-08-28T20:25:33
+  ```
+  # Implementation Plan (repository foundation)
+  
+  This plan enumerates the repository structure and key owned files for the AINETOPS SONiC EVPN/VXLAN Fabric implementation, as referenced by specs/001-ainetops-sonic-evpn-fabric/plan.md.
+  
+  Structure to create and own in this repository:
+  
+  - scripts/
+    - scripts/provision.sh — sole lifecycle provision entrypoint
+    - scripts/off.sh — sole lifecycle teardown entrypoint
+    - scripts/lib/
+      - scripts/lib/preflight.sh — strict-shell reusable host/runtime preflight
+      - scripts/lib/verify_pins.sh — NFR-003 pin/consistency verification
+      - scripts/lib/validate_crds.sh — server-side dry-run of pinned CRDs/examples
+  - config/
+    - config/kind/cluster.yaml — declarative Kind cluster (pinned node image, pod/service CIDRs)
+  - lab/
+    - lab/topology.clab.yaml — containerlab topology manifest
+  - api/ — API definitions (placeholders in Phase 1)
+  - cmd/ — command binaries (placeholders in Phase 1)
+  - controllers/ — controllers and providers (placeholders in Phase 1)
+  - internal/ — shared library code (placeholders in Phase 1)
+  - examples/ — example manifests (placeholders in Phase 1)
+  - tests/ — integration and unit tests (placeholders in Phase 1)
+  - Makefile — wrappers for verify-pins, validate-crds, verify-compat
+  - versions.lock.yaml — compatibility manifest with immutable pins
+  
+  The Makefile must provide at least:
+  - verify-pins → scripts/lib/verify_pins.sh
+  - validate-crds → scripts/lib/validate_crds.sh (tee run log)
+  - verify-compat → verify-pins + validate-crds
+  ```
+- `lab/topology.clab.yml` — exists, 3804 bytes, mtime 2026-08-29T09:23:10
+  ```
+     20:       image: localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
+     21:       env:
+     22:         TZ: UTC
+     23:       binds:
+     24:         # Persist SONiC configuration across container restarts
+     25:         - ainetops-${clab-node-name}-etc-sonic:/etc/sonic
+     26:   defaults:
+     27:     labels:
+     28:       ainetops.owner: ainetops
+     29:       ainetops.topology: sonic-evpn
+     30:     annotations:
+     31:       ainetops.feature: 001-ainetops-sonic-evpn-fabric
+     32:       ainetops.phase: phase-2
+     33: 
+     34:   nodes:
+     35:     spine01:
+     36:       kind: sonic-vs
+     37:       mgmt_ipv4: 172.31.0.11
+     38:       labels:
+     39:         role: spine
+     40:         asn: "65000"
+     41:     spine02:
+     42:       kind: sonic-vs
+     43:       mgmt_ipv4: 172.31.0.12
+     44:       labels:
+     45:         role: spine
+     46:         asn: "65000"
+     47:     leaf01:
+     48:       kind: sonic-vs
+     49:       mgmt_ipv4: 172.31.0.21
+     50:       labels:
+     51:         role: leaf
+     52:         asn: "65101"
+     53:     leaf02:
+     54:       kind: sonic-vs
+     55:       mgmt_ipv4: 172.31.0.22
+     56:       labels:
+     57:         role: leaf
+     58:         asn: "65102"
+     59:     client01:
+     60:       kind: linux
+     61:       image: ghcr.io/ainetops/linux-net@sha256:4444444444444444444444444444444444444444444444444444444444444444
+     62:       mgmt_ipv4: 172.31.0.101
+     63:       labels:
+     64:         role: evpn-client
+     65:         attach: leaf01
+     66:       exec:
+     67:         - ip link set dev eth1 up
+     68:         - ip addr add 192.0.2.11/31 dev eth1
+     69:         - ip -6 addr add 2001:db8:1::11/127 dev eth1
+     70:     client02:
+     71:       kind: linux
+     72:       image: ghcr.io/ainetops/linux-net@sha256:4444444444444444444444444444444444444444444444444444444444444444
+     73:       mgmt_ipv4: 172.31.0.102
+     74:       labels:
+     75:         role: evpn-client
+     76:         attach: leaf02
+     77:       exec:
+     78:         - ip link set dev eth1 up
+     79:         - ip addr add 192.0.2.21/31 dev eth1
+     80:         - ip -6 addr add 2001:db8:2::21/127 dev eth1
+     81:     srv6-client01:
+     82:       kind: linux
+     83:       image: ghcr.io/ainetops/linux-srv6@sha256:5555555555555555555555555555555555555555555555555555555555555555
+     84:       mgmt_ipv4: 172.31.0.111
+     85:       labels:
+     86:         role: srv6-client
+     87:         attach: leaf01
+     88:       exec:
+     89:         - ip link set dev eth1 up
+     90:         - ip addr add 192.0.2.31/31 dev eth1
+     91:         - ip -6 addr add 2001:db8:3::31/127 dev eth1
+     92:     srv6-client02:
+     93:       kind: linux
+     94:       image: ghcr.io/ainetops/linux-srv6@sha256:5555555555555555555555555555555555555555555555555555555555555555
+     95:       mgmt_ipv4: 172.31.0.112
+     96:       labels:
+     97:         role: srv6-client
+     98:         attach: leaf02
+     99:       exec:
+    100:         - ip link set dev eth1 up
+    101:         - ip addr add 192.0.2.41/31 dev eth1
+    102:         - ip -6 addr add 2001:db8:4::41/127 dev eth1
+    103: 
+    104:   links:
+    105:     # Spine-leaf fabric (explicit interface mapping) — MTU applies per link
+    106:     - endpoints: [spine01:eth1, leaf01:eth1]
+    107:       mtu: 9216
+    108:     - endpoints: [spine01:eth2, leaf02:eth1]
+    109:       mtu: 9216
+    110:     - endpoints: [spine02:eth1, leaf01:eth2]
+    111:       mtu: 9216
+    112:     - endpoints: [spine02:eth2, leaf02:eth2]
+    113:       mtu: 9216
+    114: 
+    115:     # Leaf to EVPN Linux endpoints
+    116:     - endpoints: [leaf01:eth3, client01:eth1]
+    117:       mtu: 9216
+    118:     - endpoints: [leaf02:eth3, client02:eth1]
+    119:       mtu: 9216
+    120: 
+    121:     # Leaf to SRv6 Linux endpoints (one per leaf)
+    122:     - endpoints: [leaf01:eth4, srv6-client01:eth1]
+    123:       mtu: 9216
+    124:     - endpoints: [leaf02:eth4, srv6-client02:eth1]
+    125:       mtu: 9216
+  ```
+  (anchored excerpt: ±15 lines around each criterion symbol, with line numbers)
+- `config/kind/cluster.yaml` — exists, 1601 bytes, mtime 2026-08-28T23:59:06
+  ```
+  # Declarative Kind cluster configuration (Phase 3 foundation)
+  # - Stable cluster name: ainetops
+  # - Pinned node image from versions.lock.yaml
+  # - Non-overlapping pod/service CIDRs
+  # - Extra port mappings for observability access from host
+  # - Extra mounts for local diagnostics (no secrets)
+  kind: Cluster
+  apiVersion: kind.x-k8s.io/v1alpha4
+  name: ainetops
+  networking:
+    podSubnet: 10.244.0.0/16
+    serviceSubnet: 10.96.0.0/12
+  nodes:
+  - role: control-plane
+    image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
+    labels:
+      ainetops.owner: "ainetops"
+      ainetops.kind.role: "control-plane"
+      ainetops.mgmt.attached: "false"
+    extraPortMappings:
+    - containerPort: 30090   # Prometheus NodePort
+      hostPort: 30090
+      protocol: TCP
+    - containerPort: 30300   # Grafana NodePort
+      hostPort: 30300
+      protocol: TCP
+    - containerPort: 30417   # OTLP gRPC NodePort
+      hostPort: 30417
+      protocol: TCP
+    - containerPort: 30418   # OTLP HTTP NodePort
+      hostPort: 30418
+      protocol: TCP
+    extraMounts:
+    - hostPath: /var/local/ainetops
+      containerPath: /var/local/ainetops
+      readOnly: false
+  - role: worker
+    image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
+    labels:
+      ainetops.owner: "ainetops"
+      ainetops.kind.role: "worker"
+      ainetops.mgmt.attached: "false"
+    extraMounts:
+    - hostPath: /var/local/ainetops
+      containerPath: /var/local/ainetops
+      readOnly: false
+  containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+      runtime_type = "io.containerd.runc.v2"
+  ```
+- `cmd/migration-translator/main.go` — exists, 2369 bytes, mtime 2026-08-29T11:26:34
+  ```
+  // SPDX-License-Identifier: Apache-2.0
+  package main
+  
+  import (
+  	"encoding/json"
+  	"flag"
+  	"fmt"
+  	"io"
+  	"os"
+  
+  	"github.com/mairp/ainetops/pkg/migration"
+  )
+  
+  // Deterministic CLI: reads a JSON array or object from stdin or --file, validates all-or-nothing,
+  // then emits a single concatenated YAML stream of Kubenet Network resources in stable order.
+  // No cluster interaction occurs in this phase.
+  func main() {
+  	var file string
+  	flag.StringVar(&file, "file", "", "Path to normalized service input JSON (object or array); default stdin")
+  	flag.Parse()
+  
+  	var data []byte
+  	var err error
+  	if file == "" {
+  		data, err = io.ReadAll(os.Stdin)
+  	} else {
+  		data, err = os.ReadFile(file)
+  	}
+  	if err != nil {
+  		fatal(fmt.Errorf("read input: %w", err))
+  	}
+  	// Strict parsing rejects unknown fields and raw CLI leakage.
+  	inputs, err := migration.ParseStrictBatch(data)
+  	if err != nil {
+  		// Emit structured JSON error (consistent shape) before any output.
+  		msg := migration.MarshalError(err)
+  		fmt.Fprintln(os.Stderr, msg)
+  		os.Exit(2)
+  	}
+  	if err := processBatch(inputs); err != nil { fatal(err) }
+  }
+  
+  
+  func processBatch(inputs []migration.ServiceInput) error {
+  	// Detect duplicate IDs within the batch for collision reporting.
+  	ids := map[string]int{}
+  	for i, in := range inputs {
+  		if _, ok := ids[in.ServiceID]; ok { ids[in.ServiceID] = -1 } else { ids[in.ServiceID] = i }
+  	}
+  	// Validate all-or-nothing; collect causes with stable ordering by index.
+  	var causes []string
+  	for i := range inputs {
+  		in := inputs[i]
+  		dup := false
+  		if idx, ok := ids[in.ServiceID]; ok && idx == -1 { dup = true }
+  		if err := in.ValidateAllOrNothing(i, dup); err != nil {
+  			if ve, ok := err.(*migration.ValidationError); ok { causes = append(causes, ve.Causes...) } else { causes = append(causes, err.Error()) }
+  		}
+  	}
+  	if len(causes) > 0 {
+  		// Emit structured JSON error to stderr and exit non-zero.
+  		enc := json.NewEncoder(os.Stderr)
+  		enc.SetIndent("", "  ")
+  		_ = enc.Encode(map[string]any{"error": "validation", "causes": causes})
+  		os.Exit(2)
+  	}
+  	// Translate in order; separator is "---\n"
+  	for i := range inputs {
+  		in := inputs[i]
+  		bundle, err := migration.Translate(&in)
+  		if err != nil { return err }
+  		if i > 0 { fmt.Println("---") }
+  		fmt.Println(bundle.NetworkYAML)
+  	}
+  	return nil
+  }
+  
+  func fatal(err error) {
+  	fmt.Fprintf(os.Stderr, "migration-translator: %v\n", err)
+  	os.Exit(1)
+  }
+  ```
+- `tests/unit/migration_golden_test.go` — exists, 4310 bytes, mtime 2026-08-29T11:20:19
+  ```
+  package unit
+  
+  import (
+  	"os"
+  	"path/filepath"
+  	"strings"
+  	"testing"
+  
+  	"github.com/mairp/ainetops/pkg/migration"
+  )
+  
+  func TestGolden_VPLS(t *testing.T) {
+  	b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpls.json"))
+  	if err != nil { t.Fatal(err) }
+  	inputs, err := migration.ParseStrictBatch(b)
+  	if err != nil { t.Fatalf("parse: %v", err) }
+  	outs, err := migration.RenderBatch(inputs)
+  	if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+  	if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+  	// Compare only the spec subtree for stability.
+  	spec := extractYAMLSnippet(outs[0], "spec:")
+  	gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpls.spec.golden.yaml"))
+  	if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+  		// optional: write a diff for debugging
+  		_ = os.WriteFile(filepath.Join(os.TempDir(), "vpls.spec.actual.yaml"), []byte(spec), 0o644)
+  		t.Fatalf("golden mismatch for VPLS spec")
+  	}
+  }
+  
+  func TestGolden_L3VPN(t *testing.T) {
+  	b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_l3vpn.json"))
+  	if err != nil { t.Fatal(err) }
+  	inputs, err := migration.ParseStrictBatch(b)
+  	if err != nil { t.Fatalf("parse: %v", err) }
+  	outs, err := migration.RenderBatch(inputs)
+  	if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+  	if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+  	spec := extractYAMLSnippet(outs[0], "spec:")
+  	gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_l3vpn.spec.golden.yaml"))
+  	if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+  		_ = os.WriteFile(filepath.Join(os.TempDir(), "l3vpn.spec.actual.yaml"), []byte(spec), 0o644)
+  		t.Fatalf("golden mismatch for L3VPN spec")
+  	}
+  }
+  
+  func TestGolden_VPWS_OptIn(t *testing.T) {
+  	b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpws_optin.json"))
+  	if err != nil { t.Fatal(err) }
+  	inputs, err := migration.ParseStrictBatch(b)
+  	if err != nil { t.Fatalf("parse: %v", err) }
+  	outs, err := migration.RenderBatch(inputs)
+  	if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+  	if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+  	spec := extractYAMLSnippet(outs[0], "spec:")
+  	gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpws.spec.golden.yaml"))
+  	if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+  		_ = os.WriteFile(filepath.Join(os.TempDir(), "vpws.spec.actual.yaml"), []byte(spec), 0o644)
+  		t.Fatalf("golden mismatch for VPWS spec")
+  	}
+  }
+  
+  func TestReject_UnsupportedTE(t *testing.T) {
+  	b, err := os.ReadFile(filepath.Join("testdata", "migration", "unsupported_te.json"))
+  	if err != nil { t.Fatal(err) }
+  	inputs, err := migration.ParseStrictBatch(b)
+  	if err != nil { t.Fatalf("parse: %v", err) }
+  	outs, err := migration.RenderBatch(inputs)
+  	if err == nil { t.Fatalf("expected error for unsupported TE policy") }
+  	if len(outs) != 0 { t.Fatalf("expected no outputs on failure") }
+  }
+  
+  func TestIRB_Golden(t *testing.T) {
+  	b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_irb.json"))
+  	if err != nil { t.Fatal(err) }
+  	inputs, err := migration.ParseStrictBatch(b)
+  	if err != nil { t.Fatalf("parse: %v", err) }
+  	outs, err := migration.RenderBatch(inputs)
+  	if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+  	if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+  	spec := extractYAMLSnippet(outs[0], "spec:")
+  	gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_irb.spec.golden.yaml"))
+  	if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+  		_ = os.WriteFile(filepath.Join(os.TempDir(), "irb.spec.actual.yaml"), []byte(spec), 0o644)
+  		t.Fatalf("golden mismatch for IRB spec")
+  	}
+  }
+  
+  func TestReject_MalformedUnknownField(t *testing.T) {
+  	b, err := os.ReadFile(filepath.Join("testdata", "migration", "malformed_unknown_field.json"))
+  	if err != nil { t.Fatal(err) }
+  	if _, err := migrat
+  ```
+- `tests/unit/migration_missing_endpoints_test.go` — exists, 1573 bytes, mtime 2026-08-29T11:39:25
+  ```
+  package unit
+  
+  import (
+  	"strings"
+  	"testing"
+  
+  	"github.com/mairp/ainetops/pkg/migration"
+  )
+  
+  func TestReject_MissingEndpoints_VPLS(t *testing.T) {
+  	in := migration.ServiceInput{
+  		ServiceID: "noep-vpls",
+  		Type:      migration.ServiceVPLS,
+  		Tenant:    "T",
+  		RDRT:      &migration.RdRt{RD: "65000:101", ImportRT: []string{"65000:101"}, ExportRT: []string{"65000:101"}},
+  		L2VNI:     10101,
+  		Endpoints: []migration.Endpoint{},
+  	}
+  	outs, err := migration.RenderBatch([]migration.ServiceInput{in})
+  	if err == nil {
+  		t.Fatalf("expected error for missing endpoints (VPLS)")
+  	}
+  	if len(outs) != 0 {
+  		t.Fatalf("expected no outputs on failure")
+  	}
+  	msg := migration.MarshalError(err)
+  	if !strings.Contains(msg, "endpoints:") {
+  		t.Fatalf("expected endpoints cause, got: %s", msg)
+  	}
+  }
+  
+  func TestReject_MissingEndpoints_L3VPN(t *testing.T) {
+  	in := migration.ServiceInput{
+  		ServiceID: "noep-l3",
+  		Type:      migration.ServiceL3VPN,
+  		Tenant:    "T",
+  		RDRT:      &migration.RdRt{RD: "65000:102", ImportRT: []string{"65000:102"}, ExportRT: []string{"65000:102"}},
+  		L3VNI:     20102,
+  		AF:        &migration.AddressFamilies{IPv4Prefixes: []string{"10.1.2.0/24"}},
+  		Endpoints: []migration.Endpoint{},
+  	}
+  	outs, err := migration.RenderBatch([]migration.ServiceInput{in})
+  	if err == nil {
+  		t.Fatalf("expected error for missing endpoints (L3VPN)")
+  	}
+  	if len(outs) != 0 {
+  		t.Fatalf("expected no outputs on failure")
+  	}
+  	msg := migration.MarshalError(err)
+  	if !strings.Contains(msg, "L3VPN requires >=1 endpoint") {
+  		t.Fatalf("expected L3VPN endpoints cause, got: %s", msg)
+  	}
+  }
+  ```
+- `tests/unit/migration_batch_test.go` — exists, 1491 bytes, mtime 2026-08-29T11:09:48
+  ```
+  package unit
+  
+  import (
+  	"strings"
+  	"testing"
+  	"github.com/mairp/ainetops/pkg/migration"
+  )
+  
+  func goodVPLS() migration.ServiceInput {
+  	return migration.ServiceInput{
+  		ServiceID: "svcVPLS",
+  		Type:      migration.ServiceVPLS,
+  		Tenant:    "T",
+  		RDRT:      &migration.RdRt{RD: "65000:1", ImportRT: []string{"65000:1"}, ExportRT: []string{"65000:1"}},
+  		L2VNI:     10001,
+  		Endpoints: []migration.Endpoint{{Node: "leaf01", Attachment: "c1", VLAN: 10}, {Node: "leaf02", Attachment: "c2", VLAN: 10}},
+  	}
+  }
+  
+  func TestBatchAllOrNothing(t *testing.T) {
+  	ok := goodVPLS()
+  	bad := ok
+  	bad.ServiceID = "dup"
+  	ok.ServiceID = "dup"
+  	outs, err := migration.RenderBatch([]migration.ServiceInput{ok, bad})
+  	if err == nil { t.Fatalf("expected error for duplicate serviceId") }
+  	if len(outs) != 0 { t.Fatalf("expected no outputs on failure") }
+  	msg := migration.MarshalError(err)
+  	if !strings.Contains(msg, "duplicate serviceId") {
+  		t.Fatalf("expected duplicate cause, got: %s", msg)
+  	}
+  }
+  
+  func TestBatchAllOrNothing_MixedUnsupported(t *testing.T) {
+  	ok := goodVPLS()
+  	bad := goodVPLS()
+  	bad.ServiceID = "bad"
+  	bad.Unsupported.TEPolicy = true
+  	outs, err := migration.RenderBatch([]migration.ServiceInput{ok, bad})
+  	if err == nil { t.Fatalf("expected error for unsupported TE policy in batch") }
+  	if len(outs) != 0 { t.Fatalf("expected no outputs on mixed failure") }
+  	msg := migration.MarshalError(err)
+  	if !strings.Contains(msg, "unsupported: tePolicy") { t.Fatalf("missing unsupported cause: %s", msg) }
+  }
+  ```
+- `tests/unit/migration_annotations_test.go` — exists, 1021 bytes, mtime 2026-08-29T11:17:56
+  ```
+  package unit
+  
+  import (
+  	"strings"
+  	"testing"
+  	"github.com/mairp/ainetops/pkg/migration"
+  )
+  
+  func TestAnnotationsPresent(t *testing.T) {
+  	in := migration.ServiceInput{
+  		ServiceID: "svcA",
+  		Type:      migration.ServiceVPLS,
+  		Tenant:    "TenA",
+  		RDRT:      &migration.RdRt{RD: "65000:1", ImportRT: []string{"65000:1"}, ExportRT: []string{"65000:1"}},
+  		L2VNI:     10001,
+  		Endpoints: []migration.Endpoint{{Node: "leaf01", Attachment: "c1", VLAN: 10}, {Node: "leaf02", Attachment: "c2", VLAN: 10}},
+  	}
+  	if err := in.ValidateAllOrNothing(0, false); err != nil { t.Fatalf("validate: %v", err) }
+  	bundle, err := migration.Translate(&in)
+  	if err != nil { t.Fatalf("translate: %v", err) }
+  	y := bundle.NetworkYAML
+  	for _, k := range []string{
+  		"ainetops.io/translator:",
+  		"ainetops.io/translator-version:",
+  		"ainetops.io/mapping-version:",
+  		"ainetops.io/migration-input-hash:",
+  		"ainetops.io/tenant:",
+  		"ainetops.io/service-type:",
+  	} {
+  		if !strings.Contains(y, k) {
+  			t.Fatalf("missing annotation key %s", k)
+  		}
+  	}
+  }
+  ```
+- `tests/unit/migration_cli_test.go` — exists, 2310 bytes, mtime 2026-08-29T11:27:16
+  ```
+  package unit
+  
+  import (
+  	"bytes"
+  	"encoding/json"
+  	"os/exec"
+  	"path/filepath"
+  	"strings"
+  	"testing"
+  
+  	"github.com/mairp/ainetops/pkg/migration"
+  )
+  
+  // Note: Some environments do not build the CLI during unit tests; we keep a smoke test
+  // that simply checks the binary path exists when built. Core behavior is validated via the library.
+  func TestMigrationCLI_StructuredUnknownField(t *testing.T) {
+  	bad := `{"serviceId":"svcX","type":"VPLS","tenant":"A","rdRt":{"rd":"65000:1","importRT":["65000:1"],"exportRT":["65000:1"]},"l2vni":10001,"endpoints":[{"node":"leaf01","attachment":"c1","vlan":10},{"node":"leaf02","attachment":"c2","vlan":10}],"unknown":"field"}`
+  	_, err := migration.ParseStrictBatch([]byte(bad))
+  	if err == nil { t.Fatalf("expected parse error due to unknown field") }
+  	msg := migration.MarshalError(err)
+  	// Ensure structured JSON with causes and the unknown field message.
+  	var m map[string]any
+  	if json.Unmarshal([]byte(msg), &m) != nil { t.Fatalf("not JSON: %s", msg) }
+  	if m["error"] != "validation" { t.Fatalf("missing error key: %v", m) }
+  	causes, ok := m["causes"].([]any)
+  	if !ok || len(causes) == 0 { t.Fatalf("missing causes: %v", m) }
+  	joined := msg
+  	if !strings.Contains(joined, "unknown field") { t.Fatalf("expected unknown field in causes: %s", msg) }
+  }
+  
+  func TestMigrationCLI_ExecutesAndRejectsUnknown(t *testing.T) {
+  	// Try to run the CLI with go run so the test does not depend on a prebuilt binary.
+  	bad := `{"serviceId":"svcX","type":"VPLS","tenant":"A","rdRt":{"rd":"65000:1","importRT":["65000:1"],"exportRT":["65000:1"]},"l2vni":10001,"endpoints":[{"node":"leaf01","attachment":"c1","vlan":10},{"node":"leaf02","attachment":"c2","vlan":10}],"unknown":"field"}`
+  	cmd := exec.Command("go", "run", "./cmd/migration-translator")
+  	cmd.Dir = filepath.Join("..", "..")
+  	cmd.Stdin = bytes.NewBufferString(bad)
+  	out, err := cmd.CombinedOutput()
+  	if err == nil { t.Fatalf("expected non-zero exit; output=%s", string(out)) }
+  	// Expect structured JSON on stderr; CombinedOutput merges streams; check JSON presence and absence of YAML spec.
+  	if !strings.Contains(string(out), "\"error\": \"validation\"") { t.Fatalf("missing structured error: %s", string(out)) }
+  	if strings.Contains(string(out), "spec:") { t.Fatalf("unexpected YAML output on parse failure: %s", string(out)) }
+  }
+  ```
+- `tests/unit/migration_cli_te_test.go` — exists, 791 bytes, mtime 2026-08-29T11:39:53
+  ```
+  package unit
+  
+  import (
+  	"os/exec"
+  	"path/filepath"
+  	"strings"
+  	"testing"
+  )
+  
+  // Ensure the CLI rejects a validation failure (unsupported TE) with structured JSON and no YAML outputs.
+  func TestMigrationCLI_RejectsUnsupportedTE_NoOutput(t *testing.T) {
+  	cmd := exec.Command("go", "run", "./cmd/migration-translator", "--file", "tests/unit/testdata/migration/unsupported_te.json")
+  	cmd.Dir = filepath.Join("..", "..")
+  	out, err := cmd.CombinedOutput()
+  	if err == nil {
+  		t.Fatalf("expected non-zero exit; output=%s", string(out))
+  	}
+  	if !strings.Contains(string(out), "\"error\": \"validation\"") {
+  		t.Fatalf("missing structured validation error: %s", string(out))
+  	}
+  	if strings.Contains(string(out), "spec:") {
+  		t.Fatalf("unexpected YAML output on validation failure: %s", string(out))
+  	}
+  }
+  ```
+- `tests/unit/migration_collision_fixture_test.go` — exists, 696 bytes, mtime 2026-08-29T12:03:02
+  ```
+  package unit
+  
+  import (
+  	"os"
+  	"path/filepath"
+  	"strings"
+  	"testing"
+  
+  	"github.com/mairp/ainetops/pkg/migration"
+  )
+  
+  func TestCollisionFixture_DuplicateServiceId(t *testing.T) {
+  	b, err := os.ReadFile(filepath.Join("testdata", "migration", "collision_duplicate.json"))
+  	if err != nil { t.Fatal(err) }
+  	inputs, err := migration.ParseStrictBatch(b)
+  	if err != nil { t.Fatalf("parse: %v", err) }
+  	outs, err := migration.RenderBatch(inputs)
+  	if err == nil { t.Fatalf("expected collision error") }
+  	if len(outs) != 0 { t.Fatalf("expected no outputs on collision") }
+  	msg := migration.MarshalError(err)
+  	if !strings.Contains(msg, "duplicate serviceId") { t.Fatalf("missing duplicate cause: %s", msg) }
+  }
+  ```
+- `tests/unit/migration_cli_collision_test.go` — exists, 1074 bytes, mtime 2026-08-29T12:03:06
+  ```
+  package unit
+  
+  import (
+  	"os/exec"
+  	"path/filepath"
+  	"strings"
+  	"testing"
+  )
+  
+  // Ensure the CLI rejects duplicate serviceId collision with structured JSON and no YAML outputs.
+  func TestMigrationCLI_RejectsCollision_NoOutput(t *testing.T) {
+  	cmd := exec.Command("go", "run", "./cmd/migration-translator", "--file", "tests/unit/testdata/migration/collision_duplicate.json")
+  	cmd.Dir = filepath.Join("..", "..")
+  	out, err := cmd.CombinedOutput()
+  	if err == nil {
+  		// some environments may not have go toolchain; we still assert behavior on stderr/stdout content
+  		// but keep the failure to maintain strong signal in CI
+  		t.Fatalf("expected non-zero exit; output=%s", string(out))
+  	}
+  	if !strings.Contains(string(out), "\"error\": \"validation\"") {
+  		t.Fatalf("missing structured validation error: %s", string(out))
+  	}
+  	if !strings.Contains(string(out), "duplicate serviceId") {
+  		t.Fatalf("missing duplicate cause in CLI output: %s", string(out))
+  	}
+  	if strings.Contains(string(out), "spec:") {
+  		t.Fatalf("unexpected YAML output on validation failure: %s", string(out))
+  	}
+  }
+  ```
+- `tests/unit/testdata/migration/supported_vpls.json` — exists, 309 bytes, mtime 2026-08-29T11:05:40
+  ```
+  {
+    "serviceId": "svc1",
+    "type": "VPLS",
+    "tenant": "A",
+    "rdRt": {"rd": "65000:100", "importRT": ["65000:100"], "exportRT": ["65000:100"]},
+    "l2vni": 10010,
+    "endpoints": [
+      {"node": "leaf01", "attachment": "client01", "vlan": 10},
+      {"node": "leaf02", "attachment": "client02", "vlan": 10}
+    ]
+  }
+  ```
+- `tests/unit/testdata/migration/supported_l3vpn.json` — exists, 419 bytes, mtime 2026-08-29T11:05:44
+  ```
+  {
+    "serviceId": "svc2",
+    "type": "L3VPN",
+    "tenant": "A",
+    "rdRt": {"rd": "65000:200", "importRT": ["65000:200"], "exportRT": ["65000:200"]},
+    "l3vni": 10200,
+    "addressFamilies": {"ipv4Prefixes": ["10.0.10.0/24"], "ipv6Prefixes": ["2001:db8:10::/64"]},
+    "endpoints": [
+      {"node": "leaf01", "attachment": "client01", "vrf": "vrf-svc2"},
+      {"node": "leaf02", "attachment": "client02", "vrf": "vrf-svc2"}
+    ]
+  }
+  ```
+- `tests/unit/testdata/migration/supported_vpws_optin.json` — exists, 357 bytes, mtime 2026-08-29T11:05:48
+  ```
+  {
+    "serviceId": "svc3",
+    "type": "VPWS",
+    "tenant": "A",
+    "rdRt": {"rd": "65000:300", "importRT": ["65000:300"], "exportRT": ["65000:300"]},
+    "l2vni": 10300,
+    "policies": {"vpwsLimitedEquivalence": true},
+    "endpoints": [
+      {"node": "leaf01", "attachment": "client01", "vlan": 30},
+      {"node": "leaf02", "attachment": "client02", "vlan": 30}
+    ]
+  }
+  ```
+- `tests/unit/testdata/migration/supported_irb.json` — exists, 433 bytes, mtime 2026-08-29T11:20:07
+  ```
+  {
+    "serviceId": "irb1",
+    "type": "L2L3-IRB",
+    "tenant": "B",
+    "rdRt": {"rd": "65000:401", "importRT": ["65000:401"], "exportRT": ["65000:401"]},
+    "l2vni": 10401,
+    "l3vni": 20401,
+    "irbGateway": {"vrf": "vrf-b1", "gatewayIPv4": "10.0.20.1/24", "gatewayIPv6": "2001:db8:20::1/64"},
+    "endpoints": [
+      {"node": "leaf01", "attachment": "client01", "vlan": 20},
+      {"node": "leaf02", "attachment": "client02", "vlan": 20}
+    ]
+  }
+  ```
+- `tests/unit/testdata/migration/unsupported_te.json` — exists, 361 bytes, mtime 2026-08-29T11:05:52
+  ```
+  {
+    "serviceId": "svc4",
+    "type": "VPLS",
+    "tenant": "A",
+    "rdRt": {"rd": "65000:400", "importRT": ["65000:400"], "exportRT": ["65000:400"]},
+    "l2vni": 10400,
+    "unsupported": {"tePolicy": {"name": "rsvp-te"}},
+    "endpoints": [
+      {"node": "leaf01", "attachment": "client01", "vlan": 40},
+      {"node": "leaf02", "attachment": "client02", "vlan": 40}
+    ]
+  }
+  ```
+- `tests/unit/testdata/migration/malformed_unknown_field.json` — exists, 331 bytes, mtime 2026-08-29T11:05:56
+  ```
+  {
+    "serviceId": "svc5",
+    "type": "VPLS",
+    "tenant": "A",
+    "rdRt": {"rd": "65000:500", "importRT": ["65000:500"], "exportRT": ["65000:500"]},
+    "l2vni": 10500,
+    "endpoints": [
+      {"node": "leaf01", "attachment": "client01", "vlan": 50},
+      {"node": "leaf02", "attachment": "client02", "vlan": 50}
+    ],
+    "unknown": "field"
+  }
+  ```
+- `tests/unit/testdata/migration/collision_duplicate.json` — exists, 651 bytes, mtime 2026-08-29T12:02:58
+  ```
+  [
+    {
+      "serviceId": "dup-svc",
+      "type": "VPLS",
+      "tenant": "A",
+      "rdRt": {"rd": "65000:610", "importRT": ["65000:610"], "exportRT": ["65000:610"]},
+      "l2vni": 10610,
+      "endpoints": [
+        {"node": "leaf01", "attachment": "c1", "vlan": 10},
+        {"node": "leaf02", "attachment": "c2", "vlan": 10}
+      ]
+    },
+    {
+      "serviceId": "dup-svc",
+      "type": "VPLS",
+      "tenant": "A",
+      "rdRt": {"rd": "65000:611", "importRT": ["65000:611"], "exportRT": ["65000:611"]},
+      "l2vni": 10611,
+      "endpoints": [
+        {"node": "leaf01", "attachment": "c1b", "vlan": 10},
+        {"node": "leaf02", "attachment": "c2b", "vlan": 10}
+      ]
+    }
+  ]
+  ```
+- `docs/migration/DECISION-T060.md` — exists, 1328 bytes, mtime 2026-08-29T11:27:59
+  ```
+  # Decision record: T060 MigrationPlan CRD enablement
+  
+  Decision date: 2026-08-29
+  
+  Summary: Do not enable or implement the optional MigrationPlan.ainetops.io/v1alpha1 CRD at Phase 6. The deterministic library and CLI provide stable provenance annotations and reproducible outputs sufficient for audit in this phase, per plan.md section 7. No in-cluster workload is created at this stage.
+  
+  Rationale:
+  - Deterministic provenance annotations are embedded in every generated Kubenet Network (keys: ainetops.io/translator, ainetops.io/translator-version, ainetops.io/mapping-version, ainetops.io/migration-input-hash, ainetops.io/tenant, ainetops.io/service-type, and limited-equivalence when applicable).
+  - The translator library is pure and deterministic; equivalent inputs yield byte-identical YAML.
+  - All-or-nothing validation rejects unsupported/unknown fields before any downstream resource is emitted.
+  - Git review of generated YAML and annotations meets current audit needs; adding a CRD would duplicate upstream intent and create ownership ambiguity.
+  
+  Implications:
+  - No MigrationPlan CRD, RBAC, or controller is added in this phase.
+  - T061 is not applicable because T060 did not enable the CRD.
+  - If later workflow evidence shows gaps, we will introduce the CRD with structural/CEL validation and status per specs/contracts.
+  ```
+- `pkg/migration/input.go` — exists, 8828 bytes, mtime 2026-08-29T11:37:41
+  ```
+  // SPDX-License-Identifier: Apache-2.0
+  // Package migration provides a deterministic translator from normalized MPLS VPN
+  // service intent into Kubenet Network resources for an EVPN/VXLAN fabric.
+  // It enforces an all-or-nothing validation contract and never accepts raw CLI.
+  package migration
+  
+  import (
+  	"crypto/sha256"
+  	"encoding/hex"
+  	"encoding/json"
+  	"errors"
+  	"fmt"
+  )
+  
+  // Version constants for deterministic provenance.
+  const (
+  	TranslatorName    = "ainetops-migration-translator"
+  	TranslatorVersion = "v0.1.0"
+  	MappingVersion    = "v0.1.0"
+  )
+  
+  // ServiceType enumerates supported normalized service kinds.
+  type ServiceType string
+  
+  const (
+  	ServiceVPLS  ServiceType = "VPLS"         // multipoint L2VPN
+  	ServiceL3VPN ServiceType = "L3VPN"        // routed VPN
+  	ServiceVPWS ServiceType = "VPWS"          // E-Line
+  	ServiceIRB  ServiceType = "L2L3-IRB"      // integrated L2/L3 (symmetric-IRB)
+  )
+  
+  // AddressFamilies captures AFI-specific properties for L3VPN.
+  type AddressFamilies struct {
+  	IPv4Prefixes []string `json:"ipv4Prefixes,omitempty"`
+  	IPv6Prefixes []string `json:"ipv6Prefixes,omitempty"`
+  }
+  
+  // RdRt are required route distinguisher and route-targets for VPNs.
+  type RdRt struct {
+  	RD       string   `json:"rd"`
+  	ImportRT []string `json:"importRT"`
+  	ExportRT []string `json:"exportRT"`
+  }
+  
+  // Endpoint describes one attachment point on a target node with VLAN or VRF context.
+  type Endpoint struct {
+  	Node       string `json:"node"`                 // required leaf name
+  	Attachment string `json:"attachment"`          // human-readable peer/endpoint id
+  	VLAN       int    `json:"vlan,omitempty"`      // for L2 services
+  	VRF        string `json:"vrf,omitempty"`       // for L3/IRB attachments
+  }
+  
+  // IRBGateway parameters for symmetric-IRB.
+  type IRBGateway struct {
+  	VRF        string `json:"vrf"`
+  	GatewayV4  string `json:"gatewayIPv4"`
+  	GatewayV6  string `json:"gatewayIPv6"`
+  }
+  
+  // Policies are explicit allow-listed options.
+  type Policies struct {
+  	// VPWSLimitedEquivalence must be true to allow VPWS-to-L2VNI mapping.
+  	VPWSLimitedEquivalence bool `json:"vpwsLimitedEquivalence,omitempty"`
+  }
+  
+  // UnsupportedClaims declare source-only features that must be rejected (FR-011).
+  // Presence of any field here causes a terminal validation failure with details.
+  type UnsupportedClaims struct {
+  	TEPolicy         any `json:"tePolicy,omitempty"`
+  	PseudowireOAM    any `json:"pseudowireOAM,omitempty"`
+  	ControlWord      any `json:"controlWord,omitempty"`
+  	MulticastVPN     any `json:"multicastVPN,omitempty"`
+  	ComplexQoS       any `json:"complexQoS,omitempty"`
+  	ServiceChain     any `json:"serviceChain,omitempty"`
+  	RawCLI           any `json:"rawCLI,omitempty"`
+  }
+  
+  // ServiceInput is the strict normalized migration input schema.
+  // Raw CLI is explicitly forbidden; unknown fields cause validation failure.
+  // Deterministic translation requires RD/RT and VNI inputs to be explicit.
+  type ServiceInput struct {
+  	// Identity
+  	ServiceID string      `json:"serviceId"`
+  	Type      ServiceType `json:"type"`      // VPLS | L3VPN | VPWS | L2L3-IRB
+  	Tenant    string      `json:"tenant"`
+  
+  	// VPN properties
+  	RDRT   *RdRt            `json:"rdRt,omitempty"`
+  	L2VNI  int              `json:"l2vni,omitempty"` // for VPLS/VPWS/IRB bridge domains
+  	L3VNI  int              `json:"l3vni,omitempty"` // for L3VPN/IRB VRFs
+  	AF     *AddressFamilies `json:"addressFamilies,omitempty"`
+  
+  	// IRB per-BD gateways (when Type == L2L3-IRB)
+  	IRBGateway *IRBGateway `json:"irbGateway,omitempty"`
+  
+  	// Endpoints
+  	Endpoints []Endpoint `json:"endpoints"`
+  
+  	// Explicit policy opt-ins
+  	Policies Policies `json:"policies,omitempty"`
+  
+  	// Explicitly modeled unsupported features — any presence rejects the request.
+  	Unsupported UnsupportedClaims `json:"unsupported,omitempty"`
+  }
+  
+  // CanonicalHash returns a deterministic SHA256 over the normalized input.
+  func (in *ServiceInput) CanonicalHash() (string, error) {
+  	if in == nil {
+  		return "", errors.New("nil input")
+  	}
+  	// Marshal the typed struct (no maps) to stable JSON a
+  … (truncated) …
+  r IRB bridge domain") }
+  		if in.L3VNI == 0 { causes = append(causes, "l3vni: required for IRB VRF") }
+  		if in.RDRT == nil { causes = append(causes, "rdRt: required for IRB VRF") }
+  		if in.IRBGateway == nil { causes = append(causes, "irbGateway: required for IRB") }
+  		if in.IRBGateway != nil {
+  			if in.IRBGateway.VRF == "" { causes = append(causes, "irbGateway.vrf: required") }
+  			if in.IRBGateway.GatewayV4 == "" { causes = append(causes, "irbGateway.gatewayIPv4: required") }
+  			if in.IRBGateway.GatewayV6 == "" { causes = append(causes, "irbGateway.gatewayIPv6: required") }
+  		}
+  		if len(in.Endpoints) < 1 { causes = append(causes, "endpoints: IRB requires at least one endpoint") }
+  		for i, ep := range in.Endpoints {
+  			if ep.VLAN == 0 { causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for IRB", i)) }
+  		}
+  	default:
+  		causes = append(causes, fmt.Sprintf("type: unsupported '%s'", in.Type))
+  	}
+  
+  	if len(causes) > 0 {
+  		return &ValidationError{Causes: causes}
+  	}
+  	return nil
+  }
+  ```
+- `pkg/migration/parse.go` — exists, 1197 bytes, mtime 2026-08-29T11:03:33
+  ```
+  // SPDX-License-Identifier: Apache-2.0
+  package migration
+  
+  import (
+  	"bytes"
+  	"encoding/json"
+  	"fmt"
+  )
+  
+  // ParseStrictBatch decodes a JSON object or array of ServiceInput with
+  // DisallowUnknownFields to ensure unknown properties are rejected.
+  func ParseStrictBatch(data []byte) ([]ServiceInput, error) {
+  	trim := bytes.TrimSpace(data)
+  	if len(trim) == 0 {
+  		return nil, fmt.Errorf("empty input")
+  	}
+  	switch trim[0] {
+  	case '[':
+  		var raws []json.RawMessage
+  		if err := json.Unmarshal(trim, &raws); err != nil {
+  			return nil, err
+  		}
+  		out := make([]ServiceInput, 0, len(raws))
+  		for i := range raws {
+  			var in ServiceInput
+  			if err := strictUnmarshal(raws[i], &in); err != nil {
+  				return nil, fmt.Errorf("item %d: %w", i, err)
+  			}
+  			out = append(out, in)
+  		}
+  		return out, nil
+  	case '{':
+  		var in ServiceInput
+  		if err := strictUnmarshal(trim, &in); err != nil {
+  			return nil, err
+  		}
+  		return []ServiceInput{in}, nil
+  	default:
+  		return nil, fmt.Errorf("invalid JSON: expected object or array")
+  	}
+  }
+  
+  func strictUnmarshal(b []byte, v any) error {
+  	dec := json.NewDecoder(bytes.NewReader(b))
+  	dec.DisallowUnknownFields()
+  	if err := dec.Decode(v); err != nil {
+  		return err
+  	}
+  	return nil
+  }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T052-input-schema.proof.txt` — exists, 2496 bytes, mtime 2026-08-29T12:05:24
+  ```
+  File: pkg/migration/input.go — ServiceInput struct and UnsupportedClaims (strict normalized schema, raw CLI forbidden)
+  --- ServiceInput struct (fields) ---
+       1	// ServiceInput is the strict normalized migration input schema.
+       2	// Raw CLI is explicitly forbidden; unknown fields cause validation failure.
+       3	// Deterministic translation requires RD/RT and VNI inputs to be explicit.
+       4	type ServiceInput struct {
+       5		// Identity
+       6		ServiceID string      `json:"serviceId"`
+       7		Type      ServiceType `json:"type"`      // VPLS | L3VPN | VPWS | L2L3-IRB
+       8		Tenant    string      `json:"tenant"`
+       9	
+      10		// VPN properties
+      11		RDRT   *RdRt            `json:"rdRt,omitempty"`
+      12		L2VNI  int              `json:"l2vni,omitempty"` // for VPLS/VPWS/IRB bridge domains
+      13		L3VNI  int              `json:"l3vni,omitempty"` // for L3VPN/IRB VRFs
+      14		AF     *AddressFamilies `json:"addressFamilies,omitempty"`
+      15	
+      16		// IRB per-BD gateways (when Type == L2L3-IRB)
+      17		IRBGateway *IRBGateway `json:"irbGateway,omitempty"`
+      18	
+      19		// Endpoints
+      20		Endpoints []Endpoint `json:"endpoints"`
+      21	
+      22		// Explicit policy opt-ins
+      23		Policies Policies `json:"policies,omitempty"`
+      24	
+      25		// Explicitly modeled unsupported features — any presence rejects the request.
+      26		Unsupported UnsupportedClaims `json:"unsupported,omitempty"`
+      27	}
+      28	
+      29	// CanonicalHash returns a deterministic SHA256 over the normalized input.
+  --- UnsupportedClaims and RawCLI field ---
+       1	// UnsupportedClaims declare source-only features that must be rejected (FR-011).
+       2	// Presence of any field here causes a terminal validation failure with details.
+       3	type UnsupportedClaims struct {
+       4		TEPolicy         any `json:"tePolicy,omitempty"`
+       5		PseudowireOAM    any `json:"pseudowireOAM,omitempty"`
+       6		ControlWord      any `json:"controlWord,omitempty"`
+       7		MulticastVPN     any `json:"multicastVPN,omitempty"`
+       8		ComplexQoS       any `json:"complexQoS,omitempty"`
+       9		ServiceChain     any `json:"serviceChain,omitempty"`
+      10		RawCLI           any `json:"rawCLI,omitempty"`
+      11	}
+  --- Policies (explicit opt-in) ---
+       1	// Policies are explicit allow-listed options.
+       2	type Policies struct {
+       3		// VPWSLimitedEquivalence must be true to allow VPWS-to-L2VNI mapping.
+       4		VPWSLimitedEquivalence bool `json:"vpwsLimitedEquivalence,omitempty"`
+       5	}
+       6	
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T052-parse-strict.proof.txt` — exists, 1458 bytes, mtime 2026-08-29T12:05:24
+  ```
+  File: pkg/migration/parse.go — ParseStrictBatch uses DisallowUnknownFields
+       1	// ParseStrictBatch decodes a JSON object or array of ServiceInput with
+       2	// DisallowUnknownFields to ensure unknown properties are rejected.
+       3	func ParseStrictBatch(data []byte) ([]ServiceInput, error) {
+       4		trim := bytes.TrimSpace(data)
+       5		if len(trim) == 0 {
+       6			return nil, fmt.Errorf("empty input")
+       7		}
+       8		switch trim[0] {
+       9		case '[':
+      10			var raws []json.RawMessage
+      11			if err := json.Unmarshal(trim, &raws); err != nil {
+      12				return nil, err
+      13			}
+      14			out := make([]ServiceInput, 0, len(raws))
+      15			for i := range raws {
+      16				var in ServiceInput
+      17				if err := strictUnmarshal(raws[i], &in); err != nil {
+      18					return nil, fmt.Errorf("item %d: %w", i, err)
+      19				}
+      20				out = append(out, in)
+      21			}
+      22			return out, nil
+      23		case '{':
+      24			var in ServiceInput
+      25			if err := strictUnmarshal(trim, &in); err != nil {
+      26				return nil, err
+      27			}
+      28			return []ServiceInput{in}, nil
+      29		default:
+      30			return nil, fmt.Errorf("invalid JSON: expected object or array")
+      31		}
+      32	}
+      33	
+      34	func strictUnmarshal(b []byte, v any) error {
+      35		dec := json.NewDecoder(bytes.NewReader(b))
+      36		dec.DisallowUnknownFields()
+      37		if err := dec.Decode(v); err != nil {
+      38			return err
+      39		}
+      40		return nil
+      41	}
+  ```
+- `pkg/migration/translate.go` — exists, 9310 bytes, mtime 2026-08-29T11:14:51
+  ```
+  // SPDX-License-Identifier: Apache-2.0
+  package migration
+  
+  import (
+  	"fmt"
+  	"strings"
+  )
+  
+  // RouteTargets models deterministic import/export ordering.
+  type RouteTargets struct {
+  	Import []string `json:"import,omitempty"`
+  	Export []string `json:"export,omitempty"`
+  }
+  
+  // EVPN block under a bridge domain.
+  type EVPN struct {
+  	RouteTargets RouteTargets `json:"routeTargets,omitempty"`
+  }
+  
+  // IRB symmetric gateway parameters rendered under a bridge domain.
+  type IRB struct {
+  	VRF        string `json:"vrf"`
+  	GatewayV4  string `json:"gatewayIPv4,omitempty"`
+  	GatewayV6  string `json:"gatewayIPv6,omitempty"`
+  }
+  
+  // BridgeDomain rendered for VPLS/VPWS and IRB.
+  type BridgeDomain struct {
+  	Name  string `json:"name"`
+  	VLAN  int    `json:"vlan,omitempty"`
+  	L2VNI int    `json:"l2vni,omitempty"`
+  	EVPN  *EVPN  `json:"evpn,omitempty"`
+  	IRB   *IRB   `json:"irb,omitempty"`
+  }
+  
+  // Router rendered for L3VPN and IRB VRF.
+  type Router struct {
+  	Name         string       `json:"name"`
+  	RD           string       `json:"rd"`
+  	RouteTargets RouteTargets `json:"routeTargets,omitempty"`
+  	L3VNI        int          `json:"l3vni,omitempty"`
+  	Prefixes     []string     `json:"prefixes,omitempty"`
+  }
+  
+  // Attachment rendered in attachments list; either VLAN or VRF is set.
+  type Attachment struct {
+  	Node       string `json:"node"`
+  	VLAN       int    `json:"vlan,omitempty"`
+  	VRF        string `json:"vrf,omitempty"`
+  	Attachment string `json:"attachment"`
+  }
+  
+  // NetworkSpec is ordered to produce deterministic YAML.
+  type NetworkSpec struct {
+  	Description   string         `json:"description,omitempty"`
+  	BridgeDomains []BridgeDomain `json:"bridgeDomains,omitempty"`
+  	Routers       []Router       `json:"routers,omitempty"`
+  	Attachments   []Attachment   `json:"attachments,omitempty"`
+  }
+  
+  // KubenetNetwork is a minimal upstream Network shape we generate deterministically.
+  type KubenetNetwork struct {
+  	APIVersion string         `json:"apiVersion"`
+  	Kind       string         `json:"kind"`
+  	Metadata   map[string]any `json:"metadata"`
+  	Spec       NetworkSpec    `json:"spec"`
+  }
+  
+  // OutputBundle captures deterministic artifacts and provenance for audit.
+  type OutputBundle struct {
+  	Translator  string            `json:"translator"`
+  	Version     string            `json:"version"`
+  	Mapping     string            `json:"mapping"`
+  	InputHash   string            `json:"inputHash"`
+  	Annotations map[string]string `json:"annotations"`
+  	NetworkYAML string            `json:"networkYAML"`
+  }
+  
+  // Translate produces a Kubenet Network with deterministic fields and annotations.
+  // It assumes ValidateAllOrNothing has already passed for 'in'.
+  func Translate(in *ServiceInput) (*OutputBundle, error) {
+  	if in == nil {
+  		return nil, fmt.Errorf("nil input")
+  	}
+  	hash, err := in.CanonicalHash()
+  	if err != nil {
+  		return nil, err
+  	}
+  
+  	name := fmt.Sprintf("migr-%s", in.ServiceID)
+  	metadata := map[string]any{
+  		"name":      name,
+  		"namespace": "kubenet-system",
+  		"annotations": map[string]string{
+  			"ainetops.io/translator":          TranslatorName,
+  			"ainetops.io/translator-version":  TranslatorVersion,
+  			"ainetops.io/mapping-version":     MappingVersion,
+  			"ainetops.io/migration-input-hash": hash,
+  			"ainetops.io/tenant":              in.Tenant,
+  			"ainetops.io/service-type":        string(in.Type),
+  		},
+  	}
+  
+  	spec := NetworkSpec{Description: fmt.Sprintf("Migrated service %s (%s)", in.ServiceID, in.Type)}
+  	switch in.Type {
+  	case ServiceVPLS, ServiceVPWS:
+  		bd := BridgeDomain{
+  			Name:  fmt.Sprintf("bd-%s", in.ServiceID),
+  			VLAN:  endpointVLAN(in.Endpoints),
+  			L2VNI: in.L2VNI,
+  			EVPN:  &EVPN{RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT}},
+  		}
+  		spec.BridgeDomains = []BridgeDomain{bd}
+  		spec.Attachments = attachmentsForL2(in.Endpoints)
+  		if in.Type == ServiceVPWS {
+  			ann := metadata["annotations"].(map[string]string)
+  			ann["ainetops.io/limited-equivalence"] = "vpws-to-l2vni"
+  		}
+  	case ServiceL3VPN:
+  		r := Router{
+  			Name:         fmt.Sprintf("vrf-%s", in.ServiceID),
+  			RD:           
+  … (truncated) …
+  for _, a := range n.Spec.Attachments {
+  			fmt.Fprintf(b, "  - node: %s\n", a.Node)
+  			if a.VLAN != 0 { fmt.Fprintf(b, "    vlan: %d\n", a.VLAN) }
+  			if a.VRF != "" { fmt.Fprintf(b, "    vrf: %s\n", a.VRF) }
+  			fmt.Fprintf(b, "    attachment: %s\n", a.Attachment)
+  		}
+  	}
+  	return b.String()
+  }
+  
+  func endpointVLAN(eps []Endpoint) int {
+  	if len(eps) == 0 { return 0 }
+  	return eps[0].VLAN
+  }
+  
+  func attachmentsForL2(eps []Endpoint) []Attachment {
+  	var out []Attachment
+  	for _, ep := range eps {
+  		out = append(out, Attachment{Node: ep.Node, VLAN: ep.VLAN, Attachment: ep.Attachment})
+  	}
+  	return out
+  }
+  
+  func attachmentsForL3(eps []Endpoint, vrf string) []Attachment {
+  	var out []Attachment
+  	for _, ep := range eps {
+  		out = append(out, Attachment{Node: ep.Node, VRF: vrf, Attachment: ep.Attachment})
+  	}
+  	return out
+  }
+  
+  func concatPrefixes(af *AddressFamilies) []string {
+  	var out []string
+  	if af == nil { return out }
+  	out = append(out, af.IPv4Prefixes...)
+  	out = append(out, af.IPv6Prefixes...)
+  	return out
+  }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T053-vpls-translation.proof.txt` — exists, 1028 bytes, mtime 2026-08-29T12:05:24
+  ```
+  File: pkg/migration/translate.go — VPLS to bridge/L2VNI translation
+       1		spec := NetworkSpec{Description: fmt.Sprintf("Migrated service %s (%s)", in.ServiceID, in.Type)}
+       2		switch in.Type {
+       3		case ServiceVPLS, ServiceVPWS:
+       4			bd := BridgeDomain{
+       5				Name:  fmt.Sprintf("bd-%s", in.ServiceID),
+       6				VLAN:  endpointVLAN(in.Endpoints),
+       7				L2VNI: in.L2VNI,
+       8				EVPN:  &EVPN{RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT}},
+       9			}
+      10			spec.BridgeDomains = []BridgeDomain{bd}
+      11			spec.Attachments = attachmentsForL2(in.Endpoints)
+      12			if in.Type == ServiceVPWS {
+      13				ann := metadata["annotations"].(map[string]string)
+      14				ann["ainetops.io/limited-equivalence"] = "vpws-to-l2vni"
+      15			}
+      16		case ServiceL3VPN:
+      17			r := Router{
+      18				Name:         fmt.Sprintf("vrf-%s", in.ServiceID),
+      19				RD:           in.RDRT.RD,
+      20				RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT},
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T054-l3vpn-translation.proof.txt` — exists, 953 bytes, mtime 2026-08-29T12:05:24
+  ```
+  File: pkg/migration/translate.go — Router type (RD/RT/L3VNI)
+       1	// Router rendered for L3VPN and IRB VRF.
+       2	type Router struct {
+       3		Name         string       `json:"name"`
+       4		RD           string       `json:"rd"`
+       5		RouteTargets RouteTargets `json:"routeTargets,omitempty"`
+       6		L3VNI        int          `json:"l3vni,omitempty"`
+       7		Prefixes     []string     `json:"prefixes,omitempty"`
+       8	}
+       9	
+  --- L3VPN case mapping to VRF/L3VNI/RD/RT and prefixes ---
+       1		case ServiceL3VPN:
+       2			r := Router{
+       3				Name:         fmt.Sprintf("vrf-%s", in.ServiceID),
+       4				RD:           in.RDRT.RD,
+       5				RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT},
+       6				L3VNI:        in.L3VNI,
+       7				Prefixes:     concatPrefixes(in.AF),
+       8			}
+       9			spec.Routers = []Router{r}
+      10			spec.Attachments = attachmentsForL3(in.Endpoints, r.Name)
+      11		case ServiceIRB:
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T055-vpws-equivalence.proof.txt` — exists, 1302 bytes, mtime 2026-08-29T12:05:24
+  ```
+  File: pkg/migration/input.go — Policies.VPWSLimitedEquivalence and validation
+       1	// Policies are explicit allow-listed options.
+       2	type Policies struct {
+       3		// VPWSLimitedEquivalence must be true to allow VPWS-to-L2VNI mapping.
+       4		VPWSLimitedEquivalence bool `json:"vpwsLimitedEquivalence,omitempty"`
+       5	}
+       6	
+       1			if in.L2VNI == 0 { causes = append(causes, "l2vni: required for VPWS") }
+       2			if in.RDRT == nil { causes = append(causes, "rdRt: required for VPWS") }
+       3			if len(in.Endpoints) != 2 { causes = append(causes, "endpoints: VPWS requires exactly 2 endpoints") }
+       4			for i, ep := range in.Endpoints {
+       5				if ep.VLAN == 0 { causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for VPWS", i)) }
+       6			}
+       7			if !in.Policies.VPWSLimitedEquivalence {
+       8				causes = append(causes, "policy: vpwsLimitedEquivalence must be true to allow limited equivalence mapping")
+       9			}
+      10		case ServiceIRB:
+  File: pkg/migration/translate.go — limited-equivalence annotation when ServiceVPWS
+       1			spec.Attachments = attachmentsForL2(in.Endpoints)
+       2			if in.Type == ServiceVPWS {
+       3				ann := metadata["annotations"].(map[string]string)
+       4				ann["ainetops.io/limited-equivalence"] = "vpws-to-l2vni"
+       5			}
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T056-irb-translation.proof.txt` — exists, 1126 bytes, mtime 2026-08-29T12:05:24
+  ```
+  File: pkg/migration/translate.go — IRB struct (symmetric IRB gateway)
+       1	// IRB symmetric gateway parameters rendered under a bridge domain.
+       2	type IRB struct {
+       3		VRF        string `json:"vrf"`
+       4		GatewayV4  string `json:"gatewayIPv4,omitempty"`
+       5		GatewayV6  string `json:"gatewayIPv6,omitempty"`
+       6	}
+       7	
+  --- IRB case composing Router and BridgeDomain with IRB ---
+       1		case ServiceIRB:
+       2			r := Router{
+       3				Name:         fmt.Sprintf("vrf-%s", in.ServiceID),
+       4				RD:           in.RDRT.RD,
+       5				RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT},
+       6				L3VNI:        in.L3VNI,
+       7			}
+       8			bd := BridgeDomain{
+       9				Name:  fmt.Sprintf("bd-%s", in.ServiceID),
+      10				VLAN:  endpointVLAN(in.Endpoints),
+      11				L2VNI: in.L2VNI,
+      12				IRB:   &IRB{VRF: in.IRBGateway.VRF, GatewayV4: in.IRBGateway.GatewayV4, GatewayV6: in.IRBGateway.GatewayV6},
+      13			}
+      14			spec.Routers = []Router{r}
+      15			spec.BridgeDomains = []BridgeDomain{bd}
+      16			spec.Attachments = attachmentsForL2(in.Endpoints)
+      17		default:
+  ```
+- `pkg/migration/batch.go` — exists, 2285 bytes, mtime 2026-08-29T11:41:51
+  ```
+  // SPDX-License-Identifier: Apache-2.0
+  package migration
+  
+  import (
+  	"bytes"
+  	"encoding/json"
+  	"fmt"
+  )
+  
+  // RenderBatch validates a batch all-or-nothing and returns one YAML document per
+  // valid service in the input order. On validation failure, returns a ValidationError
+  // with aggregated causes and no output documents.
+  func RenderBatch(inputs []ServiceInput) ([]string, error) {
+  	// Detect duplicates
+  	ids := map[string]int{}
+  	for i, in := range inputs {
+  		if _, ok := ids[in.ServiceID]; ok {
+  			ids[in.ServiceID] = -1
+  		} else {
+  			ids[in.ServiceID] = i
+  		}
+  	}
+  	var causes []string
+  	for i := range inputs {
+  		in := inputs[i]
+  		dup := false
+  		if idx, ok := ids[in.ServiceID]; ok && idx == -1 { dup = true }
+  		if err := in.ValidateAllOrNothing(i, dup); err != nil {
+  			if ve, ok := err.(*ValidationError); ok {
+  				causes = append(causes, ve.Causes...)
+  			} else {
+  				causes = append(causes, err.Error())
+  			}
+  		}
+  	}
+  	if len(causes) > 0 {
+  		return nil, &ValidationError{Causes: causes}
+  	}
+  	out := make([]string, 0, len(inputs))
+  	for i := range inputs {
+  		in := inputs[i]
+  		bundle, err := Translate(&in)
+  		if err != nil { return nil, err }
+  		out = append(out, bundle.NetworkYAML)
+  	}
+  	return out, nil
+  }
+  
+  // MarshalError produces a deterministic JSON string for structured validation errors.
+  // It disables HTML escaping so comparison substrings like ">=1" remain readable
+  // and stable in tests and CLI output.
+  func MarshalError(err error) string {
+  	if err == nil { return "" }
+  	m := map[string]any{"error": "validation"}
+  	if ve, ok := err.(*ValidationError); ok {
+  		m["causes"] = ve.Causes
+  	} else {
+  		m["causes"] = []string{err.Error()}
+  	}
+  	// Use an Encoder with HTML escaping disabled to avoid sequences like \u003e
+  	// for '>' which make human/fixture comparison brittle.
+  	var buf bytes.Buffer
+  	enc := json.NewEncoder(&buf)
+  	enc.SetEscapeHTML(false)
+  	enc.SetIndent("", "  ")
+  	_ = enc.Encode(m)
+  	// json.Encoder adds a trailing newline; trim it for stable output.
+  	out := buf.String()
+  	if len(out) > 0 && out[len(out)-1] == '\n' { out = out[:len(out)-1] }
+  	return out
+  }
+  
+  // DescribeInput produces a canonical description for provenance/testing.
+  func DescribeInput(in *ServiceInput) string {
+  	if in == nil { return "<nil>" }
+  	return fmt.Sprintf("%s/%s", in.Tenant, in.ServiceID)
+  }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T057-validation.proof.txt` — exists, 4190 bytes, mtime 2026-08-29T12:05:24
+  ```
+  File: pkg/migration/batch.go — RenderBatch all-or-nothing with ValidationError and no outputs
+       1	// RenderBatch validates a batch all-or-nothing and returns one YAML document per
+       2	// valid service in the input order. On validation failure, returns a ValidationError
+       3	// with aggregated causes and no output documents.
+       4	func RenderBatch(inputs []ServiceInput) ([]string, error) {
+       5		// Detect duplicates
+       6		ids := map[string]int{}
+       7		for i, in := range inputs {
+       8			if _, ok := ids[in.ServiceID]; ok {
+       9				ids[in.ServiceID] = -1
+      10			} else {
+      11				ids[in.ServiceID] = i
+      12			}
+      13		}
+      14		var causes []string
+      15		for i := range inputs {
+      16			in := inputs[i]
+      17			dup := false
+      18			if idx, ok := ids[in.ServiceID]; ok && idx == -1 { dup = true }
+      19			if err := in.ValidateAllOrNothing(i, dup); err != nil {
+      20				if ve, ok := err.(*ValidationError); ok {
+      21					causes = append(causes, ve.Causes...)
+      22				} else {
+      23					causes = append(causes, err.Error())
+      24				}
+      25			}
+      26		}
+      27		if len(causes) > 0 {
+      28			return nil, &ValidationError{Causes: causes}
+      29		}
+      30		out := make([]string, 0, len(inputs))
+      31		for i := range inputs {
+      32			in := inputs[i]
+      33			bundle, err := Translate(&in)
+      34			if err != nil { return nil, err }
+      35			out = append(out, bundle.NetworkYAML)
+      36		}
+      37		return out, nil
+      38	}
+  --- MarshalError structured JSON ---
+       1	// MarshalError produces a deterministic JSON string for structured validation errors.
+       2	// It disables HTML escaping so comparison substrings like ">=1" remain readable
+       3	// and stable in tests and CLI output.
+       4	func MarshalError(err error) string {
+       5		if err == nil { return "" }
+       6		m := map[string]any{"error": "validation"}
+       7		if ve, ok := err.(*ValidationError); ok {
+       8			m["causes"] = ve.Causes
+       9		} else {
+      10			m["causes"] = []string{err.Error()}
+      11		}
+      12		// Use an Encoder with HTML escaping disabled to avoid sequences like \u003e
+      13		// for '>' which make human/fixture comparison brittle.
+      14		var buf bytes.Buffer
+      15		enc := json.NewEncoder(&buf)
+      16		enc.SetEscapeHTML(false)
+      17		enc.SetIndent("", "  ")
+      18		_ = enc.Encode(m)
+      19		// json.Encoder adds a trailing newline; trim it for stable output.
+      20		out := buf.String()
+      21		if len(out) > 0 && out[len(out)-1] == '\n' { out = out[:len(out)-1] }
+      22		return out
+      23	}
+  File: pkg/migration/input.go — Unsupported claims enumerated
+       1		// Unsupported claims
+       2		u := in.Unsupported
+       3		if u.TEPolicy != nil { causes = append(causes, "unsupported: tePolicy") }
+       4		if u.PseudowireOAM != nil { causes = append(causes, "unsupported: pseudowireOAM") }
+       5		if u.ControlWord != nil { causes = append(causes, "unsupported: controlWord") }
+       6		if u.MulticastVPN != nil { causes = append(causes, "unsupported: multicastVPN") }
+       7		if u.ComplexQoS != nil { causes = append(causes, "unsupported: complexQoS") }
+       8		if u.ServiceChain != nil { causes = append(causes, "unsupported: serviceChain") }
+       9		if u.RawCLI != nil { causes = append(causes, "unsupported: rawCLI") }
+      10	
+      11		// Endpoints basics
+  File: tests/unit/migration_cli_te_test.go — CLI no YAML on unsupported TE
+       1	// Ensure the CLI rejects a validation failure (unsupported TE) with structured JSON and no YAML outputs.
+       2	func TestMigrationCLI_RejectsUnsupportedTE_NoOutput(t *testing.T) {
+       3		cmd := exec.Command("go", "run", "./cmd/migration-translator", "--file", "tests/unit/testdata/migration/unsupported_te.json")
+       4		cmd.Dir = filepath.Join("..", "..")
+       5		out, err := cmd.CombinedOutput()
+       6		if err == nil {
+       7			t.Fatalf("expected non-zero exit; output=%s", string(out))
+       8		}
+       9		if !strings.Contains(string(out), "\"error\": \"validation\"") {
+      10			t.Fatalf("missing structured validation
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T058-deterministic-cli.proof.txt` — exists, 3079 bytes, mtime 2026-08-29T12:05:24
+  ```
+  File: pkg/migration/translate.go — stable provenance annotations on generated Network
+       1		name := fmt.Sprintf("migr-%s", in.ServiceID)
+       2		metadata := map[string]any{
+       3			"name":      name,
+       4			"namespace": "kubenet-system",
+       5			"annotations": map[string]string{
+       6				"ainetops.io/translator":          TranslatorName,
+       7				"ainetops.io/translator-version":  TranslatorVersion,
+       8				"ainetops.io/mapping-version":     MappingVersion,
+       9				"ainetops.io/migration-input-hash": hash,
+      10				"ainetops.io/tenant":              in.Tenant,
+      11				"ainetops.io/service-type":        string(in.Type),
+      12			},
+      13		}
+  --- buildYAML stable annotation key order ---
+       1		anns := n.Metadata["annotations"].(map[string]string)
+       2		fmt.Fprintf(b, "  annotations:\n")
+       3		// stable annotation order
+       4		keys := []string{
+       5			"ainetops.io/translator",
+       6			"ainetops.io/translator-version",
+       7			"ainetops.io/mapping-version",
+       8			"ainetops.io/migration-input-hash",
+       9			"ainetops.io/tenant",
+      10			"ainetops.io/service-type",
+      11			"ainetops.io/limited-equivalence",
+      12		}
+      13		for _, k := range keys {
+      14			if v, ok := anns[k]; ok {
+      15				fmt.Fprintf(b, "    %s: %s\n", k, v)
+      16			}
+      17		}
+  File: tests/unit/migration_annotations_test.go — annotations present test
+       1		if err != nil { t.Fatalf("translate: %v", err) }
+       2		y := bundle.NetworkYAML
+       3		for _, k := range []string{
+       4			"ainetops.io/translator:",
+       5			"ainetops.io/translator-version:",
+       6			"ainetops.io/mapping-version:",
+       7			"ainetops.io/migration-input-hash:",
+       8			"ainetops.io/tenant:",
+       9			"ainetops.io/service-type:",
+      10		} {
+      11			if !strings.Contains(y, k) {
+      12				t.Fatalf("missing annotation key %s", k)
+      13			}
+      14		}
+      15	}
+  File: cmd/migration-translator/main.go — deterministic CLI with structured error
+       1	// Deterministic CLI: reads a JSON array or object from stdin or --file, validates all-or-nothing,
+       2	// then emits a single concatenated YAML stream of Kubenet Network resources in stable order.
+       3	// No cluster interaction occurs in this phase.
+       4	func main() {
+       5		var file string
+       6		flag.StringVar(&file, "file", "", "Path to normalized service input JSON (object or array); default stdin")
+       7		flag.Parse()
+       8	
+       9		var data []byte
+      10		var err error
+      11		if file == "" {
+      12			data, err = io.ReadAll(os.Stdin)
+      13		} else {
+      14			data, err = os.ReadFile(file)
+      15		}
+      16		if err != nil {
+      17			fatal(fmt.Errorf("read input: %w", err))
+      18		}
+      19		// Strict parsing rejects unknown fields and raw CLI leakage.
+      20		inputs, err := migration.ParseStrictBatch(data)
+      21		if err != nil {
+      22			// Emit structured JSON error (consistent shape) before any output.
+      23			msg := migration.MarshalError(err)
+      24			fmt.Fprintln(os.Stderr, msg)
+      25			os.Exit(2)
+      26		}
+      27		if err := processBatch(inputs); err != nil { fatal(err) }
+      28	}
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T058a-cli-binary.proof.txt` — exists, 746 bytes, mtime 2026-08-29T12:05:24
+  ```
+  File: cmd/migration-translator/main.go — CLI entrypoint
+       1	// SPDX-License-Identifier: Apache-2.0
+       2	package main
+       3	
+       4	import (
+       5		"encoding/json"
+       6		"flag"
+       7		"fmt"
+       8		"io"
+       9		"os"
+      10	
+      11		"github.com/mairp/ainetops/pkg/migration"
+      12	)
+      13	
+      14	// Deterministic CLI: reads a JSON array or object from stdin or --file, validates all-or-nothing,
+      15	// then emits a single concatenated YAML stream of Kubenet Network resources in stable order.
+      16	// No cluster interaction occurs in this phase.
+      17	func main() {
+      18		var file string
+      19		flag.StringVar(&file, "file", "", "Path to normalized service input JSON (object or array); default stdin")
+      20		flag.Parse()
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T059-tests-and-fixtures.proof.txt` — exists, 9152 bytes, mtime 2026-08-29T12:05:24
+  ```
+  File: tests/unit/migration_golden_test.go — golden tests for VPLS/L3VPN/VPWS/IRB and rejects
+       1	func TestGolden_VPLS(t *testing.T) {
+       2		b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpls.json"))
+       3		if err != nil { t.Fatal(err) }
+       4		inputs, err := migration.ParseStrictBatch(b)
+       5		if err != nil { t.Fatalf("parse: %v", err) }
+       6		outs, err := migration.RenderBatch(inputs)
+       7		if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+       8		if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+       9		// Compare only the spec subtree for stability.
+      10		spec := extractYAMLSnippet(outs[0], "spec:")
+      11		gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpls.spec.golden.yaml"))
+      12		if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+      13			// optional: write a diff for debugging
+      14			_ = os.WriteFile(filepath.Join(os.TempDir(), "vpls.spec.actual.yaml"), []byte(spec), 0o644)
+      15			t.Fatalf("golden mismatch for VPLS spec")
+      16		}
+      17	}
+      18	
+      19	func TestGolden_L3VPN(t *testing.T) {
+      20		b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_l3vpn.json"))
+      21		if err != nil { t.Fatal(err) }
+      22		inputs, err := migration.ParseStrictBatch(b)
+      23		if err != nil { t.Fatalf("parse: %v", err) }
+      24		outs, err := migration.RenderBatch(inputs)
+      25		if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+      26		if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+      27		spec := extractYAMLSnippet(outs[0], "spec:")
+      28		gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_l3vpn.spec.golden.yaml"))
+      29		if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+      30			_ = os.WriteFile(filepath.Join(os.TempDir(), "l3vpn.spec.actual.yaml"), []byte(spec), 0o644)
+      31			t.Fatalf("golden mismatch for L3VPN spec")
+      32		}
+      33	}
+      34	
+      35	func TestGolden_VPWS_OptIn(t *testing.T) {
+      36		b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpws_optin.json"))
+      37		if err != nil { t.Fatal(err) }
+      38		inputs, err := migration.ParseStrictBatch(b)
+      39		if err != nil { t.Fatalf("parse: %v", err) }
+      40		outs, err := migration.RenderBatch(inputs)
+      41		if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+      42		if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+      43		spec := extractYAMLSnippet(outs[0], "spec:")
+      44		gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpws.spec.golden.yaml"))
+      45		if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+      46			_ = os.WriteFile(filepath.Join(os.TempDir(), "vpws.spec.actual.yaml"), []byte(spec), 0o644)
+      47			t.Fatalf("golden mismatch for VPWS spec")
+      48		}
+      49	}
+  --- Additional golden and reject sections ---
+       1	func TestReject_UnsupportedTE(t *testing.T) {
+       2		b, err := os.ReadFile(filepath.Join("testdata", "migration", "unsupported_te.json"))
+       3		if err != nil { t.Fatal(err) }
+       4		inputs, err := migration.ParseStrictBatch(b)
+       5		if err != nil { t.Fatalf("parse: %v", err) }
+       6		outs, err := migration.RenderBatch(inputs)
+       7		if err == nil { t.Fatalf("expected error for unsupported TE policy") }
+       8		if len(outs) != 0 { t.Fatalf("expected no outputs on failure") }
+       9	}
+      10	
+      11	func TestIRB_Golden(t *testing.T) {
+      12		b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_irb.json"))
+      13		if err != nil { t.Fatal(err) }
+      14		inputs, err := migration.ParseStrictBatch(b)
+      15		if err != nil { t.Fatalf("parse: %v", err) }
+      16		outs, err := migration.RenderBatch(inputs)
+      17		if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+      18		if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+      19		spec := extractYAMLSnippet(outs[0], "spec:")
+      2
+  … (truncated) …
+  ctsCollision_NoOutput(t *testing.T) {
+      12		cmd := exec.Command("go", "run", "./cmd/migration-translator", "--file", "tests/unit/testdata/migration/collision_duplicate.json")
+      13		cmd.Dir = filepath.Join("..", "..")
+      14		out, err := cmd.CombinedOutput()
+      15		if err == nil {
+      16			// some environments may not have go toolchain; we still assert behavior on stderr/stdout content
+      17			// but keep the failure to maintain strong signal in CI
+      18			t.Fatalf("expected non-zero exit; output=%s", string(out))
+      19		}
+      20		if !strings.Contains(string(out), "\"error\": \"validation\"") {
+      21			t.Fatalf("missing structured validation error: %s", string(out))
+      22		}
+      23		if !strings.Contains(string(out), "duplicate serviceId") {
+      24			t.Fatalf("missing duplicate cause in CLI output: %s", string(out))
+      25		}
+      26		if strings.Contains(string(out), "spec:") {
+      27			t.Fatalf("unexpected YAML output on validation failure: %s", string(out))
+      28		}
+      29	}
+  ```
+- `contracts/crd-api.md` — **MISSING** (does not exist on disk)
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T060-decision.proof.txt` — exists, 1519 bytes, mtime 2026-08-29T12:05:24
+  ```
+  File: docs/migration/DECISION-T060.md — CRD not enabled; T061 not applicable
+       1	# Decision record: T060 MigrationPlan CRD enablement
+       2	
+       3	Decision date: 2026-08-29
+       4	
+       5	Summary: Do not enable or implement the optional MigrationPlan.ainetops.io/v1alpha1 CRD at Phase 6. The deterministic library and CLI provide stable provenance annotations and reproducible outputs sufficient for audit in this phase, per plan.md section 7. No in-cluster workload is created at this stage.
+       6	
+       7	Rationale:
+       8	- Deterministic provenance annotations are embedded in every generated Kubenet Network (keys: ainetops.io/translator, ainetops.io/translator-version, ainetops.io/mapping-version, ainetops.io/migration-input-hash, ainetops.io/tenant, ainetops.io/service-type, and limited-equivalence when applicable).
+       9	- The translator library is pure and deterministic; equivalent inputs yield byte-identical YAML.
+      10	- All-or-nothing validation rejects unsupported/unknown fields before any downstream resource is emitted.
+      11	- Git review of generated YAML and annotations meets current audit needs; adding a CRD would duplicate upstream intent and create ownership ambiguity.
+      12	
+      13	Implications:
+      14	- No MigrationPlan CRD, RBAC, or controller is added in this phase.
+      15	- T061 is not applicable because T060 did not enable the CRD.
+      16	- If later workflow evidence shows gaps, we will introduce the CRD with structural/CEL validation and status per specs/contracts.
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T061-na.proof.txt` — exists, 1508 bytes, mtime 2026-08-29T12:05:24
+  ```
+  No MigrationPlan CRD implemented in this phase per DECISION-T060.md
+       1	# Decision record: T060 MigrationPlan CRD enablement
+       2	
+       3	Decision date: 2026-08-29
+       4	
+       5	Summary: Do not enable or implement the optional MigrationPlan.ainetops.io/v1alpha1 CRD at Phase 6. The deterministic library and CLI provide stable provenance annotations and reproducible outputs sufficient for audit in this phase, per plan.md section 7. No in-cluster workload is created at this stage.
+       6	
+       7	Rationale:
+       8	- Deterministic provenance annotations are embedded in every generated Kubenet Network (keys: ainetops.io/translator, ainetops.io/translator-version, ainetops.io/mapping-version, ainetops.io/migration-input-hash, ainetops.io/tenant, ainetops.io/service-type, and limited-equivalence when applicable).
+       9	- The translator library is pure and deterministic; equivalent inputs yield byte-identical YAML.
+      10	- All-or-nothing validation rejects unsupported/unknown fields before any downstream resource is emitted.
+      11	- Git review of generated YAML and annotations meets current audit needs; adding a CRD would duplicate upstream intent and create ownership ambiguity.
+      12	
+      13	Implications:
+      14	- No MigrationPlan CRD, RBAC, or controller is added in this phase.
+      15	- T061 is not applicable because T060 did not enable the CRD.
+      16	- If later workflow evidence shows gaps, we will introduce the CRD with structural/CEL validation and status per specs/contracts.
+  ```
+════════════════════════ PREVIOUSLY CONFIRMED (W9 verdict pins) ════════════════════════
+The following criteria were CONFIRMED in an earlier attempt of THIS phase, and the source files backing them are byte-for-byte UNCHANGED since (verified by content hash):
+    T001, T002, T003, T004, T005, T006, T007, T008, T009, T010, T011, T012, T013, T014, T015, T016, T017, T018, T019, T020, T021, T022, T023, T024, T025, T026, T027, T028, T029, T030, T031, T032, T033, T034, T035, T036, T037, T038, T039, T040, T041, T042, T043, T044, T045, T046, T047, T048, T049, T050, T051, T052, T053, T054, T055, T056, T057, T058, T060, T061
+Do NOT re-reject these for thin/absent proof slices or budget-elided excerpts — their implementation was already verified against identical code. Re-examine one ONLY if the CURRENT evidence or grounding snapshot actively CONTRADICTS it (shows the backing code is now wrong or gone). Absence of a fresh proof slice is NOT a contradiction. This exists so a large phase converges instead of rotating which criteria get grounded each attempt.
+
+
+════════════════════════ DESIGN CONTEXT (read-only background — NOT acceptance criteria) ════════════════════════
+The following are the feature's design documents. Use them ONLY to understand what
+the criteria mean and whether the evidence is consistent with the intended design.
+They are NOT a checklist: do not reject for anything that is not an explicit
+acceptance criterion in the SPEC section above. Context can inform a rejection of a
+real criterion; it can never become a new one.
+## Context: spec (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/spec.md
+# Feature Specification: AINETOPS SONiC EVPN/VXLAN Fabric
+
+**Feature Branch**: `001-ainetops-sonic-evpn-fabric`  
+**Created**: 2026-08-28  
+**Status**: Draft  
+**Input**: Replace the former vendor-specific router/MPLS use case with a fully open-source,
+Kubernetes-native AINETOPS platform. The lab uses SONiC devices in containerlab, translates
+supported MPLS VPN services to data-center EVPN/VXLAN constructs, orchestrates them with
+Kubenet/KUID and SDC, and observes them with OpenTelemetry, Prometheus, and Grafana.
+
+## Scope and interpretation
+
+"Replace a Cisco router with SONiC" means replace its **logical role and supported service
+intent** with a SONiC leaf, border leaf, or spine. It does not mean SONiC can run on arbitrary
+router hardware or that every WAN/MPLS feature has an EVPN equivalent. The MVP covers a
+containerlab fabric and only the mappings listed in this specification. It contains no
+Crosswork, NSO, CNC, proprietary NED, or vendor-specific controller dependency.
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 - Translate supported MPLS VPN intent (Priority: P2)
+
+A network engineer supplies normalized L2VPN, VPLS, VPWS, or L3VPN service intent. AINETOPS
+validates it and produces Kubenet `Network` intent for a SONiC EVPN/VXLAN fabric without
+silently discarding semantics.
+
+**Why this priority**: Service translation is the business outcome; however the translation
+controller lands after the MVP (Phase 6), so this story is P2 to align with delivery order.
+
+**Independent Test**: Apply one supported L2 service, one L3 service, and one unsupported
+MPLS-TE service. The supported services produce the expected bridge/VRF/VNI/attachment
+resources. The unsupported service is rejected before any device configuration changes.
+
+**Acceptance Scenarios**:
+
+1. **Given** VPLS or multipoint L2VPN intent, **When** translation succeeds, **Then** the
+   result is an EVPN bridge domain with a unique L2VNI, attachment VLANs, and import/export
+   route targets.
+2. **Given** L3VPN intent, **When** translation succeeds, **Then** the result is a tenant VRF,
+   L3VNI, RD, route targets, leaf attachments, and EVPN Type-5 routing where supported by the
+   qualified SONiC image.
+3. **Given** VPWS/E-Line intent, **When** translation succeeds, **Then** the result is a
+   dedicated two-attachment bridge domain and L2VNI and is explicitly marked as not proving
+   full pseudowire/RFC 8214 feature equivalence.
+4. **Given** RSVP-TE, SR-MPLS policy, pseudowire OAM/control-word, multicast VPN, unsupported
+   QoS, or another unmapped property, **When** it is validated, **Then** the request reports
+   the exact unsupported fields and creates no downstream `Network` or SDC `Config` resource.
+
+---
+
+### User Story 2 - Reconcile the fabric declaratively (Priority: P1)
+
+An operator manages topology and services through Kubernetes resources. Kubenet/KUID derive
+the abstract per-device intent and allocations; an AINETOPS SONiC provider renders validated
+… (context truncated at line boundary) …
+
+## Context: plan (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/plan.md
+# Implementation Plan: AINETOPS SONiC EVPN/VXLAN Fabric
+
+**Branch**: `001-ainetops-sonic-evpn-fabric` | **Date**: 2026-08-28 | **Spec**: [spec.md](./spec.md)  
+**Input**: Feature specification from `specs/001-ainetops-sonic-evpn-fabric/spec.md`
+
+## Summary
+
+Build an open-source reference platform that expresses data-center fabric intent with
+Kubernetes, launches SONiC leaf/spine nodes in containerlab, maps supported legacy VPN
+services to Kubenet EVPN/VXLAN `Network` resources, renders per-device configuration through a
+small AINETOPS SONiC provider, and uses SDC for validated gNMI transactions and drift.
+An AINETOPS `SRv6Service` controller adds a bidirectional IPv6 VPN across SONiC headend,
+transit, and End.DT46 endpoint behaviors. In-cluster gNMIc and OpenTelemetry Collector feed
+Prometheus and Grafana topology/service-path observability.
+
+The MVP control path is intentionally direct:
+
+```text
+Kubenet/KUID → NetworkDevice → ainetops-sonic-provider → SDC Config → gNMI → SONiC
+Kubenet/KUID → SRv6Service → ainetops-srv6-controller → SDC Config → gNMI → SONiC
+```
+
+Kubenet's optional rendered-config Git review and SDC Workspace/Rollout remain later
+enhancements after the direct path passes end-to-end acceptance.
+
+## Technical Context
+
+**Controller language**: Go version selected by the pinned Kubernetes/controller-runtime
+compatibility matrix.  
+**Platform**: Linux host, a pinned Kind cluster/node image, Docker-compatible runtime,
+containerlab, and optional KVM/nested virtualization for `sonic-vm`.  
+**Primary dependencies**: pinned Kind/Kubernetes node image, controller-runtime, Kubenet/KUID,
+SDC, SONiC image/YANG compatibility set, containerlab, OpenTelemetry Collector, Prometheus,
+Grafana, with gNMIc as the sole SONiC device-metric collector feeding OTel over OTLP.  
+**Storage**: Kubernetes API for desired/status state; in-cluster PVCs for SDC state required by
+its pinned release and Prometheus metrics. No host application database is added.  
+**Southbound**: gNMI with JSON_IETF and TLS; direct SSH/CLI is excluded.  
+**Testing**: Go unit/golden tests, CRD schema/server dry-run, controller envtest, SDC offline
+validation, Kind provisioning/off idempotence, containerlab integration/traffic/failure tests,
+centralized-workload inventory, and observability assertions.  
+**Reference scale**: 2 spines, 2 leaves, 2 EVPN Linux endpoints, 2 SRv6 Linux endpoints; at
+least one L2VNI, one L3VNI, two isolated VRFs, and one bidirectional SRv6 VPN.  
+**Constraints**: immutable version pins; privileged lab runtime; exact SONiC image/schema
+qualification; no silent migration loss; scoped field ownership; no proprietary runtime.
+
+## Architecture
+
+```text
+                  scripts/provision.sh / scripts/off.sh
+                                  │
+                    owned Docker management network
+             ┌────────────────────┴────────────────────┐
+             │                                         │
+             ▼                                         ▼
+```
+… (context truncated at line boundary) …
+
+## Context: contract:crd-api (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/contracts/crd-api.md
+# Contract: Kubernetes APIs and Generated Resources
+
+**Applies to**: Kubenet/KUID resources, required `SRv6Service`, optional `MigrationPlan`,
+provider-generated SDC resources, status, ownership, and version compatibility.
+
+## API boundary
+
+1. Users express ongoing fabric/service intent with the pinned upstream Kubenet `Network` API.
+2. KUID owns identifier/address allocation through its upstream claim APIs.
+3. Kubenet derives upstream `NetworkDevice` objects.
+4. `ainetops-sonic-provider` creates upstream SDC `Config` resources.
+5. SDC is the only component authorized to mutate device configuration.
+6. The required AINETOPS `SRv6Service` expresses only SRv6 endpoint/path/behavior intent;
+   KUID owns its locator/SID claims and SDC owns its device transactions.
+7. The optional AINETOPS `MigrationPlan` records source translation and cutover evidence; it
+   does not replace `Network`, `NetworkDevice`, or `Config`.
+
+All APIs and their controllers run in the named Kind cluster. Containerlab is not an
+application runtime and hosts only network/endpoint nodes.
+
+## Deployment contract
+
+- `config/kind/cluster.yaml` is the declarative Kind cluster definition; its config API,
+  cluster name, node roles, node image digest, pod/service CIDRs, mounts, labels, and port
+  mappings are version controlled.
+- `scripts/provision.sh` is the sole implementation of complete environment creation and
+  convergence. Make/CI commands may invoke it but may not reimplement its phases.
+- `scripts/off.sh` is the sole implementation of environment shutdown and cleanup.
+- Every platform application is installed into Kind with pinned Kubernetes manifests or Helm
+  releases. Standalone application containers and Compose files are contract violations.
+- Namespaces, Services, PVCs, Secrets, RBAC, monitoring discovery, dashboards, datasources,
+  and alert rules are Kubernetes resources.
+- Kind nodes and containerlab management interfaces share a dedicated labeled Docker network;
+  pod and service CIDRs do not overlap it.
+- Lifecycle scripts resolve the exact cluster, topology, and network targets and refuse broad
+  or unowned deletion.
+
+## Version contract
+
+- Pin one complete Kubenet/KUID release or commit, including CRDs, controllers, examples, and
+  provider input schemas.
+- Pin one SDC release and install only its matching CRDs/controllers.
+- Pin one containerlab release and immutable SONiC image digest per lab profile.
+- Pin one SONiC/OpenConfig YANG schema commit and provider mapping version per SONiC image.
+- Pin gNMIc, the gNMI-path/label mapping, Grafana Flow plugin, and generated topology-asset
+  schema with the observability stack.
+- Publish the five-part compatibility set in deployment metadata and provider status.
+- A mismatch MUST set `SchemaMismatch`, emit no changed SDC spec, and leave the last known
+  valid applied intent intact.
+- `latest`, floating branches, and a mixture of Kubenet tutorial/main API shapes are forbidden.
+
+## Required SRv6Service API
+… (context truncated at line boundary) …
+
+## Context: contract:reconciliation (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/contracts/reconciliation.md
+# Contract: Translation, Reconciliation, and Safety
+
+**Applies to**: Migration translation, the AINETOPS SONiC provider, SDC integration, device
+application, drift, failure, and deletion.
+
+## Rule 1: No silent semantic loss
+
+- A mapping is allowed only when every required source property has a qualified target
+  equivalent.
+- Limited equivalence, such as VPWS represented by a dedicated L2VNI, requires explicit opt-in
+  and a durable status finding.
+- Unsupported fields reject the entire migration plan before allocations, generated Network,
+  or SDC Config mutation.
+- Raw device CLI is never an accepted source format.
+
+## Rule 2: Deterministic, idempotent rendering
+
+- Equivalent normalized input, topology, allocations, schema, and mapping version produce
+  byte-equivalent canonical SDC intent.
+- Resource names, ordering, and hashes are stable.
+- An unchanged render results in no Kubernetes spec write and no gNMI Set.
+- Rendering has no hidden external allocation or mutable local state.
+
+## Rule 3: Dependency gates precede mutation
+
+The provider does not emit changed device intent until:
+
+1. source intent and references are valid;
+2. topology and all required allocations are Ready;
+3. the target and credentials are Ready;
+4. image/schema/mapping compatibility matches;
+5. every rendered path passes offline/schema validation.
+
+Failure sets a current-generation condition and Event. Partial render output is not applied.
+
+## Rule 4: One owner per managed path
+
+- Kubenet/KUID owns intent and allocations; provider owns generated Config specs; SDC owns
+  device transactions.
+- Provider uses scoped paths and server-side apply field ownership.
+- AINETOPS does not overwrite unmanaged device paths.
+- Conflicting ownership or intent priority is a terminal error until explicitly resolved.
+
+## Rule 5: Safe transaction and readiness semantics
+
+- SDC validation and transaction confirmation are mandatory; direct device mutation is
+  forbidden.
+- Aggregate `Ready=True` requires all mandatory per-device operations to be confirmed.
+- A mixed success/failure result is `Degraded`, records every target, and never claims full
+  success.
+- The last valid configuration remains desired when a new generation fails validation.
+- No automated rollback may erase unrelated, shared, or manually owned configuration.
+
+## Rule 6: Drift is explicit
+
+- SDC compares intended and running configuration for owned paths.
+- Lab mode uses documented revertive behavior and verifies restoration.
+- Unmanaged-path changes are observed only if subscribed; they are not reverted or claimed.
+- Production drift policy must be explicitly selected and cannot inherit lab defaults silently.
+
+## Rule 7: Bounded retry and classified errors
+
+- Transient transport/unavailability failures retry with bounded exponential backoff and jitter.
+- Terminal schema, unsupported-feature, ownership, collision, and compatibility errors do not
+  hot-loop; they retry on relevant generation or dependency change.
+… (context truncated at line boundary) …
+
+## Context: data-model (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/data-model.md
+# Data Model: AINETOPS SONiC EVPN/VXLAN Fabric
+
+**Feature**: AINETOPS SONiC EVPN/VXLAN Fabric  
+**Date**: 2026-08-28
+
+## Ownership model
+
+| Layer | Source of truth | Owns | Must not own |
+|---|---|---|---|
+| Migration boundary | Git and optional `MigrationPlan` | Source provenance, mapping findings, cutover decision | Allocations or device configuration |
+| Kubenet/KUID | Existing Kubernetes resources | Topology, abstract network intent, inventory, IP/ASN/VLAN/VNI allocation | Device-specific YANG |
+| AINETOPS SONiC provider | Controller reconciliation | Deterministic `NetworkDevice`/`SRv6Service`-to-SONiC rendering and readiness propagation | Independent allocation or device transaction |
+| SDC | Existing Kubernetes resources and target state | Schemas, device transactions, running/intended comparison, drift | Service semantics |
+| SONiC | Running network state | Applied forwarding/control-plane state | Desired-state authority |
+| Observability | Prometheus | Time-series metrics and alert state | Configuration source of truth |
+
+The same field/path MUST have one owner. AINETOPS uses server-side apply and a dedicated field
+manager for generated SDC resources. Unmanaged SONiC paths remain untouched.
+
+## Runtime and lifecycle model
+
+| Runtime resource | Owner | Contents / behavior |
+|---|---|---|
+| Kind cluster `ainetops` | `scripts/provision.sh` / `scripts/off.sh` | Sole application runtime; pinned node image and declarative cluster configuration |
+| Kind namespaces | Kubernetes manifests/Helm releases | Kubenet/KUID, SDC, AINETOPS, monitoring, and any upstream system namespaces |
+| In-cluster applications | Kubernetes controllers | Kubenet/KUID, SDC, provider/translator/SRv6 controller, gNMIc, OTel Collector, Prometheus, Grafana |
+| AINETOPS management network | Lifecycle scripts | Labeled Docker network shared by Kind nodes and containerlab management interfaces |
+| Containerlab topology | Lifecycle scripts + topology YAML | SONiC spines/leaves and Linux traffic endpoints only |
+| Application state | Kubernetes APIs/PVCs/Secrets | Desired state, metrics retention, credentials, dashboards, alerts, and schema data |
+
+Every owned non-Kubernetes runtime resource carries stable AINETOPS labels or a deterministic
+name so `off.sh` can resolve its exact target without broad globs. The script never deletes a
+Kind cluster or Docker network whose ownership/name does not match its selected cluster.
+
+Lifecycle phases are durable and repeat-safe:
+
+```text
+Absent → NetworkReady → KindReady → LabReady → AppsReady → TargetsReady → FabricReady
+   ▲                                                             │
+   │                                                SRv6Ready → ObservabilityReady
+   │                                                             │
+   └────────── off.sh: evidence → lab removal → Kind deletion → cleanup ───────────┘
+```
+
+Provisioning resumes from the first unmet phase. Shutdown tolerates any phase and treats an
+… (context truncated at line boundary) …
+
+## Context: research (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/research.md
+# Research: AINETOPS Open-Source SONiC Orchestration
+
+**Feature**: AINETOPS SONiC EVPN/VXLAN Fabric  
+**Date**: 2026-08-28  
+**Method**: Independent research agents reviewed the former specification and current official
+Kubenet, SDC, SONiC, containerlab, OpenTelemetry, Prometheus, Grafana, and gNMIc sources.
+
+## Executive decision
+
+Use the smallest declarative control plane that preserves clear ownership:
+
+```text
+Git or kubectl
+      │
+      ▼
+Kubernetes API
+      ├── Kubenet topology + Network intent
+      ├── KUID inventory and identifier claims
+      ├── required SRv6Service
+      └── optional MigrationPlan (audit/cutover only)
+                         │
+                         ▼
+               Kubenet NetworkDevice
+                         │
+                         ▼
+              ainetops-sonic-provider
+                         │
+                         ▼
+                SDC Config / ConfigSet
+                         │  YANG validation + transaction + drift
+                         ▼
+                 gNMI / JSON_IETF
+                         │
+                         ▼
+            containerlab SONiC leaf/spine fabric
+```
+
+This deliberately avoids a second workflow engine. Kubernetes reconciliation is the workflow;
+Kubenet/KUID owns abstract intent and allocation; the AINETOPS provider owns only rendering;
+SDC owns schema-aware target transactions and running-state comparison.
+
+## Decision 1: Reuse Kubenet/KUID instead of defining fabric CRDs
+
+- **Decision**: Pin and reuse Kubenet `Topology`, design/config, `Network`, and
+  `NetworkDevice` APIs plus KUID IP/ASN/VLAN/VNI index and claim APIs.
+- **Rationale**: Kubenet is explicitly designed to use Kubernetes as a declarative,
+  continuously reconciled NOS automation system. Its published examples already model a
+  default underlay plus bridged EVPN, routed EVPN, and IRB networks, then derive per-device
+  `NetworkDevice` objects and SDC `Config` objects.
+- **Important version finding**: The v0.0.1 tutorial uses `NetworkConfig` and fields such as
+  `bridgeDomains`/`routingTables`; newer bundled artifacts may expose `NetworkDesign` and
+  `bridges`/`routers`. Implementation must pin one complete commit/release and validate every
+  example against that release's CRDs. It must not combine tutorial YAML with unpinned main.
+- **Alternative rejected**: A new `Fabric`, `Tenant`, `VRF`, and `Attachment` CRD family would
+  duplicate the upstream intent model and create ambiguous ownership.
+- **Sources**: [Kubenet purpose and components](https://learn.kubenet.dev/),
+  [network configuration](https://learn.kubenet.dev/02-examples/04_networkconfig/),
+  [default network](https://learn.kubenet.dev/02-examples/05_defaultnetwork/),
+  [bridged EVPN](https://learn.kubenet.dev/02-examples/06_bridgednetwork/),
+  [routed EVPN](https://learn.kubenet.dev/02-examples/07_routednetwork/), and
+  [IRB](https://learn.kubenet.dev/02-examples/08_irbnetwork/).
+
+## Decision 2: Use SDC as the only device transaction layer
+… (context truncated at line boundary) …
+
+## Context: quickstart (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/quickstart.md
+# Quickstart: Validate the AINETOPS SONiC Fabric
+
+**Feature**: AINETOPS SONiC EVPN/VXLAN Fabric  
+**Purpose**: Acceptance workflow the implementation MUST make executable. Commands name the
+planned stable targets; their implementation is tracked in [tasks.md](./tasks.md).
+
+## Prerequisites
+
+- Linux host with the CPU/RAM/disk documented in the implementation README.
+- Docker-compatible runtime and permission to launch privileged network containers.
+- `kind`, `kubectl`, `helm`, `containerlab`, `jq`, `curl`, `tcpdump`, and a gNMI client at
+  versions checked by `versions.lock.yaml`.
+- KVM/nested virtualization only when the `sonic-vm` conformance profile is selected.
+- A locally imported immutable SONiC image whose digest matches `versions.lock.yaml`.
+- No production credentials; lab credentials/certificates are generated into Kubernetes
+  Secrets and removed during teardown.
+
+## 1. Provision the complete environment
+
+```bash
+./scripts/provision.sh --profile sonic-vs --cluster-name ainetops
+```
+
+This is the primary and idempotent lifecycle command. It performs:
+
+- pin and host preflight validation;
+- creation of the dedicated labeled Docker management network;
+- creation of the pinned Kind cluster and attachment of its nodes to that network;
+- SONiC capability qualification for the selected profile;
+- deployment of the eight-node containerlab topology;
+- installation inside Kind of Kubenet/KUID, SDC, the AINETOPS provider/translator, OTel
+  Collector, Prometheus, Grafana, Prometheus Operator resources, and gNMIc;
+- application of schemas, discovery, topology, allocation pools, and default fabric intent;
+- bounded waits for all required readiness gates.
+
+Expected: the command completes without an undocumented manual step. Running the same command
+again reports convergence and does not recreate the cluster, churn application releases, or
+issue unchanged device configuration.
+
+If the fast profile fails its unmodified capability gate, use:
+
+```bash
+./scripts/off.sh --cluster-name ainetops
+./scripts/provision.sh --profile sonic-vm --cluster-name ainetops
+```
+
+The gate verifies:
+
+- gNMI Capabilities, Get, Set, and Subscribe;
+- authentication/TLS and JSON_IETF encoding;
+- persistent writable configuration;
+- all YANG paths the provider needs;
+- BGP EVPN/VXLAN services and required route behavior.
+- IPv6 underlay forwarding, SRH processing, H.Encaps.Red, transit End, End.DT46, SID-list/
+  steering programming, `sonic-srv6` gNMI Set/Get, and MySID counters.
+
+The conformance suite MUST NOT skip a failed capability.
+
+## 2. Verify Kind and centralized applications
+
+```bash
+kind get clusters
+kubectl cluster-info --context kind-ainetops
+kubectl get pods -A
+kubectl get helmreleases -A 2>/dev/null || helm list -A
+```
+
+Expected: the `ainetops` Kind cluster exists and every required application is Ready inside it.
+No Kubenet, SDC, AINETOPS, OTel, Prometheus, Grafana, or gNMIc application container runs as a
+standalone host/Compose workload.
+… (context truncated at line boundary) …
+
+## Context: checklist:requirements (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/checklists/requirements.md
+# Specification Quality Checklist: AINETOPS SONiC EVPN/VXLAN Fabric
+
+**Purpose**: Validate the rewritten feature before implementation  
+**Created**: 2026-08-28  
+**Feature**: [spec.md](../spec.md)
+
+## Identity and scope
+
+- [x] Feature and branch use the AINETOPS identity
+- [x] Scope distinguishes logical role/service replacement from installing SONiC on arbitrary
+  legacy router hardware
+- [x] All network nodes are SONiC in containerlab; Linux is limited to endpoints/tooling
+- [x] Proprietary controller, device-package, and runtime dependencies are explicitly excluded
+- [x] Production ASIC equivalence and live automatic cutover are not implied by the lab
+
+## Architecture quality
+
+- [x] Kubernetes reconciliation is the orchestration workflow
+- [x] Kubenet/KUID owns topology, abstract Network intent, and allocation
+- [x] AINETOPS adds only a narrow SONiC provider rather than a second orchestrator
+- [x] The required AINETOPS `SRv6Service` CRD fills only the missing service contract and
+  delegates topology/allocation to Kubenet/KUID and device transactions to SDC
+- [x] SDC is the only device transaction/drift layer
+- [x] Ownership boundaries prevent two reconcilers from managing the same path
+- [x] Direct reconciliation is the MVP; optional GitOps/rollout enhancements are clearly later
+- [x] Upstream APIs are reused rather than duplicated
+
+## Upstream capability and version realism
+
+- [x] The published Kubenet SONiC-provider gap is stated as implementation work
+- [x] `NetworkConfig` versus `NetworkDesign` version drift is identified
+- [x] One complete pinned upstream release/commit is required
+- [x] SONiC image, YANG schema, mapping, and SDC versions form a qualified compatibility set
+- [x] `sonic-vs` has a capability gate and `sonic-vm` conformance fallback
+- [x] Release acceptance cannot skip, mock, or substitute Linux forwarding for SONiC SRv6;
+  one pinned image/SAI profile must pass the complete SRv6 gate
+- [x] Floating versions and `latest` images are forbidden
+
+## Service translation safety
+
+- [x] VPLS/L2VPN, VPWS/E-Line, L3VPN, and IRB mappings are explicit
+- [x] Limited VPWS equivalence requires opt-in and is not claimed as full pseudowire parity
+- [x] TE, pseudowire OAM/control word, multicast VPN, complex QoS/OAM, service chaining, and
+  unknown properties are rejected/deferred
+- [x] Translation is all-or-nothing before downstream mutation
+- [x] Identifier/reference/collision validation is specified
+- [x] Raw device CLI is not an accepted translation input
+
+## API and reconciliation contract
+
+- [x] Existing upstream resources, the required narrow `SRv6Service`, and optional
+  `MigrationPlan` are distinguished
+- [x] Optional `MigrationPlan` does not duplicate `Network` or `Config`
+- [x] Status uses observed generation, standard conditions, stable reasons, and per-device data
+- [x] Determinism, stable names/hashes, idempotence, dependency gates, retries, and finalizers
+  are testable
+- [x] Partial success cannot become aggregate Ready
+… (context truncated at line boundary) …
+════════════════════════ END ════════════════════════
+Remember: end with the single line `VERDICT 122dde9ced82f1b7: APPROVED` or
+`VERDICT 122dde9ced82f1b7: REJECTED` and nothing after it.
+
+═══════════ REPLY ═══════════
+Unmet or unclear acceptance criteria
+
+- T059 Add table/golden tests for every supported, limited, unsupported, collision, and malformed fixture; prove rejected fixtures cause no downstream resources
+  - Missing golden files referenced by tests. The golden tests read these files, but they are not present in the grounding snapshot:
+    - tests/unit/testdata/migration/supported_vpls.spec.golden.yaml
+    - tests/unit/testdata/migration/supported_l3vpn.spec.golden.yaml
+    - tests/unit/testdata/migration/supported_vpws.spec.golden.yaml
+    - tests/unit/testdata/migration/supported_irb.spec.golden.yaml
+  - Because these files are absent on disk, the “golden” portion of the tests cannot run and therefore does not substantiate the required proof that supported and limited-equivalence mappings produce the expected output. This also undermines the claim of reproducible output validated by golden tests.
+  - Additionally, migration_golden_test.go appears truncated in the snapshot and references a helper extractYAMLSnippet; if this helper is not defined in the test package, the tests will not compile. If it is defined elsewhere, include it in the grounding or ensure it’s present and compiled. The critical blocker remains the missing golden YAML fixtures listed above.
+
+All other criteria either were previously confirmed as unchanged or are supported by grounded code and tests in this snapshot. The single unmet criterion above requires concrete on-disk golden files to validate supported and limited mappings and to fulfill the “golden tests” requirement.
+
+VERDICT 122dde9ced82f1b7: REJECTED
+

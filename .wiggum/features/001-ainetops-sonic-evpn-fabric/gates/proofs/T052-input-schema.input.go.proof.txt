@@ -1,0 +1,55 @@
+# pkg/migration/input.go — schema symbols
+         1	// SPDX-License-Identifier: Apache-2.0
+         2	// Package migration provides a deterministic translator from normalized MPLS VPN
+         3	// service intent into Kubenet Network resources for an EVPN/VXLAN fabric.
+         4	// It enforces an all-or-nothing validation contract and never accepts raw CLI.
+         5	package migration
+         6	
+         7	import (
+         8		"crypto/sha256"
+         9		"encoding/hex"
+        10		"encoding/json"
+        11		"errors"
+        12		"fmt"
+        13	)
+        14	
+        15	// Version constants for deterministic provenance.
+        16	const (
+        17		TranslatorName    = "ainetops-migration-translator"
+        18		TranslatorVersion = "v0.1.0"
+        19		MappingVersion    = "v0.1.0"
+        20	)
+        21	
+        22	// ServiceType enumerates supported normalized service kinds.
+        23	type ServiceType string
+        24	
+        25	const (
+        26		ServiceVPLS  ServiceType = "VPLS"         // multipoint L2VPN
+        27		ServiceL3VPN ServiceType = "L3VPN"        // routed VPN
+        28		ServiceVPWS ServiceType = "VPWS"          // E-Line
+        29		ServiceIRB  ServiceType = "L2L3-IRB"      // integrated L2/L3 (symmetric-IRB)
+        30	)
+        31	
+        32	// AddressFamilies captures AFI-specific properties for L3VPN.
+        33	type AddressFamilies struct {
+        34		IPv4Prefixes []string `json:"ipv4Prefixes,omitempty"`
+        35		IPv6Prefixes []string `json:"ipv6Prefixes,omitempty"`
+        36	}
+        37	
+        38	// RdRt are required route distinguisher and route-targets for VPNs.
+        39	type RdRt struct {
+        40		RD       string   `json:"rd"`
+
+## Key fields and symbols:
+61:type Policies struct {
+62:	// VPWSLimitedEquivalence must be true to allow VPWS-to-L2VNI mapping.
+63:	VPWSLimitedEquivalence bool `json:"vpwsLimitedEquivalence,omitempty"`
+68:type UnsupportedClaims struct {
+75:	RawCLI           any `json:"rawCLI,omitempty"`
+81:type ServiceInput struct {
+83:	ServiceID string      `json:"serviceId"`
+84:	Type      ServiceType `json:"type"`      // VPLS | L3VPN | VPWS | L2L3-IRB
+85:	Tenant    string      `json:"tenant"`
+97:	Endpoints []Endpoint `json:"endpoints"`
+158:	if u.RawCLI != nil { causes = append(causes, "unsupported: rawCLI") }
+192:		if !in.Policies.VPWSLimitedEquivalence {

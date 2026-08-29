@@ -1,0 +1,6 @@
+# pkg/migration/input.go — ServiceInput core fields
+81:type ServiceInput struct {
+83:	ServiceID string      `json:"serviceId"`
+84:	Type      ServiceType `json:"type"`      // VPLS | L3VPN | VPWS | L2L3-IRB
+85:	Tenant    string      `json:"tenant"`
+97:	Endpoints []Endpoint `json:"endpoints"`

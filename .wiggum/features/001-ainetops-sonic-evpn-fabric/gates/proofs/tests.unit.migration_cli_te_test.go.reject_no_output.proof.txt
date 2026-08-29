@@ -1,0 +1,15 @@
+1: // Ensure the CLI rejects a validation failure (unsupported TE) with structured JSON and no YAML outputs.
+2: func TestMigrationCLI_RejectsUnsupportedTE_NoOutput(t *testing.T) {
+3: 	cmd := exec.Command("go", "run", "./cmd/migration-translator", "--file", "tests/unit/testdata/migration/unsupported_te.json")
+4: 	cmd.Dir = filepath.Join("..", "..")
+5: 	out, err := cmd.CombinedOutput()
+6: 	if err == nil {
+7: 		t.Fatalf("expected non-zero exit; output=%s", string(out))
+8: 	}
+9: 	if !strings.Contains(string(out), "\"error\": \"validation\"") {
+10: 		t.Fatalf("missing structured validation error: %s", string(out))
+11: 	}
+12: 	if strings.Contains(string(out), "spec:") {
+13: 		t.Fatalf("unexpected YAML output on validation failure: %s", string(out))
+14: 	}
+15: }

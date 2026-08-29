@@ -1,0 +1,11 @@
+     1	{
+     2	  "serviceId": "svc1",
+     3	  "type": "VPLS",
+     4	  "tenant": "A",
+     5	  "rdRt": {"rd": "65000:100", "importRT": ["65000:100"], "exportRT": ["65000:100"]},
+     6	  "l2vni": 10010,
+     7	  "endpoints": [
+     8	    {"node": "leaf01", "attachment": "client01", "vlan": 10},
+     9	    {"node": "leaf02", "attachment": "client02", "vlan": 10}
+    10	  ]
+    11	}

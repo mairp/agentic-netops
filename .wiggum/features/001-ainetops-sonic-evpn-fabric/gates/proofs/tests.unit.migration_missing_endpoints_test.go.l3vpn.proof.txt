@@ -1,0 +1,22 @@
+1: func TestReject_MissingEndpoints_L3VPN(t *testing.T) {
+2: 	in := migration.ServiceInput{
+3: 		ServiceID: "noep-l3",
+4: 		Type:      migration.ServiceL3VPN,
+5: 		Tenant:    "T",
+6: 		RDRT:      &migration.RdRt{RD: "65000:102", ImportRT: []string{"65000:102"}, ExportRT: []string{"65000:102"}},
+7: 		L3VNI:     20102,
+8: 		AF:        &migration.AddressFamilies{IPv4Prefixes: []string{"10.1.2.0/24"}},
+9: 		Endpoints: []migration.Endpoint{},
+10: 	}
+11: 	outs, err := migration.RenderBatch([]migration.ServiceInput{in})
+12: 	if err == nil {
+13: 		t.Fatalf("expected error for missing endpoints (L3VPN)")
+14: 	}
+15: 	if len(outs) != 0 {
+16: 		t.Fatalf("expected no outputs on failure")
+17: 	}
+18: 	msg := migration.MarshalError(err)
+19: 	if !strings.Contains(msg, "L3VPN requires >=1 endpoint") {
+20: 		t.Fatalf("expected L3VPN endpoints cause, got: %s", msg)
+21: 	}
+22: }

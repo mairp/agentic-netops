@@ -1,0 +1,33 @@
+1: func TestGolden_VPLS(t *testing.T) {
+2: 	b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpls.json"))
+3: 	if err != nil { t.Fatal(err) }
+4: 	inputs, err := migration.ParseStrictBatch(b)
+5: 	if err != nil { t.Fatalf("parse: %v", err) }
+6: 	outs, err := migration.RenderBatch(inputs)
+7: 	if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+8: 	if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+9: 	// Compare only the spec subtree for stability.
+10: 	spec := extractYAMLSnippet(outs[0], "spec:")
+11: 	gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_vpls.spec.golden.yaml"))
+12: 	if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+13: 		// optional: write a diff for debugging
+14: 		_ = os.WriteFile(filepath.Join(os.TempDir(), "vpls.spec.actual.yaml"), []byte(spec), 0o644)
+15: 		t.Fatalf("golden mismatch for VPLS spec")
+16: 	}
+17: }
+18: 
+19: func TestGolden_L3VPN(t *testing.T) {
+20: 	b, err := os.ReadFile(filepath.Join("testdata", "migration", "supported_l3vpn.json"))
+21: 	if err != nil { t.Fatal(err) }
+22: 	inputs, err := migration.ParseStrictBatch(b)
+23: 	if err != nil { t.Fatalf("parse: %v", err) }
+24: 	outs, err := migration.RenderBatch(inputs)
+25: 	if err != nil { t.Fatalf("render: %s", migration.MarshalError(err)) }
+26: 	if len(outs) != 1 { t.Fatalf("expected 1 doc, got %d", len(outs)) }
+27: 	spec := extractYAMLSnippet(outs[0], "spec:")
+28: 	gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "supported_l3vpn.spec.golden.yaml"))
+29: 	if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+30: 		_ = os.WriteFile(filepath.Join(os.TempDir(), "l3vpn.spec.actual.yaml"), []byte(spec), 0o644)
+31: 		t.Fatalf("golden mismatch for L3VPN spec")
+32: 	}
+33: }

@@ -1,0 +1,7 @@
+# cmd/migration-translator/main.go — deterministic CLI entrypoint
+2:package main
+11:	"github.com/mairp/ainetops/pkg/migration"
+19:	flag.StringVar(&file, "file", "", "Path to normalized service input JSON (object or array); default stdin")
+33:	inputs, err := migration.ParseStrictBatch(data)
+35:		// Emit structured JSON error (consistent shape) before any output.
+61:		// Emit structured JSON error to stderr and exit non-zero.

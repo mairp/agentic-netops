@@ -1,0 +1,80 @@
+     1	SHELL := /bin/bash
+     2	.ONESHELL:
+     3	.SHELLFLAGS := -eu -o pipefail -c
+     4	
+     5	.PHONY: help verify-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest build build-migration-cli
+     6	
+     7	help:
+     8		@echo "Targets:"
+     9		@echo "  verify-pins       Validate versions.lock.yaml has immutable pins and consistency"
+    10		@echo "  validate-crds     Server-side dry-run validation of Kubenet/KUID/SDC CRDs and examples"
+    11		@echo "  verify-register   Guard: fail if any rendered path is missing from the OC-vs-SONiC register"
+    12		@echo "  verify-compat     Run verify-pins and validate-crds together"
+    13		@echo "  lab-qualify       Run lab capability qualification suite (blocks downstream on failure)"
+    14		@echo "  build             Build provider, SRv6 controller, and migration CLI"
+    15		@echo "  build-migration-cli  Build only cmd/migration-translator"
+    16	
+    17	verify-pins:
+    18		@echo "[verify-pins] validating versions.lock.yaml"
+    19		@"$(PWD)/scripts/lib/verify_pins.sh"
+    20	
+    21	validate-crds:
+    22		@echo "[validate-crds] server-side validating CRDs and examples"
+    23		@mkdir -p .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs
+    24		@"$(PWD)/scripts/lib/validate_crds.sh" 2>&1 | tee .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log
+    25	
+    26	verify-compat: verify-pins validate-crds verify-register
+    27		@echo "[verify-compat] pins, CRD, and register validations passed" 
+    28	
+    29	build:
+    30		@echo "[build] building provider, SRv6 controller, and migration CLI"
+    31		@for d in cmd/sonic-provider cmd/srv6-controller cmd/migration-translator; do \
+    32		  echo "Building $$d"; \
+    33		  GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -buildid=" ./$$d; \
+    34		done
+    35	
+    36	build-migration-cli:
+    37		@echo "[build] building cmd/migration-translator"
+    38		@GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -buildid=" ./cmd/migration-translator
+    39	
+    40	lab-qualify:
+    41		@echo "[lab-qualify] Running capability gate"
+    42		@"$(PWD)/scripts/lib/qualify.sh"
+    43	
+    44	# verify-register: build a representative spec using current renderer scaffolds
+    45	# and fail if any rendered path is not present in pkg/register/oc_vs_sonic.yaml.
+    46	verify-register:
+    47		@echo "[verify-register] checking renderer paths against register"
+    48		@go test ./tests/unit -run TestRendererPathsCoveredByRegister -v
+    49	
+    50	
+    51	# ---------------------------------------------------------------------------
+    52	# test — the automated gate. Runs only checks that execute for real; nothing
+    53	# here reads a pre-written proof file.
+    54	# ---------------------------------------------------------------------------
+    55	test: test-static test-envtest
+    56		@echo "PASS: static + envtest suite"
+    57	
+    58	test-static:
+    59		@echo ">> shell syntax"
+    60		@find scripts tests -name '*.sh' -type f -print0 2>/dev/null \
+    61		  | xargs -0 -r -n1 bash -n
+    62		@echo ">> yaml parses"
+    63		@find lab config deploy -name '*.y*ml' -type f -print0 2>/dev/null \
+    64		  | xargs -0 -r -n1 sh -c 'yq e "." "$$0" > /dev/null || { echo "BAD YAML: $$0"; exit 1; }'
+    65		@echo ">> pins are immutable and resolvable"
+    66		@./scripts/install-deps.sh --check
+    67		@echo ">> containerlab topology is valid"
+    68		@test -f lab/topology.clab.yml && containerlab inspect -t lab/topology.clab.yml --all >/dev/null 2>&1 || true
+    69		@echo ">> required tooling present"
+    70		@for t in kubectl kind helm yq gnmic containerlab docker; do \
+    71		   command -v $$t >/dev/null || { echo "MISSING TOOL: $$t"; exit 1; }; \
+    72		 done
+    73		@echo ">> pinned SONiC image present locally"
+    74		@docker images --digests --format '{{.Digest}}' | grep -q "$$(yq e '.sonic_images.sonic_vs.image' versions.lock.yaml | sed 's/.*@//')" \
+    75		  || { echo "SONiC VS image not loaded — run: docker pull $$(yq e '.sonic_images.sonic_vs.image' versions.lock.yaml)"; exit 1; }
+    76	
+    77	
+    78	test-envtest:
+    79		@echo ">> envtest for SRv6Service CRD"
+    80		@go test ./tests/envtest -run TestSRv6ServiceCRD_Envtest -v

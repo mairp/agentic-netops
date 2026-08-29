@@ -1,0 +1,17 @@
+1: 	anns := n.Metadata["annotations"].(map[string]string)
+2: 	fmt.Fprintf(b, "  annotations:\n")
+3: 	// stable annotation order
+4: 	keys := []string{
+5: 		"ainetops.io/translator",
+6: 		"ainetops.io/translator-version",
+7: 		"ainetops.io/mapping-version",
+8: 		"ainetops.io/migration-input-hash",
+9: 		"ainetops.io/tenant",
+10: 		"ainetops.io/service-type",
+11: 		"ainetops.io/limited-equivalence",
+12: 	}
+13: 	for _, k := range keys {
+14: 		if v, ok := anns[k]; ok {
+15: 			fmt.Fprintf(b, "    %s: %s\n", k, v)
+16: 		}
+17: 	}

@@ -1,0 +1,12 @@
+{
+  "serviceId": "svc4",
+  "type": "VPLS",
+  "tenant": "A",
+  "rdRt": {"rd": "65000:400", "importRT": ["65000:400"], "exportRT": ["65000:400"]},
+  "l2vni": 10400,
+  "unsupported": {"tePolicy": {"name": "rsvp-te"}},
+  "endpoints": [
+    {"node": "leaf01", "attachment": "client01", "vlan": 40},
+    {"node": "leaf02", "attachment": "client02", "vlan": 40}
+  ]
+}

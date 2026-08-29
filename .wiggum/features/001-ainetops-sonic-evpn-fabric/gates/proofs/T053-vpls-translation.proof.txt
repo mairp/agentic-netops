@@ -1,0 +1,21 @@
+File: pkg/migration/translate.go — VPLS to bridge/L2VNI translation
+     1		spec := NetworkSpec{Description: fmt.Sprintf("Migrated service %s (%s)", in.ServiceID, in.Type)}
+     2		switch in.Type {
+     3		case ServiceVPLS, ServiceVPWS:
+     4			bd := BridgeDomain{
+     5				Name:  fmt.Sprintf("bd-%s", in.ServiceID),
+     6				VLAN:  endpointVLAN(in.Endpoints),
+     7				L2VNI: in.L2VNI,
+     8				EVPN:  &EVPN{RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT}},
+     9			}
+    10			spec.BridgeDomains = []BridgeDomain{bd}
+    11			spec.Attachments = attachmentsForL2(in.Endpoints)
+    12			if in.Type == ServiceVPWS {
+    13				ann := metadata["annotations"].(map[string]string)
+    14				ann["ainetops.io/limited-equivalence"] = "vpws-to-l2vni"
+    15			}
+    16		case ServiceL3VPN:
+    17			r := Router{
+    18				Name:         fmt.Sprintf("vrf-%s", in.ServiceID),
+    19				RD:           in.RDRT.RD,
+    20				RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT},

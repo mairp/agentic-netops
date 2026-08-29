@@ -1,0 +1,26 @@
+File: pkg/migration/translate.go — IRB struct (symmetric IRB gateway)
+     1	// IRB symmetric gateway parameters rendered under a bridge domain.
+     2	type IRB struct {
+     3		VRF        string `json:"vrf"`
+     4		GatewayV4  string `json:"gatewayIPv4,omitempty"`
+     5		GatewayV6  string `json:"gatewayIPv6,omitempty"`
+     6	}
+     7	
+--- IRB case composing Router and BridgeDomain with IRB ---
+     1		case ServiceIRB:
+     2			r := Router{
+     3				Name:         fmt.Sprintf("vrf-%s", in.ServiceID),
+     4				RD:           in.RDRT.RD,
+     5				RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT},
+     6				L3VNI:        in.L3VNI,
+     7			}
+     8			bd := BridgeDomain{
+     9				Name:  fmt.Sprintf("bd-%s", in.ServiceID),
+    10				VLAN:  endpointVLAN(in.Endpoints),
+    11				L2VNI: in.L2VNI,
+    12				IRB:   &IRB{VRF: in.IRBGateway.VRF, GatewayV4: in.IRBGateway.GatewayV4, GatewayV6: in.IRBGateway.GatewayV6},
+    13			}
+    14			spec.Routers = []Router{r}
+    15			spec.BridgeDomains = []BridgeDomain{bd}
+    16			spec.Attachments = attachmentsForL2(in.Endpoints)
+    17		default:

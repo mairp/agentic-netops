@@ -1,0 +1,13 @@
+20: func TestBatchAllOrNothing(t *testing.T) {
+21: 	ok := goodVPLS()
+22: 	bad := ok
+23: 	bad.ServiceID = "dup"
+24: 	ok.ServiceID = "dup"
+25: 	outs, err := migration.RenderBatch([]migration.ServiceInput{ok, bad})
+26: 	if err == nil { t.Fatalf("expected error for duplicate serviceId") }
+27: 	if len(outs) != 0 { t.Fatalf("expected no outputs on failure") }
+28: 	msg := migration.MarshalError(err)
+29: 	if !strings.Contains(msg, "duplicate serviceId") {
+30: 		t.Fatalf("expected duplicate cause, got: %s", msg)
+31: 	}
+32: }
