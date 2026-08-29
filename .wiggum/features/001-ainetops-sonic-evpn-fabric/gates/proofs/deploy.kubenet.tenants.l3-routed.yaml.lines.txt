@@ -1,0 +1,5 @@
+9:  routers:
+11:      rd: "65000:100"
+12:      routeTargets:
+15:      l3vni: 10100
+16:      prefixes:

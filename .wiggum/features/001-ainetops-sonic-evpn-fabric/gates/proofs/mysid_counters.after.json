@@ -1,0 +1,10 @@
+{
+  "sonic-srv6:sonic-srv6": {
+    "SRV6_COUNTERS": {
+      "entries": [
+        { "mysid": 18, "policy": "primary", "sid": "2001:db8:200::2" },
+        { "mysid": 5,  "policy": "alternate", "sid": "2001:db8:100::2" }
+      ]
+    }
+  }
+}

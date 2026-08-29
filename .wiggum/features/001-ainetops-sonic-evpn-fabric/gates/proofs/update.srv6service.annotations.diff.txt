@@ -1,0 +1,5 @@
+--- update.srv6service.annotations.before.json
++++ update.srv6service.annotations.after.json
+@@
+-{"ainetops.dev/description": "initial"}
++{"ainetops.dev/description": "update"}

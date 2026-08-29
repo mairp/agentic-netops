@@ -1,0 +1,17 @@
+3:# Capture outer IPv6/SRH with ordered SIDs, verify egress decapsulation into the intended VRF, and assert MySID counter increments
+14:VRF_NAME=${VRF_NAME:-vrf-a}
+31:  echo "[srv6-capture] capture outer IPv6/SRH with ordered SIDs"
+32:  docker exec -d "$SRC" bash -lc "tcpdump -i eth1 -w $_capture_file_container ip6 and dst ${DST_IP6} and srh"
+41:    sha256sum "$_capture_file_host" | tee "$PROOF_DIR/srv6_outer_srh.pcap.sha256"
+53:    "/sonic-srv6:sonic-srv6/SRV6_COUNTERS" -o json \
+58:  echo "[srv6-capture] assert MySID counter increments"
+62:  echo "[srv6-capture] MySID counters sum: $b -> $a"
+63:  if (( a <= b )); then echo "[srv6-capture] ERROR: MySID counters did not increase" >&2; exit 1; fi
+68:  "$GNMIC_BIN" --address "$LEAF_SRC" "${_args_common[@]}" get --path "/sonic-srv6:sonic-srv6/SID_LIST" -o json \
+76:  echo "[srv6-capture] assert ordered SIDs present in captured SRH"
+86:    if ! grep -qiE 'SRH|Segments Left|segment list|sid list' "$_capture_text_host"; then
+99:    ln=$(grep -n -m1 -F "$sid" "$_capture_text_host" | cut -d: -f1 || true)
+108:  echo "ordered SIDs verified" | tee "$PROOF_DIR/srv6_ordered_sids.ok" >/dev/null
+112:  "$GNMIC_BIN" --address "$LEAF_DST" "${_args_common[@]}" get --path "/sonic-srv6:sonic-srv6/BEHAVIORS" -o json \
+115:  vrf=$(jq -r '..|objects|select((.behavior=="End.DT46" or .action=="End.DT46") and (has("vrf") or has("vrf-name")))|(.vrf // ."vrf-name")' "$PROOF_DIR/behaviors.leaf-dst.json" | head -n1)
+119:  if [[ "$vrf" != "$VRF_NAME" ]]; then

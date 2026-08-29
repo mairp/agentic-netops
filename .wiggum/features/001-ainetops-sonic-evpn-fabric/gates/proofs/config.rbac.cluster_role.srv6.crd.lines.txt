@@ -1,0 +1,1 @@
+25:  resources: ["srv6services", "srv6services/status"]

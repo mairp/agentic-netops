@@ -1,0 +1,2 @@
+config.sdc.sdcio.dev/leaf01-srv6
+config.sdc.sdcio.dev/leaf02-srv6

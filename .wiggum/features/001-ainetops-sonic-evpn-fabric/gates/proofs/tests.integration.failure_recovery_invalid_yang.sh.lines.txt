@@ -1,0 +1,11 @@
+2:# T049 [US2] Partial target failure/recovery, provider restart mid-transaction, and invalid-YANG tests
+11:  echo "[failure] partial target failure/recovery"
+12:  containerlab -t "$TOPO" node stop leaf02 || true
+14:  kubectl --context "$CTX" -n sdc get target -o wide | tee "$PROOF_DIR/partial-failure.targets.txt" >/dev/null
+19:invalid_yang_tests() {
+31:apiVersion: sdc.sdcio.dev/v1alpha1
+45:EOF
+48:partial_srv6_endpoint_programming() {
+52:  kubectl --context "$CTX" -n default get srv6service example-srv6 -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' | tee "$PROOF_DIR/srv6-ready-after-partial.txt" >/dev/null || true
+58:prohibit_false_aggregate_ready() {
+62:    | jq -r '[.items[].status.conditions[]|select(.type=="Ready")|.status] | any(. != "True")' \

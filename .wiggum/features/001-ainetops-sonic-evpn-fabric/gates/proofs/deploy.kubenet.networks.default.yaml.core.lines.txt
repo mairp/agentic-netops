@@ -1,0 +1,13 @@
+13:  underlay:
+14:    ipv4: true
+15:    ipv6: true
+20:    loopbacks:
+33:    evpn:
+34:      enabled: true
+39:    vxlan:
+41:        sourceInterface: Loopback0
+42:        udpPort: 4789
+43:      mtu: 9216
+44:  attachments:
+46:      vtep: true
+48:      vtep: true

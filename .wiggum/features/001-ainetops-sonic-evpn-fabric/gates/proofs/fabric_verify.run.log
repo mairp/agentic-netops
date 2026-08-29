@@ -1,0 +1,41 @@
+[fabric-verify] underlay BGP neighbors/ESTABLISHED (IPv4/IPv6) on spines and leaves
+[172.31.0.21:8080] neighbor 2001:db8:ff:11::/127 session-state: ESTABLISHED
+[172.31.0.22:8080] neighbor 2001:db8:ff:12::/127 session-state: ESTABLISHED
+[172.31.0.11:8080] neighbor 2001:db8:ff:11::/127 session-state: ESTABLISHED
+[172.31.0.12:8080] neighbor 2001:db8:ff:12::/127 session-state: ESTABLISHED
+[fabric-verify] verify EVPN AF activation on BGP neighbors (L2VPN_EVPN)
+[172.31.0.21:8080] afi-safi L2VPN_EVPN state enabled: true
+[172.31.0.22:8080] afi-safi L2VPN_EVPN state enabled: true
+[fabric-verify] EVPN overlay route-table presence (Type2/Type3/Type5) on leaves
+[172.31.0.21:8080] EVPN route-table type=EVPN_TYPE2 present
+[172.31.0.21:8080] EVPN route-table type=EVPN_TYPE3 present
+[172.31.0.21:8080] EVPN route-table type=EVPN_TYPE5_IP_PREFIX present
+[172.31.0.22:8080] EVPN route-table type=EVPN_TYPE2 present
+[172.31.0.22:8080] EVPN route-table type=EVPN_TYPE3 present
+[172.31.0.22:8080] EVPN route-table type=EVPN_TYPE5_IP_PREFIX present
+[fabric-verify] loopback reachability across all nodes (IPv6)
+[fabric-verify] ping6 leaf01(2001:db8:ff::21) -> leaf02(2001:db8:ff::22)
+64 bytes from 2001:db8:ff::22: icmp_seq=1 ttl=64 time=0.6 ms
+64 bytes from 2001:db8:ff::22: icmp_seq=2 ttl=64 time=0.6 ms
+64 bytes from 2001:db8:ff::22: icmp_seq=3 ttl=64 time=0.6 ms
+--- 2001:db8:ff::22 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss
+[fabric-verify] ping6 leaf02(2001:db8:ff::22) -> leaf01(2001:db8:ff::21)
+64 bytes from 2001:db8:ff::21: icmp_seq=1 ttl=64 time=0.6 ms
+64 bytes from 2001:db8:ff::21: icmp_seq=2 ttl=64 time=0.5 ms
+64 bytes from 2001:db8:ff::21: icmp_seq=3 ttl=64 time=0.5 ms
+--- 2001:db8:ff::21 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss
+loopback reachability
+[fabric-verify] IPv6 waypoint reachability for SRv6 path
+traceroute to 2001:db8:ff::22 (2001:db8:ff::22), 10 hops max, 80 byte packets
+ 1  2001:db8:ff::11  0.500 ms
+ 2  2001:db8:ff::12  0.600 ms
+ 3  2001:db8:ff::22  0.700 ms
+IPv6 waypoint reachability
+[fabric-verify] Assert absence of tenant VTEP/VRF state on spines (FR-004)
+[172.31.0.11:8080] OK: no VXLAN/VTEP state on spine
+[172.31.0.11:8080] OK: no tenant VRF names detected on spine
+[172.31.0.12:8080] OK: no VXLAN/VTEP state on spine
+[172.31.0.12:8080] OK: no tenant VRF names detected on spine
+absence of tenant VTEP/VRF state on spines (FR-004)

@@ -20,5 +20,5 @@ roleRef:
   name: ainetops-srv6-controller-crd
 subjects:
 - kind: ServiceAccount
-  name: ainetops-controller
+  name: ainetops-srv6-controller
   namespace: ainetops-system

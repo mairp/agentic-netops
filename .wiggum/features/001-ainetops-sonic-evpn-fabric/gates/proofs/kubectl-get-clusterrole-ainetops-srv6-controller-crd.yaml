@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ainetops-srv6-controller-crd
+  labels:
+    app.kubernetes.io/name: ainetops-srv6-controller
+rules:
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["ainetops.io"]
+  resources: ["srv6services", "srv6services/status"]
+  verbs: ["get", "list", "watch", "update", "patch"]

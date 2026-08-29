@@ -1,0 +1,7 @@
+    19:       serviceAccountName: ainetops-srv6-controller
+    22:         image: ghcr.io/ainetops/ainetops-srv6-controller@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    23:         args: ["--metrics-bind=:8081", "--health-probe-bind=:8082"]
+    32:         readinessProbe:
+    33:           httpGet: { path: /readyz, port: 8082 }
+    35:         livenessProbe:
+    36:           httpGet: { path: /healthz, port: 8082 }

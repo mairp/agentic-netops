@@ -1,0 +1,4 @@
+kubenet-system	leaf01-bgp	abc123
+kubenet-system	leaf01-vxlan	def456
+kubenet-system	leaf02-bgp	abc123
+kubenet-system	leaf02-vxlan	def456

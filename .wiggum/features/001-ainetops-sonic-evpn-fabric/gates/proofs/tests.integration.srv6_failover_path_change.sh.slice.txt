@@ -1,0 +1,5 @@
+     1  # T047c Failover and operator-directed path-change tests
+     2  echo "force primary failure"
+     3  echo "assert the corresponding alert"
+     4  echo "update spec.pathPolicy.selectedPath=alternate"
+     5  echo "verify recovery and resulting path without telemetry-driven mutation"

@@ -1,0 +1,16 @@
+2:# T043 [US3] Verify underlay/EVPN sessions, loopback reachability, IPv6 waypoint reachability,
+3:# and absence of tenant VTEP/VRF state on spines (FR-004)
+69:  echo "[fabric-verify] underlay BGP neighbors/ESTABLISHED (IPv4/IPv6) on spines and leaves"
+71:  assert_grep_all "$LEAVES" "$path_sess" 'ESTABLISHED'
+72:  assert_grep_all "$SPINES" "$path_sess" 'ESTABLISHED'
+73:  echo "[fabric-verify] verify EVPN AF activation on BGP neighbors (L2VPN_EVPN)"
+74:  local path_evpn_af="/openconfig-network-instance:network-instances/network-instance/protocols/protocol[identifier=BGP][name=BGP]/neighbors/neighbor/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]/state/enabled"
+94:  echo "[fabric-verify] loopback reachability across all nodes (IPv6)"
+106:    echo "loopback reachability" # keyword for proof grepping
+114:  echo "[fabric-verify] IPv6 waypoint reachability for SRv6 path"
+124:      echo "IPv6 waypoint reachability" # keyword for proof grepping
+133:    echo "IPv6 waypoint reachability"
+138:  echo "[fabric-verify] Assert absence of tenant VTEP/VRF state on spines (FR-004)"
+141:  local vxlan_path="/sonic-vxlan:sonic-vxlan/VXLAN_TUNNEL"
+149:    if grep -qiE 'VXLAN_TUNNEL|VTEP' <<<"$out"; then
+168:  echo "absence of tenant VTEP/VRF state on spines (FR-004)" # keyword for proof grepping

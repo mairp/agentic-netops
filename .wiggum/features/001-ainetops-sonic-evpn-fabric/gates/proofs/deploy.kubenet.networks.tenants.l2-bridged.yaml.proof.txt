@@ -1,0 +1,23 @@
+     1	# T044 [P] [US1] Bridged L2 tenant example with two cross-leaf attachments, VLAN, L2VNI, RD/RT, and Type 2/3 expectations
+     2	apiVersion: network.kubenet.dev/v1alpha1
+     3	kind: Network
+     4	metadata:
+     5	  name: tenant-a-l2-bridged
+     6	  namespace: kubenet-system
+     7	spec:
+     8	  description: Tenant A bridged L2 domain across two leaves
+     9	  bridgeDomains:
+    10	    - name: bd-blue
+    11	      vlan: 10
+    12	      l2vni: 10010
+    13	      evpn:
+    14	        routeTargets:
+    15	          import: ["65000:100"]
+    16	          export: ["65000:100"]
+    17	  attachments:
+    18	    - node: leaf01
+    19	      vlan: 10
+    20	      attachment: client01
+    21	    - node: leaf02
+    22	      vlan: 10
+    23	      attachment: client02

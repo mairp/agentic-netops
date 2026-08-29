@@ -1,0 +1,64 @@
+     1	#!/usr/bin/env bash
+     2	# T050 [US2] Managed-path drift restoration and unmanaged-path preservation tests
+     3	set -euo pipefail
+     4	
+     5	GNMIC_BIN=${GNMIC_BIN:-gnmic}
+     6	GNMI_USER=${GNMI_USER:-admin}
+     7	GNMI_PASS=${GNMI_PASS:-admin}
+     8	GNMI_CACERT=${GNMI_CACERT:-./secrets/ca.crt}
+     9	GNMI_CERT=${GNMI_CERT:-./secrets/gnmi.crt}
+    10	GNMI_KEY=${GNMI_KEY:-./secrets/gnmi.key}
+    11	GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
+    12	LEAF1=${LEAF1:-172.31.0.21:8080}
+    13	PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+    14	mkdir -p "$PROOF_DIR"
+    15	
+    16	_args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --tls --skip-verify --encoding "$GNMI_ENCODING" --cacert "$GNMI_CACERT" --cert "$GNMI_CERT" --key "$GNMI_KEY")
+    17	
+    18	_read_json() {
+    19	  "$GNMIC_BIN" --address "$LEAF1" "${_args_common[@]}" get --path "$1" -o json 2>/dev/null
+    20	}
+    21	
+    22	managed_drift_restoration() {
+    23	  echo "[drift] managed-path drift restoration"
+    24	  # Read intended BGP AS from provider-owned state (placeholder path for illustration)
+    25	  local path_as="/openconfig-network-instance:network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=BGP]/global/config/as"
+    26	  local as_before
+    27	  as_before=$(_read_json "$path_as" | jq -r '..|objects|select(has("as"))|.as' | head -n1)
+    28	  echo "$as_before" > "$PROOF_DIR/drift.bgp-as.before.txt"
+    29	  # Mutate managed path and expect restoration
+    30	  $GNMIC_BIN --address "$LEAF1" "${_args_common[@]}" set --update "$path_as=$((as_before+1))" || true
+    31	  # Give reconciler a window to restore
+    32	  sleep 3
+    33	  local as_after
+    34	  as_after=$(_read_json "$path_as" | jq -r '..|objects|select(has("as"))|.as' | head -n1)
+    35	  echo "$as_after" > "$PROOF_DIR/drift.bgp-as.after.txt"
+    36	  if [[ -n "$as_before" && -n "$as_after" && "$as_after" != "$as_before" ]]; then
+    37	    echo "[drift] ERROR: managed path was not restored to intended value ($as_before != $as_after)" >&2
+    38	    exit 1
+    39	  fi
+    40	}
+    41	
+    42	unmanaged_path_preservation() {
+    43	  echo "[drift] unmanaged-path preservation"
+    44	  # Mutate an unmanaged path (interface description) and assert it is not overwritten shortly after
+    45	  local path_desc="/openconfig-interfaces:interfaces/interface[name=Ethernet100]/config/description"
+    46	  $GNMIC_BIN --address "$LEAF1" "${_args_common[@]}" set --update "$path_desc=lab-freeform-note" || true
+    47	  # Wait and re-read
+    48	  sleep 3
+    49	  local desc
+    50	  desc=$(_read_json "$path_desc" | jq -r '..|scalars? // empty' | head -n1)
+    51	  echo "$desc" > "$PROOF_DIR/drift.if-desc.after.txt"
+    52	  if [[ "$desc" != "lab-freeform-note" ]]; then
+    53	    echo "[drift] ERROR: unmanaged path was overwritten by reconciler/SDC" >&2
+    54	    exit 1
+    55	  fi
+    56	}
+    57	
+    58	case "${1:-run}" in
+    59	  run)
+    60	    managed_drift_restoration
+    61	    unmanaged_path_preservation
+    62	    ;;
+    63	  *) echo "usage: $0 run" >&2; exit 2 ;;
+    64	esac

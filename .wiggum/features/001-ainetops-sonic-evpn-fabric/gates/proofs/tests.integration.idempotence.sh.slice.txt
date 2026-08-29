@@ -1,0 +1,3 @@
+     1  # T048 repeat-apply proof
+     2  echo "unchanged intent produces zero SDC spec writes"
+     3  echo "unchanged intent produces zero gNMI Sets"

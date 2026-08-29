@@ -1,0 +1,11 @@
+     1  apiVersion: rbac.authorization.k8s.io/v1
+     2  kind: ClusterRole
+     3  metadata:
+     4    name: ainetops-srv6-controller
+     5  rules:
+     6  - apiGroups: [""]
+     7    resources: ["events"]
+     8    verbs: ["create", "patch"]
+     9  - apiGroups: ["ainetops.io"]
+    10    resources: ["srv6services", "srv6services/status"]
+    11    verbs: ["get", "list", "watch", "patch", "update"]

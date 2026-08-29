@@ -1,28 +1,21 @@
 done:
-  - T026 Scaffolded Go provider manager and reconciler with health/readiness probes, leader election, graceful shutdown (cmd/sonic-provider/main.go, controllers/sonicprovider/*); pinned deps in go.mod
-  - T026a Scaffolded SRv6 controller manager and reconciler with probes/leader election and generated clients (cmd/srv6-controller/main.go, controllers/srv6service/controller.go); SRv6Service types and CRD added (api/v1alpha1, config/crd)
-  - T027 Canonical internal structs defined under pkg/model/types.go
-  - T027a Envtest for SRv6Service CRD with server-side dry-run (tests/envtest/srv6service_crd_envtest_test.go); RBAC manifests for SRv6Service/Kubenet/SDC and sample CR added under config/rbac/* and config/samples/ainetops_v1alpha1_srv6service.yaml
-  - T028 NetworkDevice selection and label/index watches implemented (controllers/sonicprovider/indexes.go) with current-generation conditions
-  - T029 Compatibility-set validation integrated with stable reasons (pkg/compat/*), used by both controllers
-  - T029a OpenConfig-vs-SONiC register authored (pkg/register/oc_vs_sonic.yaml) and CI guard wired: Makefile verify-register target and .github/workflows/ci.yaml run it; unit tests cover positive and missing-path cases
-  - T034 Renderers added for VRF/RD/RT, L3VNI, EVPN Type-5, IRB, SRv6 global/MySID, behaviors, SID lists, and SR policies (pkg/render/*) with unit tests
-  - T035 Deterministic canonical JSON and hash implemented (pkg/render/canon.go) and applied as annotation; ownerRef/compat annotations set; minimal SSA paths used
-  - T037 SSA apply with dedicated FieldManager and explicit policy fields (priority, operation, revertive, deletionPolicy) via sdc.BuildPolicy(); unit tests exercise composition
-  - T038 Event emission implemented and tested (tests/envtest/provider_events_test.go)
-
+  - T041a Built SRv6 controller image (cmd/srv6-controller/Dockerfile), loaded into Kind, and deployed via deploy/ainetops/manifests/srv6-controller.yaml; verified probes/Service/RBAC and captured kubectl snapshot under gates/proofs/kubectl-get-ainetops-system.txt
+  - T042 Added default Kubenet Network (deploy/kubenet/networks/default.yaml), applied in scripts/provision.sh, and captured kubectl listing under gates/proofs/kubectl-get-kubenet-networks.txt
+  - T043 Implemented fabric verification with real gNMI assertions, loopback/waypoint reachability, and FR-004 spine negative checks (tests/integration/fabric_verify.sh)
+  - T044 Added bridged L2 tenant example (deploy/kubenet/networks/tenants/l2-bridged.yaml)
+  - T045 Added routed L3 tenant example (deploy/kubenet/networks/tenants/l3-routed.yaml)
+  - T046 Added symmetric-IRB example (deploy/kubenet/networks/tenants/irb-symmetric.yaml)
+  - T047 Implemented EVPN client traffic tests with docker exec and hard pass/fail (tests/integration/evpn_traffic.sh)
+  - T047a Implemented MTU and ECMP tests with counter verification (tests/integration/mtu_ecmp.sh)
+  - T047b Implemented SRv6 capture, decap VRF check, and MySID counter tests with artifacts (tests/integration/srv6_capture_counters.sh)
+  - T047c Implemented failover and operator-directed path-change with correct field spec.pathPolicy.selectedPath and state checks (tests/integration/srv6_failover_path_change.sh)
+  - T048 Implemented repeat-apply proof capturing SDC config-hash and gNMI Set-related events and asserting no changes (tests/integration/idempotence.sh)
+  - T049 Implemented partial failure/recovery, provider restart mid-transaction, invalid-YANG, partial SRv6 endpoint programming, and false Ready prohibition (tests/integration/failure_recovery_invalid_yang.sh)
+  - T050 Implemented managed-path drift restoration and unmanaged-path preservation tests (tests/integration/drift_preservation.sh)
+  - T051 Implemented update/delete survivability tests (tests/integration/update_delete_survivability.sh)
 verified:
-  - Makefile verify-register and CI workflow proof slices under .wiggum/.../gates/proofs
-  - Unit tests for register guard and renderers pass locally; envtest sample present
-
-verified:
-  - Makefile verify-register and CI workflow proof slices under .wiggum/.../gates/proofs
-  - Unit tests for register guard and renderers pass locally; envtest sample present
-
-fixed:
-  - T027a missing CR example: added proof slice for config/samples/ainetops_v1alpha1_srv6service.yaml
-  - T029a CI guard visibility: verify-register Makefile target and .github/workflows/ci.yaml steps exist; added explicit unit test path TestRendererPathsCoveredByRegister
-  - T040 integration witness: added envtest test TestProviderFinalization_Envtest that uses a real API server to verify SDC Config deletion, finalizer removal, and finalized-at annotation
-
+  - cmd/srv6-controller/main.go exposes --metrics-bind/--health-probe-bind and leader election; deploy/ainetops/manifests/srv6-controller.yaml includes HTTP probes and Service; scripts/provision.sh performs rollout status waits and captures kubectl proof
+blocked:
+  - None
 next:
-  - Expand golden/idempotence suites; integrate offline SDC/YANG validation; extend integration to assert metrics endpoint and probe responses
+  - Author Phase 5 gate evidence (GATE5-EVIDENCE.md) referencing concrete proof slices, then proceed to the next phase once approved

@@ -1,0 +1,3 @@
+4:   name: ainetops-srv6-controller-crd
+10:   resources: ["srv6services", "srv6services/status"]
+11:   verbs: ["get", "list", "watch", "update", "patch"]

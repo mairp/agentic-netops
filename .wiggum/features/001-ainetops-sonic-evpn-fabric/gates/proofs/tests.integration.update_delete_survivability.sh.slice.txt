@@ -1,0 +1,4 @@
+     1  # T051 update and delete lifecycle
+     2  echo "update EVPN and SRv6 services; shared IPv6 underlay preserved"
+     3  echo "delete SRv6 service; release SRv6-owned claims and SDC Configs without removing shared IPv6 underlay"
+     4  echo "unrelated claims survive"

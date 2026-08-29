@@ -17,7 +17,7 @@ topology:
     sonic-vs:
       # Containerlab does not have a special kind for SONiC; we use a linux kind with SONiC images
       kind: linux
-      image: ghcr.io/sonic-net/sonic-vs:202403@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      image: localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
       env:
         TZ: UTC
       binds:

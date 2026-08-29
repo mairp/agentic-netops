@@ -1,0 +1,4 @@
+  kubectl --context "$CTX" apply -f "$ROOT/config/rbac/service_account.yaml"
+  kubectl --context "$CTX" apply -f "$ROOT/config/rbac/cluster_role.yaml"
+  kubectl --context "$CTX" apply -f "$ROOT/config/rbac/cluster_role_binding.yaml"
+  kubectl --context "$CTX" apply -f "$ROOT/deploy/rbac/srv6-crd-rbac.yaml"

@@ -1,15 +1,15 @@
-<!-- wiggum-verification-plan content-hash: f56470327f776adaedafe077f64fcb522f8f3ab60d728791d0afaaaec1c934a7 -->
+<!-- wiggum-verification-plan content-hash: 7945037a1699da067636b84b6d773a3afa1801994b89672f8b4be583e04e6531 -->
 # Verification and Test Automation Plan
 
 ## Provenance
 
-- Plan ID: `verification-ef0ad7e7eb82ac2dcf7b`
-- Plan content hash: `f56470327f776adaedafe077f64fcb522f8f3ab60d728791d0afaaaec1c934a7`
+- Plan ID: `verification-414756f43ac96fab9bbe`
+- Plan content hash: `7945037a1699da067636b84b6d773a3afa1801994b89672f8b4be583e04e6531`
 - Source bundle ID: `0X8147VC0P13DYR9CW6SHKD8WF`
 - Source semantic hash: `751c4dfbc4879208295699a48dedcf90cb17c1fe9a61d87dfefb6080bfbedf19`
 - Source specification: `/root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/tasks.md`
 - Absolute workdir: `/root/ainetops-demo`
-- Project fingerprint: `7fc3fbb463094f51816710092c33842b41fb6153299604f301fcc56071b250cf`
+- Project fingerprint: `2b4fa73ba9fc5f595ac9a1cfcd7dd362bbfb98360c441e3c1b0228af0c333dfe`
 
 ## Coverage obligations
 

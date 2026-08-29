@@ -70,14 +70,31 @@ if command -v docker >/dev/null 2>&1 && command -v kind >/dev/null 2>&1 && comma
   kubectl --context "kind-${AINETOPS_CLUSTER_NAME:-ainetops}" -n ainetops-system set image deploy/ainetops-sonic-provider provider=ainetops-sonic-provider:dev || true
   kubectl --context "kind-${AINETOPS_CLUSTER_NAME:-ainetops}" -n ainetops-system set image deploy/ainetops-srv6-controller srv6-controller=ainetops-srv6-controller:dev || true
   echo "[provision] waiting for controller pods ready"
-  kubectl --context "kind-${AINETOPS_CLUSTER_NAME:-ainetops}" -n ainetops-system rollout status deploy/ainetops-sonic-provider --timeout=120s || true
-  kubectl --context "kind-${AINETOPS_CLUSTER_NAME:-ainetops}" -n ainetops-system rollout status deploy/ainetops-srv6-controller --timeout=120s || true
+  kubectl --context "kind-${AINETOPS_CLUSTER_NAME:-ainetops}" -n ainetops-system rollout status deploy/ainetops-sonic-provider --timeout=180s
+  kubectl --context "kind-${AINETOPS_CLUSTER_NAME:-ainetops}" -n ainetops-system rollout status deploy/ainetops-srv6-controller --timeout=180s
   # Capture independent observation proof
   mkdir -p "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
   kubectl --context "kind-${AINETOPS_CLUSTER_NAME:-ainetops}" -n ainetops-system get deploy,po,svc -o wide \
     | nl -ba > "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-ainetops-system.txt"
 fi
 
+# Apply default Kubenet Network, tenant examples, and SRv6 sample (T042, T044, T045, T046)
+if command -v kubectl >/dev/null 2>&1; then
+  CTX="kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
+  echo "[provision] applying SRv6Service CRD and Kubenet default/tenant networks"
+  kubectl --context "$CTX" apply -f "${REPO_ROOT}/config/crd/bases/ainetops.io_srv6services.yaml"
+  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/topology.yaml"
+  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/topology-and-indices.yaml"
+  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/claims.yaml"
+  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/srv6-pools.yaml"
+  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/default.yaml"
+  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/l2-bridged.yaml"
+  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/l3-routed.yaml"
+  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/irb-symmetric.yaml"
+  kubectl --context "$CTX" apply -f "${REPO_ROOT}/config/samples/ainetops_v1alpha1_srv6service.yaml"
+  # Capture independent observation of applied Network resources
+  kubectl --context "$CTX" -n kubenet-system get networkconfigs,networks 2>/dev/null | nl -ba > "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-kubenet-networks.txt" || true
+fi
 # Seed SDC schema/profile/discovery (address-based); tolerate apply idempotence
 if command -v kubectl >/dev/null 2>&1; then
   CTX="kind-${AINETOPS_CLUSTER_NAME:-ainetops}"

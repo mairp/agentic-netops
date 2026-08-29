@@ -1,0 +1,5 @@
+     1  NAME                              AGE
+     2  network.network.kubenet.dev/default-fabric            1m
+     3  network.network.kubenet.dev/tenant-a-l2-bridged       1m
+     4  network.network.kubenet.dev/tenant-a-l3-routed        1m
+     5  network.network.kubenet.dev/tenant-b-irb              1m

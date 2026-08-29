@@ -1,0 +1,25 @@
+     1	# T045 [P] [US1] Routed L3 tenant example with VRF, L3VNI, RD/RT, prefixes, and Type-5 expectations
+     2	apiVersion: network.kubenet.dev/v1alpha1
+     3	kind: Network
+     4	metadata:
+     5	  name: tenant-a-l3-routed
+     6	  namespace: kubenet-system
+     7	spec:
+     8	  description: Tenant A routed VRF with L3VNI and Type-5 prefix export
+     9	  routers:
+    10	    - name: vrf-tenant-a
+    11	      rd: "65000:100"
+    12	      routeTargets:
+    13	        import: ["65000:100"]
+    14	        export: ["65000:100"]
+    15	      l3vni: 10100
+    16	      prefixes:
+    17	        - 10.0.10.0/24
+    18	        - 2001:db8:10::/64
+    19	  attachments:
+    20	    - node: leaf01
+    21	      vrf: vrf-tenant-a
+    22	      attachment: client01
+    23	    - node: leaf02
+    24	      vrf: vrf-tenant-a
+    25	      attachment: client02

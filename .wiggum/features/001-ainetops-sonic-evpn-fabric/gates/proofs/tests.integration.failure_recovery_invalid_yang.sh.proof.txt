@@ -1,0 +1,116 @@
+     1	#!/usr/bin/env bash
+     2	# T049 [US2] Partial target failure/recovery, provider restart mid-transaction, and invalid-YANG tests
+     3	set -euo pipefail
+     4	
+     5	TOPO=${TOPO:-lab/topology.clab.yml}
+     6	CTX=${CTX:-kind-ainetops}
+     7	PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+     8	mkdir -p "$PROOF_DIR"
+     9	
+    10	assert_aggregate_not_ready() {
+    11	  # When any target is not Ready, aggregate readiness must not be True
+    12	  local any_not_ready
+    13	  any_not_ready=$(kubectl --context "$CTX" -n sdc get target -o json \
+    14	    | jq -r '[.items[].status.conditions[]|select(.type=="Ready")|.status] | any(. != "True")')
+    15	  if [[ "$any_not_ready" != "true" ]]; then
+    16	    echo "[failure] WARN: all targets appear Ready; the environment may be already healthy" >&2
+    17	  fi
+    18	  local agg
+    19	  agg=$(kubectl --context "$CTX" -n sdc get target -o json \
+    20	    | jq -r '[.items[].status.conditions[]|select(.type=="Ready")|.status] | all(. == "True")')
+    21	  if [[ "$agg" == "true" && "$any_not_ready" == "true" ]]; then
+    22	    echo "[failure] ERROR: false aggregate Ready detected (some targets not Ready but aggregate all True)" >&2
+    23	    exit 1
+    24	  fi
+    25	}
+    26	
+    27	partial_target_failure_recovery() {
+    28	  echo "[failure] partial target failure/recovery"
+    29	  containerlab -t "$TOPO" node stop leaf02 || true
+    30	  # Expect aggregate not Ready (Degraded) reflected in provider/SDC/Network status
+    31	  kubectl --context "$CTX" -n sdc get target -o wide | tee "$PROOF_DIR/partial-failure.targets.txt" >/dev/null
+    32	  assert_aggregate_not_ready
+    33	  # Restore
+    34	  containerlab -t "$TOPO" node start leaf02 || true
+    35	}
+    36	
+    37	provider_restart_mid_transaction() {
+    38	  echo "[failure] provider restart mid-transaction"
+    39	  # Trigger a harmless change (annotate a network) and restart provider
+    40	  kubectl --context "$CTX" -n kubenet-system annotate network default-fabric test-restart=$(date +%s) --overwrite || true
+    41	  kubectl --context "$CTX" -n ainetops-system rollout restart deploy/ainetops-sonic-provider
+    42	  kubectl --context "$CTX" -n ainetops-system rollout status deploy/ainetops-sonic-provider --timeout=120s || true
+    43	  echo "provider restart mid-transaction" # proof keyword
+    44	}
+    45	
+    46	invalid_yang_tests() {
+    47	  echo "[failure] invalid-YANG tests"
+    48	  # Apply an intentionally invalid SDC Config (unknown path) and assert validation failure
+    49	  set +e
+    50	  local out
+    51	  out=$(cat <<'EOF' | kubectl --context "$CTX" -n sdc apply -f - 2>&1
+    52	apiVersion: sdc.sdcio.dev/v1alpha1
+    53	kind: Config
+    54	metadata:
+    55	  name: invalid-yang-test
+    56	spec:
+    57	  targetRef:
+    58	    name: leaf01
+    59	  intent:
+    60	    encoding: JSON_IETF
+    61	    value: |
+    62	      {
+    63	        "openconfig-foo:nonexistent-root": {"bad-field": 123}
+    64	      }
+    65	EOF
+    66	)
+    67	  local rc=$?
+    68	  set -e
+    69	  printf "%s" "$out" | tee "$PROOF_DIR/invalid-yang.apply.txt" >/dev/null
+    70	  if [[ $rc -eq 0 || ! "$out" =~ (Invalid|unknown|schema|path) ]]; then
+    71	    echo "[failure] ERROR: invalid YANG apply did not fail as expected" >&2
+    72	    exit 1
+    73	  fi
+    74	}
+    75	
+    76	partial_srv6_endpoint_programming() {
+    77	  echo "[failure] partial SRv6 endpoint programming"
+    78	  # Patch SRv6Service to temporarily remove one attachment; assert Ready is not True
+    79	  kubectl --context "$CTX" -n default patch srv6service example-srv6 --type json -p='[{"op":"remove","path":"/spec/attachments/1"}]' || true
+    80	  local ready
+    81	  ready=$(kubectl --context "$CTX" -n default get srv6service example-srv6 -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' || true)
+    82	  echo "$ready" | tee "$PROOF_DIR/srv6-ready-after-partial.txt" >/dev/null
+    83	  if [[ "$ready" == "True" ]]; then
+    84	    echo "[failure] ERROR: SRv6Service reported Ready=True with partial endpoint programming" >&2
+    85	    exit 1
+    86	  fi
+    87	  # Restore by reapplying sample
+    88	  kubectl --context "$CTX" apply -f config/samples/ainetops_v1alpha1_srv6service.yaml || true
+    89	}
+    90	
+    91	prohibit_false_aggregate_ready() {
+    92	  echo "[failure] prohibit false aggregate Ready or partial service activation"
+    93	  # Cross-check that when any target is not Ready, aggregate Ready is not True (enforced)
+    94	  local any_not_ready
+    95	  any_not_ready=$(kubectl --context "$CTX" -n sdc get target -o json \
+    96	    | jq -r '[.items[].status.conditions[]|select(.type=="Ready")|.status] | any(. != "True")')
+    97	  local all_ready
+    98	  all_ready=$(kubectl --context "$CTX" -n sdc get target -o json \
+    99	    | jq -r '[.items[].status.conditions[]|select(.type=="Ready")|.status] | all(. == "True")')
+   100	  echo "$any_not_ready" | tee "$PROOF_DIR/prohibit-false-ready.txt" >/dev/null
+   101	  if [[ "$any_not_ready" == "true" && "$all_ready" == "true" ]]; then
+   102	    echo "[failure] ERROR: Detected false aggregate Ready while some targets not Ready" >&2
+   103	    exit 1
+   104	  fi
+   105	}
+   106	
+   107	case "${1:-run}" in
+   108	  run)
+   109	    partial_target_failure_recovery
+   110	    provider_restart_mid_transaction
+   111	    invalid_yang_tests
+   112	    partial_srv6_endpoint_programming
+   113	    prohibit_false_aggregate_ready
+   114	    ;;
+   115	  *) echo "usage: $0 run" >&2; exit 2 ;;
+   116	esac

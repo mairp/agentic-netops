@@ -1,0 +1,4 @@
+     1  # T047b SRv6 capture and counter tests
+     2  echo "capture outer IPv6/SRH with ordered SIDs"
+     3  echo "verify egress decapsulation into the intended VRF"
+     4  echo "assert MySID counter increments"

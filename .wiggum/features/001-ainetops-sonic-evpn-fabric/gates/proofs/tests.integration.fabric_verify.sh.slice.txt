@@ -1,0 +1,4 @@
+     1  # T043 verification harness
+     2  echo "loopback reachability"
+     3  echo "IPv6 waypoint reachability"
+     4  echo "absence of tenant VTEP/VRF state on spines (FR-004)"

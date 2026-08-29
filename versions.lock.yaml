@@ -71,8 +71,8 @@ tooling:
 # ---------------------------------------------------------------------------
 sonic_images:
   sonic_vs:
-    image: docker.io/netreplica/docker-sonic-vs@sha256:1142d9e4f763cfb0341f0a324f00bc4fad9cf3b40cc130accdc11c40967d0e85
-    digest: sha256:1142d9e4f763cfb0341f0a324f00bc4fad9cf3b40cc130accdc11c40967d0e85
+    image: localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
+    digest: sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
     tag: 20220111
     notes: Fast profile; no KVM required; containerlab kind sonic-vs
   sonic_vm:
@@ -91,7 +91,7 @@ sonic_yang:
   sonic_native_branch: '202405'
   sonic_native_commit: cfc766e13eccab4e7603808db3bfa9c5b2dfef17
   compatibility:
-    - image: docker.io/netreplica/docker-sonic-vs@sha256:1142d9e4f763cfb0341f0a324f00bc4fad9cf3b40cc130accdc11c40967d0e85
+    - image: localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
       oc_version: openconfig@f3443414
       native_version: sonic_yang@cfc766e1
     - image: local/sonic-vm@sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5

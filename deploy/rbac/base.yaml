@@ -60,3 +60,16 @@ metadata:
 type: Opaque
 stringData:
   note: "Generated at runtime; placeholder manifest proves API surface. No real credential committed."
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ainetops-srv6-controller
+  namespace: ainetops-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ainetops-sonic-provider
+  namespace: ainetops-system
+

@@ -1,0 +1,19 @@
+1: # T043 [US3] fabric verification script slices
+68: verify_underlay_bgp() {
+70:   local path_sess="/openconfig-network-instance:network-instances/network-instance/protocols/protocol[identifier=BGP][name=BGP]/neighbors/neighbor/state/session-state"
+71:   assert_grep_all "$LEAVES" "$path_sess" 'ESTABLISHED'
+73:   local path_evpn_af="/openconfig-network-instance:network-instances/network-instance/protocols/protocol[identifier=BGP][name=BGP]/neighbors/neighbor/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]/state/enabled"
+75:   assert_grep_all "$LEAVES" "$path_evpn_af" 'true'
+79: verify_evpn_overlay() {
+80:   run_each "$LEAVES" get --path "/openconfig-network-instance:network-instances/network-instance/evpn/route-tables/route-table[type=EVPN_TYPE2]"
+82:   run_each "$LEAVES" get --path "/openconfig-network-instance:network-instances/network-instance/evpn/route-tables/route-table[type=EVPN_TYPE3]"
+83:   run_each "$LEAVES" get --path "/openconfig-network-instance:network-instances/network-instance/evpn/route-tables/route-table[type=EVPN_TYPE5_IP_PREFIX]"
+94: verify_loopback_reachability() {
+106:     echo "loopback reachability"
+114: verify_ipv6_waypoint_reachability() {
+124:       echo "IPv6 waypoint reachability"
+137: assert_no_tenant_state_on_spines() {
+141:   local vxlan_path="/sonic-vxlan:sonic-vxlan/VXLAN_TUNNEL"
+149:     if grep -qiE 'VXLAN_TUNNEL|VTEP' <<<"$out"; then
+158:   local ni_path="/openconfig-network-instance:network-instances/network-instance/name"
+168:   echo "absence of tenant VTEP/VRF state on spines (FR-004)"

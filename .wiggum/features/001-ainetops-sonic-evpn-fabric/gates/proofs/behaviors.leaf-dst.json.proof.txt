@@ -1,0 +1,7 @@
+     1	{
+     2	  "sonic-srv6:sonic-srv6": {
+     3	    "BEHAVIORS": [
+     4	      { "behavior": "End.DT46", "vrf": "vrf-a" }
+     5	    ]
+     6	  }
+     7	}

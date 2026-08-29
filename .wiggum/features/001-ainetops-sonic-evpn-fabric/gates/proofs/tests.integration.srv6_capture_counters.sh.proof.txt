@@ -1,0 +1,127 @@
+     1	#!/usr/bin/env bash
+     2	# T047b [US5] SRv6 capture and counter tests between dedicated clients
+     3	# Capture outer IPv6/SRH with ordered SIDs, verify egress decapsulation into the intended VRF, and assert MySID counter increments
+     4	set -euo pipefail
+     5	
+     6	PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+     7	mkdir -p "$PROOF_DIR"
+     8	
+     9	SRC=${SRC:-clab-ainetops-fabric-srv6-client01}
+    10	DST=${DST:-clab-ainetops-fabric-srv6-client02}
+    11	SRC_IP6=${SRC_IP6:-2001:db8:3::31}
+    12	DST_IP6=${DST_IP6:-2001:db8:4::41}
+    13	LEAF_SRC=${LEAF_SRC:-172.31.0.21:8080}
+    14	LEAF_DST=${LEAF_DST:-172.31.0.22:8080}
+    15	VRF_NAME=${VRF_NAME:-vrf-a}
+    16	
+    17	GNMIC_BIN=${GNMIC_BIN:-gnmic}
+    18	GNMI_USER=${GNMI_USER:-admin}
+    19	GNMI_PASS=${GNMI_PASS:-admin}
+    20	GNMI_CACERT=${GNMI_CACERT:-./secrets/ca.crt}
+    21	GNMI_CERT=${GNMI_CERT:-./secrets/gnmi.crt}
+    22	GNMI_KEY=${GNMI_KEY:-./secrets/gnmi.key}
+    23	GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
+    24	
+    25	_args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --tls --skip-verify --encoding "$GNMI_ENCODING" --cacert "$GNMI_CACERT" --cert "$GNMI_CERT" --key "$GNMI_KEY")
+    26	
+    27	_capture_file_container=/tmp/srv6.pcap
+    28	_capture_file_host="$PROOF_DIR/srv6_outer_srh.pcap"
+    29	_capture_text_host="$PROOF_DIR/srv6_outer_srh.txt"
+    30	
+    31	start_capture() {
+    32	  echo "[srv6-capture] capture outer IPv6/SRH with ordered SIDs"
+    33	  docker exec -d "$SRC" bash -lc "tcpdump -i eth1 -w $_capture_file_container ip6 and dst ${DST_IP6} and srh"
+    34	}
+    35	
+    36	stop_capture() {
+    37	  echo "[srv6-capture] stopping capture and copying proof"
+    38	  docker exec "$SRC" bash -lc "pkill -f 'tcpdump -i eth1' || true"
+    39	  docker cp "$SRC:$_capture_file_container" "$_capture_file_host" || true
+    40	  if [[ -f "$_capture_file_host" ]]; then
+    41	    # textual summary for proof and inspection
+    42	    tcpdump -nnvv -r "$_capture_file_host" 2>/dev/null | tee "$_capture_text_host" >/dev/null || true
+    43	    sha256sum "$_capture_file_host" | tee "$PROOF_DIR/srv6_outer_srh.pcap.sha256"
+    44	  fi
+    45	}
+    46	
+    47	send_srv6_traffic() {
+    48	  echo "[srv6-capture] generating SRv6 traffic"
+    49	  docker exec "$SRC" bash -lc "ping -6 -c 5 -W 1 ${DST_IP6} || true"
+    50	}
+    51	
+    52	mysid_counter() {
+    53	  local when=$1; shift
+    54	  "$GNMIC_BIN" --address "$LEAF_DST" "${_args_common[@]}" get --path \
+    55	    "/sonic-srv6:sonic-srv6/SRV6_COUNTERS" -o json \
+    56	    | tee "$PROOF_DIR/mysid_counters.${when}.json" >/dev/null
+    57	}
+    58	
+    59	assert_mysid_increment() {
+    60	  echo "[srv6-capture] assert MySID counter increments"
+    61	  local b a
+    62	  b=$(jq -r '..|objects|select(has("mysid"))|.mysid|numbers' "$PROOF_DIR/mysid_counters.before.json" | paste -sd+ - | bc || echo 0)
+    63	  a=$(jq -r '..|objects|select(has("mysid"))|.mysid|numbers' "$PROOF_DIR/mysid_counters.after.json" | paste -sd+ - | bc || echo 0)
+    64	  echo "[srv6-capture] MySID counters sum: $b -> $a"
+    65	  if (( a <= b )); then echo "[srv6-capture] ERROR: MySID counters did not increase" >&2; exit 1; fi
+    66	}
+    67	
+    68	expected_sid_list() {
+    69	  # Obtain ordered SIDs from the active SID_LIST on the headend leaf
+    70	  "$GNMIC_BIN" --address "$LEAF_SRC" "${_args_common[@]}" get --path "/sonic-srv6:sonic-srv6/SID_LIST" -o json \
+    71	    | tee "$PROOF_DIR/sid_list.leaf-src.json" >/dev/null \
+    72	    | jq -r '..|objects|select(has("sids"))|.sids[]' || true
+    73	}
+    74	
+    75	assert_ordered_sids_in_pcap() {
+    76	  echo "[srv6-capture] assert ordered SIDs present in captured SRH"
+    77	  if [[ ! -s "$_capture_text_host" ]]; then
+    78	    echo "[srv6-capture] ERROR: capture text not found at $_capture_text_host" >&2; exit 1
+    79	  fi
+    80	  mapfile -t sids < <(expected_sid_list)
+    81	  if (( ${#sids[@]} < 1 )); then
+    82	    echo "[srv6-capture] ERROR: could not discover expected SID list from headend; cannot verify ordering" >&2
+    83	    exit 1
+    84	  fi
+    85	  local prev_line=-1
+    86	  for sid in "${sids[@]}"; do
+    87	    local ln
+    88	    ln=$(grep -n -m1 -F "$sid" "$_capture_text_host" | cut -d: -f1 || true)
+    89	    if [[ -z "${ln:-}" ]]; then
+    90	      echo "[srv6-capture] ERROR: expected SID $sid not found in capture" >&2; exit 1
+    91	    fi
+    92	    if (( prev_line != -1 && ln < prev_line )); then
+    93	      echo "[srv6-capture] ERROR: SRH SID order invalid: $sid appears before previous SID" >&2; exit 1
+    94	    fi
+    95	    prev_line=$ln
+    96	  done
+    97	  echo "ordered SIDs verified" | tee "$PROOF_DIR/srv6_ordered_sids.ok" >/dev/null
+    98	}
+    99	
+   100	assert_decap_vrf_on_leaf() {
+   101	  echo "[srv6-capture] verify egress decapsulation into the intended VRF"
+   102	  # Assert End.DT46 behavior on destination leaf maps to VRF_NAME
+   103	  "$GNMIC_BIN" --address "$LEAF_DST" "${_args_common[@]}" get --path "/sonic-srv6:sonic-srv6/BEHAVIORS" -o json \
+   104	    | tee "$PROOF_DIR/behaviors.leaf-dst.json" >/dev/null
+   105	  local vrf
+   106	  vrf=$(jq -r '..|objects|select((.behavior=="End.DT46" or .action=="End.DT46") and (has("vrf") or has("vrf-name")))|(.vrf // ."vrf-name")' "$PROOF_DIR/behaviors.leaf-dst.json" | head -n1)
+   107	  if [[ -z "${vrf:-}" ]]; then
+   108	    echo "[srv6-capture] ERROR: could not find End.DT46 VRF behavior on destination leaf" >&2; exit 1
+   109	  fi
+   110	  if [[ "$vrf" != "$VRF_NAME" ]]; then
+   111	    echo "[srv6-capture] ERROR: decap VRF mismatch: expected $VRF_NAME got $vrf" >&2; exit 1
+   112	  fi
+   113	}
+   114	
+   115	case "${1:-run}" in
+   116	  run)
+   117	    mysid_counter before
+   118	    start_capture
+   119	    send_srv6_traffic
+   120	    stop_capture
+   121	    mysid_counter after
+   122	    assert_mysid_increment
+   123	    assert_ordered_sids_in_pcap
+   124	    assert_decap_vrf_on_leaf
+   125	    ;;
+   126	  *) echo "usage: $0 run" >&2; exit 2 ;;
+   127	esac

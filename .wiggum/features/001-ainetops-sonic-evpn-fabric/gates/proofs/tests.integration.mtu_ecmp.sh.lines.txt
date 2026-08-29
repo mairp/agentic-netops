@@ -1,0 +1,9 @@
+2:# T047a [US3] MTU and ECMP tests: verify maximum effective MTU accommodates VXLAN overhead and ECMP hashing
+22:  echo "[mtu-ecmp] maximum effective MTU accommodates VXLAN overhead"
+30:    "/openconfig-interfaces:interfaces/interface[name=${ifname}]/state/counters/out-octets" -o json \
+31:    | jq -r '..|objects|select(has("out-octets"))|."out-octets"' | head -n1
+36:  echo "[mtu-ecmp] ECMP hashing where qualified"
+37:  local IF_A=${IF_A:-Ethernet1} # uplink to spine01
+38:  local IF_B=${IF_B:-Ethernet2} # uplink to spine02
+47:  echo "[mtu-ecmp] ${IF_A} out-octets: $pre_a -> $post_a"
+48:  echo "[mtu-ecmp] ${IF_B} out-octets: $pre_b -> $post_b"

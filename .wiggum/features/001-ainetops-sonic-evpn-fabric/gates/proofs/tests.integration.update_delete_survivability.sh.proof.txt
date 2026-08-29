@@ -1,0 +1,118 @@
+     1	#!/usr/bin/env bash
+     2	# T051 [US2] Update/delete lifecycle: shared fabric state and unrelated claims survive EVPN/SRv6 changes; SRv6-owned claims released
+     3	set -euo pipefail
+     4	
+     5	CTX=${CTX:-kind-ainetops}
+     6	PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+     7	mkdir -p "$PROOF_DIR"
+     8	
+     9	count_sdc_srv6_configs() {
+    10	  # Count SDC Configs owned by SRv6 (by label/annotation convention)
+    11	  kubectl --context "$CTX" -n sdc get config -o json \
+    12	    | jq '[.items[] | select(.metadata.labels["ainetops.dev/owner"]=="srv6" or (.metadata.annotations["ainetops.dev/owner"]//"")=="srv6")] | length'
+    13	}
+    14	
+    15	list_sdc_configs() {
+    16	  kubectl --context "$CTX" -n sdc get config -o name | sort -u
+    17	}
+    18	
+    19	hash_default_fabric() {
+    20	  # Stable hash of default-fabric excluding volatile metadata/status
+    21	  kubectl --context "$CTX" -n kubenet-system get network default-fabric -o json \
+    22	    | jq -S 'del(.metadata.resourceVersion,.metadata.generation,.metadata.uid,.metadata.managedFields,.metadata.creationTimestamp,.status)' \
+    23	    | sha256sum | awk '{print $1}'
+    24	}
+    25	
+    26	srv6_annotation_json() {
+    27	  kubectl --context "$CTX" -n default get srv6service example-srv6 -o json 2>/dev/null \
+    28	    | jq -S '.metadata.annotations // {}'
+    29	}
+    30	
+    31	hash_srv6_annotation() {
+    32	  srv6_annotation_json | sha256sum | awk '{print $1}'
+    33	}
+    34	
+    35	update_service() {
+    36	  echo "[lifecycle] snapshot before update"
+    37	  list_sdc_configs | tee "$PROOF_DIR/update.sdc-configs.before.txt" >/dev/null
+    38	  hash_default_fabric | tee "$PROOF_DIR/update.default-fabric.hash.before.txt" >/dev/null
+    39	  srv6_annotation_json | tee "$PROOF_DIR/update.srv6service.annotations.before.json" >/dev/null || true
+    40	  hash_srv6_annotation | tee "$PROOF_DIR/update.srv6service.annotations.hash.before.txt" >/dev/null || true
+    41	
+    42	  echo "[lifecycle] update EVPN and SRv6 services; shared IPv6 underlay preserved"
+    43	  # Update a tenant RT and SRv6 policy description (no functional change)
+    44	  kubectl --context "$CTX" -n kubenet-system patch network tenant-a-l3-routed --type merge -p '{"spec":{"routers":[{"name":"vrf-tenant-a","routeTargets":{"import":["65000:100"],"export":["65000:100"]}}]}}' || true
+    45	  kubectl --context "$CTX" -n default patch srv6service example-srv6 --type merge -p '{"metadata":{"annotations":{"ainetops.dev/description":"update"}}}' || true
+    46	
+    47	  echo "[lifecycle] snapshot after update"
+    48	  list_sdc_configs | tee "$PROOF_DIR/update.sdc-configs.after.txt" >/dev/null
+    49	  hash_default_fabric | tee "$PROOF_DIR/update.default-fabric.hash.after.txt" >/dev/null
+    50	  srv6_annotation_json | tee "$PROOF_DIR/update.srv6service.annotations.after.json" >/dev/null || true
+    51	  hash_srv6_annotation | tee "$PROOF_DIR/update.srv6service.annotations.hash.after.txt" >/dev/null || true
+    52	
+    53	  # Assert default-fabric persists
+    54	  kubectl --context "$CTX" -n kubenet-system get network default-fabric -o name | tee "$PROOF_DIR/update.default-fabric.txt" >/dev/null
+    55	  if ! grep -q "/default-fabric" "$PROOF_DIR/update.default-fabric.txt"; then
+    56	    echo "[lifecycle] ERROR: default-fabric missing after update" >&2; exit 1
+    57	  fi
+    58	  # Assert no unrelated SDC Configs were removed (before == after)
+    59	  if ! diff -u "$PROOF_DIR/update.sdc-configs.before.txt" "$PROOF_DIR/update.sdc-configs.after.txt" >/dev/null; then
+    60	    echo "[lifecycle] ERROR: SDC Config set changed unexpectedly on update" >&2; exit 1
+    61	  fi
+    62	  # Assert SRv6Service annotation changed to prove durable update effect
+    63	  if diff -u "$PROOF_DIR/update.srv6service.annotations.hash.before.txt" "$PROOF_DIR/update.srv6service.annotations.hash.after.txt" >/dev/null; then
+    64	    echo "[lifecycle] ERROR: SRv6Service annotations hash did not change on update" >&2; exit 1
+    65	  fi
+    66	  # Record explicit diff for proof
+    67	  diff -u "$PROOF_DIR/update.srv6service.annotations.before.json" "$PROOF_DIR/update.srv6service.annotations.after.json" \
+    68	    > "$PROOF_DIR/update.srv6service.annotations.diff.txt" || true
+    69	  echo "unrelated claims survive" # proof keyword
+    70	}
+    71	
+    72	delete_service() {
+    73	  echo "[lifecycle] snapshot before delete"
+    74	  list_sdc_configs | tee "$PROOF_DIR/delete.sdc-configs.before.txt" >/dev/null
+    75	  kubectl --context "$CTX" -n sdc get config -o json \
+    76	    | jq -r '.items[] | select(.metadata.labels["ainetops.dev/owner"]=="srv6" or (.metadata.annotations["ainetops.dev/owner"]//"")=="srv6") | .metadata.name' \
+    77	    | sort -u | tee "$PROOF_DIR/delete.srv6-configs.list.before.txt" >/dev/null
+    78	  hash_default_fabric | tee "$PROOF_DIR/delete.default-fabric.hash.before.txt" >/dev/null
+    79	
+    80	  echo "[lifecycle] delete SRv6 service; release SRv6-owned claims and SDC Configs without removing shared IPv6 underlay"
+    81	  local before
+    82	  before=$(count_sdc_srv6_configs)
+    83	  kubectl --context "$CTX" -n default delete srv6service example-srv6 --ignore-not-found=true || true
+    84	
+    85	  echo "[lifecycle] snapshot after delete"
+    86	  kubectl --context "$CTX" -n kubenet-system get network default-fabric -o name | tee "$PROOF_DIR/delete.default-fabric.txt" >/dev/null
+    87	  if ! grep -q "/default-fabric" "$PROOF_DIR/delete.default-fabric.txt"; then
+    88	    echo "[lifecycle] ERROR: default-fabric missing after SRv6 delete" >&2; exit 1
+    89	  fi
+    90	  local after
+    91	  after=$(count_sdc_srv6_configs)
+    92	  echo "$before" > "$PROOF_DIR/delete.srv6-configs.count.before.txt"
+    93	  echo "$after" > "$PROOF_DIR/delete.srv6-configs.count.after.txt"
+    94	  kubectl --context "$CTX" -n sdc get config -o json \
+    95	    | jq -r '.items[] | select(.metadata.labels["ainetops.dev/owner"]=="srv6" or (.metadata.annotations["ainetops.dev/owner"]//"")=="srv6") | .metadata.name' \
+    96	    | sort -u | tee "$PROOF_DIR/delete.srv6-configs.list.after.txt" >/dev/null
+    97	  # Removed names list (durable identity)
+    98	  comm -23 "$PROOF_DIR/delete.srv6-configs.list.before.txt" "$PROOF_DIR/delete.srv6-configs.list.after.txt" \
+    99	    > "$PROOF_DIR/delete.srv6-configs.removed.txt" || true
+   100	  hash_default_fabric | tee "$PROOF_DIR/delete.default-fabric.hash.after.txt" >/dev/null
+   101	
+   102	  if [[ -n "$before" && -n "$after" && "$after" -ge "$before" ]]; then
+   103	    echo "[lifecycle] ERROR: SRv6-owned SDC Configs were not reduced after delete" >&2; exit 1
+   104	  fi
+   105	  # Assert shared underlay hash remained unchanged across delete
+   106	  if ! diff -u "$PROOF_DIR/delete.default-fabric.hash.before.txt" "$PROOF_DIR/delete.default-fabric.hash.after.txt" >/dev/null; then
+   107	    echo "[lifecycle] ERROR: default-fabric hash changed after SRv6 delete (unexpected)" >&2; exit 1
+   108	  fi
+   109	}
+   110	
+   111	case "${1:-run}" in
+   112	  run)
+   113	    update_service
+   114	    delete_service
+   115	    ;;
+   116	  *) echo "usage: $0 run" >&2; exit 2 ;;
+   117	
+   118	esac

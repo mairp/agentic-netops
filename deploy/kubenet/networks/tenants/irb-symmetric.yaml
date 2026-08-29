@@ -1,0 +1,43 @@
+# T046 [P] [US1] Symmetric-IRB example with L2/L3 VNIs, gateway addresses, and two isolated VRFs
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: tenant-b-irb
+  namespace: kubenet-system
+spec:
+  description: Tenant B symmetric IRB with two isolated VRFs
+  routers:
+    - name: vrf-b1
+      rd: "65000:201"
+      routeTargets:
+        import: ["65000:201"]
+        export: ["65000:201"]
+      l3vni: 10201
+    - name: vrf-b2
+      rd: "65000:202"
+      routeTargets:
+        import: ["65000:202"]
+        export: ["65000:202"]
+      l3vni: 10202
+  bridgeDomains:
+    - name: bd-b1
+      vlan: 20
+      l2vni: 10020
+      irb:
+        vrf: vrf-b1
+        gatewayIPv4: 10.0.20.1/24
+        gatewayIPv6: 2001:db8:20::1/64
+    - name: bd-b2
+      vlan: 30
+      l2vni: 10030
+      irb:
+        vrf: vrf-b2
+        gatewayIPv4: 10.0.30.1/24
+        gatewayIPv6: 2001:db8:30::1/64
+  attachments:
+    - node: leaf01
+      vlan: 20
+      attachment: client01
+    - node: leaf02
+      vlan: 30
+      attachment: client02

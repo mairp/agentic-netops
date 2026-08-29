@@ -1,0 +1,48 @@
+# T042 [US3] Apply the default Kubenet Network and reconcile dual-stack routed leaf-spine links, loopbacks, underlay BGP, EVPN overlay, and leaf VTEPs
+# This file defines a default dual-stack routed fabric and EVPN overlay in the pinned Kubenet API shape.
+# It is applied by scripts/provision.sh and is intentionally conservative to avoid upstream drift.
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: default-fabric
+  namespace: kubenet-system
+  labels:
+    ainetops.owner: ainetops
+spec:
+  description: Default dual-stack leaf-spine routed underlay with EVPN overlay and leaf VTEPs
+  underlay:
+    ipv4: true
+    ipv6: true
+    linkAddresses:
+      # IPv4 /31 and IPv6 /127 placeholder pools for routed links
+      ipv4Pool: 10.0.0.0/24
+      ipv6Pool: 2001:db8:10::/64
+    loopbacks:
+      v4Pool: 10.255.0.0/24
+      v6Pool: 2001:db8:ff::/64
+    bgp:
+      asnPool:
+        start: 65001
+        end: 65010
+      neighbors:
+        # Spine-leaf eBGP
+        - role: spine
+          peerRole: leaf
+          families: [ipv4-unicast, ipv6-unicast]
+  overlay:
+    evpn:
+      enabled: true
+      addressFamily: [type2, type3, type5]
+      routeTargets:
+        import: ["65000:100"]
+        export: ["65000:100"]
+    vxlan:
+      vtep:
+        sourceInterface: Loopback0
+        udpPort: 4789
+      mtu: 9216
+  attachments:
+    - node: leaf01
+      vtep: true
+    - node: leaf02
+      vtep: true
