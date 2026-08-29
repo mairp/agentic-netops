@@ -1,0 +1,19 @@
+pkg/register/oc_vs_sonic.yaml:4:entries:
+pkg/register/oc_vs_sonic.yaml:5:  - path: /interfaces/interface
+pkg/register/oc_vs_sonic.yaml:7:  - path: /interfaces/interface[vtep]
+pkg/register/oc_vs_sonic.yaml:9:  - path: /network-instances/network-instance
+pkg/register/oc_vs_sonic.yaml:11:  - path: /network-instances/network-instance/protocols/bgp/neighbors
+pkg/register/oc_vs_sonic.yaml:13:  - path: /network-instances/network-instance/bridges
+pkg/register/oc_vs_sonic.yaml:15:  - path: /network-instances/network-instance/l3vni
+pkg/register/oc_vs_sonic.yaml:17:  - path: /network-instances/network-instance/evpn/type5
+pkg/register/oc_vs_sonic.yaml:19:  - path: /network-instances/network-instance/bridges/irb
+pkg/register/oc_vs_sonic.yaml:26:  - path: /sonic-srv6:sonic-srv6/SRV6_GLOBAL
+pkg/register/oc_vs_sonic.yaml:28:    native_path: /sonic-srv6:sonic-srv6/SRV6_GLOBAL
+pkg/register/oc_vs_sonic.yaml:30:  - path: /sonic-srv6:sonic-srv6/MYSID
+pkg/register/oc_vs_sonic.yaml:32:    native_path: /sonic-srv6:sonic-srv6/MYSID
+pkg/register/oc_vs_sonic.yaml:34:  - path: /sonic-srv6:sonic-srv6/SID_LIST
+pkg/register/oc_vs_sonic.yaml:36:    native_path: /sonic-srv6:sonic-srv6/SID_LIST
+pkg/register/oc_vs_sonic.yaml:38:  - path: /sonic-srv6:sonic-srv6/POLICY
+pkg/register/oc_vs_sonic.yaml:40:    native_path: /sonic-srv6:sonic-srv6/POLICY
+pkg/register/oc_vs_sonic.yaml:42:  - path: /sonic-srv6:sonic-srv6/BEHAVIORS
+pkg/register/oc_vs_sonic.yaml:44:    native_path: /sonic-srv6:sonic-srv6/BEHAVIORS

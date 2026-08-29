@@ -1,0 +1,64 @@
+1	// SPDX-License-Identifier: Apache-2.0
+2	package render
+3	
+4	import (
+5		"sort"
+6	
+7		"github.com/mairp/ainetops/pkg/model"
+8	)
+9	
+10	// RenderL3VNI renders a VRF-bound L3VNI association.
+11	func RenderL3VNI(vrf model.NetworkInstance, vni int) map[string]any {
+12		res := map[string]any{}
+13		base := "/network-instances/network-instance/l3vni"
+14		res[base] = map[string]any{"name": vrf.Name, "vni": vni}
+15		return res
+16	}
+17	
+18	// RenderEVPNType5 renders a placeholder Type-5 route-family enablement for a VRF.
+19	func RenderEVPNType5(vrf model.NetworkInstance) map[string]any {
+20		res := map[string]any{}
+21		base := "/network-instances/network-instance/evpn/type5"
+22		res[base] = map[string]any{"name": vrf.Name, "enabled": true}
+23		return res
+24	}
+25	
+26	// RenderIRB renders symmetric IRB parameters for a bridge-to-VRF gateway.
+27	func RenderIRB(vrf model.NetworkInstance, vlan int, irb model.IRB) map[string]any {
+28		res := map[string]any{}
+29		base := "/network-instances/network-instance/bridges/irb"
+30		res[base] = map[string]any{
+31			"vrf": vrf.Name,
+32			"vlan": vlan,
+33			"gateway": map[string]any{"ipv4": irb.GatewayIPv4, "ipv6": irb.GatewayIPv6},
+34		}
+35		return res
+36	}
+37	
+38	// RenderSRv6Behaviors renders SRv6 behaviors including H.Encaps.Red, End, and End.DT46.
+39	func RenderSRv6Behaviors(behaviors []string) map[string]any {
+40		res := map[string]any{}
+41		list := append([]string{}, behaviors...)
+42		sort.Strings(list)
+43		res["/sonic-srv6:sonic-srv6/BEHAVIORS"] = list
+44		return res
+45	}
+46	
+47	// RenderSIDList renders an ordered SID list for steering.
+48	func RenderSIDList(name string, sids []string) map[string]any {
+49		res := map[string]any{}
+50		ordered := append([]string{}, sids...)
+51		res["/sonic-srv6:sonic-srv6/SID_LIST"] = []map[string]any{{"name": name, "sids": ordered}}
+52		return res
+53	}
+54	
+55	// RenderSRPolicy renders a steering policy referencing a SID list.
+56	func RenderSRPolicy(pol model.SRPolicy) map[string]any {
+57		res := map[string]any{}
+58		res["/sonic-srv6:sonic-srv6/POLICY"] = []map[string]any{{
+59			"name": pol.Name,
+60			"selector": pol.Selector,
+61			"sid-list": pol.SIDListRef,
+62		}}
+63		return res
+64	}

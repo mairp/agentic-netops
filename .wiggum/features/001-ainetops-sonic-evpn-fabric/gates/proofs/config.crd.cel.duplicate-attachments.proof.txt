@@ -1,0 +1,5 @@
+File: config/crd/bases/ainetops.io_srv6services.yaml
+107:	- rule: "size(self.attachments) == 2"
+108:	  message: exactly two attachments are required
+109:	- rule: "self.attachments[0].node != self.attachments[1].node"
+110:	  message: attachments must be unique by node

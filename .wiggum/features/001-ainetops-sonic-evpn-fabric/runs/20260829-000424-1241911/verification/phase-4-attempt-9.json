@@ -1,0 +1,26 @@
+{
+  "buildArtifacts": [],
+  "commands": [
+    {
+      "args": [
+        "test",
+        "./..."
+      ],
+      "commandId": "CMD-7b0518e1174ca872060e",
+      "cwd": "/root/ainetops-demo",
+      "durationMs": 500,
+      "executable": "/usr/lib/go-1.24/bin/go",
+      "exitCode": 1,
+      "passed": false,
+      "signal": null,
+      "stderr": "# github.com/mairp/ainetops/controllers/sonicprovider\ncontrollers/sonicprovider/controller.go:25:2: missing go.sum entry for module providing package go.opentelemetry.io/otel (imported by github.com/mairp/ainetops/controllers/sonicprovider); to add:\n\tgo get github.com/mairp/ainetops/controllers/sonicprovider\n# github.com/mairp/ainetops/controllers/sonicprovider\ncontrollers/sonicprovider/controller.go:26:2: missing go.sum entry for module providing package go.opentelemetry.io/otel/attribute (imported by github.com/mairp/ainetops/controllers/sonicprovider); to add:\n\tgo get github.com/mairp/ainetops/controllers/sonicprovider\n# github.com/mairp/ainetops/controllers/sonicprovider\ncontrollers/sonicprovider/controller.go:27:2: missing go.sum entry for module providing package go.opentelemetry.io/otel/trace (imported by github.com/mairp/ainetops/controllers/sonicprovider); to add:\n\tgo get github.com/mairp/ainetops/controllers/sonicprovider\n# github.com/mairp/ainetops/tests/envtest\ncontrollers/sonicprovider/controller.go:25:2: missing go.sum entry for module providing package go.opentelemetry.io/otel (imported by github.com/mairp/ainetops/controllers/sonicprovider); to add:\n\tgo get github.com/mairp/ainetops/controllers/sonicprovider\n",
+      "stdout": "FAIL\tgithub.com/mairp/ainetops/controllers/sonicprovider [setup failed]\nFAIL\tgithub.com/mairp/ainetops/tests/envtest [setup failed]\n?   \tgithub.com/mairp/ainetops/api/v1alpha1\t[no test files]\n?   \tgithub.com/mairp/ainetops/controllers/srv6service\t[no test files]\nok  \tgithub.com/mairp/ainetops/internal/lockfile\t0.064s\n?   \tgithub.com/mairp/ainetops/pkg/compat\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/kubenet\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/model\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/reasons\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/render\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/sdc\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/version\t[no test files]\nok  \tgithub.com/mairp/ainetops/tests/unit\t(cached)\nFAIL\n"
+    }
+  ],
+  "gateId": "GATE-phase-4",
+  "passed": false,
+  "phase": 4,
+  "planHash": "f56470327f776adaedafe077f64fcb522f8f3ab60d728791d0afaaaec1c934a7",
+  "planId": "verification-ef0ad7e7eb82ac2dcf7b",
+  "summary": "Verification gate GATE-phase-4 failed: CMD-7b0518e1174ca872060e"
+}

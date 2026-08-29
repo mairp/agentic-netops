@@ -1,0 +1,24 @@
+apiVersion: ainetops.io/v1alpha1
+kind: SRv6Service
+metadata:
+  name: example-srv6
+  namespace: default
+spec:
+  attachments:
+  - node: leaf01
+    interface: Ethernet1
+  - node: leaf02
+    interface: Ethernet1
+  topologyRef: default-topology
+  locatorPrefix: 2001:db8:1::/48
+  vrf: tenant-a
+  path:
+    primary: spine-path
+  client:
+    name: host-a
+    ip: 2001:db8:100::1/64
+  server:
+    name: host-b
+    ip: 2001:db8:200::1/64
+  servicePrefix: 2001:db8:dead:beef::/64
+  underlay: ipv6

@@ -1,0 +1,14 @@
+File: controllers/srv6service/controller.go
+24:	func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+41:		condReady := metav1.Condition{
+42:			Type:               "Ready",
+43:			Status:             metav1.ConditionFalse,
+44:			ObservedGeneration: svc.Generation,
+45:			LastTransitionTime: metav1.NewTime(time.Now()),
+46:			Reason:             reasons.ReasonWaitingDependencies,
+47:			Message:            "Waiting for topology, allocations, targets, and schema compatibility",
+48:		}
+60:		set := compat.FromAnnotations(svc.Annotations)
+63:		if err := compat.FullValidate(set, svc.Labels, discovered); err != nil {
+64:			reason := compat.ReasonFor(err)
+65:			cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: svc.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reason, Message: err.Error()}

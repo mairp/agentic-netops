@@ -1,0 +1,15 @@
+kubectl get pods -n ainetops-system -o wide
+NAMESPACE        NAME                                         READY   STATUS    RESTARTS   AGE   IP             NODE
+ainetops-system  ainetops-sonic-provider-7f5b7dd6c8-2x9kq     1/1     Running   0          3m   10.244.0.10   ainetops-control-plane
+ainetops-system  ainetops-srv6-controller-6c6d5bb547-l9m8n    1/1     Running   0          3m   10.244.0.11   ainetops-control-plane
+
+# Describe Deployment
+kubectl describe deploy ainetops-sonic-provider -n ainetops-system | sed -n "1,120p"
+...
+# Service
+kubectl get svc ainetops-sonic-provider -n ainetops-system -o yaml | sed -n "1,80p"
+...
+# RBAC Check
+kubectl get role,rolebinding -n ainetops-system | grep ainetops-controller
+role.rbac.authorization.k8s.io/ainetops-controller   2d
+rolebinding.rbac.authorization.k8s.io/ainetops-controller   2d

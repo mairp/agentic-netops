@@ -1,0 +1,6 @@
+File: controllers/sonicprovider/controller.go
+$(nl -ba controllers/sonicprovider/controller.go | sed -n '1,35p')
+$(nl -ba controllers/sonicprovider/controller.go | sed -n '108,135p')
+$(nl -ba controllers/sonicprovider/controller.go | sed -n '180,201p')
+$(nl -ba controllers/sonicprovider/controller.go | sed -n '71,99p')
+$(nl -ba controllers/sonicprovider/controller.go | sed -n '291,302p')

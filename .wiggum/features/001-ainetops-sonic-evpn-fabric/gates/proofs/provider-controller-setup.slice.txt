@@ -1,0 +1,16 @@
+     1	func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+     2		// initialize metrics once per manager
+     3		if r.renderCounter == nil {
+     4			r.renderCounter = promauto.NewCounter(prometheus.CounterOpts{
+     5				Namespace: "ainetops",
+     6				Subsystem: "sonicprovider",
+     7				Name:      "applies_total",
+     8				Help:      "Number of successful SDC Config apply operations",
+     9			})
+    10		}
+    11		return ctrl.NewControllerManagedBy(mgr).
+    12			For(&kubenet.NetworkDevice{}).
+    13			WithEventFilter(ignoreNonNetworkDevice()).
+    14			Owns(&sdc.Config{}).
+    15			Complete(r)
+    16	}

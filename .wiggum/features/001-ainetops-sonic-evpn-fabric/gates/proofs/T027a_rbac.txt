@@ -1,0 +1,9 @@
+deploy/rbac/srv6-crd-rbac.yaml:2:kind: ClusterRole
+deploy/rbac/srv6-crd-rbac.yaml:4:  name: ainetops-srv6-controller-crd
+deploy/rbac/srv6-crd-rbac.yaml:7:  resources: ["customresourcedefinitions"]
+deploy/rbac/srv6-crd-rbac.yaml:9:- apiGroups: ["ainetops.io"]
+deploy/rbac/srv6-crd-rbac.yaml:10:  resources: ["srv6services", "srv6services/status"]
+deploy/rbac/srv6-crd-rbac.yaml:14:kind: ClusterRoleBinding
+deploy/rbac/srv6-crd-rbac.yaml:16:  name: ainetops-srv6-controller-crd
+deploy/rbac/srv6-crd-rbac.yaml:19:  kind: ClusterRole
+deploy/rbac/srv6-crd-rbac.yaml:20:  name: ainetops-srv6-controller-crd

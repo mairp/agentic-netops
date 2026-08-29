@@ -1,0 +1,26 @@
+{
+  "buildArtifacts": [],
+  "commands": [
+    {
+      "args": [
+        "test",
+        "./..."
+      ],
+      "commandId": "CMD-7b0518e1174ca872060e",
+      "cwd": "/root/ainetops-demo",
+      "durationMs": 2033,
+      "executable": "/usr/lib/go-1.24/bin/go",
+      "exitCode": 1,
+      "passed": false,
+      "signal": null,
+      "stderr": "",
+      "stdout": "?   \tgithub.com/mairp/ainetops/api/v1alpha1\t[no test files]\n?   \tgithub.com/mairp/ainetops/controllers/sonicprovider\t[no test files]\n?   \tgithub.com/mairp/ainetops/controllers/srv6service\t[no test files]\nok  \tgithub.com/mairp/ainetops/internal/lockfile\t0.089s\n?   \tgithub.com/mairp/ainetops/pkg/compat\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/kubenet\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/model\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/reasons\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/render\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/sdc\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/version\t[no test files]\n--- FAIL: TestProvider_EmitsDeviationObservedEvent (0.00s)\n    provider_events_test.go:45: expected one or more events to be recorded\nFAIL\nFAIL\tgithub.com/mairp/ainetops/tests/envtest\t0.026s\n--- FAIL: TestEVPN_SRv6_RenderersAndRegister (0.00s)\n    render_evpn_srv6_test.go:34: read register: open pkg/register/oc_vs_sonic.yaml: no such file or directory\n--- FAIL: TestRendererPathsCoveredByRegister (0.00s)\n    render_register_positive_test.go:23: read register: open pkg/register/oc_vs_sonic.yaml: no such file or directory\nFAIL\nFAIL\tgithub.com/mairp/ainetops/tests/unit\t0.006s\nFAIL\n"
+    }
+  ],
+  "gateId": "GATE-phase-4",
+  "passed": false,
+  "phase": 4,
+  "planHash": "f56470327f776adaedafe077f64fcb522f8f3ab60d728791d0afaaaec1c934a7",
+  "planId": "verification-ef0ad7e7eb82ac2dcf7b",
+  "summary": "Verification gate GATE-phase-4 failed: CMD-7b0518e1174ca872060e"
+}

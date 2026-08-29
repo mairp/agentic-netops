@@ -1,0 +1,92 @@
+     1	//go:build ainetops_k8s
+     2	
+     3	package main
+     4	
+     5	import (
+     6		"context"
+     7		"flag"
+     8		"net/http"
+     9		"os"
+    10		"os/signal"
+    11		"syscall"
+    12		"time"
+    13	
+    14		"github.com/go-logr/zapr"
+    15		"go.uber.org/zap"
+    16		"k8s.io/apimachinery/pkg/runtime"
+    17		utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+    18		clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+    19		ctrl "sigs.k8s.io/controller-runtime"
+    20		"sigs.k8s.io/controller-runtime/pkg/healthz"
+    21		"sigs.k8s.io/controller-runtime/pkg/manager"
+    22	
+    23		ainetopsv1alpha1 "github.com/mairp/ainetops/api/v1alpha1"
+    24		"github.com/mairp/ainetops/controllers/srv6service"
+    25	)
+    26	
+    27	var (
+    28		scheme = runtime.NewScheme()
+    29	)
+    30	
+    31	func init() {
+    32		utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+    33		utilruntime.Must(ainetopsv1alpha1.AddToScheme(scheme))
+    34	}
+    35	
+    36	func main() {
+    37		var metricsAddr, probeAddr string
+    38		var enableLeaderElection bool
+    39		flag.StringVar(&metricsAddr, "metrics-bind", ":8081", "The address the metric endpoint binds to.")
+    40		flag.StringVar(&probeAddr, "health-probe-bind", ":8082", "The address the probe endpoint binds to.")
+    41		flag.BoolVar(&enableLeaderElection, "leader-elect", true, "Enable leader election for controller manager.")
+    42		flag.Parse()
+    43	
+    44		zl, _ := zap.NewProduction()
+    45		defer zl.Sync()
+    46		log := zapr.NewLogger(zl)
+    47	
+    48		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+    49		defer cancel()
+    50	
+    51		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), manager.Options{
+    52			Scheme:                 scheme,
+    53			MetricsBindAddress:     metricsAddr,
+    54			HealthProbeBindAddress: probeAddr,
+    55			LeaderElection:         enableLeaderElection,
+    56			LeaderElectionID:       "ainetops-srv6-controller",
+    57			LeaderElectionReleaseOnCancel: true,
+    58			LeaseDuration:          ptrDuration(50 * time.Second),
+    59			RenewDeadline:          ptrDuration(40 * time.Second),
+    60			RetryPeriod:            ptrDuration(15 * time.Second),
+    61		})
+    62		if err != nil {
+    63			log.Error(err, "unable to start manager")
+    64			os.Exit(1)
+    65		}
+    66	
+    67		reconciler := &srv6service.Reconciler{
+    68			Client: mgr.GetClient(),
+    69			Scheme: mgr.GetScheme(),
+    70			Log:    log.WithName("srv6service"),
+    71		}
+    72		if err := reconciler.SetupWithManager(mgr); err != nil {
+    73			log.Error(err, "unable to create controller", "controller", "SRv6Service")
+    74			os.Exit(1)
+    75		}
+    76	
+    77		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+    78			log.Error(err, "unable to set up health check")
+    79			os.Exit(1)
+    80		}
+    81		if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil {
+    82			log.Error(err, "unable to set up ready check")
+    83			os.Exit(1)
+    84		}
+    85	
+    86		if err := mgr.Start(ctx); err != nil {
+    87			log.Error(err, "problem running manager")
+    88			os.Exit(1)
+    89		}
+    90	}
+    91	
+    92	func ptrDuration(d time.Duration) *time.Duration { return &d }

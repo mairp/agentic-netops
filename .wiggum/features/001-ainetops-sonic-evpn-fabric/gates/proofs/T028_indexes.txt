@@ -1,0 +1,5 @@
+controllers/sonicprovider/indexes.go:11:// SetupIndexes declares controller-runtime field indexes used by watches and dependency lookups.
+controllers/sonicprovider/indexes.go:12:func SetupIndexes(ctx context.Context, mgr ctrl.Manager) error {
+controllers/sonicprovider/indexes.go:14:	// Index NetworkDevices by the 'network.kubenet.dev/derived' label presence
+controllers/sonicprovider/indexes.go:15:	return idx.IndexField(ctx, &kubenet.NetworkDevice{}, "metadata.labels.network.kubenet.dev/derived", func(o client.Object) []string {
+controllers/sonicprovider/indexes.go:23:		if v, ok := labels["network.kubenet.dev/derived"]; ok && v == "true" {

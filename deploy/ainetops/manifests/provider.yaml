@@ -16,19 +16,24 @@ spec:
       labels:
         app.kubernetes.io/name: ainetops-sonic-provider
     spec:
-      serviceAccountName: ainetops-controller
+      serviceAccountName: ainetops-sonic-provider
       containers:
       - name: provider
         image: ghcr.io/ainetops/ainetops-sonic-provider@sha256:9999999999999999999999999999999999999999999999999999999999999999
-        args: ["--metrics-bind=:8080"]
+        args: ["--metrics-bind=:8080", "--health-probe-bind=:8081"]
         ports:
         - name: http
           containerPort: 8080
+        env:
+        - name: OTEL_SERVICE_NAME
+          value: ainetops-sonic-provider
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://otel-collector.ainetops-system:4318
         readinessProbe:
-          httpGet: { path: /readyz, port: 8080 }
+          httpGet: { path: /readyz, port: 8081 }
           initialDelaySeconds: 5
         livenessProbe:
-          httpGet: { path: /healthz, port: 8080 }
+          httpGet: { path: /healthz, port: 8081 }
           initialDelaySeconds: 10
 ---
 apiVersion: v1

@@ -1,0 +1,45 @@
+# OpenConfig vs SONiC-native path register
+# Prefer OpenConfig where supported; record native-path gaps with justification.
+# This register is CI-checked to prevent regressions.
+entries:
+  - path: /interfaces/interface
+    prefer: openconfig
+  - path: /interfaces/interface[vtep]
+    prefer: openconfig
+  - path: /network-instances/network-instance
+    prefer: openconfig
+  - path: /network-instances/network-instance/protocols/bgp/neighbors
+    prefer: openconfig
+  - path: /network-instances/network-instance/bridges
+    prefer: openconfig
+  - path: /network-instances/network-instance/l3vni
+    prefer: openconfig
+  - path: /network-instances/network-instance/evpn/type5
+    prefer: openconfig
+  - path: /network-instances/network-instance/bridges/irb
+    prefer: openconfig
+
+  - path: /sonic-bgp:sonic-bgp/BGP_GLOBALS
+    prefer: sonic
+    native_path: /sonic-bgp:sonic-bgp/BGP_GLOBALS
+    justification: SONiC BGP global settings not fully covered by OpenConfig on pinned image
+  - path: /sonic-srv6:sonic-srv6/SRV6_GLOBAL
+    prefer: sonic
+    native_path: /sonic-srv6:sonic-srv6/SRV6_GLOBAL
+    justification: SRv6 gNMI paths are SONiC-native; no OpenConfig equivalent on pinned image
+  - path: /sonic-srv6:sonic-srv6/MYSID
+    prefer: sonic
+    native_path: /sonic-srv6:sonic-srv6/MYSID
+    justification: SRv6 MySID entries use SONiC-native tables on pinned image
+  - path: /sonic-srv6:sonic-srv6/SID_LIST
+    prefer: sonic
+    native_path: /sonic-srv6:sonic-srv6/SID_LIST
+    justification: SRv6 steering SID lists are SONiC-native on pinned image
+  - path: /sonic-srv6:sonic-srv6/POLICY
+    prefer: sonic
+    native_path: /sonic-srv6:sonic-srv6/POLICY
+    justification: SRv6 steering policy configuration is SONiC-native on pinned image
+  - path: /sonic-srv6:sonic-srv6/BEHAVIORS
+    prefer: sonic
+    native_path: /sonic-srv6:sonic-srv6/BEHAVIORS
+    justification: SRv6 behaviors (H.Encaps.Red, End, End.DT46) are SONiC-native on pinned image

@@ -1,0 +1,13 @@
+     1	// SPDX-License-Identifier: Apache-2.0
+     2	// Package reasons defines stable reason codes used in Conditions and Events.
+     3	package reasons
+     4	
+     5	const (
+     6		ReasonWaitingDependencies = "WaitingDependencies"
+     7		ReasonSchemaMismatch      = "SchemaMismatch"
+     8		ReasonValidated           = "Validated"
+     9		ReasonApplySucceeded      = "ApplySucceeded"
+    10		ReasonApplyFailed         = "ApplyFailed"
+    11		ReasonFinalizing          = "Finalizing"
+    12		ReasonFinalized           = "Finalized"
+    13	)

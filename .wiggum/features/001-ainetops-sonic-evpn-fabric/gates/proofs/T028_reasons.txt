@@ -1,0 +1,5 @@
+pkg/reasons/reasons.go:6:	ReasonWaitingDependencies = "WaitingDependencies"
+pkg/reasons/reasons.go:9:	ReasonApplySucceeded      = "ApplySucceeded"
+pkg/reasons/reasons.go:10:	ReasonApplyFailed         = "ApplyFailed"
+pkg/reasons/reasons.go:11:	ReasonFinalizing          = "Finalizing"
+pkg/reasons/reasons.go:12:	ReasonFinalized           = "Finalized"

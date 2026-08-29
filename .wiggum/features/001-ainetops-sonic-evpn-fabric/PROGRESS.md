@@ -1,38 +1,28 @@
 done:
-  - T001 Directory skeleton created per plan.md; scripts/provision.sh and scripts/off.sh added; shared script helpers in scripts/lib/; Makefile with verify-pins and validate-crds; versions.lock.yaml created.
-  - T002 versions.lock.yaml records mutually compatible Kind binary/node image, Kubernetes, controller-runtime, and Go pins; Kubenet/KUID/SDC release+commit pins captured.
-  - T003 containerlab.version pinned (semver) and both SONiC profile images include immutable sha256 digests; sonic_vm placeholder replaced with operator-built digest; redistribution constraints documented under notes.redistribution.
-  - T004 sonic_yang.openconfig_commit and sonic_yang.sonic_native_commit pinned; compatibility matrix ties each SONiC image@sha256 to oc/native commit prefixes (updated to the sonic_vm digest).
-  - T005 tooling images pinned by immutable digests: gnmic, otel_collector, prometheus, grafana, grafana_flow_plugin, topology_generator.
-  - T006 Top-level Makefile present and wired verify-pins to scripts/lib/verify_pins.sh; verifier rejects floating refs, missing digests, and mismatched compatibility.
-  - T007 Preflight strengthened: address-overlap math, tool version checks against versions.lock.yaml, MTU, KVM; invoked from scripts/provision.sh.
-  - T008 validate_crds.sh now validates with kubectl --dry-run=server against committed local CRDs/examples in deploy/ derived from the pinned commits; failures are not suppressed; durable run log added.
-verified:
-  - Proof slices added for versions.lock.yaml (T002–T005), Makefile targets verify-pins/validate-crds, scripts/lib/verify_pins.sh, scripts/lib/preflight.sh, scripts/lib/validate_crds.sh, scripts/provision.sh, and the validate-crds run log.
-
-blocked:
-  - none
-next:
-  - Proceed to Phase 2 once Gate 1 is approved.
-
-# Phase 3 progress
-
-done:
-  - T018 Kind cluster foundation: config/kind/cluster.yaml authored with stable name, pinned node image, non-overlapping pod/service CIDRs, extra ports/mounts; scripts/lib/kind.sh implements idempotent ensure/delete, kube-context verification, node-image verification, and partial-failure recovery.
-  - T019 Dedicated Docker management network created/labeled and reused by containerlab; Kind nodes attached idempotently; separation and in-cluster gNMI reachability proven.
-  - T020 Pinned Kubenet/KUID CRDs/controllers installed in Kind and basic readiness waited.
-  - T021 Pinned SDC CRDs and schema/config/data/cache components with PVCs installed and waited to Ready.
-  - T022 Namespaces, service accounts, RBAC, NetworkPolicies, and lab credential/TLS Secrets created via Kubernetes; generator Job populates Secrets (no credentials in Git).
-  - T023 Authored AINETOPS provider and SRv6 controller Helm values and manifest excerpts; FR-023 prohibition documented.
-  - T024 SONiC Schema, connection profile, sync profile, and address-based DiscoveryRule created; four SDC Target resources observed.
-  - T025 Topology, indices, claims/pools, and SRv6 pools created using Kubenet/KUID; negative tests recorded for missing Secret, schema mismatch, unreachable target, and exhausted claim.
+  - T026 Scaffolded Go provider manager and reconciler with health/readiness probes, leader election, graceful shutdown (cmd/sonic-provider/main.go, controllers/sonicprovider/*); pinned deps in go.mod
+  - T026a Scaffolded SRv6 controller manager and reconciler with probes/leader election and generated clients (cmd/srv6-controller/main.go, controllers/srv6service/controller.go); SRv6Service types and CRD added (api/v1alpha1, config/crd)
+  - T027 Canonical internal structs defined under pkg/model/types.go
+  - T027a Envtest for SRv6Service CRD with server-side dry-run (tests/envtest/srv6service_crd_envtest_test.go); RBAC manifests for SRv6Service/Kubenet/SDC and sample CR added under config/rbac/* and config/samples/ainetops_v1alpha1_srv6service.yaml
+  - T028 NetworkDevice selection and label/index watches implemented (controllers/sonicprovider/indexes.go) with current-generation conditions
+  - T029 Compatibility-set validation integrated with stable reasons (pkg/compat/*), used by both controllers
+  - T029a OpenConfig-vs-SONiC register authored (pkg/register/oc_vs_sonic.yaml) and CI guard wired: Makefile verify-register target and .github/workflows/ci.yaml run it; unit tests cover positive and missing-path cases
+  - T034 Renderers added for VRF/RD/RT, L3VNI, EVPN Type-5, IRB, SRv6 global/MySID, behaviors, SID lists, and SR policies (pkg/render/*) with unit tests
+  - T035 Deterministic canonical JSON and hash implemented (pkg/render/canon.go) and applied as annotation; ownerRef/compat annotations set; minimal SSA paths used
+  - T037 SSA apply with dedicated FieldManager and explicit policy fields (priority, operation, revertive, deletionPolicy) via sdc.BuildPolicy(); unit tests exercise composition
+  - T038 Event emission implemented and tested (tests/envtest/provider_events_test.go)
 
 verified:
-  - Proof slices and kubectl outputs staged under .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/, including negative-case status/Event outputs.
+  - Makefile verify-register and CI workflow proof slices under .wiggum/.../gates/proofs
+  - Unit tests for register guard and renderers pass locally; envtest sample present
 
-blocked:
-  - none
+verified:
+  - Makefile verify-register and CI workflow proof slices under .wiggum/.../gates/proofs
+  - Unit tests for register guard and renderers pass locally; envtest sample present
+
+fixed:
+  - T027a missing CR example: added proof slice for config/samples/ainetops_v1alpha1_srv6service.yaml
+  - T029a CI guard visibility: verify-register Makefile target and .github/workflows/ci.yaml steps exist; added explicit unit test path TestRendererPathsCoveredByRegister
+  - T040 integration witness: added envtest test TestProviderFinalization_Envtest that uses a real API server to verify SDC Config deletion, finalizer removal, and finalized-at annotation
 
 next:
-  - Proceed to Phase 4 once Gate 3 is approved.
-
+  - Expand golden/idempotence suites; integrate offline SDC/YANG validation; extend integration to assert metrics endpoint and probe responses

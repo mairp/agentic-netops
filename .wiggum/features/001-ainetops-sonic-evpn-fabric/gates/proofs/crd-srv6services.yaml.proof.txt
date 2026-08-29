@@ -1,0 +1,144 @@
+     1	apiVersion: apiextensions.k8s.io/v1
+     2	kind: CustomResourceDefinition
+     3	metadata:
+     4	  name: srv6services.ainetops.io
+     5	spec:
+     6	  group: ainetops.io
+     7	  scope: Namespaced
+     8	  names:
+     9	    kind: SRv6Service
+    10	    listKind: SRv6ServiceList
+    11	    plural: srv6services
+    12	    singular: srv6service
+    13	    shortNames: [srv6svc]
+    14	  versions:
+    15	  - name: v1alpha1
+    16	    served: true
+    17	    storage: true
+    18	    subresources:
+    19	      status: {}
+    20	    additionalPrinterColumns:
+    21	    - name: Ready
+    22	      type: string
+    23	      jsonPath: .status.conditions[?(@.type=="Ready")].status
+    24	    - name: Degraded
+    25	      type: string
+    26	      jsonPath: .status.conditions[?(@.type=="Degraded")].status
+    27	    - name: Age
+    28	      type: date
+    29	      jsonPath: .metadata.creationTimestamp
+    30	    schema:
+    31	      openAPIV3Schema:
+    32	        type: object
+    33	        properties:
+    34	          apiVersion:
+    35	            type: string
+    36	          kind:
+    37	            type: string
+    38	          metadata:
+    39	            type: object
+    40	          spec:
+    41	            type: object
+    42	            required: [attachments, topologyRef, locatorPrefix, vrf, path, client, server, servicePrefix, underlay]
+    43	            properties:
+    44	              attachments:
+    45	                type: array
+    46	                minItems: 2
+    47	                maxItems: 2
+    48	                items:
+    49	                  type: object
+    50	                  required: [node, interface]
+    51	                  properties:
+    52	                    node:
+    53	                      type: string
+    54	                      minLength: 1
+    55	                    interface:
+    56	                      type: string
+    57	                      minLength: 1
+    58	              topologyRef:
+    59	                type: string
+    60	                minLength: 1
+    61	              locatorPrefix:
+    62	                type: string
+    63	                pattern: ^([0-9a-fA-F:]+)/[0-9]+$
+    64	              vrf:
+    65	                type: string
+    66	                minLength: 1
+    67	              path:
+    68	                type: object
+    69	                required: [primary]
+    70	                properties:
+    71	                  primary:
+    72	                    type: string
+    73	                    minLength: 1
+    74	                  alternate:
+    75	                    type: string
+    76	              client:
+    77	                type: object
+    78	                required: [name, ip]
+    79	                properties:
+    80	                  name:
+    81	                    type: string
+    82	                  ip:
+    83	                    type: string
+    84	                    pattern: ^([0-9a-fA-F:]+)/[0-9]+$
+    85	              server:
+    86	                type: object
+    87	                required: [name, ip]
+    88	                properties:
+    89	                  name:
+    90	                    type: string
+    91	                  ip:
+    92	                    type: string
+    93	                    pattern: ^([0-9a-fA-F:]+)/[0-9]+$
+    94	              servicePrefix:
+    95	                type: string
+    96	                pattern: ^([0-9a-fA-F:]+)/[0-9]+$
+    97	              transitWaypoints:
+    98	                type: array
+    99	                items:
+   100	                  type: string
+   101	              underlay:
+   102	                type: string
+   103	                enum: [ipv6]
+   104	            x-kubernetes-validations:
+   105	            - rule: "self.client.name != self.server.name"
+   106	              message: client and server endpoints must be distinct
+   107	            - rule: "size(self.attachments) == 2"
+   108	              message: exactly two attachments are required
+   109	            - rule: "self.attachments[0].node != self.attachments[1].node"
+   110	              message: attachments must be unique by node
+   111	            - rule: "int(self.locatorPrefix.split('/')[1]) >= 48 && int(self.locatorPrefix.split('/')[1]) <= 64"
+   112	              message: locator length must be /48-/64
+   113	            - rule: "int(self.servicePrefix.split('/')[1]) >= 64 && int(self.servicePrefix.split('/')[1]) <= 96"
+   114	              message: service prefix must be /64-/96
+   115	          status:
+   116	            type: object
+   117	            properties:
+   118	              observedGeneration:
+   119	                type: integer
+   120	                format: int64
+   121	              conditions:
+   122	                type: array
+   123	                items:
+   124	                  type: object
+   125	                  required: [type, status, lastTransitionTime, reason]
+   126	                  properties:
+   127	                    type:
+   128	                      type: string
+   129	                    status:
+   130	                      type: string
+   131	                    lastTransitionTime:
+   132	                      type: string
+   133	                      format: date-time
+   134	                    reason:
+   135	                      type: string
+   136	                    message:
+   137	                      type: string
+   138	              configHashes:
+   139	                type: object
+   140	                additionalProperties:
+   141	                  type: string
+   142	              activePath:
+   143	                type: string
+   144	    preserveUnknownFields: false

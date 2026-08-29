@@ -1,0 +1,29 @@
+     1		// Handle deletion with ordered finalization: delete owned SDC intent, confirm/timeout, retain evidence
+     2		if !nd.DeletionTimestamp.IsZero() {
+     3			cfgName := ownedConfigName(nd.Name)
+     4			cfg := &sdc.Config{ObjectMeta: metav1.ObjectMeta{Name: cfgName, Namespace: nd.Namespace}}
+     5			// Attempt delete each pass
+     6			_ = r.Delete(ctx, cfg)
+     7			// Confirm deletion via independent read path
+     8			err := r.Get(ctx, client.ObjectKey{Name: cfgName, Namespace: nd.Namespace}, cfg)
+     9			if err == nil {
+    10				// Still exists; requeue without removing finalizer yet
+    11				r.Log.Info("waiting for owned SDC Config to be deleted", "name", cfgName)
+    12				return resultWithBackoff(false), nil
+    13			}
+    14			if !apierrors.IsNotFound(err) {
+    15				// API error; retry
+    16				return resultWithBackoff(true), nil
+    17			}
+    18			// It's gone; add finalized-at evidence and remove finalizer
+    19			anno := nd.Annotations
+    20			if anno == nil { anno = map[string]string{} }
+    21			anno["ainetops.dev/finalized-at"] = time.Now().UTC().Format(time.RFC3339)
+    22			nd.Annotations = anno
+    23			nd.Finalizers = removeString(nd.Finalizers, finalizerName)
+    24			if err := r.Update(ctx, &nd); err != nil {
+    25				return ctrl.Result{}, err
+    26			}
+    27			return ctrl.Result{}, nil
+    28		}
+    29	

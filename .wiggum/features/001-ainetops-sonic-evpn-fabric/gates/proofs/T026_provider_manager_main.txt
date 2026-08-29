@@ -1,0 +1,12 @@
+cmd/sonic-provider/main.go:43:	var enableLeaderElection bool
+cmd/sonic-provider/main.go:46:	flag.BoolVar(&enableLeaderElection, "leader-elect", true, "Enable leader election for controller manager.")
+cmd/sonic-provider/main.go:53:	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+cmd/sonic-provider/main.go:58:		MetricsBindAddress:     metricsAddr,
+cmd/sonic-provider/main.go:59:		HealthProbeBindAddress: probeAddr,
+cmd/sonic-provider/main.go:60:		LeaderElection:         enableLeaderElection,
+cmd/sonic-provider/main.go:61:		LeaderElectionID:       "ainetops-sonic-provider",
+cmd/sonic-provider/main.go:62:		LeaderElectionReleaseOnCancel: true,
+cmd/sonic-provider/main.go:66:		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+cmd/sonic-provider/main.go:69:	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
+cmd/sonic-provider/main.go:99:	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+cmd/sonic-provider/main.go:103:	if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil {

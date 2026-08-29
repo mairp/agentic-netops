@@ -1,0 +1,26 @@
+config/rbac/cluster_role_binding.yaml — bind SAs to cluster roles
+1: apiVersion: rbac.authorization.k8s.io/v1
+2: kind: ClusterRoleBinding
+3: metadata:
+4:   name: ainetops-sonic-provider
+5: subjects:
+6: - kind: ServiceAccount
+7:   name: ainetops-sonic-provider
+8:   namespace: ainetops-system
+9: roleRef:
+10:   apiGroup: rbac.authorization.k8s.io
+11:   kind: ClusterRole
+12:   name: ainetops-sonic-provider
+13: ---
+14: apiVersion: rbac.authorization.k8s.io/v1
+15: kind: ClusterRoleBinding
+16: metadata:
+17:   name: ainetops-srv6-controller
+18: subjects:
+19: - kind: ServiceAccount
+20:   name: ainetops-srv6-controller
+21:   namespace: ainetops-system
+22: roleRef:
+23:   apiGroup: rbac.authorization.k8s.io
+24:   kind: ClusterRole
+25:   name: ainetops-srv6-controller

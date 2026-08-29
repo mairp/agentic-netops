@@ -1,0 +1,7 @@
+cmd/srv6-controller/main.go — health/readiness and leader election
+51: mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), manager.Options{
+54:   HealthProbeBindAddress: probeAddr,
+55:   LeaderElection:         enableLeaderElection,
+56:   LeaderElectionID:       "ainetops-srv6-controller",
+77: if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil { /* ... */ }
+81: if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil { /* ... */ }

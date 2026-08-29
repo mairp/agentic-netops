@@ -1,0 +1,32 @@
+api/api/v1alpha1/srv6service_types.go/2:// Package v1alpha1 defines the SRv6Service API types.
+api/api/v1alpha1/srv6service_types.go/11:// +kubebuilder:resource:scope=Namespaced,shortName=srv6svc
+api/api/v1alpha1/srv6service_types.go/15:// SRv6Service expresses a bidirectional IPv6 VPN across SONiC nodes.
+api/api/v1alpha1/srv6service_types.go/21:// +kubebuilder:validation:XValidation:message="client and server endpoints must be distinct",rule="self.spec.client.name != self.spec.server.name"
+api/api/v1alpha1/srv6service_types.go/22:// +kubebuilder:validation:XValidation:message="exactly two attachments are required",rule="size(self.spec.attachments)==2"
+api/api/v1alpha1/srv6service_types.go/23:// +kubebuilder:validation:XValidation:message="service prefixes must be IPv6",rule="self.spec.servicePrefix.matches('^([0-9a-fA-F:]+)/[0-9]+$')"
+api/api/v1alpha1/srv6service_types.go/24:// +kubebuilder:validation:XValidation:message="locator must be IPv6 prefix",rule="self.spec.locatorPrefix.matches('^([0-9a-fA-F:]+)/[0-9]+$')"
+api/api/v1alpha1/srv6service_types.go/25:// +kubebuilder:validation:XValidation:message="waypoints must be SONiC device refs",rule="size(self.spec.transitWaypoints) >= 0"
+api/api/v1alpha1/srv6service_types.go/26:// +kubebuilder:validation:XValidation:message="vrf is immutable",rule="!has(oldSelf) || self.spec.vrf == oldSelf.spec.vrf"
+api/api/v1alpha1/srv6service_types.go/27:// +kubebuilder:validation:XValidation:message="topologyRef must be non-empty",rule="self.spec.topologyRef != ''"
+api/api/v1alpha1/srv6service_types.go/28:// +kubebuilder:validation:XValidation:message="path must name a primary route",rule="self.spec.path.primary != ''"
+api/api/v1alpha1/srv6service_types.go/29:// +kubebuilder:validation:XValidation:message="endpoints must be IPv6",rule="self.spec.client.ip.matches('^([0-9a-fA-F:]+)/[0-9]+$') && self.spec.server.ip.matches('^([0-9a-fA-F:]+)/[0-9]+$')"
+api/api/v1alpha1/srv6service_types.go/30:// +kubebuilder:validation:XValidation:message="SRv6 requires IPv6",rule="self.spec.underlay == 'ipv6'"
+api/api/v1alpha1/srv6service_types.go/31:// +kubebuilder:validation:XValidation:message="attachments must be unique",rule="self.spec.attachments[0].node != self.spec.attachments[1].node"
+api/api/v1alpha1/srv6service_types.go/32:// +kubebuilder:validation:XValidation:message="locator length must be /48-/64",rule="int(self.spec.locatorPrefix.split('/')[1]) >= 48 && int(self.spec.locatorPrefix.split('/')[1]) <= 64"
+api/api/v1alpha1/srv6service_types.go/33:// +kubebuilder:validation:XValidation:message="service prefix must be /64-/96",rule="int(self.spec.servicePrefix.split('/')[1]) >= 64 && int(self.spec.servicePrefix.split('/')[1]) <= 96"
+api/api/v1alpha1/srv6service_types.go/36:// +kubebuilder:validation:PreserveUnknownFields=false
+api/api/v1alpha1/srv6service_types.go/40:type SRv6Service struct {
+api/api/v1alpha1/srv6service_types.go/44:	Spec   SRv6ServiceSpec   `json:"spec,omitempty"`
+api/api/v1alpha1/srv6service_types.go/45:	Status SRv6ServiceStatus `json:"status,omitempty"`
+api/api/v1alpha1/srv6service_types.go/48:// SRv6ServiceSpec defines desired SRv6 service intent.
+api/api/v1alpha1/srv6service_types.go/49:type SRv6ServiceSpec struct {
+api/api/v1alpha1/srv6service_types.go/90:// SRv6ServiceStatus exposes observedGeneration, conditions, allocations, and per-path data.
+api/api/v1alpha1/srv6service_types.go/91:type SRv6ServiceStatus struct {
+api/api/v1alpha1/srv6service_types.go/101:// SRv6ServiceList contains a list of SRv6Service
+api/api/v1alpha1/srv6service_types.go/103:type SRv6ServiceList struct {
+api/api/v1alpha1/srv6service_types.go/106:	Items           []SRv6Service `json:"items"`
+api/api/v1alpha1/srv6service_types.go/110:	SchemeBuilder.Register(&SRv6Service{}, &SRv6ServiceList{})
+api/api/v1alpha1/groupversion_info.go/12:	// GroupVersion is group version used to register these objects
+api/api/v1alpha1/groupversion_info.go/13:	GroupVersion = schema.GroupVersion{Group: "ainetops.io", Version: "v1alpha1"}
+api/api/v1alpha1/groupversion_info.go/15:	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
+api/api/v1alpha1/groupversion_info.go/16:	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}

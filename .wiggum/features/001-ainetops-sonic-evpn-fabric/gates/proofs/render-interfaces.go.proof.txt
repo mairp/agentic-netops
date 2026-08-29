@@ -1,0 +1,50 @@
+     1	// SPDX-License-Identifier: Apache-2.0
+     2	package render
+     3	
+     4	import (
+     5		"sort"
+     6	
+     7		"github.com/mairp/ainetops/pkg/model"
+     8	)
+     9	
+    10	// RenderInterfaces produces OpenConfig interface entries including loopbacks and MTU.
+    11	// Qualifies IPv4 /31 and IPv6 underlay addressing on point-to-point links.
+    12	func RenderInterfaces(ifs []model.Interface, lbs []model.Loopback) map[string]any {
+    13		// We render to the OpenConfig /interfaces/interface path.
+    14		res := map[string]any{}
+    15		// Use stable ordering by interface name
+    16		names := make([]string, 0, len(ifs))
+    17		for _, ii := range ifs { names = append(names, ii.Name) }
+    18		sort.Strings(names)
+    19		entries := make([]map[string]any, 0, len(names))
+    20		byName := map[string]model.Interface{}
+    21		for _, ii := range ifs { byName[ii.Name] = ii }
+    22		for _, n := range names {
+    23			in := byName[n]
+    24			entry := map[string]any{
+    25				"name": n,
+    26			}
+    27			if in.MTU > 0 { entry["mtu"] = in.MTU }
+    28			if in.IPv4CIDR != "" { entry["ipv4"] = map[string]any{"address": in.IPv4CIDR} }
+    29			if in.IPv6CIDR != "" { entry["ipv6"] = map[string]any{"address": in.IPv6CIDR} }
+    30			entries = append(entries, entry)
+    31		}
+    32		// Add loopbacks as interfaces when provided
+    33		lbNames := make([]string, 0, len(lbs))
+    34		for _, lb := range lbs { lbNames = append(lbNames, lb.Name) }
+    35		sort.Strings(lbNames)
+    36		lbByName := map[string]model.Loopback{}
+    37		for _, lb := range lbs { lbByName[lb.Name] = lb }
+    38		for _, n := range lbNames {
+    39			lb := lbByName[n]
+    40			entry := map[string]any{
+    41				"name": n,
+    42				"loopback": true,
+    43			}
+    44			if lb.IPv4CIDR != "" { entry["ipv4"] = map[string]any{"address": lb.IPv4CIDR} }
+    45			if lb.IPv6CIDR != "" { entry["ipv6"] = map[string]any{"address": lb.IPv6CIDR} }
+    46			entries = append(entries, entry)
+    47		}
+    48		res["/interfaces/interface"] = entries
+    49		return res
+    50	}

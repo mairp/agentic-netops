@@ -1,0 +1,22 @@
+$ nl -ba tests/unit/compat_fullvalidate_test.go | sed -n '1,200p'
+     1	package unit
+     2	
+     3	import (
+     4		"testing"
+     5	
+     6		"github.com/mairp/ainetops/pkg/compat"
+     7	)
+     8	
+     9	func TestCompat_FullValidateContractsAndPins(t *testing.T) {
+    10		set := compat.Set{
+    11			SonicImage:        "sha256:deadbeef",
+    12			OpenConfigCommit:  "abcdef1",
+    13			SonicNativeCommit: "1234567",
+    14			MappingVersion:    "v1",
+    15			UpstreamAPIVersions: map[string]string{"sdc": "v0.31.0"},
+    16		}
+    17		labels := map[string]string{"ainetops.dev/topology-label-contract": "v1", "ainetops.dev/telemetry-label-contract": "v1"}
+    18		if err := compat.FullValidate(set, labels, map[string]bool{"sai.srv6": true}); err != nil {
+    19			t.Fatalf("unexpected error: %v", err)
+    20		}
+    21	}

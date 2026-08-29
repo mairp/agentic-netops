@@ -1,0 +1,114 @@
+$ nl -ba cmd/sonic-provider/main.go | sed -n '1,140p'
+     1	//go:build ainetops_k8s
+     2	
+     3	package main
+     4	
+     5	import (
+     6		"context"
+     7		"flag"
+     8		"fmt"
+     9		"net/http"
+    10		"os"
+    11		"os/signal"
+    12		"syscall"
+    13		"time"
+    14	
+    15		"github.com/go-logr/logr"
+    16		"github.com/go-logr/zapr"
+    17		"go.uber.org/zap"
+    18		corev1 "k8s.io/api/core/v1"
+    19		"k8s.io/apimachinery/pkg/runtime"
+    20		utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+    21		clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+    22		"k8s.io/client-go/tools/leaderelection/resourcelock"
+    23		ctrl "sigs.k8s.io/controller-runtime"
+    24		"sigs.k8s.io/controller-runtime/pkg/healthz"
+    25		"sigs.k8s.io/controller-runtime/pkg/manager"
+    26	
+    27		"github.com/mairp/ainetops/controllers/sonicprovider"
+    28		"github.com/mairp/ainetops/pkg/kubenet"
+    29	)
+    30	
+    31	var (
+    32		scheme   = runtime.NewScheme()
+    33		setupLog logr.Logger
+    34	)
+    35	
+    36	func init() {
+    37		utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+    38	}
+    39	
+    40	func main() {
+    41		var metricsAddr, probeAddr string
+    42		var enableLeaderElection bool
+    43		flag.StringVar(&metricsAddr, "metrics-bind", ":8080", "The address the metric endpoint binds to.")
+    44		flag.StringVar(&probeAddr, "health-probe-bind", ":8081", "The address the probe endpoint binds to.")
+    45		flag.BoolVar(&enableLeaderElection, "leader-elect", true, "Enable leader election for controller manager.")
+    46		flag.Parse()
+    47	
+    48		zapLog, _ := zap.NewProduction()
+    49		defer zapLog.Sync()
+    50		setupLog = zapr.NewLogger(zapLog).WithName("setup")
+    51	
+    52		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+    53		defer cancel()
+    54	
+    55		options := manager.Options{
+    56			Scheme:                 scheme,
+    57			MetricsBindAddress:     metricsAddr,
+    58			HealthProbeBindAddress: probeAddr,
+    59			LeaderElection:         enableLeaderElection,
+    60			LeaderElectionID:       "ainetops-sonic-provider",
+    61			LeaderElectionReleaseOnCancel: true,
+    62			LeaseDuration:          ptrDuration(50 * time.Second),
+    63			RenewDeadline:          ptrDuration(40 * time.Second),
+    64			RetryPeriod:            ptrDuration(15 * time.Second),
+    65			LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+    66		}
+    67	
+    68		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
+    69		if err != nil {
+    70			setupLog.Error(err, "unable to start manager")
+    71			os.Exit(1)
+    72		}
+    73	
+    74		// Register Kubenet types for watches
+    75		if err := kubenet.AddToScheme(scheme); err != nil {
+    76			setupLog.Error(err, "unable to add Kubenet scheme")
+    77			os.Exit(1)
+    78		}
+    79	
+    80		// Register field indexes used by reconcilers
+    81		if err := sonicprovider.SetupIndexes(ctx, mgr); err != nil {
+    82			setupLog.Error(err, "unable to set up indexes")
+    83			os.Exit(1)
+    84		}
+    85	
+    86		reconciler := &sonicprovider.Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), Log: setupLog.WithName("sonicprovider")}
+    87		if err := reconciler.SetupWithManager(mgr); err != nil {
+    88			setupLog.Error(err, "unable to create controller", "controller", "NetworkDevice")
+    89			os.Exit(1)
+    90		}
+    91	
+    92		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+    93			setupLog.Error(err, "unable to set up health check")
+    94			os.Exit(1)
+    95		}
+    96		if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil {
+    97			setupLog.Error(err, "unable to set up ready check")
+    98			os.Exit(1)
+    99		}
+   100	
+   101		setupLog.Info("starting manager")
+   102		if err := mgr.Start(ctx); err != nil {
+   103			setupLog.Error(err, "problem running manager")
+   104			os.Exit(1)
+   105		}
+   106	}
+   107	
+   108	func ptrDuration(d time.Duration) *time.Duration { return &d }
+   109	
+   110	func init() {
+   111		// ensure core v1 gets added to scheme for leader election
+   112		_ = corev1.AddToScheme(scheme)
+   113	}

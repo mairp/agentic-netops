@@ -1,0 +1,98 @@
+     1	package main
+     2	
+     3	import (
+     4		"context"
+     5		"flag"
+     6		"fmt"
+     7		"net/http"
+     8		"os"
+     9		"os/signal"
+    10		"syscall"
+    11		"time"
+    12	
+    13		"github.com/go-logr/logr"
+    14		"github.com/go-logr/zapr"
+    15		"go.uber.org/zap"
+    16		corev1 "k8s.io/api/core/v1"
+    17		"k8s.io/apimachinery/pkg/runtime"
+    18		utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+    19		clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+    20		"k8s.io/client-go/tools/leaderelection/resourcelock"
+    21		ctrl "sigs.k8s.io/controller-runtime"
+    22		"sigs.k8s.io/controller-runtime/pkg/healthz"
+    23		"sigs.k8s.io/controller-runtime/pkg/manager"
+    24	
+    25		"github.com/mairp/ainetops/controllers/sonicprovider"
+    26	)
+    27	
+    28	var (
+    29		scheme   = runtime.NewScheme()
+    30		setupLog logr.Logger
+    31	)
+    32	
+    33	func init() {
+    34		utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+    35	}
+    36	
+    37	func main() {
+    38		var metricsAddr, probeAddr string
+    39		var enableLeaderElection bool
+    40		flag.StringVar(&metricsAddr, "metrics-bind", ":8080", "The address the metric endpoint binds to.")
+    41		flag.StringVar(&probeAddr, "health-probe-bind", ":8081", "The address the probe endpoint binds to.")
+    42		flag.BoolVar(&enableLeaderElection, "leader-elect", true, "Enable leader election for controller manager.")
+    43		flag.Parse()
+    44	
+    45		zapLog, _ := zap.NewProduction()
+    46		defer zapLog.Sync()
+    47		setupLog = zapr.NewLogger(zapLog).WithName("setup")
+    48	
+    49		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+    50		defer cancel()
+    51	
+    52		options := manager.Options{
+    53			Scheme:                 scheme,
+    54			MetricsBindAddress:     metricsAddr,
+    55			HealthProbeBindAddress: probeAddr,
+    56			LeaderElection:         enableLeaderElection,
+    57			LeaderElectionID:       "ainetops-sonic-provider",
+    58			LeaderElectionReleaseOnCancel: true,
+    59			LeaseDuration:          ptrDuration(50 * time.Second),
+    60			RenewDeadline:          ptrDuration(40 * time.Second),
+    61			RetryPeriod:            ptrDuration(15 * time.Second),
+    62			LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+    63		}
+    64	
+    65		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
+    66		if err != nil {
+    67			setupLog.Error(err, "unable to start manager")
+    68			os.Exit(1)
+    69		}
+    70	
+    71		reconciler := &sonicprovider.Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), Log: setupLog.WithName("sonicprovider")}
+    72		if err := reconciler.SetupWithManager(mgr); err != nil {
+    73			setupLog.Error(err, "unable to create controller", "controller", "NetworkDevice")
+    74			os.Exit(1)
+    75		}
+    76	
+    77		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+    78			setupLog.Error(err, "unable to set up health check")
+    79			os.Exit(1)
+    80		}
+    81		if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil {
+    82			setupLog.Error(err, "unable to set up ready check")
+    83			os.Exit(1)
+    84		}
+    85	
+    86		setupLog.Info("starting manager")
+    87		if err := mgr.Start(ctx); err != nil {
+    88			setupLog.Error(err, "problem running manager")
+    89			os.Exit(1)
+    90		}
+    91	}
+    92	
+    93	func ptrDuration(d time.Duration) *time.Duration { return &d }
+    94	
+    95	func init() {
+    96		// ensure core v1 gets added to scheme for leader election
+    97		_ = corev1.AddToScheme(scheme)
+    98	}

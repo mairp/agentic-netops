@@ -1,0 +1,39 @@
+$ nl -ba tests/envtest/provider_finalization_envtest_test.go | sed -n '1,200p'
+     1	//go:build !integration
+     2	
+     3	package envtest
+     4	
+     5	import (
+     6		context "context"
+     7		"path/filepath"
+     8		"testing"
+     9		"time"
+    10	
+    11		metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    12		"k8s.io/apimachinery/pkg/runtime"
+    13		clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+    14		"sigs.k8s.io/controller-runtime/pkg/client"
+    15		crclient "sigs.k8s.io/controller-runtime/pkg/client"
+    16		"sigs.k8s.io/controller-runtime/pkg/envtest"
+    17		ctrl "sigs.k8s.io/controller-runtime"
+    18	
+    19		"github.com/mairp/ainetops/controllers/sonicprovider"
+    20		"github.com/mairp/ainetops/pkg/kubenet"
+    21		"github.com/mairp/ainetops/pkg/sdc"
+    22	)
+    23	
+    24	// TestProviderFinalization_Envtest spins up an API server and verifies ordered finalization
+    25	// using a real control-plane read path (envtest API server), not the fake client.
+    26	func TestProviderFinalization_Envtest(t *testing.T) {
+    27		...
+    36		cfg, err := env.Start()
+    37		if err != nil {
+    38			t.Skipf("envtest not available: %v", err)
+    39		}
+    40		...
+    54		// First reconcile: should delete Config, keep finalizer
+    55		...
+    59		// Confirm Config deletion via read path, tolerating eventual consistency
+    60		...
+    63		// Second reconcile: should annotate finalized-at and remove finalizer
+    64		...

@@ -1,0 +1,21 @@
+File: cmd/sonic-provider/main.go
+56:	options := manager.Options{
+57:		Scheme:                 scheme,
+58:		MetricsBindAddress:     metricsAddr,
+59:		HealthProbeBindAddress: probeAddr,
+60:		LeaderElection:         enableLeaderElection,
+61:		LeaderElectionID:       "ainetops-sonic-provider",
+62:		LeaderElectionReleaseOnCancel: true,
+63:		LeaseDuration:          ptrDuration(50 * time.Second),
+64:		RenewDeadline:          ptrDuration(40 * time.Second),
+65:		RetryPeriod:            ptrDuration(15 * time.Second),
+66:		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+67:	}
+99:	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+100:		setupLog.Error(err, "unable to set up health check")
+101:		os.Exit(1)
+102:	}
+103:	if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil {
+104:		setupLog.Error(err, "unable to set up ready check")
+105:		os.Exit(1)
+106:	}

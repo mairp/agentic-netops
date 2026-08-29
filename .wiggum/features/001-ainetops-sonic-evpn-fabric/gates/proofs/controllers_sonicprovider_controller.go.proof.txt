@@ -1,0 +1,49 @@
+     1	package sonicprovider
+     2	
+     3	import (
+     4		"context"
+     5		"fmt"
+     6	
+     7		"github.com/go-logr/logr"
+     8		corev1 "k8s.io/api/core/v1"
+     9		"k8s.io/apimachinery/pkg/runtime"
+    10		ctrl "sigs.k8s.io/controller-runtime"
+    11		"sigs.k8s.io/controller-runtime/pkg/client"
+    12	)
+    13	
+    14	// NetworkDevice is a minimal placeholder interface for selection; in practice, use Kubenet type.
+    15	// Here we just watch ConfigMaps labeled as network devices to scaffold controller wiring.
+    16	
+    17	type Reconciler struct {
+    18		client.Client
+    19		Scheme *runtime.Scheme
+    20		Log    logr.Logger
+    21	}
+    22	
+    23	func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+    24		r.Log.Info("reconcile scaffold", "name", req.NamespacedName)
+    25		return ctrl.Result{}, nil
+    26	}
+    27	
+    28	func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+    29		return ctrl.NewControllerManagedBy(mgr).
+    30			For(&corev1.ConfigMap{}).
+    31			WithEventFilter(ignoreNonNetworkDevice()).
+    32			Complete(r)
+    33	}
+    34	
+    35	func ignoreNonNetworkDevice() ctrl.Predicate {
+    36		return predicateFunc(func(obj client.Object) bool {
+    37			labels := obj.GetLabels()
+    38			if labels == nil { return false }
+    39			_, ok := labels["kubenet.dev/network-device"]
+    40			return ok
+    41		})
+    42	}
+    43	
+    44	type predicateFunc func(client.Object) bool
+    45	
+    46	func (p predicateFunc) Create(e ctrl.Event) bool { return p(e.Object.(client.Object)) }
+    47	func (p predicateFunc) Update(e ctrl.UpdateEvent) bool { return p(e.ObjectNew.(client.Object)) }
+    48	func (p predicateFunc) Delete(e ctrl.DeleteEvent) bool { return p(e.Object.(client.Object)) }
+    49	func (p predicateFunc) Generic(e ctrl.GenericEvent) bool { return p(e.Object.(client.Object)) }

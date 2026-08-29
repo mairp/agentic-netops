@@ -1,0 +1,20 @@
+File: cmd/srv6-controller/main.go
+51:	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), manager.Options{
+52:		Scheme:                 scheme,
+53:		MetricsBindAddress:     metricsAddr,
+54:		HealthProbeBindAddress: probeAddr,
+55:		LeaderElection:         enableLeaderElection,
+56:		LeaderElectionID:       "ainetops-srv6-controller",
+57:		LeaderElectionReleaseOnCancel: true,
+58:		LeaseDuration:          ptrDuration(50 * time.Second),
+59:		RenewDeadline:          ptrDuration(40 * time.Second),
+60:		RetryPeriod:            ptrDuration(15 * time.Second),
+61:	})
+77:	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+78:		log.Error(err, "unable to set up health check")
+79:		os.Exit(1)
+80:	}
+81:	if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil {
+82:		log.Error(err, "unable to set up ready check")
+83:		os.Exit(1)
+84:	}

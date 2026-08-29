@@ -1,0 +1,46 @@
+$ nl -ba .github/workflows/ci.yaml | sed -n '1,200p'
+     1	name: CI
+     2	
+     3	on:
+     4	  push:
+     5	    branches: [ main, master ]
+     6	  pull_request:
+     7	
+     8	jobs:
+     9	  build-and-test:
+    10	    runs-on: ubuntu-latest
+    11	    steps:
+    12	      - name: Checkout
+    13	        uses: actions/checkout@v4
+    14	
+    15	      - name: Setup Go
+    16	        uses: actions/setup-go@v5
+    17	        with:
+    18	          go-version: '1.22.x'
+    19	
+    20	      - name: Install dependencies
+    21	        run: |
+    22	          sudo apt-get update
+    23	          sudo apt-get install -y jq yq
+    24	
+    25	      - name: Verify pins and CRDs
+    26	        run: |
+    27	          make verify-compat
+    28	
+    29	      - name: Register guard
+    30	        run: |
+    31	          make verify-register
+    32	
+    33	      - name: Unit tests
+    34	        run: |
+    35	          go test ./tests/unit -v
+    36	
+    37	      - name: Envtest (schema dry-run)
+    38	        run: |
+    39	          # envtest assets are optional in CI image; skip when absent
+    40	          if [ -x /usr/local/kubebuilder/bin/etcd ]; then \
+    41	            export KUBEBUILDER_ASSETS=/usr/local/kubebuilder/bin; \
+    42	            make test-envtest; \
+    43	          else \
+    44	            echo "envtest assets not present; skipping"; \
+    45	          fi

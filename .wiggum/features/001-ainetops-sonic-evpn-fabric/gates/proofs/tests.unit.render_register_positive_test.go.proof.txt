@@ -1,0 +1,24 @@
+     1	package unit
+     2	
+     3	import (
+     4		"testing"
+     5	
+     6		"github.com/mairp/ainetops/pkg/model"
+     7		"github.com/mairp/ainetops/pkg/render"
+     8		"github.com/mairp/ainetops/pkg/sdc"
+     9	)
+    10	
+    11	// This test ensures the current renderer output is fully covered by the in-repo register
+    12	// and thus would pass ValidateSpecAgainstRegister.
+    13	func TestRendererPathsCoveredByRegister(t *testing.T) {
+    14		m := map[string]any{}
+    15		merge := func(mm map[string]any) { for k, v := range mm { m[k] = v } }
+    16		merge(render.RenderInterfaces([]model.Interface{{Name: "Ethernet1"}}, []model.Loopback{{Name: "Loopback0"}}))
+    17		merge(render.RenderBGP(model.BGPGlobal{ASN: 65000, RouterID: "1.1.1.1"}, []model.BGPNeighbor{{NeighborAddress: "10.0.0.2", PeerASN: 65001, EVPN: true}}))
+    18		merge(render.RenderNetworkInstances([]model.NetworkInstance{{Name: "DEFAULT", Type: "DEFAULT"}}))
+    19		merge(render.RenderVXLAN(model.VXLAN{SourceInterface: "Loopback0", UDPPort: 4789}, []model.VLAN{{ID: 10, Name: "blue", L2VNI: 10010}}))
+    20		merge(render.RenderSRv6(model.SRv6Locator{Name: "default", Prefix: "2001:db8:1::/48"}, []model.MySID{{SID: "2001:db8:1::1", Behavior: "End"}}))
+    21		if err := sdc.ValidateSpecAgainstRegister(m, nil); err != nil {
+    22			t.Fatalf("register coverage failed: %v", err)
+    23		}
+    24	}

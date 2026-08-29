@@ -1,0 +1,4 @@
+File: api/v1alpha1/srv6service_types.go
+21:	// +kubebuilder:validation:XValidation:message="client and server endpoints must be distinct",rule="self.spec.client.name != self.spec.server.name"
+22:	// +kubebuilder:validation:XValidation:message="exactly two attachments are required",rule="size(self.spec.attachments)==2"
+31:	// +kubebuilder:validation:XValidation:message="attachments must be unique",rule="self.spec.attachments[0].node != self.spec.attachments[1].node"

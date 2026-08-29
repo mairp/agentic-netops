@@ -1,0 +1,9 @@
+cmd/sonic-provider/main.go — health/readiness and leader election
+56: options := manager.Options{
+59:   HealthProbeBindAddress: probeAddr,
+60:   LeaderElection:         enableLeaderElection,
+61:   LeaderElectionID:       "ainetops-sonic-provider",
+66:   LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+67: }
+99: if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil { /* ... */ }
+103: if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil { /* ... */ }

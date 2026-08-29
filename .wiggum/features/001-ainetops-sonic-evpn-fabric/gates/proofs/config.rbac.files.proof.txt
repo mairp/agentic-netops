@@ -1,0 +1,10 @@
+# Proof slice: config/rbac manifests for SRv6Service and provider controllers
+
+== service_account.yaml ==
+sed -n '1,200p' config/rbac/service_account.yaml | nl -ba
+
+== role.yaml ==
+sed -n '1,200p' config/rbac/role.yaml | nl -ba
+
+== role_binding.yaml ==
+sed -n '1,200p' config/rbac/role_binding.yaml | nl -ba

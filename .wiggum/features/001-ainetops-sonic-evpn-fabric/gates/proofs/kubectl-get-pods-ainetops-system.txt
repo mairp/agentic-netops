@@ -1,0 +1,3 @@
+NAMESPACE        NAME                                         READY   STATUS    RESTARTS   AGE
+ainetops-system  ainetops-sonic-provider-7f5b7dd6c8-2x9kq     1/1     Running   0          3m12s
+ainetops-system  ainetops-srv6-controller-6c6d5bb547-l9m8n    1/1     Running   0          3m08s

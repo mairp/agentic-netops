@@ -1,0 +1,7 @@
+Makefile:5:.PHONY: help verify-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest
+Makefile:11:	@echo "  verify-register   Guard: fail if any rendered path is missing from the OC-vs-SONiC register"
+Makefile:24:verify-compat: verify-pins validate-crds verify-register
+Makefile:31:# verify-register: build a representative spec using current renderer scaffolds
+Makefile:33:verify-register:
+Makefile:34:	@echo "[verify-register] checking renderer paths against register"
+Makefile:35:	@go test ./tests/unit -run TestRendererPathsCoveredByRegister -v

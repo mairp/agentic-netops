@@ -1,0 +1,29 @@
+     1			t.Fatalf("dynamic client: %v", err)
+     2		}
+     3	
+     4		gvr := schemaFor("ainetops.io", "v1alpha1", "srv6services")
+     5	
+     6		// Positive sample
+     7		posYAML, err := os.ReadFile(filepath.Join("..", "..", "config", "samples", "ainetops_v1alpha1_srv6service.yaml"))
+     8		if err != nil {
+     9			t.Fatalf("read sample: %v", err)
+    10		}
+    11		posObj := mustYAMLToUnstructured(t, posYAML)
+    12		posObj.SetNamespace("default")
+    13		// Dry-run create should succeed
+    14		if _, err := dc.Resource(gvr).Namespace("default").Create(ctx, posObj, metav1.CreateOptions{DryRun: []string{"All"}}); err != nil {
+    15			t.Fatalf("dry-run create positive sample failed: %v", err)
+    16		}
+    17	
+    18		// Negative sample: duplicate attachments (violates CEL uniqueness rule)
+    19		neg := posObj.DeepCopy()
+    20		att, _, _ := unstructured.NestedSlice(neg.Object, "spec", "attachments")
+    21		if len(att) != 2 {
+    22			t.Fatalf("unexpected attachments len in sample: %d", len(att))
+    23		}
+    24		// make both nodes equal to violate uniqueness
+    25		_ = unstructured.SetNestedField(att[1].(map[string]any), att[0].(map[string]any)["node"], "node")
+    26		_ = unstructured.SetNestedSlice(neg.Object, att, "spec", "attachments")
+    27		if _, err := dc.Resource(gvr).Namespace("default").Create(ctx, neg, metav1.CreateOptions{DryRun: []string{"All"}}); err == nil {
+    28			t.Fatalf("expected dry-run create to fail for duplicate attachments, got nil error")
+    29		}

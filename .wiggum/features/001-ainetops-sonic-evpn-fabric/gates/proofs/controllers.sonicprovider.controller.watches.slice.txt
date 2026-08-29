@@ -1,0 +1,30 @@
+   241	func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+   242		// initialize metrics once per manager
+   243		if r.renderCounter == nil {
+   244			r.renderCounter = promauto.NewCounter(prometheus.CounterOpts{
+   245				Namespace: "ainetops",
+   246				Subsystem: "sonicprovider",
+   247				Name:      "applies_total",
+   248				Help:      "Number of successful SDC Config apply operations",
+   249			})
+   250		}
+   251		return ctrl.NewControllerManagedBy(mgr).
+   252			For(&kubenet.NetworkDevice{}).
+   253			WithEventFilter(ignoreNonNetworkDevice()).
+   254			Owns(&sdc.Config{}).
+   255			Complete(r)
+   256	}
+   257	
+   258	func ignoreNonNetworkDevice() predicate.Predicate {
+   259		return predicate.NewPredicateFuncs(func(obj client.Object) bool {
+   260			labels := obj.GetLabels()
+   261			if labels == nil {
+   262				return false
+   263			}
+   264			// Use Kubenet's derived label to select only devices the provider should reconcile
+   265			if v, ok := labels["network.kubenet.dev/derived"]; ok && v == "true" {
+   266				return true
+   267			}
+   268			return false
+   269		})
+   270	}

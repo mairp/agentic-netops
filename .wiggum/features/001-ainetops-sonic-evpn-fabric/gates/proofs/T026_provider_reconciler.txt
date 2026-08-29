@@ -1,0 +1,31 @@
+controllers/sonicprovider/controller.go:32:type Reconciler struct {
+controllers/sonicprovider/controller.go:46:	Eventf(object runtime.Object, eventtype, reason, messageFmt string, args ...any)
+controllers/sonicprovider/controller.go:56:func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+controllers/sonicprovider/controller.go:59:		r.tracer = otel.Tracer("ainetops/sonicprovider")
+controllers/sonicprovider/controller.go:61:	ctx, span := r.tracer.Start(ctx, "ReconcileNetworkDevice")
+controllers/sonicprovider/controller.go:63:	span.SetAttributes(attribute.String("k8s.name", req.Name), attribute.String("k8s.namespace", req.Namespace))
+controllers/sonicprovider/controller.go:82:			return resultWithBackoff(false), nil
+controllers/sonicprovider/controller.go:86:			return resultWithBackoff(true), nil
+controllers/sonicprovider/controller.go:130:				if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", name) }
+controllers/sonicprovider/controller.go:145:		span.SetAttributes(attribute.String("compat.reason", reason))
+controllers/sonicprovider/controller.go:146:		return resultWithBackoff(false), nil
+controllers/sonicprovider/controller.go:155:				cond := metav1.Condition{Type: "Degraded", Status: metav1.ConditionTrue, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: "DeviationObserved", Message: fmt.Sprintf("%d deviations", len(cfg.Status.Deviation))}
+controllers/sonicprovider/controller.go:159:				if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", name) }
+controllers/sonicprovider/controller.go:160:				return resultWithBackoff(false), nil
+controllers/sonicprovider/controller.go:177:	if err := sdc.OfflineValidate(spec); err != nil {
+controllers/sonicprovider/controller.go:182:		return resultWithBackoff(true), nil
+controllers/sonicprovider/controller.go:184:	if err := sdc.ValidateSpecAgainstRegister(spec, nil); err != nil {
+controllers/sonicprovider/controller.go:189:		return resultWithBackoff(true), nil
+controllers/sonicprovider/controller.go:193:	hash, _ := render.CanonicalHash(spec)
+controllers/sonicprovider/controller.go:203:	if err := ctrl.SetControllerReference(&nd, obj, r.Scheme); err != nil {
+controllers/sonicprovider/controller.go:206:	apply := client.Apply
+controllers/sonicprovider/controller.go:208:	if err := r.Patch(ctx, obj, apply, &client.PatchOptions{FieldManager: fieldManager, Force: &force}); err != nil {
+controllers/sonicprovider/controller.go:213:		return resultWithBackoff(true), nil
+controllers/sonicprovider/controller.go:216:	if r.Recorder != nil { r.Recorder.Eventf(&nd, "Normal", reasons.ReasonApplySucceeded, "Applied SDC Config %s with hash %s", obj.Name, hash) }
+controllers/sonicprovider/controller.go:229:			cond := metav1.Condition{Type: "Degraded", Status: metav1.ConditionTrue, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: "DeviationObserved", Message: fmt.Sprintf("%d deviations", len(cfg.Status.Deviation))}
+controllers/sonicprovider/controller.go:233:			if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", obj.Name) }
+controllers/sonicprovider/controller.go:238:	return resultWithBackoff(true), nil
+controllers/sonicprovider/controller.go:244:		r.renderCounter = promauto.NewCounter(prometheus.CounterOpts{
+controllers/sonicprovider/controller.go:253:		WithEventFilter(ignoreNonNetworkDevice()).
+controllers/sonicprovider/controller.go:254:		Owns(&sdc.Config{}).
+controllers/sonicprovider/controller.go:305:func resultWithBackoff(transient bool) ctrl.Result {

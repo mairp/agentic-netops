@@ -1,0 +1,94 @@
+     1	// SPDX-License-Identifier: Apache-2.0
+     2	// Package model exposes canonical internal structs independent of specific SONiC release.
+     3	package model
+     4	
+     5	// Interface represents a physical or logical interface with optional L3 addresses.
+     6	type Interface struct {
+     7		Name      string
+     8		MTU       int
+     9		IPv4CIDR  string // allow /31 for point-to-point
+    10		IPv6CIDR  string // required for SRv6 underlay
+    11		Loopback  bool
+    12	}
+    13	
+    14	// Loopback represents a loopback interface by name.
+    15	type Loopback struct {
+    16		Name string
+    17		IPv4CIDR string
+    18		IPv6CIDR string
+    19	}
+    20	
+    21	// BGPGlobal represents global BGP settings.
+    22	type BGPGlobal struct {
+    23		ASN          uint32
+    24		RouterID     string
+    25		ListenRanges []string
+    26	}
+    27	
+    28	// BGPNeighbor represents a BGP neighbor with AFI/SAFI configuration.
+    29	type BGPNeighbor struct {
+    30		NeighborAddress string
+    31		PeerASN         uint32
+    32		IPv4AFI         bool
+    33		IPv6AFI         bool
+    34		EVPN            bool
+    35	}
+    36	
+    37	// NetworkInstance models a VRF or default instance.
+    38	type NetworkInstance struct {
+    39		Name     string
+    40		Type     string // "DEFAULT" or "L3VRF"
+    41		RD       string
+    42		ImportRT []string
+    43		ExportRT []string
+    44	}
+    45	
+    46	// VLAN represents a VLAN and optional L2VNI.
+    47	type VLAN struct {
+    48		ID    int
+    49		Name  string
+    50		L2VNI int
+    51	}
+    52	
+    53	// VNI represents a VXLAN Network Identifier.
+    54	type VNI struct {
+    55		ID int
+    56	}
+    57	
+    58	// VXLAN models VTEP and NVO state.
+    59	type VXLAN struct {
+    60		SourceInterface string // loopback used as VTEP src
+    61		UDPPort         int
+    62	}
+    63	
+    64	// IRB represents symmetric IRB parameters.
+    65	type IRB struct {
+    66		GatewayIPv4 string
+    67		GatewayIPv6 string
+    68	}
+    69	
+    70	// SRv6Locator represents a locator prefix and length.
+    71	type SRv6Locator struct {
+    72		Name   string
+    73		Prefix string // IPv6
+    74	}
+    75	
+    76	// MySID represents a MySID behavior at a node.
+    77	type MySID struct {
+    78		SID       string // IPv6 SID
+    79		Behavior  string // e.g., End, End.DT46, End.DT6, End.DT4
+    80		VRF       string // for End.DT46/VRF
+    81	}
+    82	
+    83	// SIDList represents an ordered list of SIDs for steering.
+    84	type SIDList struct {
+    85		Name string
+    86		SIDs []string
+    87	}
+    88	
+    89	// SRPolicy represents a steering policy.
+    90	type SRPolicy struct {
+    91		Name       string
+    92		Selector   string // match expression or interface
+    93		SIDListRef string
+    94	}

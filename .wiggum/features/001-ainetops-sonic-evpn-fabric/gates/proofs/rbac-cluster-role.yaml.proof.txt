@@ -1,0 +1,26 @@
+     1	apiVersion: rbac.authorization.k8s.io/v1
+     2	kind: ClusterRole
+     3	metadata:
+     4	  name: ainetops-sonic-provider
+     5	rules:
+     6	- apiGroups: [""]
+     7	  resources: ["events"]
+     8	  verbs: ["create", "patch"]
+     9	- apiGroups: ["network.kubenet.dev"]
+    10	  resources: ["networkdevices", "networkdevices/status"]
+    11	  verbs: ["get", "list", "watch", "patch", "update"]
+    12	- apiGroups: ["sdc.sdcio.dev"]
+    13	  resources: ["configs", "configs/status", "targets", "targets/status"]
+    14	  verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+    15	---
+    16	apiVersion: rbac.authorization.k8s.io/v1
+    17	kind: ClusterRole
+    18	metadata:
+    19	  name: ainetops-srv6-controller
+    20	rules:
+    21	- apiGroups: [""]
+    22	  resources: ["events"]
+    23	  verbs: ["create", "patch"]
+    24	- apiGroups: ["ainetops.io"]
+    25	  resources: ["srv6services", "srv6services/status"]
+    26	  verbs: ["get", "list", "watch", "patch", "update"]

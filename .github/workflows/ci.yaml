@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq yq
+
+      - name: Verify pins and CRDs
+        run: |
+          make verify-compat
+
+      - name: Register guard
+        run: |
+          make verify-register
+
+      - name: Unit tests
+        run: |
+          go test ./tests/unit -v
+
+      - name: Envtest (schema dry-run)
+        run: |
+          # envtest assets are optional in CI image; skip when absent
+          if [ -x /usr/local/kubebuilder/bin/etcd ]; then \
+            export KUBEBUILDER_ASSETS=/usr/local/kubebuilder/bin; \
+            make test-envtest; \
+          else \
+            echo "envtest assets not present; skipping"; \
+          fi

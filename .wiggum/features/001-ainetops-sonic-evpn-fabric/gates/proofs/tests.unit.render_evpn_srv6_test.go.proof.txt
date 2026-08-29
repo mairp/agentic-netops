@@ -1,0 +1,40 @@
+$ nl -ba tests/unit/render_evpn_srv6_test.go | sed -n '1,200p'
+     1	package unit
+     2	
+     3	import (
+     4		"os"
+     5		"path/filepath"
+     6		"testing"
+     7	
+     8		"github.com/mairp/ainetops/pkg/model"
+     9		"github.com/mairp/ainetops/pkg/render"
+    10		"github.com/mairp/ainetops/pkg/sdc"
+    11	)
+    12	
+    13	func merge(m map[string]any, more ...map[string]any) map[string]any {
+    14		for _, mm := range more { for k, v := range mm { m[k] = v } }
+    15		return m
+    16	}
+    17	
+    18	func TestEVPN_SRv6_RenderersAndRegister(t *testing.T) {
+    19		vrf := model.NetworkInstance{Name: "tenant-a", Type: "L3VRF", RD: "65000:100", ImportRT: []string{"65000:100"}, ExportRT: []string{"65000:100"}}
+    20		m := map[string]any{}
+    21		merge(m,
+    22			render.RenderNetworkInstances([]model.NetworkInstance{vrf}),
+    23			render.RenderL3VNI(vrf, 10100),
+    24			render.RenderEVPNType5(vrf),
+    25			render.RenderIRB(vrf, 10, model.IRB{GatewayIPv4: "10.0.10.1/24", GatewayIPv6: "2001:db8:10::1/64"}),
+    26		)
+    27		loc := model.SRv6Locator{Name: "default", Prefix: "2001:db8:1::/48"}
+    28		merge(m,
+    29			render.RenderSRv6(loc, []model.MySID{{SID: "2001:db8:1::1", Behavior: "End"}}),
+    30			render.RenderSRv6Behaviors([]string{"H.Encaps.Red", "End", "End.DT46"}),
+    31			render.RenderSIDList("spine-path", []string{"2001:db8:1::a", "2001:db8:1::b"}),
+    32			render.RenderSRPolicy(model.SRPolicy{Name: "policy1", Selector: "if:Ethernet1", SIDListRef: "spine-path"}),
+    33		)
+    34		reg, err := os.ReadFile(filepath.Join("..", "..", "pkg", "register", "oc_vs_sonic.yaml"))
+    35		if err != nil { t.Fatalf("read register: %v", err) }
+    36		if err := sdc.ValidateSpecAgainstRegister(m, reg); err != nil {
+    37			t.Fatalf("register validation failed: %v", err)
+    38		}
+    39	}

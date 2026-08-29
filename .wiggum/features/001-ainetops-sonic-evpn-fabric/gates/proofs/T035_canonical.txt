@@ -1,0 +1,8 @@
+pkg/render/canon.go:5:	"crypto/sha256"
+pkg/render/canon.go:8:	"sort"
+pkg/render/canon.go:14:// We implement a deterministic serializer that sorts map keys recursively.
+pkg/render/canon.go:15:func CanonicalJSON(spec map[string]any) (string, error) {
+pkg/render/canon.go:24:func CanonicalHash(spec map[string]any) (string, error) {
+pkg/render/canon.go:25:	j, err := CanonicalJSON(spec)
+pkg/render/canon.go:27:	s := sha256.Sum256([]byte(j))
+pkg/render/canon.go:37:		sort.Strings(keys)

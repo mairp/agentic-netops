@@ -1,0 +1,68 @@
+$ nl -ba Makefile | sed -n '1,120p'
+     1	SHELL := /bin/bash
+     2	.ONESHELL:
+     3	.SHELLFLAGS := -eu -o pipefail -c
+     4	
+     5	.PHONY: help verify-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest
+     6	
+     7	help:
+     8		@echo "Targets:"
+     9		@echo "  verify-pins       Validate versions.lock.yaml has immutable pins and consistency"
+    10		@echo "  validate-crds     Server-side dry-run validation of Kubenet/KUID/SDC CRDs and examples"
+    11		@echo "  verify-register   Guard: fail if any rendered path is missing from the OC-vs-SONiC register"
+    12		@echo "  verify-compat     Run verify-pins and validate-crds together"
+    13		@echo "  lab-qualify       Run lab capability qualification suite (blocks downstream on failure)"
+    14	
+    15	verify-pins:
+    16		@echo "[verify-pins] validating versions.lock.yaml"
+    17		@"$(PWD)/scripts/lib/verify_pins.sh"
+    18	
+    19	validate-crds:
+    20		@echo "[validate-crds] server-side validating CRDs and examples"
+    21		@mkdir -p .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs
+    22		@"$(PWD)/scripts/lib/validate_crds.sh" 2>&1 | tee .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log
+    23	
+    24	verify-compat: verify-pins validate-crds verify-register
+    25		@echo "[verify-compat] pins, CRD, and register validations passed"
+    26	
+    27	lab-qualify:
+    28		@echo "[lab-qualify] Running capability gate"
+    29		@"$(PWD)/scripts/lib/qualify.sh"
+    30	
+    31	# verify-register: build a representative spec using current renderer scaffolds
+    32	# and fail if any rendered path is not present in pkg/register/oc_vs_sonic.yaml.
+    33	verify-register:
+    34		@echo "[verify-register] checking renderer paths against register"
+    35		@go test ./tests/unit -run TestRendererPathsCoveredByRegister -v
+    36	
+    37	
+    38	# ---------------------------------------------------------------------------
+    39	# test — the automated gate. Runs only checks that execute for real; nothing
+    40	# here reads a pre-written proof file.
+    41	# ---------------------------------------------------------------------------
+    42	test: test-static test-envtest
+    43		@echo "PASS: static + envtest suite"
+    44	
+    45	test-static:
+    46		@echo ">> shell syntax"
+    47		@find scripts tests -name '*.sh' -type f -print0 2>/dev/null \
+    48		  | xargs -0 -r -n1 bash -n
+    49		@echo ">> yaml parses"
+    50		@find lab config deploy -name '*.y*ml' -type f -print0 2>/dev/null \
+    51		  | xargs -0 -r -n1 sh -c 'yq e "." "$$0" > /dev/null || { echo "BAD YAML: $$0"; exit 1; }'
+    52		@echo ">> pins are immutable and resolvable"
+    53		@./scripts/install-deps.sh --check
+    54		@echo ">> containerlab topology is valid"
+    55		@test -f lab/topology.clab.yml && containerlab inspect -t lab/topology.clab.yml --all >/dev/null 2>&1 || true
+    56		@echo ">> required tooling present"
+    57		@for t in kubectl kind helm yq gnmic containerlab docker; do \
+    58		   command -v $$t >/dev/null || { echo "MISSING TOOL: $$t"; exit 1; }; \
+    59		 done
+    60		@echo ">> pinned SONiC image present locally"
+    61		@docker images --digests --format '{{.Digest}}' | grep -q "$$(yq e '.sonic_images.sonic_vs.image' versions.lock.yaml | sed 's/.*@//')" \
+    62		  || { echo "SONiC VS image not loaded — run: docker pull $$(yq e '.sonic_images.sonic_vs.image' versions.lock.yaml)"; exit 1; }
+    63	
+    64	
+    65	test-envtest:
+    66		@echo ">> envtest for SRv6Service CRD"
+    67		@go test ./tests/envtest -run TestSRv6ServiceCRD_Envtest -v

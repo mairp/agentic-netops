@@ -1,0 +1,19 @@
+controllers/srv6service/controller.go:18:type Reconciler struct {
+controllers/srv6service/controller.go:25:	var svc ainetopsv1alpha1.SRv6Service
+controllers/srv6service/controller.go:35:	// Set ObservedGeneration and initial gating conditions
+controllers/srv6service/controller.go:37:	if updated.Status.ObservedGeneration != svc.Generation {
+controllers/srv6service/controller.go:38:		updated.Status.ObservedGeneration = svc.Generation
+controllers/srv6service/controller.go:40:	// Ensure Ready=False and Degraded=False with WaitingDependencies
+controllers/srv6service/controller.go:44:		ObservedGeneration: svc.Generation,
+controllers/srv6service/controller.go:46:		Reason:             reasons.ReasonWaitingDependencies,
+controllers/srv6service/controller.go:52:		ObservedGeneration: svc.Generation,
+controllers/srv6service/controller.go:54:		Reason:             reasons.ReasonWaitingDependencies,
+controllers/srv6service/controller.go:57:	updated.Status.Conditions = upsertCondition(updated.Status.Conditions, condReady)
+controllers/srv6service/controller.go:58:	updated.Status.Conditions = upsertCondition(updated.Status.Conditions, condDegraded)
+controllers/srv6service/controller.go:63:	if err := compat.FullValidate(set, svc.Labels, discovered); err != nil {
+controllers/srv6service/controller.go:64:		reason := compat.ReasonFor(err)
+controllers/srv6service/controller.go:65:		cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: svc.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reason, Message: err.Error()}
+controllers/srv6service/controller.go:66:		updated.Status.Conditions = upsertCondition(updated.Status.Conditions, cond)
+controllers/srv6service/controller.go:81:func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+controllers/srv6service/controller.go:83:		For(&ainetopsv1alpha1.SRv6Service{}).
+controllers/srv6service/controller.go:87:func upsertCondition(conds []metav1.Condition, c metav1.Condition) []metav1.Condition {

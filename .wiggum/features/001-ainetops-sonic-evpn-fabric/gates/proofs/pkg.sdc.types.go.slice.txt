@@ -1,0 +1,10 @@
+File: pkg/sdc/types.go
+12:	// GroupVersion for SDC APIs.
+13:	var GroupVersion = schema.GroupVersion{Group: "sdc.sdcio.dev", Version: "v1alpha1"}
+18:	// +kubebuilder:object:root=true
+19:	// +kubebuilder:subresource:status
+20:	// +kubebuilder:resource:scope=Namespaced
+23:	// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`
+45:	type Policy struct {
+52:	// BuildPolicy constructs a Policy as a generic map ready to embed into Config.Spec["$policy"].
+53:	func BuildPolicy(priority int, operation string, revertive bool, deletionPolicy string) map[string]any {

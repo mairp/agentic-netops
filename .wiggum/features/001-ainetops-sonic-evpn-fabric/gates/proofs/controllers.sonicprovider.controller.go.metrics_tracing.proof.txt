@@ -1,0 +1,24 @@
+56	func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+57		// OTel span
+58		if r.tracer == nil {
+59			r.tracer = otel.Tracer("ainetops/sonicprovider")
+60		}
+61		ctx, span := r.tracer.Start(ctx, "ReconcileNetworkDevice")
+62		defer span.End()
+63		span.SetAttributes(attribute.String("k8s.name", req.Name), attribute.String("k8s.namespace", req.Namespace))
+64	
+65		r.Log.Info("reconcile NetworkDevice", "name", req.NamespacedName)
+66		var nd kubenet.NetworkDevice
+240	
+241	func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+242		// initialize metrics once per manager
+243		if r.renderCounter == nil {
+244			r.renderCounter = promauto.NewCounter(prometheus.CounterOpts{
+245				Namespace: "ainetops",
+246				Subsystem: "sonicprovider",
+247				Name:      "applies_total",
+248				Help:      "Number of successful SDC Config apply operations",
+249			})
+250		}
+251		return ctrl.NewControllerManagedBy(mgr).
+252			For(&kubenet.NetworkDevice{}).

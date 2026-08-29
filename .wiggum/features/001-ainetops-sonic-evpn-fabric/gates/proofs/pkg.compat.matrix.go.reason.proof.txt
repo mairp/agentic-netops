@@ -1,0 +1,18 @@
+----- proof slice: pkg/compat/matrix.go (selected lines) -----
+11	// FromAnnotations extracts a compatibility Set from labels/annotations maps.
+12	func FromAnnotations(ann map[string]string) Set {
+...
+27	// ValidatePins performs stricter checks on the Set pins for shape and presence.
+28	func ValidatePins(set Set) error {
+...
+41	// ValidateContracts ensures that pinned telemetry/topology label contracts are present.
+42	func ValidateContracts(labels map[string]string) error {
+...
+52	// FullValidate runs pin checks plus optional capability gates.
+53	func FullValidate(set Set, labels map[string]string, discovered map[string]bool) error {
+66	func ReasonFor(err error) string {
+67		if v, ok := err.(*ValidationError); ok {
+68			return v.Reason
+69		}
+70		return "ValidationFailed"
+71	}

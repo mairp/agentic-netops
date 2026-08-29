@@ -1,0 +1,87 @@
+$ nl -ba controllers/srv6service/controller.go | sed -n '1,200p'
+     1	package srv6service
+     2	
+     3	import (
+     4		"context"
+     5		"time"
+     6	
+     7		"github.com/go-logr/logr"
+     8		ainetopsv1alpha1 "github.com/mairp/ainetops/api/v1alpha1"
+     9		"github.com/mairp/ainetops/pkg/reasons"
+    10		metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    11		"k8s.io/apimachinery/pkg/runtime"
+    12		ctrl "sigs.k8s.io/controller-runtime"
+    13		"sigs.k8s.io/controller-runtime/pkg/client"
+    14		"sigs.k8s.io/controller-runtime/pkg/reconcile"
+    15	)
+    16	
+    17	type Reconciler struct {
+    18		client.Client
+    19		Scheme   *runtime.Scheme
+    20		Log      logr.Logger
+    21	}
+    22	
+    23	func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+    24		var svc ainetopsv1alpha1.SRv6Service
+    25		if err := r.Get(ctx, req.NamespacedName, &svc); err != nil {
+    26			return ctrl.Result{}, client.IgnoreNotFound(err)
+    27		}
+    28	
+    29		// Handle deletion early
+    30		if !svc.DeletionTimestamp.IsZero() {
+    31			return ctrl.Result{}, nil
+    32		}
+    33	
+    34		// Set ObservedGeneration and initial gating conditions
+    35		updated := svc.DeepCopy()
+    36		if updated.Status.ObservedGeneration != svc.Generation {
+    37			updated.Status.ObservedGeneration = svc.Generation
+    38		}
+    39		// Ensure Ready=False and Degraded=False with WaitingDependencies
+    40		condReady := metav1.Condition{
+    41			Type:               "Ready",
+    42			Status:             metav1.ConditionFalse,
+    43			ObservedGeneration: svc.Generation,
+    44			LastTransitionTime: metav1.NewTime(time.Now()),
+    45			Reason:             reasons.ReasonWaitingDependencies,
+    46			Message:            "Waiting for topology, allocations, targets, and schema compatibility",
+    47		}
+    48		condDegraded := metav1.Condition{
+    49			Type:               "Degraded",
+    50			Status:             metav1.ConditionFalse,
+    51			ObservedGeneration: svc.Generation,
+    52			LastTransitionTime: metav1.NewTime(time.Now()),
+    53			Reason:             reasons.ReasonWaitingDependencies,
+    54			Message:            "No failures observed; dependencies not yet satisfied",
+    55		}
+    56		updated.Status.Conditions = upsertCondition(updated.Status.Conditions, condReady)
+    57		updated.Status.Conditions = upsertCondition(updated.Status.Conditions, condDegraded)
+    58	
+    59		if err := r.Status().Patch(ctx, updated, client.MergeFrom(&svc)); err != nil {
+    60			return ctrl.Result{}, err
+    61		}
+    62	
+    63		// Requeue with bounded backoff while waiting
+    64		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+    65	}
+    66	
+    67	func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+    68		return ctrl.NewControllerManagedBy(mgr).
+    69			For(&ainetopsv1alpha1.SRv6Service{}).
+    70			Complete(r)
+    71	}
+    72	
+    73	func upsertCondition(conds []metav1.Condition, c metav1.Condition) []metav1.Condition {
+    74		found := false
+    75		for i := range conds {
+    76			if conds[i].Type == c.Type {
+    77				conds[i] = c
+    78				found = true
+    79				break
+    80			}
+    81		}
+    82		if !found {
+    83			conds = append(conds, c)
+    84		}
+    85		return conds
+    86	}

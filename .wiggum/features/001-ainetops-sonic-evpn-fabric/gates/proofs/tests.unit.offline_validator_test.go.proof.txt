@@ -1,0 +1,15 @@
+$ nl -ba tests/unit/offline_validator_test.go | sed -n '1,200p'
+     1	package unit
+     2	
+     3	import (
+     4		"testing"
+     5	
+     6		"github.com/mairp/ainetops/pkg/sdc"
+     7	)
+     8	
+     9	func TestOfflineValidateRejectsNonPathKeys(t *testing.T) {
+    10		spec := map[string]any{"interfaces": 123}
+    11		if err := sdc.OfflineValidate(spec); err == nil {
+    12			t.Fatalf("expected invalid path error")
+    13		}
+    14	}

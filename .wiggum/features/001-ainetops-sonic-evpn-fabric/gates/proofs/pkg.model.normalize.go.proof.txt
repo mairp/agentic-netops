@@ -1,0 +1,77 @@
+     1	// SPDX-License-Identifier: Apache-2.0
+     2	package model
+     3	
+     4	import (
+     5		"errors"
+     6		"fmt"
+     7	)
+     8	
+     9	// ValidationError indicates incomplete, unknown, or conflicting constructs.
+    10	type ValidationError struct {
+    11		Field   string
+    12		Reason  string
+    13		Message string
+    14	}
+    15	
+    16	func (e *ValidationError) Error() string { return fmt.Sprintf("%s: %s (%s)", e.Field, e.Reason, e.Message) }
+    17	
+    18	// NormalizeInterfaces validates and normalizes interface definitions.
+    19	func NormalizeInterfaces(ifs []Interface) ([]Interface, error) {
+    20		seen := map[string]struct{}{}
+    21		out := make([]Interface, 0, len(ifs))
+    22		for _, in := range ifs {
+    23			if in.Name == "" {
+    24				return nil, &ValidationError{Field: "interfaces.name", Reason: "Required", Message: "interface name must be set"}
+    25			}
+    26			if in.MTU != 0 && (in.MTU < 576 || in.MTU > 9216) {
+    27				return nil, &ValidationError{Field: "interfaces.mtu", Reason: "OutOfRange", Message: "MTU must be 576-9216 or omitted"}
+    28			}
+    29			if _, ok := seen[in.Name]; ok {
+    30				return nil, &ValidationError{Field: "interfaces.name", Reason: "Duplicate", Message: "duplicate interface name"}
+    31			}
+    32			seen[in.Name] = struct{}{}
+    33			out = append(out, in)
+    34		}
+    35		return out, nil
+    36	}
+    37	
+    38	// NormalizeBGP validates global and neighbor BGP settings.
+    39	func NormalizeBGP(global BGPGlobal, nei []BGPNeighbor) (BGPGlobal, []BGPNeighbor, error) {
+    40		if global.ASN == 0 {
+    41			return BGPGlobal{}, nil, &ValidationError{Field: "bgp.asn", Reason: "Required", Message: "ASN must be set"}
+    42		}
+    43		return global, nei, nil
+    44	}
+    45	
+    46	// NormalizeNetworkInstances validates VRF/default instances.
+    47	func NormalizeNetworkInstances(instances []NetworkInstance) ([]NetworkInstance, error) {
+    48		byName := map[string]struct{}{}
+    49		for _, ni := range instances {
+    50			if ni.Name == "" {
+    51				return nil, &ValidationError{Field: "networkInstance.name", Reason: "Required", Message: "name required"}
+    52			}
+    53			if _, ok := byName[ni.Name]; ok {
+    54				return nil, &ValidationError{Field: "networkInstance.name", Reason: "Duplicate", Message: "duplicate instance name"}
+    55			}
+    56			byName[ni.Name] = struct{}{}
+    57		}
+    58		return instances, nil
+    59	}
+    60	
+    61	// NormalizeSRv6 validates SRv6-specific constructs.
+    62	func NormalizeSRv6(locator SRv6Locator, mysids []MySID) (SRv6Locator, []MySID, error) {
+    63		if locator.Prefix == "" {
+    64			return SRv6Locator{}, nil, &ValidationError{Field: "srv6.locator", Reason: "Required", Message: "locator prefix required"}
+    65		}
+    66		return locator, mysids, nil
+    67	}
+    68	
+    69	// IsTerminal returns true for terminal errors per reconciliation contract.
+    70	func IsTerminal(err error) bool {
+    71		var ve *ValidationError
+    72		if errors.As(err, &ve) {
+    73			// Treat schema/unknown/duplicate as terminal until generation or dependency changes
+    74			return true
+    75		}
+    76		return false
+    77	}

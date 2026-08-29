@@ -1,0 +1,25 @@
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:50:	finalizerName   = "ainetops.dev/finalizer"
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:68:		return ctrl.Result{}, client.IgnoreNotFound(err)
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:72:	if !nd.DeletionTimestamp.IsZero() {
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:76:		_ = r.Delete(ctx, cfg)
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:80:			// Still exists; requeue without removing finalizer yet
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:81:			r.Log.Info("waiting for owned SDC Config to be deleted", "name", cfgName)
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:88:		// It's gone; add finalized-at evidence and remove finalizer
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:91:		anno["ainetops.dev/finalized-at"] = time.Now().UTC().Format(time.RFC3339)
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:93:		nd.Finalizers = removeString(nd.Finalizers, finalizerName)
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:100:	// Ensure finalizer present
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:101:	if !containsString(nd.Finalizers, finalizerName) {
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:102:		nd.Finalizers = append(nd.Finalizers, finalizerName)
+controllers/sonicprovider/controller.go:tests/envtest/provider_finalization_test.go:33:	// Add finalizer and a Config owned by ND
+controllers/sonicprovider/controller.go:tests/envtest/provider_finalization_test.go:35:	nd.Finalizers = append(nd.Finalizers, "ainetops.dev/finalizer")
+controllers/sonicprovider/controller.go:tests/envtest/provider_finalization_test.go:39:	// Mark ND as deleting by issuing a Delete (fake client sets deletionTimestamp when finalizers exist)
+controllers/sonicprovider/controller.go:tests/envtest/provider_finalization_test.go:46:		if err := c.Delete(ctx, cfg); err != nil { t.Fatalf("delete cfg: %v", err) }
+controllers/sonicprovider/controller.go:tests/envtest/provider_finalization_test.go:48:	// Second reconcile should record finalized-at and remove finalizer
+controllers/sonicprovider/controller.go:tests/envtest/provider_finalization_test.go:51:		if nd.Annotations["ainetops.dev/finalized-at"] == "" { t.Fatalf("expected finalized-at annotation") }
+controllers/sonicprovider/controller.go:tests/envtest/provider_finalization_test.go:52:		if contains(nd.Finalizers, "ainetops.dev/finalizer") { t.Fatalf("expected finalizer removed") }
+tests/envtest/provider_finalization_test.go:33:	// Add finalizer and a Config owned by ND
+tests/envtest/provider_finalization_test.go:35:	nd.Finalizers = append(nd.Finalizers, "ainetops.dev/finalizer")
+tests/envtest/provider_finalization_test.go:39:	// Mark ND as deleting by issuing a Delete (fake client sets deletionTimestamp when finalizers exist)
+tests/envtest/provider_finalization_test.go:48:	// Second reconcile should record finalized-at and remove finalizer
+tests/envtest/provider_finalization_test.go:51:		if nd.Annotations["ainetops.dev/finalized-at"] == "" { t.Fatalf("expected finalized-at annotation") }
+tests/envtest/provider_finalization_test.go:52:		if contains(nd.Finalizers, "ainetops.dev/finalizer") { t.Fatalf("expected finalizer removed") }

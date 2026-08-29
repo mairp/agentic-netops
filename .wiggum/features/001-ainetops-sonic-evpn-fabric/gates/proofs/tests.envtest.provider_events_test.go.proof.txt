@@ -1,0 +1,30 @@
+$ nl -ba tests/envtest/provider_events_test.go | sed -n '1,200p'
+     1	//go:build !integration
+     2	
+     3	package envtest
+     4	
+     5	import (
+     6		"context"
+     7		"testing"
+     8	
+     9		metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    10		"k8s.io/apimachinery/pkg/runtime"
+    11		"k8s.io/apimachinery/pkg/types"
+    12		clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+    13		"sigs.k8s.io/controller-runtime/pkg/client/fake"
+    14		ctrl "sigs.k8s.io/controller-runtime"
+    15	
+    16		"github.com/mairp/ainetops/controllers/sonicprovider"
+    17		"github.com/mairp/ainetops/pkg/kubenet"
+    18		"github.com/mairp/ainetops/pkg/sdc"
+    19	)
+    20	
+    21	type capturingRecorder struct{ events []string }
+    22	
+    23	func (c *capturingRecorder) Eventf(object runtime.Object, eventtype, reason, messageFmt string, args ...any) {
+    24		c.events = append(c.events, reason)
+    25	}
+    26	
+    27	func TestProvider_EmitsDeviationObservedEvent(t *testing.T) {
+    28		...
+    49		if r == "DeviationObserved" { found = true; break }

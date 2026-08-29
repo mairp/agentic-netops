@@ -1,0 +1,14 @@
+controllers/sonicprovider/controller.go:82:			return resultWithBackoff(false), nil
+controllers/sonicprovider/controller.go:86:			return resultWithBackoff(true), nil
+controllers/sonicprovider/controller.go:146:		return resultWithBackoff(false), nil
+controllers/sonicprovider/controller.go:160:				return resultWithBackoff(false), nil
+controllers/sonicprovider/controller.go:182:		return resultWithBackoff(true), nil
+controllers/sonicprovider/controller.go:189:		return resultWithBackoff(true), nil
+controllers/sonicprovider/controller.go:213:		return resultWithBackoff(true), nil
+controllers/sonicprovider/controller.go:238:	return resultWithBackoff(true), nil
+controllers/sonicprovider/controller.go:305:func resultWithBackoff(transient bool) ctrl.Result {
+controllers/sonicprovider/controller.go:306:	// Minimal bounded backoff with jitter
+controllers/sonicprovider/controller.go:307:	base := 5 * time.Second
+controllers/sonicprovider/controller.go:309:		base = 20 * time.Second
+controllers/sonicprovider/controller.go:312:	if j > 5*time.Second { j = 5 * time.Second }
+controllers/sonicprovider/controller.go:313:	return ctrl.Result{RequeueAfter: base + j}

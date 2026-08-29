@@ -1,0 +1,12 @@
+tests/envtest/srv6service_crd_envtest_test.go:3:package envtest
+tests/envtest/srv6service_crd_envtest_test.go:18:	"sigs.k8s.io/controller-runtime/pkg/envtest"
+tests/envtest/srv6service_crd_envtest_test.go:29:	// Determine envtest binaries; skip test when not available in CI.
+tests/envtest/srv6service_crd_envtest_test.go:38:		t.Skip("envtest assets not found; set KUBEBUILDER_ASSETS to run this test")
+tests/envtest/srv6service_crd_envtest_test.go:40:	// Start the envtest API server
+tests/envtest/srv6service_crd_envtest_test.go:41:	testEnv := &envtest.Environment{
+tests/envtest/srv6service_crd_envtest_test.go:49:		t.Fatalf("failed to start envtest: %v", err)
+tests/envtest/srv6service_crd_envtest_test.go:73:	if _, err := dc.Resource(gvr).Namespace("default").Create(ctx, posObj, metav1.CreateOptions{DryRun: []string{"All"}}); err != nil {
+tests/envtest/srv6service_crd_envtest_test.go:74:		t.Fatalf("dry-run create positive sample failed: %v", err)
+tests/envtest/srv6service_crd_envtest_test.go:77:	// Negative sample: duplicate attachments (violates CEL uniqueness rule)
+tests/envtest/srv6service_crd_envtest_test.go:86:	if _, err := dc.Resource(gvr).Namespace("default").Create(ctx, neg, metav1.CreateOptions{DryRun: []string{"All"}}); err == nil {
+tests/envtest/srv6service_crd_envtest_test.go:87:		t.Fatalf("expected dry-run create to fail for duplicate attachments, got nil error")

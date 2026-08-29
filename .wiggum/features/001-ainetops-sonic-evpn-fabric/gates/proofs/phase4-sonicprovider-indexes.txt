@@ -1,0 +1,22 @@
+     1	package sonicprovider
+     2	
+     3	import (
+     4		"context"
+     5	
+     6		corev1 "k8s.io/api/core/v1"
+     7		"sigs.k8s.io/controller-runtime/pkg/client"
+     8		ctrl "sigs.k8s.io/controller-runtime"
+     9	)
+    10	
+    11	// SetupIndexes declares controller-runtime field indexes used by watches and dependency lookups.
+    12	func SetupIndexes(ctx context.Context, mgr ctrl.Manager) error {
+    13		idx := mgr.GetFieldIndexer()
+    14		// Index ConfigMaps by the 'kubenet.dev/network-device' label presence (scaffold)
+    15		return idx.IndexField(ctx, &corev1.ConfigMap{}, "metadata.labels.kubenet.dev/network-device", func(o client.Object) []string {
+    16			if o == nil { return nil }
+    17			labels := o.GetLabels()
+    18			if labels == nil { return nil }
+    19			if _, ok := labels["kubenet.dev/network-device"]; ok { return []string{"true"} }
+    20			return nil
+    21		})
+    22	}

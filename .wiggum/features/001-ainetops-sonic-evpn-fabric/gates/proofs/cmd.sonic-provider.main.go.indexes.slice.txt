@@ -1,0 +1,6 @@
+File: cmd/sonic-provider/main.go
+81:	// Register field indexes used by reconcilers
+82:	if err := sonicprovider.SetupIndexes(ctx, mgr); err != nil {
+83:		setupLog.Error(err, "unable to set up indexes")
+84:		os.Exit(1)
+85:	}

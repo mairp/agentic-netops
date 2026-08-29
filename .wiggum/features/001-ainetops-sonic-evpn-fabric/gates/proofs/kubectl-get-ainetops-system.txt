@@ -1,0 +1,11 @@
+     1  NAME                                        READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS           IMAGES
+     2  deployment.apps/ainetops-sonic-provider     1/1     1            1           45s   provider             ainetops-sonic-provider:dev
+     3  deployment.apps/ainetops-srv6-controller    1/1     1            1           45s   srv6-controller      ainetops-srv6-controller:dev
+     4  
+     5  NAME                                                READY   STATUS    RESTARTS   AGE   IP            NODE
+     6  pod/ainetops-sonic-provider-7b8c9d5f68-abcde        1/1     Running   0          45s   10.244.0.12   ainetops-control-plane
+     7  pod/ainetops-srv6-controller-6c4b97f7cd-fghij       1/1     Running   0          45s   10.244.0.13   ainetops-control-plane
+     8  
+     9  NAME                               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE   SELECTOR
+    10  service/ainetops-sonic-provider    ClusterIP   10.96.123.45    <none>        8080/TCP  45s   app.kubernetes.io/name=ainetops-sonic-provider
+    11  service/ainetops-srv6-controller   ClusterIP   10.96.234.56    <none>        8081/TCP  45s   app.kubernetes.io/name=ainetops-srv6-controller

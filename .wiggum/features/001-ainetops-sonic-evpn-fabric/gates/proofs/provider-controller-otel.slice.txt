@@ -1,0 +1,11 @@
+     1	func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+     2		// OTel span
+     3		if r.tracer == nil {
+     4			r.tracer = otel.Tracer("ainetops/sonicprovider")
+     5		}
+     6		ctx, span := r.tracer.Start(ctx, "ReconcileNetworkDevice")
+     7		defer span.End()
+     8		span.SetAttributes(attribute.String("k8s.name", req.Name), attribute.String("k8s.namespace", req.Namespace))
+     9	
+    10		r.Log.Info("reconcile NetworkDevice", "name", req.NamespacedName)
+    11		var nd kubenet.NetworkDevice

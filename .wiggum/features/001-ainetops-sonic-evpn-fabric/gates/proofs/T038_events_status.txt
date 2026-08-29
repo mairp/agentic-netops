@@ -1,0 +1,30 @@
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:46:	Eventf(object runtime.Object, eventtype, reason, messageFmt string, args ...any)
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:109:	condReady := metav1.Condition{
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:110:		Type:               "Ready",
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:118:	updated.Status = upsertConditionGeneric(nd.Status, condReady)
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:128:			if len(cfg.Status.Deviation) > 0 {
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:130:				if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", name) }
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:141:		cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reason, Message: err.Error()}
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:149:	// Observe existing SDC status to propagate Degraded/Ready (T038)
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:154:			if len(cfg.Status.Deviation) > 0 {
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:155:				cond := metav1.Condition{Type: "Degraded", Status: metav1.ConditionTrue, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: "DeviationObserved", Message: fmt.Sprintf("%d deviations", len(cfg.Status.Deviation))}
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:159:				if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", name) }
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:162:			if cfg.Status.Ready {
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:163:				condOK := metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplySucceeded, Message: "rendered and applied"}
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:178:		cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplyFailed, Message: fmt.Sprintf("offline schema validation failed: %v", err)}
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:185:		cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplyFailed, Message: fmt.Sprintf("register validation failed: %v", err)}
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:209:		cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplyFailed, Message: err.Error()}
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:216:	if r.Recorder != nil { r.Recorder.Eventf(&nd, "Normal", reasons.ReasonApplySucceeded, "Applied SDC Config %s with hash %s", obj.Name, hash) }
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:221:		if cfg.Status.Ready {
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:222:			condOK := metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplySucceeded, Message: "rendered and applied"}
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:228:		if len(cfg.Status.Deviation) > 0 {
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:229:			cond := metav1.Condition{Type: "Degraded", Status: metav1.ConditionTrue, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: "DeviationObserved", Message: fmt.Sprintf("%d deviations", len(cfg.Status.Deviation))}
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:233:			if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", obj.Name) }
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:237:	// Requeue while waiting for SDC to report Ready
+controllers/sonicprovider/controller.go:tests/envtest/provider_events_test.go:23:func (c *capturingRecorder) Eventf(object runtime.Object, eventtype, reason, messageFmt string, args ...any) {
+controllers/sonicprovider/controller.go:tests/envtest/provider_events_test.go:27:func TestProvider_EmitsDeviationObservedEvent(t *testing.T) {
+controllers/sonicprovider/controller.go:tests/envtest/provider_events_test.go:49:		if r == "DeviationObserved" { found = true; break }
+controllers/sonicprovider/controller.go:tests/envtest/provider_events_test.go:52:		t.Fatalf("expected DeviationObserved event, got %v", cr.events)
+tests/envtest/provider_events_test.go:27:func TestProvider_EmitsDeviationObservedEvent(t *testing.T) {
+tests/envtest/provider_events_test.go:49:		if r == "DeviationObserved" { found = true; break }
+tests/envtest/provider_events_test.go:52:		t.Fatalf("expected DeviationObserved event, got %v", cr.events)

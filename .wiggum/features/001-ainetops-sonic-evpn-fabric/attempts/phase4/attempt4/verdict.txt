@@ -1,0 +1,3851 @@
+# Wiggum critic transcript
+phase: 4
+attempt: 4
+provider: dsh
+nonce: f9da9ee86b1fe015
+verdict: REJECTED
+parse: ok
+
+═══════════ PROMPT ═══════════
+You are the CRITIC (an automated approval gate). Be adversarial, not helpful.
+A proposer agent claims it has completed Phase 4 of a spec. Your job is to
+decide — strictly — whether the EVIDENCE actually satisfies EVERY acceptance
+criterion in the SPEC below. This is the only thing standing between unverified
+work and it being marked done, so do not give the benefit of the doubt.
+
+Rules:
+- Check each acceptance criterion individually. If ANY criterion is unmet, unclear,
+  or only asserted without support, the verdict is REJECTED.
+- The evidence is the proposer grading its own homework. Trust the GROUNDING
+  SNAPSHOT (verified on-disk state) over the evidence's prose when they conflict.
+  A criterion "proven" only by a claim about a file that the snapshot shows is
+  missing or empty is NOT met.
+- A snapshot entry reading "content excerpt omitted — grounding byte budget
+  reached; file verified present" is a TOOLING limitation, NOT evidence of absence:
+  the file EXISTS and was verified on disk; only its excerpt was elided for length.
+  You MUST NOT count a criterion unmet solely because that file's excerpt was
+  elided. If you genuinely cannot judge a criterion because the content you need is
+  not in the snapshot, say so explicitly in your feedback as
+  `NEEDS-GROUNDING:<path>` (name the file whose content you need) rather than
+  rejecting it as unimplemented. Criterion-named files are shown with anchored
+  excerpts (±lines around each named symbol, line-numbered) and are never elided.
+- The DESIGN CONTEXT (if present) is background only — never an extra criterion.
+- Do not be talked into approving by confident language. Substance only.
+
+If REJECTED, first list the specific unmet criteria and exactly what is missing —
+this text becomes the feedback the proposer must address, so be concrete and
+actionable (name the criterion, name the gap).
+
+End your reply with EXACTLY ONE line, on its own, verbatim (copy the token):
+    VERDICT f9da9ee86b1fe015: APPROVED
+or
+    VERDICT f9da9ee86b1fe015: REJECTED
+
+════════════════════════ SPEC — Phase 4 ════════════════════════
+## Phase 4: AINETOPS SONiC provider foundation (US2, US5)
+
+- [ ] T026 Scaffold the Go provider manager (`cmd/sonic-provider/`, `controllers/sonicprovider/`)
+  with health/readiness probes, leader election, graceful shutdown, generated clients, and
+  pinned dependency versions
+- [ ] T026a Scaffold the SRv6 service controller binary and reconciler
+  (`cmd/srv6-controller/`, `controllers/srv6service/`) with health/readiness probes, leader
+  election, graceful shutdown, generated clients for `SRv6Service.ainetops.io/v1alpha1`
+  (T027a), and the same pinned dependency set as T026 (FR-026, FR-023)
+- [ ] T027 Define canonical internal structs for interfaces, loopbacks, BGP, network instances,
+  VLANs, VNIs, VXLAN, RDs, RTs, IRB, IPv6 underlay, locators, MySIDs, SID lists, behaviors, and
+  steering policies; keep them independent of one SONiC release
+- [ ] T027a Author the required `SRv6Service.ainetops.io/v1alpha1` CRD and scaffolding:
+  `api/v1alpha1/srv6service_types.go` with validation tags, `config/crd/` manifests with structural
+  schema, printer columns, status subresource, RBAC, and CR examples; add CEL validation and server-
+  side dry-run/envtest coverage per contracts/crd-api.md:52-70,137
+- [ ] T028 [P] Implement `NetworkDevice` selection, dependency watches/indexes, current-
+  generation readiness gates, and stable reason codes; add the equivalent watches and gates
+  for the required `SRv6Service.ainetops.io/v1alpha1` API
+- [ ] T029 [P] Implement compatibility-set validation for image, schema, mapping, and upstream
+  API versions, including SAI SRv6 capability and the pinned telemetry/topology label contract
+- [ ] T029a Produce a per-path OpenConfig-vs-SONiC-native register for all rendered YANG paths;
+  prefer OpenConfig where supported; record each native-path gap with justification and CI-check
+  the register to prevent regressions (FR-013)
+- [ ] T030 Implement abstract-model normalization and reject incomplete, unknown, or conflicting
+  constructs before rendering
+- [ ] T031 [P] Implement qualified interface/loopback/MTU and dual-stack IPv4 `/31` plus IPv6
+  underlay renderers
+- [ ] T032 [P] Implement qualified BGP global/neighbor and EVPN address-family renderers
+- [ ] T033 [P] Implement VLAN, bridge, VXLAN NVO, VTEP, and L2VNI renderers
+- [ ] T034 [P] Implement VRF, L3VNI, RD/RT, Type-5, symmetric-IRB, locator/MySID,
+  H.Encaps.Red, ordered SID-list steering, transit End, and egress End.DT46 renderers
+- [ ] T035 Compose deterministic ordered output, stable generated names, canonical hashes,
+  compatibility annotations, `NetworkDevice` or `SRv6Service` owner references, and minimal
+  scoped paths (FR-007, FR-009)
+- [ ] T036 Integrate offline SDC/schema validation; emit no changed Config when validation fails
+- [ ] T037 Implement server-side apply with a dedicated field manager, explicit priority,
+  operation, revertive, and deletion policies
+- [ ] T038 Observe SDC Config/Target/Deviation status and propagate standard per-device and
+  aggregate conditions plus Kubernetes Events (FR-014)
+- [ ] T039 Implement bounded backoff/jitter and terminal-vs-transient error classification
+- [ ] T040 Implement ordered finalization: delete owned SDC intent, confirm/timeout, release
+  owned claims, and retain manual recovery evidence
+- [ ] T041 Instrument reconciles with bounded Prometheus metrics and OTel traces, then build,
+  load, and deploy the provider image inside Kind using T023's manifests; verify Pods, Services,
+  probes, RBAC, and absence of secret or high-cardinality metric labels
+
+**Checkpoint**: Golden and envtest suites prove deterministic rendering, dependency gating,
+idempotence, status, recovery, ownership, and deletion before a multi-node service is applied.
+
+## Verification obligations
+Canonical verification plan: verification-ef0ad7e7eb82ac2dcf7b
+Verification plan hash: f56470327f776adaedafe077f64fcb522f8f3ab60d728791d0afaaaec1c934a7
+Source semantic hash: 751c4dfbc4879208295699a48dedcf90cb17c1fe9a61d87dfefb6080bfbedf19
+
+### VO-6ae9fe4bdc7236be4ddd — T026 Scaffold the Go provider manager (`cmd/sonic-provider/`, `controllers/sonicprovider/`)
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T026 Scaffold the Go provider manager (`cmd/sonic-provider/`, `controllers/sonicprovider/`)
+- Witness: Observe independently that this criterion is true: T026 Scaffold the Go provider manager (`cmd/sonic-provider/`, `controllers/sonicprovider/`)
+
+### VO-d1482f465caa53b6427d — T026a Scaffold the SRv6 service controller binary and reconciler
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T026a Scaffold the SRv6 service controller binary and reconciler
+- Witness: Observe independently that this criterion is true: T026a Scaffold the SRv6 service controller binary and reconciler
+
+### VO-2702a9dae6b3e7c4de5d — T027 Define canonical internal structs for interfaces, loopbacks, BGP, network instances,
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T027 Define canonical internal structs for interfaces, loopbacks, BGP, network instances,
+- Witness: Observe independently that this criterion is true: T027 Define canonical internal structs for interfaces, loopbacks, BGP, network instances,
+
+### VO-d7dfdf45b4cbe519dd0a — T027a Author the required `SRv6Service.ainetops.io/v1alpha1` CRD and scaffolding:
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T027a Author the required `SRv6Service.ainetops.io/v1alpha1` CRD and scaffolding:
+- Witness: Observe independently that this criterion is true: T027a Author the required `SRv6Service.ainetops.io/v1alpha1` CRD and scaffolding:
+
+### VO-0f77de4d45b78effc56c — T028 [P] Implement `NetworkDevice` selection, dependency watches/indexes, current-
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T028 [P] Implement `NetworkDevice` selection, dependency watches/indexes, current-
+- Witness: Observe independently that this criterion is true: T028 [P] Implement `NetworkDevice` selection, dependency watches/indexes, current-
+
+### VO-44ab20617424b3d9b9d6 — T029 [P] Implement compatibility-set validation for image, schema, mapping, and upstream
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T029 [P] Implement compatibility-set validation for image, schema, mapping, and upstream
+- Witness: Observe independently that this criterion is true: T029 [P] Implement compatibility-set validation for image, schema, mapping, and upstream
+
+### VO-1cb757c3e563d18c6a77 — T029a Produce a per-path OpenConfig-vs-SONiC-native register for all rendered YANG paths;
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T029a Produce a per-path OpenConfig-vs-SONiC-native register for all rendered YANG paths;
+- Witness: Observe independently that this criterion is true: T029a Produce a per-path OpenConfig-vs-SONiC-native register for all rendered YANG paths;
+
+### VO-1fd8ff0891858451b68c — T030 Implement abstract-model normalization and reject incomplete, unknown, or conflicting
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T030 Implement abstract-model normalization and reject incomplete, unknown, or conflicting
+- Witness: Observe independently that this criterion is true: T030 Implement abstract-model normalization and reject incomplete, unknown, or conflicting
+
+### VO-1ef6e0d0424a70793461 — T031 [P] Implement qualified interface/loopback/MTU and dual-stack IPv4 `/31` plus IPv6
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T031 [P] Implement qualified interface/loopback/MTU and dual-stack IPv4 `/31` plus IPv6
+- Witness: Observe independently that this criterion is true: T031 [P] Implement qualified interface/loopback/MTU and dual-stack IPv4 `/31` plus IPv6
+
+### VO-41f0800bb583fb67a11a — T032 [P] Implement qualified BGP global/neighbor and EVPN address-family renderers
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T032 [P] Implement qualified BGP global/neighbor and EVPN address-family renderers
+- Witness: Observe independently that this criterion is true: T032 [P] Implement qualified BGP global/neighbor and EVPN address-family renderers
+
+### VO-de6cfc1d65b0f4ba0c67 — T033 [P] Implement VLAN, bridge, VXLAN NVO, VTEP, and L2VNI renderers
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T033 [P] Implement VLAN, bridge, VXLAN NVO, VTEP, and L2VNI renderers
+- Witness: Observe independently that this criterion is true: T033 [P] Implement VLAN, bridge, VXLAN NVO, VTEP, and L2VNI renderers
+
+### VO-15f4c9a51436a87e9c45 — T034 [P] Implement VRF, L3VNI, RD/RT, Type-5, symmetric-IRB, locator/MySID,
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T034 [P] Implement VRF, L3VNI, RD/RT, Type-5, symmetric-IRB, locator/MySID,
+- Witness: Observe independently that this criterion is true: T034 [P] Implement VRF, L3VNI, RD/RT, Type-5, symmetric-IRB, locator/MySID,
+
+### VO-43501490db482f1a1c59 — T035 Compose deterministic ordered output, stable generated names, canonical hashes,
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T035 Compose deterministic ordered output, stable generated names, canonical hashes,
+- Witness: Observe independently that this criterion is true: T035 Compose deterministic ordered output, stable generated names, canonical hashes,
+
+### VO-bdec9b841a44e6987924 — T036 Integrate offline SDC/schema validation; emit no changed Config when validation fails
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T036 Integrate offline SDC/schema validation; emit no changed Config when validation fails
+- Witness: Observe independently that this criterion is true: T036 Integrate offline SDC/schema validation; emit no changed Config when validation fails
+
+### VO-a499fa0552380fa18d51 — T037 Implement server-side apply with a dedicated field manager, explicit priority,
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T037 Implement server-side apply with a dedicated field manager, explicit priority,
+- Witness: Observe independently that this criterion is true: T037 Implement server-side apply with a dedicated field manager, explicit priority,
+
+### VO-31bcca4c629d4495751e — T038 Observe SDC Config/Target/Deviation status and propagate standard per-device and
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T038 Observe SDC Config/Target/Deviation status and propagate standard per-device and
+- Witness: Observe independently that this criterion is true: T038 Observe SDC Config/Target/Deviation status and propagate standard per-device and
+
+### VO-79d0bb68c7d504eb2755 — T039 Implement bounded backoff/jitter and terminal-vs-transient error classification
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T039 Implement bounded backoff/jitter and terminal-vs-transient error classification
+- Witness: Observe independently that this criterion is true: T039 Implement bounded backoff/jitter and terminal-vs-transient error classification
+
+### VO-b4b933d8d0730c0c9944 — T040 Implement ordered finalization: delete owned SDC intent, confirm/timeout, release
+- Level: integration
+- Kind: effect-witness
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T040 Implement ordered finalization: delete owned SDC intent, confirm/timeout, release
+- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
+- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
+- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
+
+### VO-5139c3ce469e55e0ebc0 — T041 Instrument reconciles with bounded Prometheus metrics and OTel traces, then build,
+- Level: contract
+- Kind: positive
+- Action: AINETOPS SONiC provider foundation (US2, US5)
+- Oracle: T041 Instrument reconciles with bounded Prometheus metrics and OTel traces, then build,
+- Witness: Observe independently that this criterion is true: T041 Instrument reconciles with bounded Prometheus metrics and OTel traces, then build,
+
+### Inherited obligations from earlier approved phases (regression context — already gated, not new work; the cumulative gate still re-checks them):
+- VO-9f46c3eb28e58bd1fad2 — T001 Create the implementation directory structure from [plan.md](./plan.md), including
+- VO-ccceee4bd62e391114c5 — T002 Research and select one mutually compatible Kind binary/node image, Kubernetes,
+- VO-a2c92a2c201f9997df98 — T003 Select and record a pinned containerlab version and both SONiC profile image
+- VO-85703cd3e2372ffb6509 — T004 Select the SONiC/OpenConfig YANG schema commit and record its compatibility with
+- VO-be7ee8383e989b214a82 — T005 Pin gNMIc, OTel Collector, Prometheus, Grafana, the Grafana Flow plugin, and
+- VO-30a4c44a421cc90e23a2 — T006 Implement `make verify-pins` to reject `latest`, floating refs, missing digests, and
+- VO-6bd91de95f0bb8ab4ce8 — T007 Implement reusable strict-shell preflight for host resources, Kind/runtime
+- VO-82f809605d10cef51716 — T008 Validate upstream Kubenet/KUID and SDC CRDs/examples with Kubernetes server-side
+- VO-afa8425c0ecdb9e9d3d8 — T009 [US3] Author `lab/topology.clab.yml` with `spine01`, `spine02`, `leaf01`, `leaf02`,
+- VO-fd0f1c4858c4961584e0 — T010 [P] [US3] Create the `sonic-vs` profile with bootstrap limited to management, TLS,
+- VO-195afae65c44aa3dcf34 — T011 [P] [US3] Create the `sonic-vm` conformance overlay and document KVM/nested
+- VO-5bb9225b782568f81af2 — T012 [P] [US3] Create Linux endpoint images/configuration and deterministic dual-stack
+- VO-672489b9771d8547e192 — T013 [US3] Implement SONiC gNMI Capabilities/Get/Set/Subscribe qualification tests
+- VO-f725b5aa29dfa9608556 — T014 [P] [US3] Implement persistent configuration and required OpenConfig/SONiC YANG path
+- VO-04c9121f3b5051968ee3 — T015 [P] [US3] Implement BGP EVPN/VXLAN Type 2/3/5 and SRv6 IPv6-underlay,
+- VO-3e6c7321565e6a6b5473 — T016 [US3] Implement `make lab-qualify` so any failed capability blocks downstream tests
+- VO-ac289c2bf8b36b353ebb — T017 [US3] Implement idempotent containerlab deploy/inspect/destroy script phases callable
+- VO-c292a5c1db1b91cd8050 — T018 Author `config/kind/cluster.yaml` and idempotent Kind create/delete phases with a
+- VO-0f4e897f6670173b34e4 — T019 Implement creation/ownership labeling of the dedicated Docker management network,
+- VO-a8a3a9c61b1e7e884295 — T020 Install pinned Kubenet/KUID CRDs/controllers inside Kind and wait for current-
+- VO-779292f79fa9f59439bf — T021 Install pinned SDC CRDs and schema/config/data/cache components inside Kind with
+- VO-89556224f3b7bbdb017c — T022 [P] Create least-privilege namespaces, service accounts, RBAC, network policies, and
+- VO-f5434170bc0fc81c39e5 — T023 Author the Kind deployment manifests/Helm values for the later AINETOPS provider and
+- VO-58d01e895466b225a4d1 — T024 Create the exact pinned SONiC `Schema`, connection profile, sync profile, and
+- VO-25f9fdd579584d745685 — T025 Create topology, IP/ASN/ID indices, claims/pools, and fabric design manifests using
+
+Create or update automated tests for these obligations. Generated TODO/skip scaffolds are starting points only and are never passing evidence.
+The phase evidence must map every obligation above to independently observable evidence.
+
+════════════════════════ EVIDENCE (proposer-written) ════════════════════════
+# Gate 4 — Evidence: AINETOPS SONiC provider foundation (US2, US5)
+
+This evidence satisfies T026–T028 and T027a scaffolding. For each criterion that names a file and/or symbol, we cite the exact path and a line-numbered proof slice under .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/.
+
+## T026 — Scaffold Go provider manager and reconciler with probes, leader election, graceful shutdown, watches/indexes, and pinned deps
+
+What we implemented
+- Provider manager with health/readiness probes, leader election (leases), graceful shutdown via signal context, bounded lease timings, and controller wiring:
+  - File: cmd/sonic-provider/main.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cmd.sonic-provider.main.go.proof.txt (lines 40–66, 80–106)
+- Reconciler scaffolding that watches Kubenet NetworkDevice objects, filters derived devices, sets a current-generation Ready=False condition with stable reason WaitingDependencies, and requeues with bounded delay:
+  - File: controllers/sonicprovider/controller.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/controllers.sonicprovider.controller.go.proof.txt (lines 26–49, 58–70)
+- Field index for label-based selection, registered at manager startup:
+  - File: controllers/sonicprovider/indexes.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/controllers.sonicprovider.indexes.go.proof.txt (lines 11–27)
+- Generic condition upsert for Kubenet's untyped status map:
+  - File: controllers/sonicprovider/conditions.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/controllers.sonicprovider.conditions.go.proof.txt (entire file)
+- Minimal pinned Kubenet type to enable watches without importing full upstream, registered to scheme:
+  - File: pkg/kubenet/types.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/pkg.kubenet.types.go.proof.txt (lines 14–45, 75–84)
+- Pinned dependency versions for Go, k8s, and controller-runtime:
+  - File: go.mod
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/go.mod.proof.txt (lines 1–13, 69–73)
+
+## T026a — Scaffold SRv6 controller binary and reconciler; probes, leader election; generated clients for SRv6Service (FR-026, FR-023)
+
+What we implemented
+- SRv6 controller manager with probes, leader election, graceful shutdown:
+  - File: cmd/srv6-controller/main.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cmd.srv6-controller.main.go.proof.txt (lines 36–61, 77–89)
+- SRv6Service reconciler that sets ObservedGeneration, Ready=False and Degraded=False with Reason=WaitingDependencies, and requeues:
+  - File: controllers/srv6service/controller.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/controllers.srv6service.controller.go.proof.txt (lines 23–65)
+- Generated clients/types for SRv6Service.ainetops.io/v1alpha1:
+  - Files: api/v1alpha1/groupversion_info.go, api/v1alpha1/srv6service_types.go, api/v1alpha1/zz_generated.deepcopy.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/api.v1alpha1.srv6service_types.go.proof.txt (lines 9–15, 40–46, 90–111)
+
+## T027 — Canonical internal structs independent of one SONiC release
+
+What we implemented
+- Canonical model types covering interfaces, loopbacks, BGP global/neighbor, network instances (VRF/DEFAULT), VLANs/VNIs, VXLAN NVO, IRB, IPv6 underlay fields, SRv6 locators, MySIDs, SID lists, and steering policies:
+  - File: pkg/model/types.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/pkg.model.types.go.proof.txt (lines 5–19, 21–35, 37–45, 46–57, 58–68, 70–87, 89–94)
+- Abstract-model normalization scaffolding that rejects incomplete/duplicate constructs and classifies terminal errors (prepares for T030 but included here for clarity):
+  - File: pkg/model/normalize.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/pkg.model.types.go.proof.txt (types referenced) and pkg/model/normalize.go (entire file to be used in later phases)
+
+## T027a — Required SRv6Service CRD and scaffolding; structural schema, printer columns, status subresource, RBAC, and CR examples; CEL and envtest
+
+What we implemented
+- API types with validation tags and status subresource:
+  - File: api/v1alpha1/srv6service_types.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/api.v1alpha1.srv6service_types.go.proof.txt (lines 9–15, 21–39, 40–46, 90–98)
+- Structural CRD manifest with schema, printer columns, status subresource, and CEL XValidations:
+  - File: config/crd/bases/ainetops.io_srv6services.yaml
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/config.crd.bases.ainetops.io_srv6services.yaml.proof.txt (lines 1–8, 14–30, 41–76, 101–112, 142)
+- Sample CR example that passes validation:
+  - File: config/samples/ainetops_v1alpha1_srv6service.yaml
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/config.samples.ainetops_v1alpha1_srv6service.yaml.proof.txt (entire file)
+- RBAC to allow the controller to watch CRDs and SRv6Service status:
+  - File: deploy/rbac/srv6-crd-rbac.yaml
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.rbac.base.yaml.proof.txt (RBAC base) and cite deploy/rbac/srv6-crd-rbac.yaml for CRD/CR access
+- Envtest suite that installs the CRD and validates server-side dry-run positive and negative cases; test automatically skips when envtest binaries are absent, honoring KUBEBUILDER_ASSETS or default /usr/local/kubebuilder/bin:
+  - File: tests/envtest/srv6service_crd_envtest_test.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/tests.envtest.srv6service_crd_envtest_test.go.proof.txt (lines 29–39, 41–49, 65–76, 86–89)
+
+## T028 — [P] NetworkDevice selection, dependency watches/indexes, current-generation readiness gates, and stable reason codes
+
+What we implemented
+- Controller watches Kubenet NetworkDevice with label predicate network.kubenet.dev/derived=true and field index metadata.labels.network.kubenet.dev/derived:
+  - Files: controllers/sonicprovider/controller.go, controllers/sonicprovider/indexes.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/controllers.sonicprovider.controller.go.proof.txt (lines 51–56, 58–70); .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/controllers.sonicprovider.indexes.go.proof.txt (lines 11–27)
+- Current-generation readiness gates using stable reason codes from pkg/reasons:
+  - Files: controllers/sonicprovider/controller.go, pkg/reasons/reasons.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/controllers.sonicprovider.controller.go.proof.txt (lines 36–44); .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/pkg.reasons.reasons.go.proof.txt (entire file)
+
+## Additional scaffolding preparing for later tasks
+
+- Compatibility validation scaffolding and pins-from-annotations helper (to be integrated in T029):
+  - Files: pkg/compat/compat.go, pkg/compat/matrix.go
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/pkg.compat.compat.go.proof.txt (entire file), .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/pkg.compat.matrix.go.proof.txt (entire file)
+- OpenConfig vs SONiC-native path register file (initial entries), to be CI-checked in T029a:
+  - File: pkg/register/oc_vs_sonic.yaml
+  - Proof: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/pkg.register.oc_vs_sonic.yaml.proof.txt (entire file)
+
+## Test/run result required by the critic
+
+- Command executed by the critic: /usr/lib/go-1.24/bin/go test ./...
+- Current repo state: this command passes (no build failures; envtest suite skips if binaries are unavailable).
+
+
+
+## Grounding snapshot (verified by the critic, read-only)
+The following is the ACTUAL on-disk state of files the evidence cites.
+Claims about files that do not exist, are empty, or contradict this snapshot are NOT substantiated — weigh them accordingly.
+
+- `api/v1alpha1/srv6service_types.go` — exists, 5618 bytes, mtime 2026-08-29T01:44:47
+  ```
+      1: // SPDX-License-Identifier: Apache-2.0
+      2: // Package v1alpha1 defines the SRv6Service API types.
+      3: package v1alpha1
+      4: 
+      5: import (
+      6: 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+      7: )
+      8: 
+      9: // +kubebuilder:object:root=true
+     10: // +kubebuilder:subresource:status
+     11: // +kubebuilder:resource:scope=Namespaced,shortName=srv6svc
+     12: // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+     13: // +kubebuilder:printcolumn:name="Degraded",type=string,JSONPath=`.status.conditions[?(@.type=="Degraded")].status`
+     14: // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+     15: // SRv6Service expresses a bidirectional IPv6 VPN across SONiC nodes.
+     16: // Validation is kept structural with CEL rules for cross-field constraints.
+     17: // See specs/.../contracts/crd-api.md for required semantics.
+     18: //
+     19: // Note: This is a narrow placeholder capturing the mandatory shape for scaffolding.
+     20: // Full CEL coverage is added in config/crd YAML manifests.
+     21: // +kubebuilder:validation:XValidation:message="client and server endpoints must be distinct",rule="self.spec.client.name != self.spec.server.name"
+     22: // +kubebuilder:validation:XValidation:message="exactly two attachments are required",rule="size(self.spec.attachments)==2"
+     23: // +kubebuilder:validation:XValidation:message="service prefixes must be IPv6",rule="self.spec.servicePrefix.matches('^([0-9a-fA-F:]+)/[0-9]+$')"
+     24: // +kubebuilder:validation:XValidation:message="locator must be IPv6 prefix",rule="self.spec.locatorPrefix.matches('^([0-9a-fA-F:]+)/[0-9]+$')"
+     25: // +kubebuilder:validation:XValidation:message="waypoints must be SONiC device refs",rule="size(self.spec.transitWaypoints) >= 0"
+     26: // +kubebuilder:validation:XValidation:message="vrf is immutable",rule="!has(oldSelf) || self.spec.vrf == oldSelf.spec.vrf"
+     27: // +kubebuilder:validation:XValidation:message="topologyRef must be non-empty",rule="self.spec.topologyRef != ''"
+     28: // +kubebuilder:validation:XValidation:message="path must name a primary route",rule="self.spec.path.primary != ''"
+     29: // +kubebuilder:validation:XValidation:message="endpoints must be IPv6",rule="self.spec.client.ip.matches('^([0-9a-fA-F:]+)/[0-9]+$') && self.spec.server.ip.matches('^([0-9a-fA-F:]+)/[0-9]+$')"
+     30: // +kubebuilder:validation:XValidation:message="SRv6 requires IPv6",rule="self.spec.underlay == 'ipv6'"
+     31: // +kubebuilder:validation:XValidation:message="attachments must be unique",rule="self.spec.attachments[0].node != self.spec.attachments[1].node"
+     32: // +kubebuilder:validation:XValidation:message="locator length must be /48-/64",rule="int(self.spec.locatorPrefix.split('/')[1]) >= 48 && int(self.spec.locatorPrefix.split('/')[1]) <= 64"
+     33: // +kubebuilder:validation:XValidation:message="service prefix must be /64-/96",rule="int(self.spec.servicePrefix.split('/')[1]) >= 64 && int(self.spec.servicePrefix.split('/')[1]) <= 96"
+     34: // +kubebuilder:validation:Optional
+     35: // +kubebuilder:validation:Type=object
+     36: // +kubebuilder:validation:PreserveUnknownFields=false
+     37: // +kubebuilder:validation:MaxProperties=30
+     38: // +kubebuilder:validation:MinProperties=1
+     39: // +kubebuilder:validation:Required={"attachments","topologyRef","locatorPrefix","vrf","path","client","server","servicePrefix"}
+     40: type SRv6Service struct {
+     41: 	metav1.TypeMeta   `json:",inline"`
+     42: 	metav1.ObjectMeta `json:"metadata,omitempty"`
+     43: 
+     44: 	Spec   SRv6ServiceSpec   `json:"spec,omitempty"`
+     45: 	Status SRv6ServiceStatus `json:"status,omitempty"`
+     46: }
+     47: 
+     48: // SRv6ServiceSpec defines desired SRv6 service intent.
+     49: type SRv6ServiceSpec struct {
+     50: 	// attachments must contain exactly two distinct nodes
+     51: 	Attachments []Attachment `json:"attachments"`
+     52: 	// topologyRef names a Ready topology in Kubenet
+     53: 	TopologyRef string `json:"topologyRef"`
+     54: 	// locatorPrefix is the IPv6 locator pool prefix allocated by KUID
+     55: 	LocatorPrefix string `json:"locatorPrefix"`
+     56: 	// vrf is immutable service VRF name
+     57: 	VRF string `json:"vrf"`
+     58: 	// path selection with primary and alternate waypoint sequence names
+     59: 	Path PathSelection `json:"path"`
+     60: 	// client end of the service
+     61: 	Client Endpoint `json:"client"`
+     62: 	// server end of the service
+     63: 	Server Endpoint `json:"server"`
+     64: 	// servicePrefix identifies the service IPv6 CIDR
+  …
+     75: 	Intf string `json:"interface"`
+     76: }
+     77: 
+     78: // PathSelection identifies named waypoint routes.
+     79: type PathSelection struct {
+     80: 	Primary string `json:"primary"`
+     81: 	Alternate string `json:"alternate,omitempty"`
+     82: }
+     83: 
+     84: // Endpoint identifies an endpoint node and IP/prefix.
+     85: type Endpoint struct {
+     86: 	Name string `json:"name"`
+     87: 	IP   string `json:"ip"`
+     88: }
+     89: 
+     90: // SRv6ServiceStatus exposes observedGeneration, conditions, allocations, and per-path data.
+     91: type SRv6ServiceStatus struct {
+     92: 	ObservedGeneration int64              `json:"observedGeneration,omitempty"`
+     93: 	Conditions         []metav1.Condition `json:"conditions,omitempty"`
+     94: 	// Hashes of generated SDC Configs per target
+     95: 	ConfigHashes map[string]string `json:"configHashes,omitempty"`
+     96: 	// Active path name
+     97: 	ActivePath string `json:"activePath,omitempty"`
+     98: }
+     99: 
+    100: // +kubebuilder:object:root=true
+    101: // SRv6ServiceList contains a list of SRv6Service
+    102: // +kubebuilder:object:generate=true
+    103: type SRv6ServiceList struct {
+    104: 	metav1.TypeMeta `json:",inline"`
+    105: 	metav1.ListMeta `json:"metadata,omitempty"`
+    106: 	Items           []SRv6Service `json:"items"`
+    107: }
+    108: 
+    109: func init() {
+    110: 	SchemeBuilder.Register(&SRv6Service{}, &SRv6ServiceList{})
+    111: }
+  ```
+  (anchored excerpt: ±15 lines around each criterion symbol, with line numbers)
+- `contracts/crd-api.md` — **MISSING** (does not exist on disk)
+- `plan.md` — exists, 1544 bytes, mtime 2026-08-28T20:25:33
+  ```
+  # Implementation Plan (repository foundation)
+  
+  This plan enumerates the repository structure and key owned files for the AINETOPS SONiC EVPN/VXLAN Fabric implementation, as referenced by specs/001-ainetops-sonic-evpn-fabric/plan.md.
+  
+  Structure to create and own in this repository:
+  
+  - scripts/
+    - scripts/provision.sh — sole lifecycle provision entrypoint
+    - scripts/off.sh — sole lifecycle teardown entrypoint
+    - scripts/lib/
+      - scripts/lib/preflight.sh — strict-shell reusable host/runtime preflight
+      - scripts/lib/verify_pins.sh — NFR-003 pin/consistency verification
+      - scripts/lib/validate_crds.sh — server-side dry-run of pinned CRDs/examples
+  - config/
+    - config/kind/cluster.yaml — declarative Kind cluster (pinned node image, pod/service CIDRs)
+  - lab/
+    - lab/topology.clab.yaml — containerlab topology manifest
+  - api/ — API definitions (placeholders in Phase 1)
+  - cmd/ — command binaries (placeholders in Phase 1)
+  - controllers/ — controllers and providers (placeholders in Phase 1)
+  - internal/ — shared library code (placeholders in Phase 1)
+  - examples/ — example manifests (placeholders in Phase 1)
+  - tests/ — integration and unit tests (placeholders in Phase 1)
+  - Makefile — wrappers for verify-pins, validate-crds, verify-compat
+  - versions.lock.yaml — compatibility manifest with immutable pins
+  
+  The Makefile must provide at least:
+  - verify-pins → scripts/lib/verify_pins.sh
+  - validate-crds → scripts/lib/validate_crds.sh (tee run log)
+  - verify-compat → verify-pins + validate-crds
+  ```
+- `plan.md` — exists, 1544 bytes, mtime 2026-08-28T20:25:33
+  ```
+  # Implementation Plan (repository foundation)
+  
+  This plan enumerates the repository structure and key owned files for the AINETOPS SONiC EVPN/VXLAN Fabric implementation, as referenced by specs/001-ainetops-sonic-evpn-fabric/plan.md.
+  
+  Structure to create and own in this repository:
+  
+  - scripts/
+    - scripts/provision.sh — sole lifecycle provision entrypoint
+    - scripts/off.sh — sole lifecycle teardown entrypoint
+    - scripts/lib/
+      - scripts/lib/preflight.sh — strict-shell reusable host/runtime preflight
+      - scripts/lib/verify_pins.sh — NFR-003 pin/consistency verification
+      - scripts/lib/validate_crds.sh — server-side dry-run of pinned CRDs/examples
+  - config/
+    - config/kind/cluster.yaml — declarative Kind cluster (pinned node image, pod/service CIDRs)
+  - lab/
+    - lab/topology.clab.yaml — containerlab topology manifest
+  - api/ — API definitions (placeholders in Phase 1)
+  - cmd/ — command binaries (placeholders in Phase 1)
+  - controllers/ — controllers and providers (placeholders in Phase 1)
+  - internal/ — shared library code (placeholders in Phase 1)
+  - examples/ — example manifests (placeholders in Phase 1)
+  - tests/ — integration and unit tests (placeholders in Phase 1)
+  - Makefile — wrappers for verify-pins, validate-crds, verify-compat
+  - versions.lock.yaml — compatibility manifest with immutable pins
+  
+  The Makefile must provide at least:
+  - verify-pins → scripts/lib/verify_pins.sh
+  - validate-crds → scripts/lib/validate_crds.sh (tee run log)
+  - verify-compat → verify-pins + validate-crds
+  ```
+- `lab/topology.clab.yml` — exists, 3807 bytes, mtime 2026-08-28T21:25:45
+  ```
+     20:       image: ghcr.io/sonic-net/sonic-vs:202403@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+     21:       env:
+     22:         TZ: UTC
+     23:       binds:
+     24:         # Persist SONiC configuration across container restarts
+     25:         - ainetops-${clab-node-name}-etc-sonic:/etc/sonic
+     26:   defaults:
+     27:     labels:
+     28:       ainetops.owner: ainetops
+     29:       ainetops.topology: sonic-evpn
+     30:     annotations:
+     31:       ainetops.feature: 001-ainetops-sonic-evpn-fabric
+     32:       ainetops.phase: phase-2
+     33: 
+     34:   nodes:
+     35:     spine01:
+     36:       kind: sonic-vs
+     37:       mgmt_ipv4: 172.31.0.11
+     38:       labels:
+     39:         role: spine
+     40:         asn: "65000"
+     41:     spine02:
+     42:       kind: sonic-vs
+     43:       mgmt_ipv4: 172.31.0.12
+     44:       labels:
+     45:         role: spine
+     46:         asn: "65000"
+     47:     leaf01:
+     48:       kind: sonic-vs
+     49:       mgmt_ipv4: 172.31.0.21
+     50:       labels:
+     51:         role: leaf
+     52:         asn: "65101"
+     53:     leaf02:
+     54:       kind: sonic-vs
+     55:       mgmt_ipv4: 172.31.0.22
+     56:       labels:
+     57:         role: leaf
+     58:         asn: "65102"
+     59:     client01:
+     60:       kind: linux
+     61:       image: ghcr.io/ainetops/linux-net@sha256:4444444444444444444444444444444444444444444444444444444444444444
+     62:       mgmt_ipv4: 172.31.0.101
+     63:       labels:
+     64:         role: evpn-client
+     65:         attach: leaf01
+     66:       exec:
+     67:         - ip link set dev eth1 up
+     68:         - ip addr add 192.0.2.11/31 dev eth1
+     69:         - ip -6 addr add 2001:db8:1::11/127 dev eth1
+     70:     client02:
+     71:       kind: linux
+     72:       image: ghcr.io/ainetops/linux-net@sha256:4444444444444444444444444444444444444444444444444444444444444444
+     73:       mgmt_ipv4: 172.31.0.102
+     74:       labels:
+     75:         role: evpn-client
+     76:         attach: leaf02
+     77:       exec:
+     78:         - ip link set dev eth1 up
+     79:         - ip addr add 192.0.2.21/31 dev eth1
+     80:         - ip -6 addr add 2001:db8:2::21/127 dev eth1
+     81:     srv6-client01:
+     82:       kind: linux
+     83:       image: ghcr.io/ainetops/linux-srv6@sha256:5555555555555555555555555555555555555555555555555555555555555555
+     84:       mgmt_ipv4: 172.31.0.111
+     85:       labels:
+     86:         role: srv6-client
+     87:         attach: leaf01
+     88:       exec:
+     89:         - ip link set dev eth1 up
+     90:         - ip addr add 192.0.2.31/31 dev eth1
+     91:         - ip -6 addr add 2001:db8:3::31/127 dev eth1
+     92:     srv6-client02:
+     93:       kind: linux
+     94:       image: ghcr.io/ainetops/linux-srv6@sha256:5555555555555555555555555555555555555555555555555555555555555555
+     95:       mgmt_ipv4: 172.31.0.112
+     96:       labels:
+     97:         role: srv6-client
+     98:         attach: leaf02
+     99:       exec:
+    100:         - ip link set dev eth1 up
+    101:         - ip addr add 192.0.2.41/31 dev eth1
+    102:         - ip -6 addr add 2001:db8:4::41/127 dev eth1
+    103: 
+    104:   links:
+    105:     # Spine-leaf fabric (explicit interface mapping) — MTU applies per link
+    106:     - endpoints: [spine01:eth1, leaf01:eth1]
+    107:       mtu: 9216
+    108:     - endpoints: [spine01:eth2, leaf02:eth1]
+    109:       mtu: 9216
+    110:     - endpoints: [spine02:eth1, leaf01:eth2]
+    111:       mtu: 9216
+    112:     - endpoints: [spine02:eth2, leaf02:eth2]
+    113:       mtu: 9216
+    114: 
+    115:     # Leaf to EVPN Linux endpoints
+    116:     - endpoints: [leaf01:eth3, client01:eth1]
+    117:       mtu: 9216
+    118:     - endpoints: [leaf02:eth3, client02:eth1]
+    119:       mtu: 9216
+    120: 
+    121:     # Leaf to SRv6 Linux endpoints (one per leaf)
+    122:     - endpoints: [leaf01:eth4, srv6-client01:eth1]
+    123:       mtu: 9216
+    124:     - endpoints: [leaf02:eth4, srv6-client02:eth1]
+    125:       mtu: 9216
+  ```
+  (anchored excerpt: ±15 lines around each criterion symbol, with line numbers)
+- `config/kind/cluster.yaml` — exists, 1601 bytes, mtime 2026-08-28T23:59:06
+  ```
+  # Declarative Kind cluster configuration (Phase 3 foundation)
+  # - Stable cluster name: ainetops
+  # - Pinned node image from versions.lock.yaml
+  # - Non-overlapping pod/service CIDRs
+  # - Extra port mappings for observability access from host
+  # - Extra mounts for local diagnostics (no secrets)
+  kind: Cluster
+  apiVersion: kind.x-k8s.io/v1alpha4
+  name: ainetops
+  networking:
+    podSubnet: 10.244.0.0/16
+    serviceSubnet: 10.96.0.0/12
+  nodes:
+  - role: control-plane
+    image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
+    labels:
+      ainetops.owner: "ainetops"
+      ainetops.kind.role: "control-plane"
+      ainetops.mgmt.attached: "false"
+    extraPortMappings:
+    - containerPort: 30090   # Prometheus NodePort
+      hostPort: 30090
+      protocol: TCP
+    - containerPort: 30300   # Grafana NodePort
+      hostPort: 30300
+      protocol: TCP
+    - containerPort: 30417   # OTLP gRPC NodePort
+      hostPort: 30417
+      protocol: TCP
+    - containerPort: 30418   # OTLP HTTP NodePort
+      hostPort: 30418
+      protocol: TCP
+    extraMounts:
+    - hostPath: /var/local/ainetops
+      containerPath: /var/local/ainetops
+      readOnly: false
+  - role: worker
+    image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
+    labels:
+      ainetops.owner: "ainetops"
+      ainetops.kind.role: "worker"
+      ainetops.mgmt.attached: "false"
+    extraMounts:
+    - hostPath: /var/local/ainetops
+      containerPath: /var/local/ainetops
+      readOnly: false
+  containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+      runtime_type = "io.containerd.runc.v2"
+  ```
+- `cmd/sonic-provider/main.go` — exists, 3345 bytes, mtime 2026-08-29T02:16:27
+  ```
+  //go:build ainetops_k8s
+  
+  package main
+  
+  import (
+  	"context"
+  	"flag"
+  	"fmt"
+  	"net/http"
+  	"os"
+  	"os/signal"
+  	"syscall"
+  	"time"
+  
+  	"github.com/go-logr/logr"
+  	"github.com/go-logr/zapr"
+  	"go.uber.org/zap"
+  	corev1 "k8s.io/api/core/v1"
+  	"k8s.io/apimachinery/pkg/runtime"
+  	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+  	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+  	"k8s.io/client-go/tools/leaderelection/resourcelock"
+  	ctrl "sigs.k8s.io/controller-runtime"
+  	"sigs.k8s.io/controller-runtime/pkg/healthz"
+  	"sigs.k8s.io/controller-runtime/pkg/manager"
+  
+  	"github.com/mairp/ainetops/controllers/sonicprovider"
+  	"github.com/mairp/ainetops/pkg/kubenet"
+  )
+  
+  var (
+  	scheme   = runtime.NewScheme()
+  	setupLog logr.Logger
+  )
+  
+  func init() {
+  	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+  }
+  
+  func main() {
+  	var metricsAddr, probeAddr string
+  	var enableLeaderElection bool
+  	flag.StringVar(&metricsAddr, "metrics-bind", ":8080", "The address the metric endpoint binds to.")
+  	flag.StringVar(&probeAddr, "health-probe-bind", ":8081", "The address the probe endpoint binds to.")
+  	flag.BoolVar(&enableLeaderElection, "leader-elect", true, "Enable leader election for controller manager.")
+  	flag.Parse()
+  
+  	zapLog, _ := zap.NewProduction()
+  	defer zapLog.Sync()
+  	setupLog = zapr.NewLogger(zapLog).WithName("setup")
+  
+  	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+  	defer cancel()
+  
+  	options := manager.Options{
+  		Scheme:                 scheme,
+  		MetricsBindAddress:     metricsAddr,
+  		HealthProbeBindAddress: probeAddr,
+  		LeaderElection:         enableLeaderElection,
+  		LeaderElectionID:       "ainetops-sonic-provider",
+  		LeaderElectionReleaseOnCancel: true,
+  		LeaseDuration:          ptrDuration(50 * time.Second),
+  		RenewDeadline:          ptrDuration(40 * time.Second),
+  		RetryPeriod:            ptrDuration(15 * time.Second),
+  		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+  	}
+  
+  	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
+  	if err != nil {
+  		setupLog.Error(err, "unable to start manager")
+  		os.Exit(1)
+  	}
+  
+  	// Register Kubenet types for watches
+  	if err := kubenet.AddToScheme(scheme); err != nil {
+  		setupLog.Error(err, "unable to add Kubenet scheme")
+  		os.Exit(1)
+  	}
+  
+  	// Register field indexes used by reconcilers
+  	if err := sonicprovider.SetupIndexes(ctx, mgr); err != nil {
+  		setupLog.Error(err, "unable to set up indexes")
+  		os.Exit(1)
+  	}
+  
+  	reconciler := &sonicprovider.Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), Log: setupLog.WithName("sonicprovider")}
+  	if err := reconciler.SetupWithManager(mgr); err != nil {
+  		setupLog.Error(err, "unable to create controller", "controller", "NetworkDevice")
+  		os.Exit(1)
+  	}
+  
+  	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+  		setupLog.Error(err, "unable to set up health check")
+  		os.Exit(1)
+  	}
+  	if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil {
+  		setupLog.Error(err, "unable to set up ready check")
+  		os.Exit(1)
+  	}
+  
+  	setupLog.Info("starting manager")
+  	if err := mgr.Start(ctx); err != nil {
+  		setupLog.Error(err, "problem running manager")
+  		os.Exit(1)
+  	}
+  }
+  
+  func ptrDuration(d time.Duration) *time.Duration { return &d }
+  
+  func init() {
+  	// ensure core v1 gets added to scheme for leader election
+  	_ = corev1.AddToScheme(scheme)
+  }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cmd.sonic-provider.main.go.proof.txt` — exists, 4136 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	//go:build ainetops_k8s
+       2	
+       3	package main
+       4	
+       5	import (
+       6		"context"
+       7		"flag"
+       8		"fmt"
+       9		"net/http"
+      10		"os"
+      11		"os/signal"
+      12		"syscall"
+      13		"time"
+      14	
+      15		"github.com/go-logr/logr"
+      16		"github.com/go-logr/zapr"
+      17		"go.uber.org/zap"
+      18		corev1 "k8s.io/api/core/v1"
+      19		"k8s.io/apimachinery/pkg/runtime"
+      20		utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+      21		clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+      22		"k8s.io/client-go/tools/leaderelection/resourcelock"
+      23		ctrl "sigs.k8s.io/controller-runtime"
+      24		"sigs.k8s.io/controller-runtime/pkg/healthz"
+      25		"sigs.k8s.io/controller-runtime/pkg/manager"
+      26	
+      27		"github.com/mairp/ainetops/controllers/sonicprovider"
+      28		"github.com/mairp/ainetops/pkg/kubenet"
+      29	)
+      30	
+      31	var (
+      32		scheme   = runtime.NewScheme()
+      33		setupLog logr.Logger
+      34	)
+      35	
+      36	func init() {
+      37		utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+      38	}
+      39	
+      40	func main() {
+      41		var metricsAddr, probeAddr string
+      42		var enableLeaderElection bool
+      43		flag.StringVar(&metricsAddr, "metrics-bind", ":8080", "The address the metric endpoint binds to.")
+      44		flag.StringVar(&probeAddr, "health-probe-bind", ":8081", "The address the probe endpoint binds to.")
+      45		flag.BoolVar(&enableLeaderElection, "leader-elect", true, "Enable leader election for controller manager.")
+      46		flag.Parse()
+      47	
+      48		zapLog, _ := zap.NewProduction()
+      49		defer zapLog.Sync()
+      50		setupLog = zapr.NewLogger(zapLog).WithName("setup")
+      51	
+      52		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+      53		defer cancel()
+      54	
+      55		options := manager.Options{
+      56			Scheme:                 scheme,
+      57			MetricsBindAddress:     metricsAddr,
+      58			HealthProbeBindAddress: probeAddr,
+      59			LeaderElection:         enableLeaderElection,
+      60			LeaderElectionID:       "ainetops-sonic-provider",
+      61			LeaderElectionReleaseOnCancel: true,
+      62			LeaseDuration:          ptrDuration(50 * time.Second),
+      63			RenewDeadline:          ptrDuration(40 * time.Second),
+      64			RetryPeriod:            ptrDuration(15 * time.Second),
+      65			LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+      66		}
+      67	
+      68		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
+      69		if err != nil {
+      70			setupLog.Error(err, "unable to start manager")
+      71			os.Exit(1)
+      72		}
+      73	
+      74		// Register Kubenet types for watches
+      75		if err := kubenet.AddToScheme(scheme); err != nil {
+      76			setupLog.Error(err, "unable to add Kubenet scheme")
+      77			os.Exit(1)
+      78		}
+      79	
+      80		// Register field indexes used by reconcilers
+      81		if err := sonicprovider.SetupIndexes(ctx, mgr); err != nil {
+      82			setupLog.Error(err, "unable to set up indexes")
+      83			os.Exit(1)
+      84		}
+      85	
+      86		reconciler := &sonicprovider.Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), Log: setupLog.WithName("sonicprovider")}
+      87		if err := reconciler.SetupWithManager(mgr); err != nil {
+      88			setupLog.Error(err, "unable to create controller", "controller", "NetworkDevice")
+      89			os.Exit(1)
+      90		}
+      91	
+      92		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+      93			setupLog.Error(err, "unable to set up health check")
+      94			os.Exit(1)
+      95		}
+      96		if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil {
+      97			setupLog.Error(err, "unable to set up ready check")
+      98			os.Exit(1)
+      99		}
+     100	
+     101		setupLog.Info("starting manager")
+     102		if err := mgr.Start(ctx); err != nil {
+     103			setupLog.Error(err, "problem running manager")
+     104			os.Exit(1)
+     105		}
+     106	}
+     107	
+     108	func ptrDuration(d time.Duration) *time.Duration { return &d }
+     109	
+  ```
+- `controllers/sonicprovider/controller.go` — exists, 2219 bytes, mtime 2026-08-29T02:25:16
+  ```
+  package sonicprovider
+  
+  import (
+  	"context"
+  	"fmt"
+  	"time"
+  
+  	"github.com/go-logr/logr"
+  	"github.com/mairp/ainetops/pkg/kubenet"
+  	"github.com/mairp/ainetops/pkg/reasons"
+  	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+  	"k8s.io/apimachinery/pkg/runtime"
+  	ctrl "sigs.k8s.io/controller-runtime"
+  	"sigs.k8s.io/controller-runtime/pkg/client"
+  	"sigs.k8s.io/controller-runtime/pkg/predicate"
+  )
+  
+  // Reconciler watches Kubenet NetworkDevice resources and reconciles downstream SDC Config.
+  
+  type Reconciler struct {
+  	client.Client
+  	Scheme *runtime.Scheme
+  	Log    logr.Logger
+  }
+  
+  func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+  	r.Log.Info("reconcile NetworkDevice", "name", req.NamespacedName)
+  	var nd kubenet.NetworkDevice
+  	if err := r.Get(ctx, req.NamespacedName, &nd); err != nil {
+  		return ctrl.Result{}, client.IgnoreNotFound(err)
+  	}
+  
+  	// Initialize current-generation conditions to gate downstream changes
+  	// Create a copy of the object we can mutate for status patch
+  	updated := nd
+  	condReady := metav1.Condition{
+  		Type:               "Ready",
+  		Status:             metav1.ConditionFalse,
+  		ObservedGeneration: nd.Generation,
+  		LastTransitionTime: metav1.NewTime(time.Now()),
+  		Reason:             reasons.ReasonWaitingDependencies,
+  		Message:            "Waiting for Kubenet/KUID, targets, schema, SDC validation",
+  	}
+  	updated.Status = upsertConditionGeneric(nd.Status, condReady)
+  	if err := r.Status().Patch(ctx, &updated, client.MergeFrom(&nd)); err != nil {
+  		return ctrl.Result{}, err
+  	}
+  	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+  }
+  
+  func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+  	return ctrl.NewControllerManagedBy(mgr).
+  		For(&kubenet.NetworkDevice{}).
+  		WithEventFilter(ignoreNonNetworkDevice()).
+  		Complete(r)
+  }
+  
+  func ignoreNonNetworkDevice() predicate.Predicate {
+  	return predicate.NewPredicateFuncs(func(obj client.Object) bool {
+  		labels := obj.GetLabels()
+  		if labels == nil {
+  			return false
+  		}
+  		// Use Kubenet's derived label to select only devices the provider should reconcile
+  		if v, ok := labels["network.kubenet.dev/derived"]; ok && v == "true" {
+  			return true
+  		}
+  		return false
+  	})
+  }
+  
+  // ensure import
+  var _ = fmt.Sprintf
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/controllers.sonicprovider.controller.go.proof.txt` — exists, 2730 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	package sonicprovider
+       2	
+       3	import (
+       4		"context"
+       5		"fmt"
+       6		"time"
+       7	
+       8		"github.com/go-logr/logr"
+       9		"github.com/mairp/ainetops/pkg/kubenet"
+      10		"github.com/mairp/ainetops/pkg/reasons"
+      11		metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+      12		"k8s.io/apimachinery/pkg/runtime"
+      13		ctrl "sigs.k8s.io/controller-runtime"
+      14		"sigs.k8s.io/controller-runtime/pkg/client"
+      15		"sigs.k8s.io/controller-runtime/pkg/predicate"
+      16	)
+      17	
+      18	// Reconciler watches Kubenet NetworkDevice resources and reconciles downstream SDC Config.
+      19	
+      20	type Reconciler struct {
+      21		client.Client
+      22		Scheme *runtime.Scheme
+      23		Log    logr.Logger
+      24	}
+      25	
+      26	func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+      27		r.Log.Info("reconcile NetworkDevice", "name", req.NamespacedName)
+      28		var nd kubenet.NetworkDevice
+      29		if err := r.Get(ctx, req.NamespacedName, &nd); err != nil {
+      30			return ctrl.Result{}, client.IgnoreNotFound(err)
+      31		}
+      32	
+      33		// Initialize current-generation conditions to gate downstream changes
+      34		// Create a copy of the object we can mutate for status patch
+      35		updated := nd
+      36		condReady := metav1.Condition{
+      37			Type:               "Ready",
+      38			Status:             metav1.ConditionFalse,
+      39			ObservedGeneration: nd.Generation,
+      40			LastTransitionTime: metav1.NewTime(time.Now()),
+      41			Reason:             reasons.ReasonWaitingDependencies,
+      42			Message:            "Waiting for Kubenet/KUID, targets, schema, SDC validation",
+      43		}
+      44		updated.Status = upsertConditionGeneric(nd.Status, condReady)
+      45		if err := r.Status().Patch(ctx, &updated, client.MergeFrom(&nd)); err != nil {
+      46			return ctrl.Result{}, err
+      47		}
+      48		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+      49	}
+      50	
+      51	func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+      52		return ctrl.NewControllerManagedBy(mgr).
+      53			For(&kubenet.NetworkDevice{}).
+      54			WithEventFilter(ignoreNonNetworkDevice()).
+      55			Complete(r)
+      56	}
+      57	
+      58	func ignoreNonNetworkDevice() predicate.Predicate {
+      59		return predicate.NewPredicateFuncs(func(obj client.Object) bool {
+      60			labels := obj.GetLabels()
+      61			if labels == nil {
+      62				return false
+      63			}
+      64			// Use Kubenet's derived label to select only devices the provider should reconcile
+      65			if v, ok := labels["network.kubenet.dev/derived"]; ok && v == "true" {
+      66				return true
+      67			}
+      68			return false
+      69		})
+      70	}
+      71	
+      72	// ensure import
+      73	var _ = fmt.Sprintf
+  ```
+- `controllers/sonicprovider/indexes.go` — exists, 798 bytes, mtime 2026-08-29T02:16:19
+  ```
+  package sonicprovider
+  
+  import (
+  	"context"
+  
+  	"github.com/mairp/ainetops/pkg/kubenet"
+  	"sigs.k8s.io/controller-runtime/pkg/client"
+  	ctrl "sigs.k8s.io/controller-runtime"
+  )
+  
+  // SetupIndexes declares controller-runtime field indexes used by watches and dependency lookups.
+  func SetupIndexes(ctx context.Context, mgr ctrl.Manager) error {
+  	idx := mgr.GetFieldIndexer()
+  	// Index NetworkDevices by the 'network.kubenet.dev/derived' label presence
+  	return idx.IndexField(ctx, &kubenet.NetworkDevice{}, "metadata.labels.network.kubenet.dev/derived", func(o client.Object) []string {
+  		if o == nil {
+  			return nil
+  		}
+  		labels := o.GetLabels()
+  		if labels == nil {
+  			return nil
+  		}
+  		if v, ok := labels["network.kubenet.dev/derived"]; ok && v == "true" {
+  			return []string{"true"}
+  		}
+  		return nil
+  	})
+  }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/controllers.sonicprovider.indexes.go.proof.txt` — exists, 994 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	package sonicprovider
+       2	
+       3	import (
+       4		"context"
+       5	
+       6		"github.com/mairp/ainetops/pkg/kubenet"
+       7		"sigs.k8s.io/controller-runtime/pkg/client"
+       8		ctrl "sigs.k8s.io/controller-runtime"
+       9	)
+      10	
+      11	// SetupIndexes declares controller-runtime field indexes used by watches and dependency lookups.
+      12	func SetupIndexes(ctx context.Context, mgr ctrl.Manager) error {
+      13		idx := mgr.GetFieldIndexer()
+      14		// Index NetworkDevices by the 'network.kubenet.dev/derived' label presence
+      15		return idx.IndexField(ctx, &kubenet.NetworkDevice{}, "metadata.labels.network.kubenet.dev/derived", func(o client.Object) []string {
+      16			if o == nil {
+      17				return nil
+      18			}
+      19			labels := o.GetLabels()
+      20			if labels == nil {
+      21				return nil
+      22			}
+      23			if v, ok := labels["network.kubenet.dev/derived"]; ok && v == "true" {
+      24				return []string{"true"}
+      25			}
+      26			return nil
+      27		})
+      28	}
+  ```
+- `controllers/sonicprovider/conditions.go` — exists, 822 bytes, mtime 2026-08-29T02:18:41
+  ```
+  package sonicprovider
+  
+  import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+  
+  // upsertConditionGeneric updates a generic map-status with a condition entry under 'conditions'.
+  // Kubenet NetworkDevice keeps status as an arbitrary object; we model conditions as a []metav1.Condition
+  // stored under the "conditions" key.
+  func upsertConditionGeneric(status map[string]any, c metav1.Condition) map[string]any {
+  	if status == nil {
+  		status = map[string]any{}
+  	}
+  	condsAny, ok := status["conditions"]
+  	var conds []metav1.Condition
+  	if ok {
+  		if typed, ok := condsAny.([]metav1.Condition); ok {
+  			conds = typed
+  		}
+  	}
+  	found := false
+  	for i := range conds {
+  		if conds[i].Type == c.Type {
+  			conds[i] = c
+  			found = true
+  			break
+  		}
+  	}
+  	if !found {
+  		conds = append(conds, c)
+  	}
+  	status["conditions"] = conds
+  	return status
+  }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/controllers.sonicprovider.conditions.go.proof.txt` — exists, 1046 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	package sonicprovider
+       2	
+       3	import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+       4	
+       5	// upsertConditionGeneric updates a generic map-status with a condition entry under 'conditions'.
+       6	// Kubenet NetworkDevice keeps status as an arbitrary object; we model conditions as a []metav1.Condition
+       7	// stored under the "conditions" key.
+       8	func upsertConditionGeneric(status map[string]any, c metav1.Condition) map[string]any {
+       9		if status == nil {
+      10			status = map[string]any{}
+      11		}
+      12		condsAny, ok := status["conditions"]
+      13		var conds []metav1.Condition
+      14		if ok {
+      15			if typed, ok := condsAny.([]metav1.Condition); ok {
+      16				conds = typed
+      17			}
+      18		}
+      19		found := false
+      20		for i := range conds {
+      21			if conds[i].Type == c.Type {
+      22				conds[i] = c
+      23				found = true
+      24				break
+      25			}
+      26		}
+      27		if !found {
+      28			conds = append(conds, c)
+      29		}
+      30		status["conditions"] = conds
+      31		return status
+      32	}
+  ```
+- `pkg/kubenet/types.go` — exists, 2894 bytes, mtime 2026-08-29T02:15:58
+  ```
+  // SPDX-License-Identifier: Apache-2.0
+  // Package kubenet provides minimal pinned upstream Kubenet types required for watches/indexes.
+  // This avoids importing the full upstream module while allowing controller-runtime to
+  // watch NetworkDevice resources and reconcile against them.
+  package kubenet
+  
+  import (
+  	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+  	"k8s.io/apimachinery/pkg/runtime"
+  	"k8s.io/apimachinery/pkg/runtime/schema"
+  	"sigs.k8s.io/controller-runtime/pkg/scheme"
+  )
+  
+  // GroupVersion for pinned Kubenet APIs (see deploy/kubenet/crds/kubenet-crds.yaml).
+  var GroupVersion = schema.GroupVersion{Group: "network.kubenet.dev", Version: "v1alpha1"}
+  
+  // NetworkDevice is a minimal representation of Kubenet's derived per-device intent.
+  // We preserve unknown fields and do not attempt to model the full schema here.
+  //
+  // +k8s:deepcopy-gen=false
+  // +kubebuilder:object:root=true
+  // +kubebuilder:subresource:status
+  // +kubebuilder:resource:scope=Namespaced
+  // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+  // +kubebuilder:validation:Optional
+  // +kubebuilder:validation:Type=object
+  // +kubebuilder:validation:PreserveUnknownFields=true
+  // +kubebuilder:validation:MaxProperties=0
+  // +kubebuilder:validation:MinProperties=0
+  // NOTE: This type is intentionally loose — controllers read metadata and labels and do
+  // not modify upstream status directly.
+  //
+  //nolint:tagliatelle // external API shape
+  //nolint:revive // external API shape
+  //nolint:stylecheck // external API shape
+  //nolint:godox
+  //
+  // We implement only the minimal fields needed to act as a client.Object.
+  // Spec/Status remain untyped to avoid drift.
+  type NetworkDevice struct {
+  	metav1.TypeMeta   `json:",inline"`
+  	metav1.ObjectMeta `json:"metadata,omitempty"`
+  	Spec              map[string]any `json:"spec,omitempty"`
+  	Status            map[string]any `json:"status,omitempty"`
+  }
+  
+  // DeepCopyObject implements runtime.Object (manual since we skip codegen here).
+  func (in *NetworkDevice) DeepCopyObject() runtime.Object {
+  	if in == nil {
+  		return nil
+  	}
+  	out := new(NetworkDevice)
+  	*out = *in
+  	// shallow copy of maps is sufficient for our read-only use in watches
+  	return out
+  }
+  
+  // NetworkDeviceList is required for informer cache.
+  type NetworkDeviceList struct {
+  	metav1.TypeMeta `json:",inline"`
+  	metav1.ListMeta `json:"metadata,omitempty"`
+  	Items           []NetworkDevice `json:"items"`
+  }
+  
+  // DeepCopyObject implements runtime.Object.
+  func (in *NetworkDeviceList) DeepCopyObject() runtime.Object {
+  	if in == nil {
+  		return nil
+  	}
+  	out := new(NetworkDeviceList)
+  	*out = *in
+  	return out
+  }
+  
+  var (
+  	// SchemeBuilder registers Kubenet types.
+  	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
+  	// AddToScheme adds Kubenet types.
+  	AddToScheme = SchemeBuilder.AddToScheme
+  )
+  
+  func init() {
+  	SchemeBuilder.Register(&NetworkDevice{}, &NetworkDeviceList{})
+  }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/pkg.kubenet.types.go.proof.txt` — exists, 3482 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	// SPDX-License-Identifier: Apache-2.0
+       2	// Package kubenet provides minimal pinned upstream Kubenet types required for watches/indexes.
+       3	// This avoids importing the full upstream module while allowing controller-runtime to
+       4	// watch NetworkDevice resources and reconcile against them.
+       5	package kubenet
+       6	
+       7	import (
+       8		metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+       9		"k8s.io/apimachinery/pkg/runtime"
+      10		"k8s.io/apimachinery/pkg/runtime/schema"
+      11		"sigs.k8s.io/controller-runtime/pkg/scheme"
+      12	)
+      13	
+      14	// GroupVersion for pinned Kubenet APIs (see deploy/kubenet/crds/kubenet-crds.yaml).
+      15	var GroupVersion = schema.GroupVersion{Group: "network.kubenet.dev", Version: "v1alpha1"}
+      16	
+      17	// NetworkDevice is a minimal representation of Kubenet's derived per-device intent.
+      18	// We preserve unknown fields and do not attempt to model the full schema here.
+      19	//
+      20	// +k8s:deepcopy-gen=false
+      21	// +kubebuilder:object:root=true
+      22	// +kubebuilder:subresource:status
+      23	// +kubebuilder:resource:scope=Namespaced
+      24	// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+      25	// +kubebuilder:validation:Optional
+      26	// +kubebuilder:validation:Type=object
+      27	// +kubebuilder:validation:PreserveUnknownFields=true
+      28	// +kubebuilder:validation:MaxProperties=0
+      29	// +kubebuilder:validation:MinProperties=0
+      30	// NOTE: This type is intentionally loose — controllers read metadata and labels and do
+      31	// not modify upstream status directly.
+      32	//
+      33	//nolint:tagliatelle // external API shape
+      34	//nolint:revive // external API shape
+      35	//nolint:stylecheck // external API shape
+      36	//nolint:godox
+      37	//
+      38	// We implement only the minimal fields needed to act as a client.Object.
+      39	// Spec/Status remain untyped to avoid drift.
+      40	type NetworkDevice struct {
+      41		metav1.TypeMeta   `json:",inline"`
+      42		metav1.ObjectMeta `json:"metadata,omitempty"`
+      43		Spec              map[string]any `json:"spec,omitempty"`
+      44		Status            map[string]any `json:"status,omitempty"`
+      45	}
+      46	
+      47	// DeepCopyObject implements runtime.Object (manual since we skip codegen here).
+      48	func (in *NetworkDevice) DeepCopyObject() runtime.Object {
+      49		if in == nil {
+      50			return nil
+      51		}
+      52		out := new(NetworkDevice)
+      53		*out = *in
+      54		// shallow copy of maps is sufficient for our read-only use in watches
+      55		return out
+      56	}
+      57	
+      58	// NetworkDeviceList is required for informer cache.
+      59	type NetworkDeviceList struct {
+      60		metav1.TypeMeta `json:",inline"`
+      61		metav1.ListMeta `json:"metadata,omitempty"`
+      62		Items           []NetworkDevice `json:"items"`
+      63	}
+      64	
+      65	// DeepCopyObject implements runtime.Object.
+      66	func (in *NetworkDeviceList) DeepCopyObject() runtime.Object {
+      67		if in == nil {
+      68			return nil
+      69		}
+      70		out := new(NetworkDeviceList)
+      71		*out = *in
+      72		return out
+      73	}
+      74	
+      75	var (
+      76		// SchemeBuilder registers Kubenet types.
+      77		SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
+      78		// AddToScheme adds Kubenet types.
+      79		AddToScheme = SchemeBuilder.AddToScheme
+      80	)
+      81	
+      82	func init() {
+      83		SchemeBuilder.Register(&NetworkDevice{}, &NetworkDeviceList{})
+      84	}
+  ```
+- `go.mod` — exists, 2935 bytes, mtime 2026-08-29T02:04:00
+  ```
+  module github.com/mairp/ainetops
+  
+  go 1.22
+  
+  require (
+  	github.com/go-logr/logr v1.4.1
+  	github.com/go-logr/zapr v1.3.0
+  	go.uber.org/zap v1.26.0
+  	k8s.io/api v0.29.4
+  	k8s.io/apimachinery v0.29.4
+  	k8s.io/client-go v0.29.4
+  	sigs.k8s.io/controller-runtime v0.17.5
+  )
+  
+  require (
+  	github.com/beorn7/perks v1.0.1 // indirect
+  	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+  	github.com/davecgh/go-spew v1.1.1 // indirect
+  	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
+  	github.com/evanphx/json-patch/v5 v5.8.0 // indirect
+  	github.com/fsnotify/fsnotify v1.7.0 // indirect
+  	github.com/go-openapi/jsonpointer v0.19.6 // indirect
+  	github.com/go-openapi/jsonreference v0.20.2 // indirect
+  	github.com/go-openapi/swag v0.22.3 // indirect
+  	github.com/gogo/protobuf v1.3.2 // indirect
+  	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+  	github.com/golang/protobuf v1.5.4 // indirect
+  	github.com/google/gnostic-models v0.6.8 // indirect
+  	github.com/google/go-cmp v0.6.0 // indirect
+  	github.com/google/gofuzz v1.2.0 // indirect
+  	github.com/google/uuid v1.3.0 // indirect
+  	github.com/imdario/mergo v0.3.6 // indirect
+  	github.com/josharian/intern v1.0.0 // indirect
+  	github.com/json-iterator/go v1.1.12 // indirect
+  	github.com/mailru/easyjson v0.7.7 // indirect
+  	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+  	github.com/modern-go/reflect2 v1.0.2 // indirect
+  	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+  	github.com/pkg/errors v0.9.1 // indirect
+  	github.com/prometheus/client_golang v1.19.0 // indirect
+  	github.com/prometheus/client_model v0.5.0 // indirect
+  	github.com/prometheus/common v0.48.0 // indirect
+  	github.com/prometheus/procfs v0.12.0 // indirect
+  	github.com/spf13/pflag v1.0.5 // indirect
+  	go.uber.org/multierr v1.11.0 // indirect
+  	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
+  	golang.org/x/net v0.23.0 // indirect
+  	golang.org/x/oauth2 v0.16.0 // indirect
+  	golang.org/x/sys v0.18.0 // indirect
+  	golang.org/x/term v0.18.0 // indirect
+  	golang.org/x/text v0.14.0 // indirect
+  	golang.org/x/time v0.3.0 // indirect
+  	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
+  	google.golang.org/appengine v1.6.7 // indirect
+  	google.golang.org/protobuf v1.33.0 // indirect
+  	gopkg.in/inf.v0 v0.9.1 // indirect
+  	gopkg.in/yaml.v2 v2.4.0 // indirect
+  	gopkg.in/yaml.v3 v3.0.1 // indirect
+  	k8s.io/apiextensions-apiserver v0.29.2 // indirect
+  	k8s.io/component-base v0.29.2 // indirect
+  	k8s.io/klog/v2 v2.110.1 // indirect
+  	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
+  	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
+  	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
+  	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
+  	sigs.k8s.io/yaml v1.4.0 // indirect
+  )
+  
+  replace (
+  	k8s.io/api => k8s.io/api v0.29.4
+  	k8s.io/apimachinery => k8s.io/apimachinery v0.29.4
+  	k8s.io/client-go => k8s.io/client-go v0.29.4
+  )
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/go.mod.proof.txt` — exists, 3446 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	module github.com/mairp/ainetops
+       2	
+       3	go 1.22
+       4	
+       5	require (
+       6		github.com/go-logr/logr v1.4.1
+       7		github.com/go-logr/zapr v1.3.0
+       8		go.uber.org/zap v1.26.0
+       9		k8s.io/api v0.29.4
+      10		k8s.io/apimachinery v0.29.4
+      11		k8s.io/client-go v0.29.4
+      12		sigs.k8s.io/controller-runtime v0.17.5
+      13	)
+      14	
+      15	require (
+      16		github.com/beorn7/perks v1.0.1 // indirect
+      17		github.com/cespare/xxhash/v2 v2.2.0 // indirect
+      18		github.com/davecgh/go-spew v1.1.1 // indirect
+      19		github.com/emicklei/go-restful/v3 v3.11.0 // indirect
+      20		github.com/evanphx/json-patch/v5 v5.8.0 // indirect
+      21		github.com/fsnotify/fsnotify v1.7.0 // indirect
+      22		github.com/go-openapi/jsonpointer v0.19.6 // indirect
+      23		github.com/go-openapi/jsonreference v0.20.2 // indirect
+      24		github.com/go-openapi/swag v0.22.3 // indirect
+      25		github.com/gogo/protobuf v1.3.2 // indirect
+      26		github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+      27		github.com/golang/protobuf v1.5.4 // indirect
+      28		github.com/google/gnostic-models v0.6.8 // indirect
+      29		github.com/google/go-cmp v0.6.0 // indirect
+      30		github.com/google/gofuzz v1.2.0 // indirect
+      31		github.com/google/uuid v1.3.0 // indirect
+      32		github.com/imdario/mergo v0.3.6 // indirect
+      33		github.com/josharian/intern v1.0.0 // indirect
+      34		github.com/json-iterator/go v1.1.12 // indirect
+      35		github.com/mailru/easyjson v0.7.7 // indirect
+      36		github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+      37		github.com/modern-go/reflect2 v1.0.2 // indirect
+      38		github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+      39		github.com/pkg/errors v0.9.1 // indirect
+      40		github.com/prometheus/client_golang v1.19.0 // indirect
+      41		github.com/prometheus/client_model v0.5.0 // indirect
+      42		github.com/prometheus/common v0.48.0 // indirect
+      43		github.com/prometheus/procfs v0.12.0 // indirect
+      44		github.com/spf13/pflag v1.0.5 // indirect
+      45		go.uber.org/multierr v1.11.0 // indirect
+      46		golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
+      47		golang.org/x/net v0.23.0 // indirect
+      48		golang.org/x/oauth2 v0.16.0 // indirect
+      49		golang.org/x/sys v0.18.0 // indirect
+      50		golang.org/x/term v0.18.0 // indirect
+      51		golang.org/x/text v0.14.0 // indirect
+      52		golang.org/x/time v0.3.0 // indirect
+      53		gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
+      54		google.golang.org/appengine v1.6.7 // indirect
+      55		google.golang.org/protobuf v1.33.0 // indirect
+      56		gopkg.in/inf.v0 v0.9.1 // indirect
+      57		gopkg.in/yaml.v2 v2.4.0 // indirect
+      58		gopkg.in/yaml.v3 v3.0.1 // indirect
+      59		k8s.io/apiextensions-apiserver v0.29.2 // indirect
+      60		k8s.io/component-base v0.29.2 // indirect
+      61		k8s.io/klog/v2 v2.110.1 // indirect
+      62		k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
+      63		k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
+      64		sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
+      65		sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
+      66		sigs.k8s.io/yaml v1.4.0 // indirect
+      67	)
+      68	
+      69	replace (
+      70		k8s.io/api => k8s.io/api v0.29.4
+      71		k8s.io/apimachinery => k8s.io/apimachinery v0.29.4
+      72		k8s.io/client-go => k8s.io/client-go v0.29.4
+      73	)
+  ```
+- `cmd/srv6-controller/main.go` — exists, 2653 bytes, mtime 2026-08-29T02:02:14
+  ```
+  //go:build ainetops_k8s
+  
+  package main
+  
+  import (
+  	"context"
+  	"flag"
+  	"net/http"
+  	"os"
+  	"os/signal"
+  	"syscall"
+  	"time"
+  
+  	"github.com/go-logr/zapr"
+  	"go.uber.org/zap"
+  	"k8s.io/apimachinery/pkg/runtime"
+  	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+  	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+  	ctrl "sigs.k8s.io/controller-runtime"
+  	"sigs.k8s.io/controller-runtime/pkg/healthz"
+  	"sigs.k8s.io/controller-runtime/pkg/manager"
+  
+  	ainetopsv1alpha1 "github.com/mairp/ainetops/api/v1alpha1"
+  	"github.com/mairp/ainetops/controllers/srv6service"
+  )
+  
+  var (
+  	scheme = runtime.NewScheme()
+  )
+  
+  func init() {
+  	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+  	utilruntime.Must(ainetopsv1alpha1.AddToScheme(scheme))
+  }
+  
+  func main() {
+  	var metricsAddr, probeAddr string
+  	var enableLeaderElection bool
+  	flag.StringVar(&metricsAddr, "metrics-bind", ":8081", "The address the metric endpoint binds to.")
+  	flag.StringVar(&probeAddr, "health-probe-bind", ":8082", "The address the probe endpoint binds to.")
+  	flag.BoolVar(&enableLeaderElection, "leader-elect", true, "Enable leader election for controller manager.")
+  	flag.Parse()
+  
+  	zl, _ := zap.NewProduction()
+  	defer zl.Sync()
+  	log := zapr.NewLogger(zl)
+  
+  	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+  	defer cancel()
+  
+  	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), manager.Options{
+  		Scheme:                 scheme,
+  		MetricsBindAddress:     metricsAddr,
+  		HealthProbeBindAddress: probeAddr,
+  		LeaderElection:         enableLeaderElection,
+  		LeaderElectionID:       "ainetops-srv6-controller",
+  		LeaderElectionReleaseOnCancel: true,
+  		LeaseDuration:          ptrDuration(50 * time.Second),
+  		RenewDeadline:          ptrDuration(40 * time.Second),
+  		RetryPeriod:            ptrDuration(15 * time.Second),
+  	})
+  	if err != nil {
+  		log.Error(err, "unable to start manager")
+  		os.Exit(1)
+  	}
+  
+  	reconciler := &srv6service.Reconciler{
+  		Client: mgr.GetClient(),
+  		Scheme: mgr.GetScheme(),
+  		Log:    log.WithName("srv6service"),
+  	}
+  	if err := reconciler.SetupWithManager(mgr); err != nil {
+  		log.Error(err, "unable to create controller", "controller", "SRv6Service")
+  		os.Exit(1)
+  	}
+  
+  	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+  		log.Error(err, "unable to set up health check")
+  		os.Exit(1)
+  	}
+  	if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil {
+  		log.Error(err, "unable to set up ready check")
+  		os.Exit(1)
+  	}
+  
+  	if err := mgr.Start(ctx); err != nil {
+  		log.Error(err, "problem running manager")
+  		os.Exit(1)
+  	}
+  }
+  
+  func ptrDuration(d time.Duration) *time.Duration { return &d }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cmd.srv6-controller.main.go.proof.txt` — exists, 3297 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	//go:build ainetops_k8s
+       2	
+       3	package main
+       4	
+       5	import (
+       6		"context"
+       7		"flag"
+       8		"net/http"
+       9		"os"
+      10		"os/signal"
+      11		"syscall"
+      12		"time"
+      13	
+      14		"github.com/go-logr/zapr"
+      15		"go.uber.org/zap"
+      16		"k8s.io/apimachinery/pkg/runtime"
+      17		utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+      18		clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+      19		ctrl "sigs.k8s.io/controller-runtime"
+      20		"sigs.k8s.io/controller-runtime/pkg/healthz"
+      21		"sigs.k8s.io/controller-runtime/pkg/manager"
+      22	
+      23		ainetopsv1alpha1 "github.com/mairp/ainetops/api/v1alpha1"
+      24		"github.com/mairp/ainetops/controllers/srv6service"
+      25	)
+      26	
+      27	var (
+      28		scheme = runtime.NewScheme()
+      29	)
+      30	
+      31	func init() {
+      32		utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+      33		utilruntime.Must(ainetopsv1alpha1.AddToScheme(scheme))
+      34	}
+      35	
+      36	func main() {
+      37		var metricsAddr, probeAddr string
+      38		var enableLeaderElection bool
+      39		flag.StringVar(&metricsAddr, "metrics-bind", ":8081", "The address the metric endpoint binds to.")
+      40		flag.StringVar(&probeAddr, "health-probe-bind", ":8082", "The address the probe endpoint binds to.")
+      41		flag.BoolVar(&enableLeaderElection, "leader-elect", true, "Enable leader election for controller manager.")
+      42		flag.Parse()
+      43	
+      44		zl, _ := zap.NewProduction()
+      45		defer zl.Sync()
+      46		log := zapr.NewLogger(zl)
+      47	
+      48		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+      49		defer cancel()
+      50	
+      51		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), manager.Options{
+      52			Scheme:                 scheme,
+      53			MetricsBindAddress:     metricsAddr,
+      54			HealthProbeBindAddress: probeAddr,
+      55			LeaderElection:         enableLeaderElection,
+      56			LeaderElectionID:       "ainetops-srv6-controller",
+      57			LeaderElectionReleaseOnCancel: true,
+      58			LeaseDuration:          ptrDuration(50 * time.Second),
+      59			RenewDeadline:          ptrDuration(40 * time.Second),
+      60			RetryPeriod:            ptrDuration(15 * time.Second),
+      61		})
+      62		if err != nil {
+      63			log.Error(err, "unable to start manager")
+      64			os.Exit(1)
+      65		}
+      66	
+      67		reconciler := &srv6service.Reconciler{
+      68			Client: mgr.GetClient(),
+      69			Scheme: mgr.GetScheme(),
+      70			Log:    log.WithName("srv6service"),
+      71		}
+      72		if err := reconciler.SetupWithManager(mgr); err != nil {
+      73			log.Error(err, "unable to create controller", "controller", "SRv6Service")
+      74			os.Exit(1)
+      75		}
+      76	
+      77		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+      78			log.Error(err, "unable to set up health check")
+      79			os.Exit(1)
+      80		}
+      81		if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil {
+      82			log.Error(err, "unable to set up ready check")
+      83			os.Exit(1)
+      84		}
+      85	
+      86		if err := mgr.Start(ctx); err != nil {
+      87			log.Error(err, "problem running manager")
+      88			os.Exit(1)
+      89		}
+      90	}
+      91	
+      92	func ptrDuration(d time.Duration) *time.Duration { return &d }
+  ```
+- `controllers/srv6service/controller.go` — exists, 2607 bytes, mtime 2026-08-29T02:19:51
+  ```
+  package srv6service
+  
+  import (
+  	"context"
+  	"time"
+  
+  	"github.com/go-logr/logr"
+  	ainetopsv1alpha1 "github.com/mairp/ainetops/api/v1alpha1"
+  	"github.com/mairp/ainetops/pkg/reasons"
+  	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+  	"k8s.io/apimachinery/pkg/runtime"
+  	ctrl "sigs.k8s.io/controller-runtime"
+  	"sigs.k8s.io/controller-runtime/pkg/client"
+  	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+  )
+  
+  type Reconciler struct {
+  	client.Client
+  	Scheme   *runtime.Scheme
+  	Log      logr.Logger
+  }
+  
+  func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+  	var svc ainetopsv1alpha1.SRv6Service
+  	if err := r.Get(ctx, req.NamespacedName, &svc); err != nil {
+  		return ctrl.Result{}, client.IgnoreNotFound(err)
+  	}
+  
+  	// Handle deletion early
+  	if !svc.DeletionTimestamp.IsZero() {
+  		return ctrl.Result{}, nil
+  	}
+  
+  	// Set ObservedGeneration and initial gating conditions
+  	updated := svc.DeepCopy()
+  	if updated.Status.ObservedGeneration != svc.Generation {
+  		updated.Status.ObservedGeneration = svc.Generation
+  	}
+  	// Ensure Ready=False and Degraded=False with WaitingDependencies
+  	condReady := metav1.Condition{
+  		Type:               "Ready",
+  		Status:             metav1.ConditionFalse,
+  		ObservedGeneration: svc.Generation,
+  		LastTransitionTime: metav1.NewTime(time.Now()),
+  		Reason:             reasons.ReasonWaitingDependencies,
+  		Message:            "Waiting for topology, allocations, targets, and schema compatibility",
+  	}
+  	condDegraded := metav1.Condition{
+  		Type:               "Degraded",
+  		Status:             metav1.ConditionFalse,
+  		ObservedGeneration: svc.Generation,
+  		LastTransitionTime: metav1.NewTime(time.Now()),
+  		Reason:             reasons.ReasonWaitingDependencies,
+  		Message:            "No failures observed; dependencies not yet satisfied",
+  	}
+  	updated.Status.Conditions = upsertCondition(updated.Status.Conditions, condReady)
+  	updated.Status.Conditions = upsertCondition(updated.Status.Conditions, condDegraded)
+  
+  	if err := r.Status().Patch(ctx, updated, client.MergeFrom(&svc)); err != nil {
+  		return ctrl.Result{}, err
+  	}
+  
+  	// Requeue with bounded backoff while waiting
+  	return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+  }
+  
+  func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+  	return ctrl.NewControllerManagedBy(mgr).
+  		For(&ainetopsv1alpha1.SRv6Service{}).
+  		Complete(r)
+  }
+  
+  func upsertCondition(conds []metav1.Condition, c metav1.Condition) []metav1.Condition {
+  	found := false
+  	for i := range conds {
+  		if conds[i].Type == c.Type {
+  			conds[i] = c
+  			found = true
+  			break
+  		}
+  	}
+  	if !found {
+  		conds = append(conds, c)
+  	}
+  	return conds
+  }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/controllers.srv6service.controller.go.proof.txt` — exists, 3209 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	package srv6service
+       2	
+       3	import (
+       4		"context"
+       5		"time"
+       6	
+       7		"github.com/go-logr/logr"
+       8		ainetopsv1alpha1 "github.com/mairp/ainetops/api/v1alpha1"
+       9		"github.com/mairp/ainetops/pkg/reasons"
+      10		metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+      11		"k8s.io/apimachinery/pkg/runtime"
+      12		ctrl "sigs.k8s.io/controller-runtime"
+      13		"sigs.k8s.io/controller-runtime/pkg/client"
+      14		"sigs.k8s.io/controller-runtime/pkg/reconcile"
+      15	)
+      16	
+      17	type Reconciler struct {
+      18		client.Client
+      19		Scheme   *runtime.Scheme
+      20		Log      logr.Logger
+      21	}
+      22	
+      23	func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+      24		var svc ainetopsv1alpha1.SRv6Service
+      25		if err := r.Get(ctx, req.NamespacedName, &svc); err != nil {
+      26			return ctrl.Result{}, client.IgnoreNotFound(err)
+      27		}
+      28	
+      29		// Handle deletion early
+      30		if !svc.DeletionTimestamp.IsZero() {
+      31			return ctrl.Result{}, nil
+      32		}
+      33	
+      34		// Set ObservedGeneration and initial gating conditions
+      35		updated := svc.DeepCopy()
+      36		if updated.Status.ObservedGeneration != svc.Generation {
+      37			updated.Status.ObservedGeneration = svc.Generation
+      38		}
+      39		// Ensure Ready=False and Degraded=False with WaitingDependencies
+      40		condReady := metav1.Condition{
+      41			Type:               "Ready",
+      42			Status:             metav1.ConditionFalse,
+      43			ObservedGeneration: svc.Generation,
+      44			LastTransitionTime: metav1.NewTime(time.Now()),
+      45			Reason:             reasons.ReasonWaitingDependencies,
+      46			Message:            "Waiting for topology, allocations, targets, and schema compatibility",
+      47		}
+      48		condDegraded := metav1.Condition{
+      49			Type:               "Degraded",
+      50			Status:             metav1.ConditionFalse,
+      51			ObservedGeneration: svc.Generation,
+      52			LastTransitionTime: metav1.NewTime(time.Now()),
+      53			Reason:             reasons.ReasonWaitingDependencies,
+      54			Message:            "No failures observed; dependencies not yet satisfied",
+      55		}
+      56		updated.Status.Conditions = upsertCondition(updated.Status.Conditions, condReady)
+      57		updated.Status.Conditions = upsertCondition(updated.Status.Conditions, condDegraded)
+      58	
+      59		if err := r.Status().Patch(ctx, updated, client.MergeFrom(&svc)); err != nil {
+      60			return ctrl.Result{}, err
+      61		}
+      62	
+      63		// Requeue with bounded backoff while waiting
+      64		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+      65	}
+      66	
+      67	func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+      68		return ctrl.NewControllerManagedBy(mgr).
+      69			For(&ainetopsv1alpha1.SRv6Service{}).
+      70			Complete(r)
+      71	}
+      72	
+      73	func upsertCondition(conds []metav1.Condition, c metav1.Condition) []metav1.Condition {
+      74		found := false
+      75		for i := range conds {
+      76			if conds[i].Type == c.Type {
+      77				conds[i] = c
+      78				found = true
+      79				break
+      80			}
+      81		}
+      82		if !found {
+      83			conds = append(conds, c)
+      84		}
+      85		return conds
+      86	}
+  ```
+- `api/v1alpha1/groupversion_info.go` — exists, 653 bytes, mtime 2026-08-29T02:05:15
+  ```
+  // Package v1alpha1 contains API Schema definitions for the ainetops.io v1alpha1 API group.
+  // +kubebuilder:object:generate=true
+  // +groupName=ainetops.io
+  package v1alpha1
+  
+  import (
+  	"k8s.io/apimachinery/pkg/runtime/schema"
+  	"sigs.k8s.io/controller-runtime/pkg/scheme"
+  )
+  
+  var (
+  	// GroupVersion is group version used to register these objects
+  	GroupVersion = schema.GroupVersion{Group: "ainetops.io", Version: "v1alpha1"}
+  
+  	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
+  	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
+  
+  	// AddToScheme adds this group-version to a scheme
+  	AddToScheme = SchemeBuilder.AddToScheme
+  )
+  ```
+- `api/v1alpha1/zz_generated.deepcopy.go` — exists, 2623 bytes, mtime 2026-08-29T02:06:18
+  ```
+  //go:build !ignore_autogenerated
+  
+  // Code generated by hand to satisfy runtime.Object without full codegen.
+  // DO NOT EDIT lightly; keep in sync with srv6service_types.go.
+  
+  package v1alpha1
+  
+  import (
+  	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+  	"k8s.io/apimachinery/pkg/runtime"
+  )
+  
+  // DeepCopyInto copies all properties of this object into another object of the
+  // same type that is provided as a argument.
+  func (in *SRv6Service) DeepCopyInto(out *SRv6Service) {
+  	*out = *in
+  	out.TypeMeta = in.TypeMeta
+  	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+  	in.Spec.DeepCopyInto(&out.Spec)
+  	in.Status.DeepCopyInto(&out.Status)
+  }
+  
+  // DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SRv6Service.
+  func (in *SRv6Service) DeepCopy() *SRv6Service {
+  	if in == nil {
+  		return nil
+  	}
+  	out := new(SRv6Service)
+  	in.DeepCopyInto(out)
+  	return out
+  }
+  
+  // DeepCopyObject implements runtime.Object.
+  func (in *SRv6Service) DeepCopyObject() runtime.Object {
+  	if c := in.DeepCopy(); c != nil {
+  		return c
+  	}
+  	return nil
+  }
+  
+  // DeepCopyInto for SRv6ServiceList.
+  func (in *SRv6ServiceList) DeepCopyInto(out *SRv6ServiceList) {
+  	*out = *in
+  	out.TypeMeta = in.TypeMeta
+  	in.ListMeta.DeepCopyInto(&out.ListMeta)
+  	if in.Items != nil {
+  		in, out := &in.Items, &out.Items
+  		*out = make([]SRv6Service, len(*in))
+  		for i := range *in {
+  			(*in)[i].DeepCopyInto(&(*out)[i])
+  		}
+  	}
+  }
+  
+  // DeepCopy creates a new SRv6ServiceList by deep copying the receiver.
+  func (in *SRv6ServiceList) DeepCopy() *SRv6ServiceList {
+  	if in == nil {
+  		return nil
+  	}
+  	out := new(SRv6ServiceList)
+  	in.DeepCopyInto(out)
+  	return out
+  }
+  
+  // DeepCopyObject implements runtime.Object for SRv6ServiceList.
+  func (in *SRv6ServiceList) DeepCopyObject() runtime.Object {
+  	if c := in.DeepCopy(); c != nil {
+  		return c
+  	}
+  	return nil
+  }
+  
+  // DeepCopyInto for SRv6ServiceSpec.
+  func (in *SRv6ServiceSpec) DeepCopyInto(out *SRv6ServiceSpec) {
+  	*out = *in
+  	if in.Attachments != nil {
+  		in, out := &in.Attachments, &out.Attachments
+  		*out = make([]Attachment, len(*in))
+  		copy(*out, *in)
+  	}
+  	if in.TransitWaypoints != nil {
+  		in, out := &in.TransitWaypoints, &out.TransitWaypoints
+  		*out = make([]string, len(*in))
+  		copy(*out, *in)
+  	}
+  }
+  
+  // DeepCopyInto for SRv6ServiceStatus.
+  func (in *SRv6ServiceStatus) DeepCopyInto(out *SRv6ServiceStatus) {
+  	*out = *in
+  	if in.Conditions != nil {
+  		in, out := &in.Conditions, &out.Conditions
+  		*out = make([]metav1.Condition, len(*in))
+  		copy(*out, *in)
+  	}
+  	if in.ConfigHashes != nil {
+  		in, out := &in.ConfigHashes, &out.ConfigHashes
+  		*out = make(map[string]string, len(*in))
+  		for k, v := range *in {
+  			(*out)[k] = v
+  		}
+  	}
+  }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/api.v1alpha1.srv6service_types.go.proof.txt` — exists, 6395 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	// SPDX-License-Identifier: Apache-2.0
+       2	// Package v1alpha1 defines the SRv6Service API types.
+       3	package v1alpha1
+       4	
+       5	import (
+       6		metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+       7	)
+       8	
+       9	// +kubebuilder:object:root=true
+      10	// +kubebuilder:subresource:status
+      11	// +kubebuilder:resource:scope=Namespaced,shortName=srv6svc
+      12	// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+      13	// +kubebuilder:printcolumn:name="Degraded",type=string,JSONPath=`.status.conditions[?(@.type=="Degraded")].status`
+      14	// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+      15	// SRv6Service expresses a bidirectional IPv6 VPN across SONiC nodes.
+      16	// Validation is kept structural with CEL rules for cross-field constraints.
+      17	// See specs/.../contracts/crd-api.md for required semantics.
+      18	//
+      19	// Note: This is a narrow placeholder capturing the mandatory shape for scaffolding.
+      20	// Full CEL coverage is added in config/crd YAML manifests.
+      21	// +kubebuilder:validation:XValidation:message="client and server endpoints must be distinct",rule="self.spec.client.name != self.spec.server.name"
+      22	// +kubebuilder:validation:XValidation:message="exactly two attachments are required",rule="size(self.spec.attachments)==2"
+      23	// +kubebuilder:validation:XValidation:message="service prefixes must be IPv6",rule="self.spec.servicePrefix.matches('^([0-9a-fA-F:]+)/[0-9]+$')"
+      24	// +kubebuilder:validation:XValidation:message="locator must be IPv6 prefix",rule="self.spec.locatorPrefix.matches('^([0-9a-fA-F:]+)/[0-9]+$')"
+      25	// +kubebuilder:validation:XValidation:message="waypoints must be SONiC device refs",rule="size(self.spec.transitWaypoints) >= 0"
+      26	// +kubebuilder:validation:XValidation:message="vrf is immutable",rule="!has(oldSelf) || self.spec.vrf == oldSelf.spec.vrf"
+      27	// +kubebuilder:validation:XValidation:message="topologyRef must be non-empty",rule="self.spec.topologyRef != ''"
+      28	// +kubebuilder:validation:XValidation:message="path must name a primary route",rule="self.spec.path.primary != ''"
+      29	// +kubebuilder:validation:XValidation:message="endpoints must be IPv6",rule="self.spec.client.ip.matches('^([0-9a-fA-F:]+)/[0-9]+$') && self.spec.server.ip.matches('^([0-9a-fA-F:]+)/[0-9]+$')"
+      30	// +kubebuilder:validation:XValidation:message="SRv6 requires IPv6",rule="self.spec.underlay == 'ipv6'"
+      31	// +kubebuilder:validation:XValidation:message="attachments must be unique",rule="self.spec.attachments[0].node != self.spec.attachments[1].node"
+      32	// +kubebuilder:validation:XValidation:message="locator length must be /48-/64",rule="int(self.spec.locatorPrefix.split('/')[1]) >= 48 && int(self.spec.locatorPrefix.split('/')[1]) <= 64"
+      33	// +kubebuilder:validation:XValidation:message="service prefix must be /64-/96",rule="int(self.spec.servicePrefix.split('/')[1]) >= 64 && int(self.spec.servicePrefix.split('/')[1]) <= 96"
+      34	// +kubebuilder:validation:Optional
+      35	// +kubebuilder:validation:Type=object
+      36	// +kubebuilder:validation:PreserveUnknownFields=false
+      37	// +kubebuilder:validation:MaxProperties=30
+      38	// +kubebuilder:validation:MinProperties=1
+      39	// +kubebuilder:validation:Required={"attachments","topologyRef","locatorPrefix","vrf","path","client","server","servicePrefix"}
+      40	type SRv6Service struct {
+      41		metav1.TypeMeta   `json:",inline"`
+      42		metav1.ObjectMeta `json:"metadata,omitempty"`
+      43	
+      44		Spec   SRv6ServiceSpec   `json:"spec,omitempty"`
+      45		Status SRv6ServiceStatus `json:"status,omitempty"`
+      46	}
+      47	
+      48	// SRv6ServiceSpec defines desired SRv6 service intent.
+      49	type SRv6ServiceSpec struct {
+      50		// attachments must contain exactly two distinct nodes
+      51		Attachments []Attachment `json:"attachments"`
+      52		// topologyRef names a Ready topology in Kubenet
+  
+  … (truncated) …
+   string `json:"ip"`
+      88	}
+      89	
+      90	// SRv6ServiceStatus exposes observedGeneration, conditions, allocations, and per-path data.
+      91	type SRv6ServiceStatus struct {
+      92		ObservedGeneration int64              `json:"observedGeneration,omitempty"`
+      93		Conditions         []metav1.Condition `json:"conditions,omitempty"`
+      94		// Hashes of generated SDC Configs per target
+      95		ConfigHashes map[string]string `json:"configHashes,omitempty"`
+      96		// Active path name
+      97		ActivePath string `json:"activePath,omitempty"`
+      98	}
+      99	
+     100	// +kubebuilder:object:root=true
+     101	// SRv6ServiceList contains a list of SRv6Service
+     102	// +kubebuilder:object:generate=true
+     103	type SRv6ServiceList struct {
+     104		metav1.TypeMeta `json:",inline"`
+     105		metav1.ListMeta `json:"metadata,omitempty"`
+     106		Items           []SRv6Service `json:"items"`
+     107	}
+     108	
+     109	func init() {
+     110		SchemeBuilder.Register(&SRv6Service{}, &SRv6ServiceList{})
+     111	}
+  ```
+- `pkg/model/types.go` — exists, 2085 bytes, mtime 2026-08-29T01:51:19
+  ```
+  // SPDX-License-Identifier: Apache-2.0
+  // Package model exposes canonical internal structs independent of specific SONiC release.
+  package model
+  
+  // Interface represents a physical or logical interface with optional L3 addresses.
+  type Interface struct {
+  	Name      string
+  	MTU       int
+  	IPv4CIDR  string // allow /31 for point-to-point
+  	IPv6CIDR  string // required for SRv6 underlay
+  	Loopback  bool
+  }
+  
+  // Loopback represents a loopback interface by name.
+  type Loopback struct {
+  	Name string
+  	IPv4CIDR string
+  	IPv6CIDR string
+  }
+  
+  // BGPGlobal represents global BGP settings.
+  type BGPGlobal struct {
+  	ASN          uint32
+  	RouterID     string
+  	ListenRanges []string
+  }
+  
+  // BGPNeighbor represents a BGP neighbor with AFI/SAFI configuration.
+  type BGPNeighbor struct {
+  	NeighborAddress string
+  	PeerASN         uint32
+  	IPv4AFI         bool
+  	IPv6AFI         bool
+  	EVPN            bool
+  }
+  
+  // NetworkInstance models a VRF or default instance.
+  type NetworkInstance struct {
+  	Name     string
+  	Type     string // "DEFAULT" or "L3VRF"
+  	RD       string
+  	ImportRT []string
+  	ExportRT []string
+  }
+  
+  // VLAN represents a VLAN and optional L2VNI.
+  type VLAN struct {
+  	ID    int
+  	Name  string
+  	L2VNI int
+  }
+  
+  // VNI represents a VXLAN Network Identifier.
+  type VNI struct {
+  	ID int
+  }
+  
+  // VXLAN models VTEP and NVO state.
+  type VXLAN struct {
+  	SourceInterface string // loopback used as VTEP src
+  	UDPPort         int
+  }
+  
+  // IRB represents symmetric IRB parameters.
+  type IRB struct {
+  	GatewayIPv4 string
+  	GatewayIPv6 string
+  }
+  
+  // SRv6Locator represents a locator prefix and length.
+  type SRv6Locator struct {
+  	Name   string
+  	Prefix string // IPv6
+  }
+  
+  // MySID represents a MySID behavior at a node.
+  type MySID struct {
+  	SID       string // IPv6 SID
+  	Behavior  string // e.g., End, End.DT46, End.DT6, End.DT4
+  	VRF       string // for End.DT46/VRF
+  }
+  
+  // SIDList represents an ordered list of SIDs for steering.
+  type SIDList struct {
+  	Name string
+  	SIDs []string
+  }
+  
+  // SRPolicy represents a steering policy.
+  type SRPolicy struct {
+  	Name       string
+  	Selector   string // match expression or interface
+  	SIDListRef string
+  }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/pkg.model.types.go.proof.txt` — exists, 2743 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	// SPDX-License-Identifier: Apache-2.0
+       2	// Package model exposes canonical internal structs independent of specific SONiC release.
+       3	package model
+       4	
+       5	// Interface represents a physical or logical interface with optional L3 addresses.
+       6	type Interface struct {
+       7		Name      string
+       8		MTU       int
+       9		IPv4CIDR  string // allow /31 for point-to-point
+      10		IPv6CIDR  string // required for SRv6 underlay
+      11		Loopback  bool
+      12	}
+      13	
+      14	// Loopback represents a loopback interface by name.
+      15	type Loopback struct {
+      16		Name string
+      17		IPv4CIDR string
+      18		IPv6CIDR string
+      19	}
+      20	
+      21	// BGPGlobal represents global BGP settings.
+      22	type BGPGlobal struct {
+      23		ASN          uint32
+      24		RouterID     string
+      25		ListenRanges []string
+      26	}
+      27	
+      28	// BGPNeighbor represents a BGP neighbor with AFI/SAFI configuration.
+      29	type BGPNeighbor struct {
+      30		NeighborAddress string
+      31		PeerASN         uint32
+      32		IPv4AFI         bool
+      33		IPv6AFI         bool
+      34		EVPN            bool
+      35	}
+      36	
+      37	// NetworkInstance models a VRF or default instance.
+      38	type NetworkInstance struct {
+      39		Name     string
+      40		Type     string // "DEFAULT" or "L3VRF"
+      41		RD       string
+      42		ImportRT []string
+      43		ExportRT []string
+      44	}
+      45	
+      46	// VLAN represents a VLAN and optional L2VNI.
+      47	type VLAN struct {
+      48		ID    int
+      49		Name  string
+      50		L2VNI int
+      51	}
+      52	
+      53	// VNI represents a VXLAN Network Identifier.
+      54	type VNI struct {
+      55		ID int
+      56	}
+      57	
+      58	// VXLAN models VTEP and NVO state.
+      59	type VXLAN struct {
+      60		SourceInterface string // loopback used as VTEP src
+      61		UDPPort         int
+      62	}
+      63	
+      64	// IRB represents symmetric IRB parameters.
+      65	type IRB struct {
+      66		GatewayIPv4 string
+      67		GatewayIPv6 string
+      68	}
+      69	
+      70	// SRv6Locator represents a locator prefix and length.
+      71	type SRv6Locator struct {
+      72		Name   string
+      73		Prefix string // IPv6
+      74	}
+      75	
+      76	// MySID represents a MySID behavior at a node.
+      77	type MySID struct {
+      78		SID       string // IPv6 SID
+      79		Behavior  string // e.g., End, End.DT46, End.DT6, End.DT4
+      80		VRF       string // for End.DT46/VRF
+      81	}
+      82	
+      83	// SIDList represents an ordered list of SIDs for steering.
+      84	type SIDList struct {
+      85		Name string
+      86		SIDs []string
+      87	}
+      88	
+      89	// SRPolicy represents a steering policy.
+      90	type SRPolicy struct {
+      91		Name       string
+      92		Selector   string // match expression or interface
+      93		SIDListRef string
+      94	}
+  ```
+- `pkg/model/normalize.go` — exists, 2629 bytes, mtime 2026-08-29T02:35:46
+  ```
+  // SPDX-License-Identifier: Apache-2.0
+  package model
+  
+  import (
+  	"errors"
+  	"fmt"
+  )
+  
+  // ValidationError indicates incomplete, unknown, or conflicting constructs.
+  type ValidationError struct {
+  	Field   string
+  	Reason  string
+  	Message string
+  }
+  
+  func (e *ValidationError) Error() string { return fmt.Sprintf("%s: %s (%s)", e.Field, e.Reason, e.Message) }
+  
+  // NormalizeInterfaces validates and normalizes interface definitions.
+  func NormalizeInterfaces(ifs []Interface) ([]Interface, error) {
+  	seen := map[string]struct{}{}
+  	out := make([]Interface, 0, len(ifs))
+  	for _, in := range ifs {
+  		if in.Name == "" {
+  			return nil, &ValidationError{Field: "interfaces.name", Reason: "Required", Message: "interface name must be set"}
+  		}
+  		if in.MTU != 0 && (in.MTU < 576 || in.MTU > 9216) {
+  			return nil, &ValidationError{Field: "interfaces.mtu", Reason: "OutOfRange", Message: "MTU must be 576-9216 or omitted"}
+  		}
+  		if _, ok := seen[in.Name]; ok {
+  			return nil, &ValidationError{Field: "interfaces.name", Reason: "Duplicate", Message: "duplicate interface name"}
+  		}
+  		seen[in.Name] = struct{}{}
+  		out = append(out, in)
+  	}
+  	return out, nil
+  }
+  
+  // NormalizeBGP validates global and neighbor BGP settings.
+  func NormalizeBGP(global BGPGlobal, nei []BGPNeighbor) (BGPGlobal, []BGPNeighbor, error) {
+  	if global.ASN == 0 {
+  		return BGPGlobal{}, nil, &ValidationError{Field: "bgp.asn", Reason: "Required", Message: "ASN must be set"}
+  	}
+  	return global, nei, nil
+  }
+  
+  // NormalizeNetworkInstances validates VRF/default instances.
+  func NormalizeNetworkInstances(instances []NetworkInstance) ([]NetworkInstance, error) {
+  	byName := map[string]struct{}{}
+  	for _, ni := range instances {
+  		if ni.Name == "" {
+  			return nil, &ValidationError{Field: "networkInstance.name", Reason: "Required", Message: "name required"}
+  		}
+  		if _, ok := byName[ni.Name]; ok {
+  			return nil, &ValidationError{Field: "networkInstance.name", Reason: "Duplicate", Message: "duplicate instance name"}
+  		}
+  		byName[ni.Name] = struct{}{}
+  	}
+  	return instances, nil
+  }
+  
+  // NormalizeSRv6 validates SRv6-specific constructs.
+  func NormalizeSRv6(locator SRv6Locator, mysids []MySID) (SRv6Locator, []MySID, error) {
+  	if locator.Prefix == "" {
+  		return SRv6Locator{}, nil, &ValidationError{Field: "srv6.locator", Reason: "Required", Message: "locator prefix required"}
+  	}
+  	return locator, mysids, nil
+  }
+  
+  // IsTerminal returns true for terminal errors per reconciliation contract.
+  func IsTerminal(err error) bool {
+  	var ve *ValidationError
+  	if errors.As(err, &ve) {
+  		// Treat schema/unknown/duplicate as terminal until generation or dependency changes
+  		return true
+  	}
+  	return false
+  }
+  ```
+- `config/crd/bases/ainetops.io_srv6services.yaml` — exists, 4500 bytes, mtime 2026-08-29T01:51:29
+  ```
+  apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: srv6services.ainetops.io
+  spec:
+    group: ainetops.io
+    scope: Namespaced
+    names:
+      kind: SRv6Service
+      listKind: SRv6ServiceList
+      plural: srv6services
+      singular: srv6service
+      shortNames: [srv6svc]
+    versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - name: Ready
+        type: string
+        jsonPath: .status.conditions[?(@.type=="Ready")].status
+      - name: Degraded
+        type: string
+        jsonPath: .status.conditions[?(@.type=="Degraded")].status
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              required: [attachments, topologyRef, locatorPrefix, vrf, path, client, server, servicePrefix, underlay]
+              properties:
+                attachments:
+                  type: array
+                  minItems: 2
+                  maxItems: 2
+                  items:
+                    type: object
+                    required: [node, interface]
+                    properties:
+                      node:
+                        type: string
+                        minLength: 1
+                      interface:
+                        type: string
+                        minLength: 1
+                topologyRef:
+                  type: string
+                  minLength: 1
+                locatorPrefix:
+                  type: string
+                  pattern: ^([0-9a-fA-F:]+)/[0-9]+$
+                vrf:
+                  type: string
+                  minLength: 1
+                path:
+                  type: object
+                  required: [primary]
+                  properties:
+                    primary:
+                      type: string
+                      minLength: 1
+                    alternate:
+                      type: string
+                client:
+                  type: object
+                  required: [name, ip]
+                  properties:
+                    name:
+                      type: string
+                    ip:
+                      type: string
+                      pattern: ^([0-9a-fA-F:]+)/[0-9]+$
+                server:
+                  type: object
+                  required: [name, ip]
+                  properties:
+                    name:
+                      type: string
+                    ip:
+                      type: string
+                      pattern: ^([0-9a-fA-F:]+)/[0-9]+$
+                servicePrefix:
+                  type: string
+                  pattern: ^([0-9a-fA-F:]+)/[0-9]+$
+                transitWaypoints:
+                  type: array
+                  items:
+                    type: string
+                underlay:
+                  type: string
+                  enum: [ipv6]
+              x-kubernetes-validations:
+              - rule: "self.client.name != self.server.name"
+                message: client and server endpoints must be distinct
+              - rule: "size(self.attachments) == 2"
+                message: exactly two attachments are required
+              - rule: "int(self.locatorPrefix.split('/')[1]) >= 48 && int(self.locatorPrefix.split('/')[1]) <= 64"
+                message: locator length must be /48-/64
+              - rule: "int(self.servicePrefix.split('/')[1]) >= 64 && int(self.servicePrefix.split('/')[1]) <= 96"
+                message: service prefix must be /64-/96
+            status:
+              type: object
+              properties:
+                observedGeneration:
+                  type: integer
+                  format: int64
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    required: [type, status, lastTransitionTime, reason]
+                    properties:
+                      type:
+                        type: string
+                     
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/config.crd.bases.ainetops.io_srv6services.yaml.proof.txt` — exists, 5494 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	apiVersion: apiextensions.k8s.io/v1
+       2	kind: CustomResourceDefinition
+       3	metadata:
+       4	  name: srv6services.ainetops.io
+       5	spec:
+       6	  group: ainetops.io
+       7	  scope: Namespaced
+       8	  names:
+       9	    kind: SRv6Service
+      10	    listKind: SRv6ServiceList
+      11	    plural: srv6services
+      12	    singular: srv6service
+      13	    shortNames: [srv6svc]
+      14	  versions:
+      15	  - name: v1alpha1
+      16	    served: true
+      17	    storage: true
+      18	    subresources:
+      19	      status: {}
+      20	    additionalPrinterColumns:
+      21	    - name: Ready
+      22	      type: string
+      23	      jsonPath: .status.conditions[?(@.type=="Ready")].status
+      24	    - name: Degraded
+      25	      type: string
+      26	      jsonPath: .status.conditions[?(@.type=="Degraded")].status
+      27	    - name: Age
+      28	      type: date
+      29	      jsonPath: .metadata.creationTimestamp
+      30	    schema:
+      31	      openAPIV3Schema:
+      32	        type: object
+      33	        properties:
+      34	          apiVersion:
+      35	            type: string
+      36	          kind:
+      37	            type: string
+      38	          metadata:
+      39	            type: object
+      40	          spec:
+      41	            type: object
+      42	            required: [attachments, topologyRef, locatorPrefix, vrf, path, client, server, servicePrefix, underlay]
+      43	            properties:
+      44	              attachments:
+      45	                type: array
+      46	                minItems: 2
+      47	                maxItems: 2
+      48	                items:
+      49	                  type: object
+      50	                  required: [node, interface]
+      51	                  properties:
+      52	                    node:
+      53	                      type: string
+      54	                      minLength: 1
+      55	                    interface:
+      56	                      type: string
+      57	                      minLength: 1
+      58	              topologyRef:
+      59	                type: string
+      60	                minLength: 1
+      61	              locatorPrefix:
+      62	                type: string
+      63	                pattern: ^([0-9a-fA-F:]+)/[0-9]+$
+      64	              vrf:
+      65	                type: string
+      66	                minLength: 1
+      67	              path:
+      68	                type: object
+      69	                required: [primary]
+      70	                properties:
+      71	                  primary:
+      72	                    type: string
+      73	                    minLength: 1
+      74	                  alternate:
+      75	                    type: string
+      76	              client:
+      77	                type: object
+      78	                required: [name, ip]
+      79	                properties:
+      80	                  name:
+      81	                    type: string
+      82	                  ip:
+      83	                    type: string
+      84	                    pattern: ^([0-9a-fA-F:]+)/[0-9]+$
+      85	              server:
+      86	                type: object
+      87	                required: [name, ip]
+      88	                properties:
+      89	                  name:
+      90	                    type: string
+      91	                  ip:
+      92	                    type: string
+      93	                    pattern: ^([0-9a-fA-F:]+)/[0-9]+$
+      94	              servicePrefix:
+      95	                type: string
+      96	                pattern: ^([0-9a-fA-F:]+)/[0-9]+$
+      97	              transitWaypoints:
+      98	                type: array
+      99	                items:
+     100	                  type: string
+     101	              underlay:
+     102	                type: string
+     103	                enum: [ipv6]
+     104	            x-kubernetes-validations:
+     105	            - rule: "self.client.name != self.server.name"
+     106	              message: client and server endpoints must be distinct
+     107	            - rule: "size(self.attachments) == 2"
+     108	              message: exactly two attachments are required
+     109	            - rule: "
+  … (truncated) …
+  teger
+     118	                format: int64
+     119	              conditions:
+     120	                type: array
+     121	                items:
+     122	                  type: object
+     123	                  required: [type, status, lastTransitionTime, reason]
+     124	                  properties:
+     125	                    type:
+     126	                      type: string
+     127	                    status:
+     128	                      type: string
+     129	                    lastTransitionTime:
+     130	                      type: string
+     131	                      format: date-time
+     132	                    reason:
+     133	                      type: string
+     134	                    message:
+     135	                      type: string
+     136	              configHashes:
+     137	                type: object
+     138	                additionalProperties:
+     139	                  type: string
+     140	              activePath:
+     141	                type: string
+     142	    preserveUnknownFields: false
+  ```
+- `config/samples/ainetops_v1alpha1_srv6service.yaml` — exists, 487 bytes, mtime 2026-08-29T01:51:33
+  ```
+  apiVersion: ainetops.io/v1alpha1
+  kind: SRv6Service
+  metadata:
+    name: example-srv6
+    namespace: default
+  spec:
+    attachments:
+    - node: leaf01
+      interface: Ethernet1
+    - node: leaf02
+      interface: Ethernet1
+    topologyRef: default-topology
+    locatorPrefix: 2001:db8:1::/48
+    vrf: tenant-a
+    path:
+      primary: spine-path
+    client:
+      name: host-a
+      ip: 2001:db8:100::1/64
+    server:
+      name: host-b
+      ip: 2001:db8:200::1/64
+    servicePrefix: 2001:db8:dead:beef::/64
+    underlay: ipv6
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/config.samples.ainetops_v1alpha1_srv6service.yaml.proof.txt` — exists, 655 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	apiVersion: ainetops.io/v1alpha1
+       2	kind: SRv6Service
+       3	metadata:
+       4	  name: example-srv6
+       5	  namespace: default
+       6	spec:
+       7	  attachments:
+       8	  - node: leaf01
+       9	    interface: Ethernet1
+      10	  - node: leaf02
+      11	    interface: Ethernet1
+      12	  topologyRef: default-topology
+      13	  locatorPrefix: 2001:db8:1::/48
+      14	  vrf: tenant-a
+      15	  path:
+      16	    primary: spine-path
+      17	  client:
+      18	    name: host-a
+      19	    ip: 2001:db8:100::1/64
+      20	  server:
+      21	    name: host-b
+      22	    ip: 2001:db8:200::1/64
+      23	  servicePrefix: 2001:db8:dead:beef::/64
+      24	  underlay: ipv6
+  ```
+- `deploy/rbac/srv6-crd-rbac.yaml` — exists, 674 bytes, mtime 2026-08-29T01:51:41
+  ```
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: ainetops-srv6-controller-crd
+  rules:
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["ainetops.io"]
+    resources: ["srv6services", "srv6services/status"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: ainetops-srv6-controller-crd
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: ainetops-srv6-controller-crd
+  subjects:
+  - kind: ServiceAccount
+    name: ainetops-controller
+    namespace: ainetops-system
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.rbac.base.yaml.proof.txt` — exists, 879 bytes, mtime 2026-08-28T22:14:56
+  ```
+       1	apiVersion: v1
+       2	kind: Namespace
+       3	metadata:
+       4	  name: ainetops-system
+       5	  labels: { ainetops.owner: ainetops }
+       6	---
+       7	apiVersion: v1
+       8	kind: ServiceAccount
+       9	metadata: { name: ainetops-controller, namespace: ainetops-system }
+      10	---
+      11	apiVersion: rbac.authorization.k8s.io/v1
+      12	kind: Role
+      13	metadata: { name: ainetops-controller, namespace: ainetops-system }
+      14	rules:
+      15	- apiGroups: [""]
+      16	  resources: ["configmaps", "events"]
+      17	  verbs: ["get", "list", "watch", "create", "update", "patch"]
+      18	- apiGroups: ["coordination.k8s.io"]
+      19	  resources: ["leases"]
+      20	  verbs: ["get", "list", "watch", "create", "update", "patch"]
+      21	---
+      22	apiVersion: networking.k8s.io/v1
+      23	kind: NetworkPolicy
+      24	metadata: { name: deny-all-by-default, namespace: ainetops-system }
+  ```
+- `tests/envtest/srv6service_crd_envtest_test.go` — exists, 3425 bytes, mtime 2026-08-29T02:26:50
+  ```
+  //go:build !integration
+  
+  package envtest
+  
+  import (
+  	context "context"
+  	"os"
+  	"path/filepath"
+  	"testing"
+  
+  	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+  	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+  	"k8s.io/apimachinery/pkg/runtime"
+  	"k8s.io/apimachinery/pkg/runtime/schema"
+  	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+  	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+  	"k8s.io/client-go/dynamic"
+  	"sigs.k8s.io/controller-runtime/pkg/envtest"
+  )
+  
+  // TestSRv6ServiceCRD_Envtest installs the CRD into a test API server and validates sample CRs
+  // using server-side dry-run (positive and negative cases).
+  func TestSRv6ServiceCRD_Envtest(t *testing.T) {
+  	t.Parallel()
+  	var (
+  		ctx = context.TODO()
+  	)
+  
+  	// Determine envtest binaries; skip test when not available in CI.
+  	assets := os.Getenv("KUBEBUILDER_ASSETS")
+  	if assets == "" {
+  		// common default in many images
+  		if _, err := os.Stat("/usr/local/kubebuilder/bin/etcd"); err == nil {
+  			assets = "/usr/local/kubebuilder/bin"
+  		}
+  	}
+  	if assets == "" {
+  		t.Skip("envtest assets not found; set KUBEBUILDER_ASSETS to run this test")
+  	}
+  	// Start the envtest API server
+  	testEnv := &envtest.Environment{
+  		CRDDirectoryPaths: []string{
+  			filepath.Join("..", "..", "config", "crd", "bases"),
+  		},
+  		BinaryAssetsDirectory: assets,
+  	}
+  	cfg, err := testEnv.Start()
+  	if err != nil {
+  		t.Fatalf("failed to start envtest: %v", err)
+  	}
+  	t.Cleanup(func() {
+  		_ = testEnv.Stop()
+  	})
+  
+  	// Ensure apiextensions scheme is registered for dry-run operations
+  	_ = apiextensionsv1.AddToScheme(runtime.NewScheme())
+  
+  	dc, err := dynamic.NewForConfig(cfg)
+  	if err != nil {
+  		t.Fatalf("dynamic client: %v", err)
+  	}
+  
+  	gvr := schemaFor("ainetops.io", "v1alpha1", "srv6services")
+  
+  	// Positive sample
+  	posYAML, err := os.ReadFile(filepath.Join("..", "..", "config", "samples", "ainetops_v1alpha1_srv6service.yaml"))
+  	if err != nil {
+  		t.Fatalf("read sample: %v", err)
+  	}
+  	posObj := mustYAMLToUnstructured(t, posYAML)
+  	posObj.SetNamespace("default")
+  	// Dry-run create should succeed
+  	if _, err := dc.Resource(gvr).Namespace("default").Create(ctx, posObj, metav1.CreateOptions{DryRun: []string{"All"}}); err != nil {
+  		t.Fatalf("dry-run create positive sample failed: %v", err)
+  	}
+  
+  	// Negative sample: duplicate attachments (violates CEL uniqueness rule)
+  	neg := posObj.DeepCopy()
+  	att, _, _ := unstructured.NestedSlice(neg.Object, "spec", "attachments")
+  	if len(att) != 2 {
+  		t.Fatalf("unexpected attachments len in sample: %d", len(att))
+  	}
+  	// make both nodes equal to violate uniqueness
+  	_ = unstructured.SetNestedField(att[1].(map[string]any), att[0].(map[string]any)["node"], "node")
+  	_ = unstructured.SetNestedSlice(neg.Object, att, "spec", "attachments")
+  	if _, err := dc.Resource(gvr).Namespace("default").Create(ctx, neg, metav1.CreateOptions{DryRun: []string{"All"}}); err == nil {
+  		t.Fatalf("expected dry-run create to fail for duplicate attachments, got nil error")
+  	}
+  }
+  
+  func mustYAMLToUnstructured(t *testing.T, y []byte) *unstructured.Unstructured {
+  	t.Helper()
+  	dec := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+  	obj := &unstructured.Unstructured{}
+  	_, _, err := dec.Decode(y, nil, obj)
+  	if err != nil {
+  		t.Fatalf("decode yaml: %v", err)
+  	}
+  	return obj
+  }
+  
+  func schemaFor(group, version, resource string) schema.GroupVersionResource {
+  	return schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
+  }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/tests.envtest.srv6service_crd_envtest_test.go.proof.txt` — exists, 4153 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	//go:build !integration
+       2	
+       3	package envtest
+       4	
+       5	import (
+       6		context "context"
+       7		"os"
+       8		"path/filepath"
+       9		"testing"
+      10	
+      11		apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+      12		"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+      13		"k8s.io/apimachinery/pkg/runtime"
+      14		"k8s.io/apimachinery/pkg/runtime/schema"
+      15		"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+      16		metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+      17		"k8s.io/client-go/dynamic"
+      18		"sigs.k8s.io/controller-runtime/pkg/envtest"
+      19	)
+      20	
+      21	// TestSRv6ServiceCRD_Envtest installs the CRD into a test API server and validates sample CRs
+      22	// using server-side dry-run (positive and negative cases).
+      23	func TestSRv6ServiceCRD_Envtest(t *testing.T) {
+      24		t.Parallel()
+      25		var (
+      26			ctx = context.TODO()
+      27		)
+      28	
+      29		// Determine envtest binaries; skip test when not available in CI.
+      30		assets := os.Getenv("KUBEBUILDER_ASSETS")
+      31		if assets == "" {
+      32			// common default in many images
+      33			if _, err := os.Stat("/usr/local/kubebuilder/bin/etcd"); err == nil {
+      34				assets = "/usr/local/kubebuilder/bin"
+      35			}
+      36		}
+      37		if assets == "" {
+      38			t.Skip("envtest assets not found; set KUBEBUILDER_ASSETS to run this test")
+      39		}
+      40		// Start the envtest API server
+      41		testEnv := &envtest.Environment{
+      42			CRDDirectoryPaths: []string{
+      43				filepath.Join("..", "..", "config", "crd", "bases"),
+      44			},
+      45			BinaryAssetsDirectory: assets,
+      46		}
+      47		cfg, err := testEnv.Start()
+      48		if err != nil {
+      49			t.Fatalf("failed to start envtest: %v", err)
+      50		}
+      51		t.Cleanup(func() {
+      52			_ = testEnv.Stop()
+      53		})
+      54	
+      55		// Ensure apiextensions scheme is registered for dry-run operations
+      56		_ = apiextensionsv1.AddToScheme(runtime.NewScheme())
+      57	
+      58		dc, err := dynamic.NewForConfig(cfg)
+      59		if err != nil {
+      60			t.Fatalf("dynamic client: %v", err)
+      61		}
+      62	
+      63		gvr := schemaFor("ainetops.io", "v1alpha1", "srv6services")
+      64	
+      65		// Positive sample
+      66		posYAML, err := os.ReadFile(filepath.Join("..", "..", "config", "samples", "ainetops_v1alpha1_srv6service.yaml"))
+      67		if err != nil {
+      68			t.Fatalf("read sample: %v", err)
+      69		}
+      70		posObj := mustYAMLToUnstructured(t, posYAML)
+      71		posObj.SetNamespace("default")
+      72		// Dry-run create should succeed
+      73		if _, err := dc.Resource(gvr).Namespace("default").Create(ctx, posObj, metav1.CreateOptions{DryRun: []string{"All"}}); err != nil {
+      74			t.Fatalf("dry-run create positive sample failed: %v", err)
+      75		}
+      76	
+      77		// Negative sample: duplicate attachments (violates CEL uniqueness rule)
+      78		neg := posObj.DeepCopy()
+      79		att, _, _ := unstructured.NestedSlice(neg.Object, "spec", "attachments")
+      80		if len(att) != 2 {
+      81			t.Fatalf("unexpected attachments len in sample: %d", len(att))
+      82		}
+      83		// make both nodes equal to violate uniqueness
+      84		_ = unstructured.SetNestedField(att[1].(map[string]any), att[0].(map[string]any)["node"], "node")
+      85		_ = unstructured.SetNestedSlice(neg.Object, att, "spec", "attachments")
+      86		if _, err := dc.Resource(gvr).Namespace("default").Create(ctx, neg, metav1.CreateOptions{DryRun: []string{"All"}}); err == nil {
+      87			t.Fatalf("expected dry-run create to fail for duplicate attachments, got nil error")
+      88		}
+      89	}
+      90	
+      91	func mustYAMLToUnstructured(t *testing.T, y []byte) *unstructured.Unstructured {
+      92		t.Helper()
+      93		dec := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+      94		obj := &unstructured.Unstructured{}
+      95		_, _, err := dec.Decode(y, nil, obj)
+      96		if err != nil {
+      97			t.Fatalf("decode yaml: %v", err)
+      98		}
+      99		return obj
+     100	}
+     101	
+     102	func schemaFor(group, version
+  ```
+- `pkg/reasons/reasons.go` — exists, 454 bytes, mtime 2026-08-29T02:17:17
+  ```
+  // SPDX-License-Identifier: Apache-2.0
+  // Package reasons defines stable reason codes used in Conditions and Events.
+  package reasons
+  
+  const (
+  	ReasonWaitingDependencies = "WaitingDependencies"
+  	ReasonSchemaMismatch      = "SchemaMismatch"
+  	ReasonValidated           = "Validated"
+  	ReasonApplySucceeded      = "ApplySucceeded"
+  	ReasonApplyFailed         = "ApplyFailed"
+  	ReasonFinalizing          = "Finalizing"
+  	ReasonFinalized           = "Finalized"
+  )
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/pkg.reasons.reasons.go.proof.txt` — exists, 545 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	// SPDX-License-Identifier: Apache-2.0
+       2	// Package reasons defines stable reason codes used in Conditions and Events.
+       3	package reasons
+       4	
+       5	const (
+       6		ReasonWaitingDependencies = "WaitingDependencies"
+       7		ReasonSchemaMismatch      = "SchemaMismatch"
+       8		ReasonValidated           = "Validated"
+       9		ReasonApplySucceeded      = "ApplySucceeded"
+      10		ReasonApplyFailed         = "ApplyFailed"
+      11		ReasonFinalizing          = "Finalizing"
+      12		ReasonFinalized           = "Finalized"
+      13	)
+  ```
+- `pkg/compat/compat.go` — exists, 1608 bytes, mtime 2026-08-29T01:58:39
+  ```
+  // Package compat validates the compatibility set: image, schema, mapping, and upstream API versions.
+  package compat
+  
+  import (
+  	"fmt"
+  )
+  
+  // Set captures the five-part compatibility set published in deployment metadata and status.
+  type Set struct {
+  	SonicImage          string
+  	OpenConfigCommit    string
+  	SonicNativeCommit   string
+  	MappingVersion      string
+  	UpstreamAPIVersions map[string]string // e.g., {"kubenet":"bae1c487...", "kuid":"7528e815...", "sdc":"v0.31.0"}
+  }
+  
+  // ValidationError classifies terminal vs transient mismatches.
+  type ValidationError struct {
+  	Reason  string // e.g., SchemaMismatch, CapabilityMissing
+  	Message string
+  }
+  
+  func (e *ValidationError) Error() string { return fmt.Sprintf("%s: %s", e.Reason, e.Message) }
+  
+  // Validate performs offline validation of the compatibility set against the pinned contract
+  // in versions.lock.yaml and optionally a discovered target capability set.
+  func Validate(set Set, discovered map[string]bool) error {
+  	// Minimal scaffold: ensure non-empty pins and required SRv6 capability flag when mapping requires it.
+  	if set.SonicImage == "" || set.OpenConfigCommit == "" || set.SonicNativeCommit == "" || set.MappingVersion == "" {
+  		return &ValidationError{Reason: "SchemaMismatch", Message: "incomplete compatibility set"}
+  	}
+  	if discovered != nil {
+  		// SAI SRv6 capability gate (placeholder key)
+  		if requiresSRv6(set.MappingVersion) && !discovered["sai.srv6"] {
+  			return &ValidationError{Reason: "CapabilityMissing", Message: "SRv6 not supported by target"}
+  		}
+  	}
+  	return nil
+  }
+  
+  func requiresSRv6(mappingVersion string) bool { return true }
+  ```
+- `pkg/compat/matrix.go` — exists, 2357 bytes, mtime 2026-08-29T02:26:31
+  ```
+  // SPDX-License-Identifier: Apache-2.0
+  package compat
+  
+  import (
+  	"regexp"
+  )
+  
+  var sha1re = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
+  var semverRe = regexp.MustCompile(`^v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$`)
+  
+  // FromAnnotations extracts a compatibility Set from labels/annotations maps.
+  func FromAnnotations(ann map[string]string) Set {
+  	set := Set{
+  		SonicImage:        ann["ainetops.dev/sonic-image"],
+  		OpenConfigCommit:  ann["ainetops.dev/openconfig-commit"],
+  		SonicNativeCommit: ann["ainetops.dev/sonic-native-commit"],
+  		MappingVersion:    ann["ainetops.dev/mapping-version"],
+  		UpstreamAPIVersions: map[string]string{
+  			"kubenet": ann["ainetops.dev/kubenet-commit"],
+  			"kuid":    ann["ainetops.dev/kuid-commit"],
+  			"sdc":     ann["ainetops.dev/sdc-release"],
+  		},
+  	}
+  	return set
+  }
+  
+  // ValidatePins performs stricter checks on the Set pins for shape and presence.
+  func ValidatePins(set Set) error {
+  	if set.SonicImage == "" {
+  		return &ValidationError{Reason: "SchemaMismatch", Message: "missing sonic image pin"}
+  	}
+  	if !sha1re.MatchString(set.OpenConfigCommit) || !sha1re.MatchString(set.SonicNativeCommit) {
+  		return &ValidationError{Reason: "SchemaMismatch", Message: "schema pins must be commit SHAs"}
+  	}
+  	if !semverRe.MatchString(set.UpstreamAPIVersions["sdc"]) {
+  		return &ValidationError{Reason: "SchemaMismatch", Message: "sdc release must be semver"}
+  	}
+  	return nil
+  }
+  
+  // ValidateContracts ensures that pinned telemetry/topology label contracts are present.
+  func ValidateContracts(labels map[string]string) error {
+  	if labels["ainetops.dev/topology-label-contract"] == "" {
+  		return &ValidationError{Reason: "SchemaMismatch", Message: "missing topology label contract pin"}
+  	}
+  	if labels["ainetops.dev/telemetry-label-contract"] == "" {
+  		return &ValidationError{Reason: "SchemaMismatch", Message: "missing telemetry label contract pin"}
+  	}
+  	return nil
+  }
+  
+  // FullValidate runs pin checks plus optional capability gates.
+  func FullValidate(set Set, labels map[string]string, discovered map[string]bool) error {
+  	if err := ValidatePins(set); err != nil {
+  		return err
+  	}
+  	if err := ValidateContracts(labels); err != nil {
+  		return err
+  	}
+  	if err := Validate(set, discovered); err != nil {
+  		return err
+  	}
+  	return nil
+  }
+  
+  func ReasonFor(err error) string {
+  	if v, ok := err.(*ValidationError); ok {
+  		return v.Reason
+  	}
+  	return "ValidationFailed"
+  }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/pkg.compat.compat.go.proof.txt` — exists, 1895 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	// Package compat validates the compatibility set: image, schema, mapping, and upstream API versions.
+       2	package compat
+       3	
+       4	import (
+       5		"fmt"
+       6	)
+       7	
+       8	// Set captures the five-part compatibility set published in deployment metadata and status.
+       9	type Set struct {
+      10		SonicImage          string
+      11		OpenConfigCommit    string
+      12		SonicNativeCommit   string
+      13		MappingVersion      string
+      14		UpstreamAPIVersions map[string]string // e.g., {"kubenet":"bae1c487...", "kuid":"7528e815...", "sdc":"v0.31.0"}
+      15	}
+      16	
+      17	// ValidationError classifies terminal vs transient mismatches.
+      18	type ValidationError struct {
+      19		Reason  string // e.g., SchemaMismatch, CapabilityMissing
+      20		Message string
+      21	}
+      22	
+      23	func (e *ValidationError) Error() string { return fmt.Sprintf("%s: %s", e.Reason, e.Message) }
+      24	
+      25	// Validate performs offline validation of the compatibility set against the pinned contract
+      26	// in versions.lock.yaml and optionally a discovered target capability set.
+      27	func Validate(set Set, discovered map[string]bool) error {
+      28		// Minimal scaffold: ensure non-empty pins and required SRv6 capability flag when mapping requires it.
+      29		if set.SonicImage == "" || set.OpenConfigCommit == "" || set.SonicNativeCommit == "" || set.MappingVersion == "" {
+      30			return &ValidationError{Reason: "SchemaMismatch", Message: "incomplete compatibility set"}
+      31		}
+      32		if discovered != nil {
+      33			// SAI SRv6 capability gate (placeholder key)
+      34			if requiresSRv6(set.MappingVersion) && !discovered["sai.srv6"] {
+      35				return &ValidationError{Reason: "CapabilityMissing", Message: "SRv6 not supported by target"}
+      36			}
+      37		}
+      38		return nil
+      39	}
+      40	
+      41	func requiresSRv6(mappingVersion string) bool { return true }
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/pkg.compat.matrix.go.proof.txt` — exists, 2854 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	// SPDX-License-Identifier: Apache-2.0
+       2	package compat
+       3	
+       4	import (
+       5		"regexp"
+       6	)
+       7	
+       8	var sha1re = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
+       9	var semverRe = regexp.MustCompile(`^v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$`)
+      10	
+      11	// FromAnnotations extracts a compatibility Set from labels/annotations maps.
+      12	func FromAnnotations(ann map[string]string) Set {
+      13		set := Set{
+      14			SonicImage:        ann["ainetops.dev/sonic-image"],
+      15			OpenConfigCommit:  ann["ainetops.dev/openconfig-commit"],
+      16			SonicNativeCommit: ann["ainetops.dev/sonic-native-commit"],
+      17			MappingVersion:    ann["ainetops.dev/mapping-version"],
+      18			UpstreamAPIVersions: map[string]string{
+      19				"kubenet": ann["ainetops.dev/kubenet-commit"],
+      20				"kuid":    ann["ainetops.dev/kuid-commit"],
+      21				"sdc":     ann["ainetops.dev/sdc-release"],
+      22			},
+      23		}
+      24		return set
+      25	}
+      26	
+      27	// ValidatePins performs stricter checks on the Set pins for shape and presence.
+      28	func ValidatePins(set Set) error {
+      29		if set.SonicImage == "" {
+      30			return &ValidationError{Reason: "SchemaMismatch", Message: "missing sonic image pin"}
+      31		}
+      32		if !sha1re.MatchString(set.OpenConfigCommit) || !sha1re.MatchString(set.SonicNativeCommit) {
+      33			return &ValidationError{Reason: "SchemaMismatch", Message: "schema pins must be commit SHAs"}
+      34		}
+      35		if !semverRe.MatchString(set.UpstreamAPIVersions["sdc"]) {
+      36			return &ValidationError{Reason: "SchemaMismatch", Message: "sdc release must be semver"}
+      37		}
+      38		return nil
+      39	}
+      40	
+      41	// ValidateContracts ensures that pinned telemetry/topology label contracts are present.
+      42	func ValidateContracts(labels map[string]string) error {
+      43		if labels["ainetops.dev/topology-label-contract"] == "" {
+      44			return &ValidationError{Reason: "SchemaMismatch", Message: "missing topology label contract pin"}
+      45		}
+      46		if labels["ainetops.dev/telemetry-label-contract"] == "" {
+      47			return &ValidationError{Reason: "SchemaMismatch", Message: "missing telemetry label contract pin"}
+      48		}
+      49		return nil
+      50	}
+      51	
+      52	// FullValidate runs pin checks plus optional capability gates.
+      53	func FullValidate(set Set, labels map[string]string, discovered map[string]bool) error {
+      54		if err := ValidatePins(set); err != nil {
+      55			return err
+      56		}
+      57		if err := ValidateContracts(labels); err != nil {
+      58			return err
+      59		}
+      60		if err := Validate(set, discovered); err != nil {
+      61			return err
+      62		}
+      63		return nil
+      64	}
+      65	
+      66	func ReasonFor(err error) string {
+      67		if v, ok := err.(*ValidationError); ok {
+      68			return v.Reason
+      69		}
+      70		return "ValidationFailed"
+      71	}
+  ```
+- `pkg/register/oc_vs_sonic.yaml` — exists, 724 bytes, mtime 2026-08-29T02:33:25
+  ```
+  # OpenConfig vs SONiC-native path register
+  # Prefer OpenConfig where supported; record native-path gaps with justification.
+  # This register is CI-checked to prevent regressions.
+  entries:
+    - path: /interfaces/interface
+      prefer: openconfig
+    - path: /network-instances/network-instance
+      prefer: openconfig
+    - path: /sonic-bgp:sonic-bgp/BGP_GLOBALS
+      prefer: sonic
+      native_path: /sonic-bgp:sonic-bgp/BGP_GLOBALS
+      justification: SONiC BGP global settings not fully covered by OpenConfig on pinned image
+    - path: /sonic-srv6:sonic-srv6/SRV6_GLOBAL
+      prefer: sonic
+      native_path: /sonic-srv6:sonic-srv6/SRV6_GLOBAL
+      justification: SRv6 gNMI paths are SONiC-native; no OpenConfig equivalent on pinned image
+  ```
+- `.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/pkg.register.oc_vs_sonic.yaml.proof.txt` — exists, 836 bytes, mtime 2026-08-29T02:34:53
+  ```
+       1	# OpenConfig vs SONiC-native path register
+       2	# Prefer OpenConfig where supported; record native-path gaps with justification.
+       3	# This register is CI-checked to prevent regressions.
+       4	entries:
+       5	  - path: /interfaces/interface
+       6	    prefer: openconfig
+       7	  - path: /network-instances/network-instance
+       8	    prefer: openconfig
+       9	  - path: /sonic-bgp:sonic-bgp/BGP_GLOBALS
+      10	    prefer: sonic
+      11	    native_path: /sonic-bgp:sonic-bgp/BGP_GLOBALS
+      12	    justification: SONiC BGP global settings not fully covered by OpenConfig on pinned image
+      13	  - path: /sonic-srv6:sonic-srv6/SRV6_GLOBAL
+      14	    prefer: sonic
+      15	    native_path: /sonic-srv6:sonic-srv6/SRV6_GLOBAL
+      16	    justification: SRv6 gNMI paths are SONiC-native; no OpenConfig equivalent on pinned image
+  ```
+
+## CITED BUT NOT AUTO-GROUNDED — verified PRESENT by direct stat
+The critic's path extractor did not include these in the snapshot above, but each DOES exist on disk (confirmed by a direct read-only stat). Their absence from the snapshot is a TOOLING limitation, NOT evidence that the file is missing. Do NOT reject a criterion solely because one of these is 'not in the snapshot':
+- `/usr/lib/go-1.24/bin/go` — verified on disk (stat)
+
+## Deterministic probe results (harness-computed, not LLM)
+The harness ran fixed read-only checks. Trust these over prose for the gitignore / no-secrets criteria:
+
+### secret scan (deterministic) — 0 committed config file(s) scanned, NO literal secret assignments found (PASS)
+════════════════════════ PREVIOUSLY CONFIRMED (W9 verdict pins) ════════════════════════
+The following criteria were CONFIRMED in an earlier attempt of THIS phase, and the source files backing them are byte-for-byte UNCHANGED since (verified by content hash):
+    T001, T002, T003, T004, T005, T006, T007, T008, T009, T010, T011, T012, T013, T014, T015, T016, T017, T018, T019, T020, T021, T022, T024, T025
+Do NOT re-reject these for thin/absent proof slices or budget-elided excerpts — their implementation was already verified against identical code. Re-examine one ONLY if the CURRENT evidence or grounding snapshot actively CONTRADICTS it (shows the backing code is now wrong or gone). Absence of a fresh proof slice is NOT a contradiction. This exists so a large phase converges instead of rotating which criteria get grounded each attempt.
+
+
+════════════════════════ DESIGN CONTEXT (read-only background — NOT acceptance criteria) ════════════════════════
+The following are the feature's design documents. Use them ONLY to understand what
+the criteria mean and whether the evidence is consistent with the intended design.
+They are NOT a checklist: do not reject for anything that is not an explicit
+acceptance criterion in the SPEC section above. Context can inform a rejection of a
+real criterion; it can never become a new one.
+## Context: spec (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/spec.md
+# Feature Specification: AINETOPS SONiC EVPN/VXLAN Fabric
+
+**Feature Branch**: `001-ainetops-sonic-evpn-fabric`  
+**Created**: 2026-08-28  
+**Status**: Draft  
+**Input**: Replace the former vendor-specific router/MPLS use case with a fully open-source,
+Kubernetes-native AINETOPS platform. The lab uses SONiC devices in containerlab, translates
+supported MPLS VPN services to data-center EVPN/VXLAN constructs, orchestrates them with
+Kubenet/KUID and SDC, and observes them with OpenTelemetry, Prometheus, and Grafana.
+
+## Scope and interpretation
+
+"Replace a Cisco router with SONiC" means replace its **logical role and supported service
+intent** with a SONiC leaf, border leaf, or spine. It does not mean SONiC can run on arbitrary
+router hardware or that every WAN/MPLS feature has an EVPN equivalent. The MVP covers a
+containerlab fabric and only the mappings listed in this specification. It contains no
+Crosswork, NSO, CNC, proprietary NED, or vendor-specific controller dependency.
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 - Translate supported MPLS VPN intent (Priority: P2)
+
+A network engineer supplies normalized L2VPN, VPLS, VPWS, or L3VPN service intent. AINETOPS
+validates it and produces Kubenet `Network` intent for a SONiC EVPN/VXLAN fabric without
+silently discarding semantics.
+
+**Why this priority**: Service translation is the business outcome; however the translation
+controller lands after the MVP (Phase 6), so this story is P2 to align with delivery order.
+
+**Independent Test**: Apply one supported L2 service, one L3 service, and one unsupported
+MPLS-TE service. The supported services produce the expected bridge/VRF/VNI/attachment
+resources. The unsupported service is rejected before any device configuration changes.
+
+**Acceptance Scenarios**:
+
+1. **Given** VPLS or multipoint L2VPN intent, **When** translation succeeds, **Then** the
+   result is an EVPN bridge domain with a unique L2VNI, attachment VLANs, and import/export
+   route targets.
+2. **Given** L3VPN intent, **When** translation succeeds, **Then** the result is a tenant VRF,
+   L3VNI, RD, route targets, leaf attachments, and EVPN Type-5 routing where supported by the
+   qualified SONiC image.
+3. **Given** VPWS/E-Line intent, **When** translation succeeds, **Then** the result is a
+   dedicated two-attachment bridge domain and L2VNI and is explicitly marked as not proving
+   full pseudowire/RFC 8214 feature equivalence.
+4. **Given** RSVP-TE, SR-MPLS policy, pseudowire OAM/control-word, multicast VPN, unsupported
+   QoS, or another unmapped property, **When** it is validated, **Then** the request reports
+   the exact unsupported fields and creates no downstream `Network` or SDC `Config` resource.
+
+---
+
+### User Story 2 - Reconcile the fabric declaratively (Priority: P1)
+
+An operator manages topology and services through Kubernetes resources. Kubenet/KUID derive
+the abstract per-device intent and allocations; an AINETOPS SONiC provider renders validated
+… (context truncated at line boundary) …
+
+## Context: plan (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/plan.md
+# Implementation Plan: AINETOPS SONiC EVPN/VXLAN Fabric
+
+**Branch**: `001-ainetops-sonic-evpn-fabric` | **Date**: 2026-08-28 | **Spec**: [spec.md](./spec.md)  
+**Input**: Feature specification from `specs/001-ainetops-sonic-evpn-fabric/spec.md`
+
+## Summary
+
+Build an open-source reference platform that expresses data-center fabric intent with
+Kubernetes, launches SONiC leaf/spine nodes in containerlab, maps supported legacy VPN
+services to Kubenet EVPN/VXLAN `Network` resources, renders per-device configuration through a
+small AINETOPS SONiC provider, and uses SDC for validated gNMI transactions and drift.
+An AINETOPS `SRv6Service` controller adds a bidirectional IPv6 VPN across SONiC headend,
+transit, and End.DT46 endpoint behaviors. In-cluster gNMIc and OpenTelemetry Collector feed
+Prometheus and Grafana topology/service-path observability.
+
+The MVP control path is intentionally direct:
+
+```text
+Kubenet/KUID → NetworkDevice → ainetops-sonic-provider → SDC Config → gNMI → SONiC
+Kubenet/KUID → SRv6Service → ainetops-srv6-controller → SDC Config → gNMI → SONiC
+```
+
+Kubenet's optional rendered-config Git review and SDC Workspace/Rollout remain later
+enhancements after the direct path passes end-to-end acceptance.
+
+## Technical Context
+
+**Controller language**: Go version selected by the pinned Kubernetes/controller-runtime
+compatibility matrix.  
+**Platform**: Linux host, a pinned Kind cluster/node image, Docker-compatible runtime,
+containerlab, and optional KVM/nested virtualization for `sonic-vm`.  
+**Primary dependencies**: pinned Kind/Kubernetes node image, controller-runtime, Kubenet/KUID,
+SDC, SONiC image/YANG compatibility set, containerlab, OpenTelemetry Collector, Prometheus,
+Grafana, with gNMIc as the sole SONiC device-metric collector feeding OTel over OTLP.  
+**Storage**: Kubernetes API for desired/status state; in-cluster PVCs for SDC state required by
+its pinned release and Prometheus metrics. No host application database is added.  
+**Southbound**: gNMI with JSON_IETF and TLS; direct SSH/CLI is excluded.  
+**Testing**: Go unit/golden tests, CRD schema/server dry-run, controller envtest, SDC offline
+validation, Kind provisioning/off idempotence, containerlab integration/traffic/failure tests,
+centralized-workload inventory, and observability assertions.  
+**Reference scale**: 2 spines, 2 leaves, 2 EVPN Linux endpoints, 2 SRv6 Linux endpoints; at
+least one L2VNI, one L3VNI, two isolated VRFs, and one bidirectional SRv6 VPN.  
+**Constraints**: immutable version pins; privileged lab runtime; exact SONiC image/schema
+qualification; no silent migration loss; scoped field ownership; no proprietary runtime.
+
+## Architecture
+
+```text
+                  scripts/provision.sh / scripts/off.sh
+                                  │
+                    owned Docker management network
+             ┌────────────────────┴────────────────────┐
+             │                                         │
+             ▼                                         ▼
+```
+… (context truncated at line boundary) …
+
+## Context: contract:crd-api (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/contracts/crd-api.md
+# Contract: Kubernetes APIs and Generated Resources
+
+**Applies to**: Kubenet/KUID resources, required `SRv6Service`, optional `MigrationPlan`,
+provider-generated SDC resources, status, ownership, and version compatibility.
+
+## API boundary
+
+1. Users express ongoing fabric/service intent with the pinned upstream Kubenet `Network` API.
+2. KUID owns identifier/address allocation through its upstream claim APIs.
+3. Kubenet derives upstream `NetworkDevice` objects.
+4. `ainetops-sonic-provider` creates upstream SDC `Config` resources.
+5. SDC is the only component authorized to mutate device configuration.
+6. The required AINETOPS `SRv6Service` expresses only SRv6 endpoint/path/behavior intent;
+   KUID owns its locator/SID claims and SDC owns its device transactions.
+7. The optional AINETOPS `MigrationPlan` records source translation and cutover evidence; it
+   does not replace `Network`, `NetworkDevice`, or `Config`.
+
+All APIs and their controllers run in the named Kind cluster. Containerlab is not an
+application runtime and hosts only network/endpoint nodes.
+
+## Deployment contract
+
+- `config/kind/cluster.yaml` is the declarative Kind cluster definition; its config API,
+  cluster name, node roles, node image digest, pod/service CIDRs, mounts, labels, and port
+  mappings are version controlled.
+- `scripts/provision.sh` is the sole implementation of complete environment creation and
+  convergence. Make/CI commands may invoke it but may not reimplement its phases.
+- `scripts/off.sh` is the sole implementation of environment shutdown and cleanup.
+- Every platform application is installed into Kind with pinned Kubernetes manifests or Helm
+  releases. Standalone application containers and Compose files are contract violations.
+- Namespaces, Services, PVCs, Secrets, RBAC, monitoring discovery, dashboards, datasources,
+  and alert rules are Kubernetes resources.
+- Kind nodes and containerlab management interfaces share a dedicated labeled Docker network;
+  pod and service CIDRs do not overlap it.
+- Lifecycle scripts resolve the exact cluster, topology, and network targets and refuse broad
+  or unowned deletion.
+
+## Version contract
+
+- Pin one complete Kubenet/KUID release or commit, including CRDs, controllers, examples, and
+  provider input schemas.
+- Pin one SDC release and install only its matching CRDs/controllers.
+- Pin one containerlab release and immutable SONiC image digest per lab profile.
+- Pin one SONiC/OpenConfig YANG schema commit and provider mapping version per SONiC image.
+- Pin gNMIc, the gNMI-path/label mapping, Grafana Flow plugin, and generated topology-asset
+  schema with the observability stack.
+- Publish the five-part compatibility set in deployment metadata and provider status.
+- A mismatch MUST set `SchemaMismatch`, emit no changed SDC spec, and leave the last known
+  valid applied intent intact.
+- `latest`, floating branches, and a mixture of Kubenet tutorial/main API shapes are forbidden.
+
+## Required SRv6Service API
+… (context truncated at line boundary) …
+
+## Context: contract:reconciliation (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/contracts/reconciliation.md
+# Contract: Translation, Reconciliation, and Safety
+
+**Applies to**: Migration translation, the AINETOPS SONiC provider, SDC integration, device
+application, drift, failure, and deletion.
+
+## Rule 1: No silent semantic loss
+
+- A mapping is allowed only when every required source property has a qualified target
+  equivalent.
+- Limited equivalence, such as VPWS represented by a dedicated L2VNI, requires explicit opt-in
+  and a durable status finding.
+- Unsupported fields reject the entire migration plan before allocations, generated Network,
+  or SDC Config mutation.
+- Raw device CLI is never an accepted source format.
+
+## Rule 2: Deterministic, idempotent rendering
+
+- Equivalent normalized input, topology, allocations, schema, and mapping version produce
+  byte-equivalent canonical SDC intent.
+- Resource names, ordering, and hashes are stable.
+- An unchanged render results in no Kubernetes spec write and no gNMI Set.
+- Rendering has no hidden external allocation or mutable local state.
+
+## Rule 3: Dependency gates precede mutation
+
+The provider does not emit changed device intent until:
+
+1. source intent and references are valid;
+2. topology and all required allocations are Ready;
+3. the target and credentials are Ready;
+4. image/schema/mapping compatibility matches;
+5. every rendered path passes offline/schema validation.
+
+Failure sets a current-generation condition and Event. Partial render output is not applied.
+
+## Rule 4: One owner per managed path
+
+- Kubenet/KUID owns intent and allocations; provider owns generated Config specs; SDC owns
+  device transactions.
+- Provider uses scoped paths and server-side apply field ownership.
+- AINETOPS does not overwrite unmanaged device paths.
+- Conflicting ownership or intent priority is a terminal error until explicitly resolved.
+
+## Rule 5: Safe transaction and readiness semantics
+
+- SDC validation and transaction confirmation are mandatory; direct device mutation is
+  forbidden.
+- Aggregate `Ready=True` requires all mandatory per-device operations to be confirmed.
+- A mixed success/failure result is `Degraded`, records every target, and never claims full
+  success.
+- The last valid configuration remains desired when a new generation fails validation.
+- No automated rollback may erase unrelated, shared, or manually owned configuration.
+
+## Rule 6: Drift is explicit
+
+- SDC compares intended and running configuration for owned paths.
+- Lab mode uses documented revertive behavior and verifies restoration.
+- Unmanaged-path changes are observed only if subscribed; they are not reverted or claimed.
+- Production drift policy must be explicitly selected and cannot inherit lab defaults silently.
+
+## Rule 7: Bounded retry and classified errors
+
+- Transient transport/unavailability failures retry with bounded exponential backoff and jitter.
+- Terminal schema, unsupported-feature, ownership, collision, and compatibility errors do not
+  hot-loop; they retry on relevant generation or dependency change.
+… (context truncated at line boundary) …
+
+## Context: data-model (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/data-model.md
+# Data Model: AINETOPS SONiC EVPN/VXLAN Fabric
+
+**Feature**: AINETOPS SONiC EVPN/VXLAN Fabric  
+**Date**: 2026-08-28
+
+## Ownership model
+
+| Layer | Source of truth | Owns | Must not own |
+|---|---|---|---|
+| Migration boundary | Git and optional `MigrationPlan` | Source provenance, mapping findings, cutover decision | Allocations or device configuration |
+| Kubenet/KUID | Existing Kubernetes resources | Topology, abstract network intent, inventory, IP/ASN/VLAN/VNI allocation | Device-specific YANG |
+| AINETOPS SONiC provider | Controller reconciliation | Deterministic `NetworkDevice`/`SRv6Service`-to-SONiC rendering and readiness propagation | Independent allocation or device transaction |
+| SDC | Existing Kubernetes resources and target state | Schemas, device transactions, running/intended comparison, drift | Service semantics |
+| SONiC | Running network state | Applied forwarding/control-plane state | Desired-state authority |
+| Observability | Prometheus | Time-series metrics and alert state | Configuration source of truth |
+
+The same field/path MUST have one owner. AINETOPS uses server-side apply and a dedicated field
+manager for generated SDC resources. Unmanaged SONiC paths remain untouched.
+
+## Runtime and lifecycle model
+
+| Runtime resource | Owner | Contents / behavior |
+|---|---|---|
+| Kind cluster `ainetops` | `scripts/provision.sh` / `scripts/off.sh` | Sole application runtime; pinned node image and declarative cluster configuration |
+| Kind namespaces | Kubernetes manifests/Helm releases | Kubenet/KUID, SDC, AINETOPS, monitoring, and any upstream system namespaces |
+| In-cluster applications | Kubernetes controllers | Kubenet/KUID, SDC, provider/translator/SRv6 controller, gNMIc, OTel Collector, Prometheus, Grafana |
+| AINETOPS management network | Lifecycle scripts | Labeled Docker network shared by Kind nodes and containerlab management interfaces |
+| Containerlab topology | Lifecycle scripts + topology YAML | SONiC spines/leaves and Linux traffic endpoints only |
+| Application state | Kubernetes APIs/PVCs/Secrets | Desired state, metrics retention, credentials, dashboards, alerts, and schema data |
+
+Every owned non-Kubernetes runtime resource carries stable AINETOPS labels or a deterministic
+name so `off.sh` can resolve its exact target without broad globs. The script never deletes a
+Kind cluster or Docker network whose ownership/name does not match its selected cluster.
+
+Lifecycle phases are durable and repeat-safe:
+
+```text
+Absent → NetworkReady → KindReady → LabReady → AppsReady → TargetsReady → FabricReady
+   ▲                                                             │
+   │                                                SRv6Ready → ObservabilityReady
+   │                                                             │
+   └────────── off.sh: evidence → lab removal → Kind deletion → cleanup ───────────┘
+```
+
+Provisioning resumes from the first unmet phase. Shutdown tolerates any phase and treats an
+… (context truncated at line boundary) …
+
+## Context: research (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/research.md
+# Research: AINETOPS Open-Source SONiC Orchestration
+
+**Feature**: AINETOPS SONiC EVPN/VXLAN Fabric  
+**Date**: 2026-08-28  
+**Method**: Independent research agents reviewed the former specification and current official
+Kubenet, SDC, SONiC, containerlab, OpenTelemetry, Prometheus, Grafana, and gNMIc sources.
+
+## Executive decision
+
+Use the smallest declarative control plane that preserves clear ownership:
+
+```text
+Git or kubectl
+      │
+      ▼
+Kubernetes API
+      ├── Kubenet topology + Network intent
+      ├── KUID inventory and identifier claims
+      ├── required SRv6Service
+      └── optional MigrationPlan (audit/cutover only)
+                         │
+                         ▼
+               Kubenet NetworkDevice
+                         │
+                         ▼
+              ainetops-sonic-provider
+                         │
+                         ▼
+                SDC Config / ConfigSet
+                         │  YANG validation + transaction + drift
+                         ▼
+                 gNMI / JSON_IETF
+                         │
+                         ▼
+            containerlab SONiC leaf/spine fabric
+```
+
+This deliberately avoids a second workflow engine. Kubernetes reconciliation is the workflow;
+Kubenet/KUID owns abstract intent and allocation; the AINETOPS provider owns only rendering;
+SDC owns schema-aware target transactions and running-state comparison.
+
+## Decision 1: Reuse Kubenet/KUID instead of defining fabric CRDs
+
+- **Decision**: Pin and reuse Kubenet `Topology`, design/config, `Network`, and
+  `NetworkDevice` APIs plus KUID IP/ASN/VLAN/VNI index and claim APIs.
+- **Rationale**: Kubenet is explicitly designed to use Kubernetes as a declarative,
+  continuously reconciled NOS automation system. Its published examples already model a
+  default underlay plus bridged EVPN, routed EVPN, and IRB networks, then derive per-device
+  `NetworkDevice` objects and SDC `Config` objects.
+- **Important version finding**: The v0.0.1 tutorial uses `NetworkConfig` and fields such as
+  `bridgeDomains`/`routingTables`; newer bundled artifacts may expose `NetworkDesign` and
+  `bridges`/`routers`. Implementation must pin one complete commit/release and validate every
+  example against that release's CRDs. It must not combine tutorial YAML with unpinned main.
+- **Alternative rejected**: A new `Fabric`, `Tenant`, `VRF`, and `Attachment` CRD family would
+  duplicate the upstream intent model and create ambiguous ownership.
+- **Sources**: [Kubenet purpose and components](https://learn.kubenet.dev/),
+  [network configuration](https://learn.kubenet.dev/02-examples/04_networkconfig/),
+  [default network](https://learn.kubenet.dev/02-examples/05_defaultnetwork/),
+  [bridged EVPN](https://learn.kubenet.dev/02-examples/06_bridgednetwork/),
+  [routed EVPN](https://learn.kubenet.dev/02-examples/07_routednetwork/), and
+  [IRB](https://learn.kubenet.dev/02-examples/08_irbnetwork/).
+
+## Decision 2: Use SDC as the only device transaction layer
+… (context truncated at line boundary) …
+
+## Context: quickstart (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/quickstart.md
+# Quickstart: Validate the AINETOPS SONiC Fabric
+
+**Feature**: AINETOPS SONiC EVPN/VXLAN Fabric  
+**Purpose**: Acceptance workflow the implementation MUST make executable. Commands name the
+planned stable targets; their implementation is tracked in [tasks.md](./tasks.md).
+
+## Prerequisites
+
+- Linux host with the CPU/RAM/disk documented in the implementation README.
+- Docker-compatible runtime and permission to launch privileged network containers.
+- `kind`, `kubectl`, `helm`, `containerlab`, `jq`, `curl`, `tcpdump`, and a gNMI client at
+  versions checked by `versions.lock.yaml`.
+- KVM/nested virtualization only when the `sonic-vm` conformance profile is selected.
+- A locally imported immutable SONiC image whose digest matches `versions.lock.yaml`.
+- No production credentials; lab credentials/certificates are generated into Kubernetes
+  Secrets and removed during teardown.
+
+## 1. Provision the complete environment
+
+```bash
+./scripts/provision.sh --profile sonic-vs --cluster-name ainetops
+```
+
+This is the primary and idempotent lifecycle command. It performs:
+
+- pin and host preflight validation;
+- creation of the dedicated labeled Docker management network;
+- creation of the pinned Kind cluster and attachment of its nodes to that network;
+- SONiC capability qualification for the selected profile;
+- deployment of the eight-node containerlab topology;
+- installation inside Kind of Kubenet/KUID, SDC, the AINETOPS provider/translator, OTel
+  Collector, Prometheus, Grafana, Prometheus Operator resources, and gNMIc;
+- application of schemas, discovery, topology, allocation pools, and default fabric intent;
+- bounded waits for all required readiness gates.
+
+Expected: the command completes without an undocumented manual step. Running the same command
+again reports convergence and does not recreate the cluster, churn application releases, or
+issue unchanged device configuration.
+
+If the fast profile fails its unmodified capability gate, use:
+
+```bash
+./scripts/off.sh --cluster-name ainetops
+./scripts/provision.sh --profile sonic-vm --cluster-name ainetops
+```
+
+The gate verifies:
+
+- gNMI Capabilities, Get, Set, and Subscribe;
+- authentication/TLS and JSON_IETF encoding;
+- persistent writable configuration;
+- all YANG paths the provider needs;
+- BGP EVPN/VXLAN services and required route behavior.
+- IPv6 underlay forwarding, SRH processing, H.Encaps.Red, transit End, End.DT46, SID-list/
+  steering programming, `sonic-srv6` gNMI Set/Get, and MySID counters.
+
+The conformance suite MUST NOT skip a failed capability.
+
+## 2. Verify Kind and centralized applications
+
+```bash
+kind get clusters
+kubectl cluster-info --context kind-ainetops
+kubectl get pods -A
+kubectl get helmreleases -A 2>/dev/null || helm list -A
+```
+
+Expected: the `ainetops` Kind cluster exists and every required application is Ready inside it.
+No Kubenet, SDC, AINETOPS, OTel, Prometheus, Grafana, or gNMIc application container runs as a
+standalone host/Compose workload.
+… (context truncated at line boundary) …
+
+## Context: checklist:requirements (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/checklists/requirements.md
+# Specification Quality Checklist: AINETOPS SONiC EVPN/VXLAN Fabric
+
+**Purpose**: Validate the rewritten feature before implementation  
+**Created**: 2026-08-28  
+**Feature**: [spec.md](../spec.md)
+
+## Identity and scope
+
+- [x] Feature and branch use the AINETOPS identity
+- [x] Scope distinguishes logical role/service replacement from installing SONiC on arbitrary
+  legacy router hardware
+- [x] All network nodes are SONiC in containerlab; Linux is limited to endpoints/tooling
+- [x] Proprietary controller, device-package, and runtime dependencies are explicitly excluded
+- [x] Production ASIC equivalence and live automatic cutover are not implied by the lab
+
+## Architecture quality
+
+- [x] Kubernetes reconciliation is the orchestration workflow
+- [x] Kubenet/KUID owns topology, abstract Network intent, and allocation
+- [x] AINETOPS adds only a narrow SONiC provider rather than a second orchestrator
+- [x] The required AINETOPS `SRv6Service` CRD fills only the missing service contract and
+  delegates topology/allocation to Kubenet/KUID and device transactions to SDC
+- [x] SDC is the only device transaction/drift layer
+- [x] Ownership boundaries prevent two reconcilers from managing the same path
+- [x] Direct reconciliation is the MVP; optional GitOps/rollout enhancements are clearly later
+- [x] Upstream APIs are reused rather than duplicated
+
+## Upstream capability and version realism
+
+- [x] The published Kubenet SONiC-provider gap is stated as implementation work
+- [x] `NetworkConfig` versus `NetworkDesign` version drift is identified
+- [x] One complete pinned upstream release/commit is required
+- [x] SONiC image, YANG schema, mapping, and SDC versions form a qualified compatibility set
+- [x] `sonic-vs` has a capability gate and `sonic-vm` conformance fallback
+- [x] Release acceptance cannot skip, mock, or substitute Linux forwarding for SONiC SRv6;
+  one pinned image/SAI profile must pass the complete SRv6 gate
+- [x] Floating versions and `latest` images are forbidden
+
+## Service translation safety
+
+- [x] VPLS/L2VPN, VPWS/E-Line, L3VPN, and IRB mappings are explicit
+- [x] Limited VPWS equivalence requires opt-in and is not claimed as full pseudowire parity
+- [x] TE, pseudowire OAM/control word, multicast VPN, complex QoS/OAM, service chaining, and
+  unknown properties are rejected/deferred
+- [x] Translation is all-or-nothing before downstream mutation
+- [x] Identifier/reference/collision validation is specified
+- [x] Raw device CLI is not an accepted translation input
+
+## API and reconciliation contract
+
+- [x] Existing upstream resources, the required narrow `SRv6Service`, and optional
+  `MigrationPlan` are distinguished
+- [x] Optional `MigrationPlan` does not duplicate `Network` or `Config`
+- [x] Status uses observed generation, standard conditions, stable reasons, and per-device data
+- [x] Determinism, stable names/hashes, idempotence, dependency gates, retries, and finalizers
+  are testable
+- [x] Partial success cannot become aggregate Ready
+… (context truncated at line boundary) …
+════════════════════════ END ════════════════════════
+Remember: end with the single line `VERDICT f9da9ee86b1fe015: APPROVED` or
+`VERDICT f9da9ee86b1fe015: REJECTED` and nothing after it.
+
+═══════════ REPLY ═══════════
+Unmet or unclear acceptance criteria and concrete gaps:
+
+- T029: Compatibility-set validation not integrated
+  - Missing: No controller logic uses pkg/compat to validate image/schema/mapping/upstream API versions, no SAI SRv6 capability check, and no enforcement of pinned telemetry/topology label contracts.
+  - Action: Wire compat.FromAnnotations/ValidatePins/FullValidate into reconcilers; set current-generation conditions with stable reasons (e.g., SchemaMismatch/CapabilityMissing) and gate downstream mutations when mismatched. Add unit/envtest coverage.
+
+- T029a: Per-path OpenConfig-vs-SONiC register and CI guard incomplete
+  - Missing: The register file exists (pkg/register/oc_vs_sonic.yaml) but is not complete “per-path for all rendered YANG paths,” and there is no CI/test that asserts new/changed rendered paths are registered and prefer OpenConfig.
+  - Action: Implement renderer path enumeration and a test/linter that fails when a rendered YANG path lacks a register entry or regresses preference; expand the register to cover all rendered paths with justifications for any SONiC-native gaps.
+
+- T031: Interface/loopback/MTU and dual-stack IPv4 /31 + IPv6 underlay renderers absent
+  - Missing: No renderer code producing SDC Config for interfaces/loopbacks/MTU, IPv4 /31, and IPv6 underlay.
+  - Action: Add renderer package (e.g., pkg/render/interfaces.go) with deterministic output and tests (golden/envtest).
+
+- T032: BGP global/neighbor and EVPN AF renderers absent
+  - Missing: No code to render BGP global, neighbors, and EVPN AF.
+  - Action: Implement renderers and tests with deterministic output.
+
+- T033: VLAN, bridge, VXLAN NVO, VTEP, and L2VNI renderers absent
+  - Missing: No code rendering these L2 constructs.
+  - Action: Implement renderers and golden/idempotence tests.
+
+- T034: VRF, L3VNI, RD/RT, Type-5, symmetric-IRB, locator/MySID, H.Encaps.Red, ordered SID-list steering, transit End, egress End.DT46 renderers absent
+  - Missing: No renderers for these L3/SRv6 constructs.
+  - Action: Implement renderers and tests validating required behaviors.
+
+- T035: Deterministic composition, stable names, canonical hashes, annotations, owner references absent
+  - Missing: No composer to order output, generate stable names/hashes, attach compatibility annotations, or set owner refs to NetworkDevice/SRv6Service.
+  - Action: Add composition layer with hashing and annotations; include tests proving determinism and stable naming.
+
+- T036: Offline SDC/schema validation integration absent
+  - Missing: No integration to validate rendered output against pinned schemas before apply, nor logic to emit no changed Config on validation failure.
+  - Action: Integrate SDC offline validation (or equivalent) and enforce the “no-change on validation failure” contract; add tests for negative cases.
+
+- T037: Server-side apply with dedicated field manager and explicit policies absent
+  - Missing: No SSA usage, field manager name, or priority/operation/revertive/deletion policy handling.
+  - Action: Use server-side apply (Apply/ApplyOptions.FieldManager) for SDC specs with explicit policy; add tests for ownership and deletion semantics.
+
+- T038: Observation of SDC Config/Target/Deviation status and propagation of conditions/Events absent
+  - Missing: No watches on SDC CRDs, no status aggregation to per-device/aggregate conditions, and no Kubernetes Events.
+  - Action: Add watches/indexes for SDC status resources; propagate standard conditions and emit Events; add envtest coverage.
+
+- T039: Bounded backoff/jitter and terminal-vs-transient classification incomplete
+  - Missing: Controllers use fixed RequeueAfter=10s; no exponential backoff/jitter and no runtime use of terminal/transient classification.
+  - Action: Implement bounded backoff with jitter and apply terminal/transient classification (e.g., using model.IsTerminal) to avoid hot-looping; add tests.
+
+- T040: Ordered finalization not implemented
+  - Missing: No finalizers on managed resources; no ordered deletion of owned SDC intent, confirm/timeout flow, release of owned claims, or retention of recovery evidence.
+  - Action: Add finalizers and finalize logic with timeouts; add tests that verify deletion ordering and durable effects.
+
+- T041: Metrics/tracing instrumentation and in-Kind deployment verification absent
+  - Missing: No Prometheus/Otel instrumentation in reconcilers, no build/load/deploy of provider images via T023 manifests, and no verification of Pods/Services/probes/RBAC or checks for secret/high-cardinality metric labels.
+  - Action: Instrument with bounded metrics and OTel traces; add Dockerfile/build, load images into Kind, deploy via manifests, and provide tests/automation to verify deployment and metric label hygiene.
+
+VERDICT f9da9ee86b1fe015: REJECTED
+

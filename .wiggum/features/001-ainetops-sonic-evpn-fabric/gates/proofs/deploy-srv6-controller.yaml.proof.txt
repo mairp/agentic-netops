@@ -1,0 +1,50 @@
+     1	# AINETOPS SRv6 controller placeholder Deployment and Service (T023)
+     2	apiVersion: apps/v1
+     3	kind: Deployment
+     4	metadata:
+     5	  name: ainetops-srv6-controller
+     6	  namespace: ainetops-system
+     7	  labels:
+     8	    app.kubernetes.io/name: ainetops-srv6-controller
+     9	spec:
+    10	  replicas: 1
+    11	  selector:
+    12	    matchLabels:
+    13	      app.kubernetes.io/name: ainetops-srv6-controller
+    14	  template:
+    15	    metadata:
+    16	      labels:
+    17	        app.kubernetes.io/name: ainetops-srv6-controller
+    18	    spec:
+    19	      serviceAccountName: ainetops-srv6-controller
+    20	      containers:
+    21	      - name: srv6-controller
+    22	        image: ghcr.io/ainetops/ainetops-srv6-controller@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    23	        args: ["--metrics-bind=:8081"]
+    24	        ports:
+    25	        - name: http
+    26	          containerPort: 8081
+    27	        env:
+    28	        - name: OTEL_SERVICE_NAME
+    29	          value: ainetops-srv6-controller
+    30	        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    31	          value: http://otel-collector.ainetops-system:4318
+    32	        readinessProbe:
+    33	          httpGet: { path: /readyz, port: 8081 }
+    34	          initialDelaySeconds: 5
+    35	        livenessProbe:
+    36	          httpGet: { path: /healthz, port: 8081 }
+    37	          initialDelaySeconds: 10
+    38	---
+    39	apiVersion: v1
+    40	kind: Service
+    41	metadata:
+    42	  name: ainetops-srv6-controller
+    43	  namespace: ainetops-system
+    44	spec:
+    45	  selector:
+    46	    app.kubernetes.io/name: ainetops-srv6-controller
+    47	  ports:
+    48	  - name: http
+    49	    port: 8081
+    50	    targetPort: 8081

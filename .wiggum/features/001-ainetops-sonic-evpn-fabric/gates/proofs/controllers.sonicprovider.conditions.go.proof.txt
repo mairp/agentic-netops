@@ -1,0 +1,32 @@
+     1	package sonicprovider
+     2	
+     3	import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+     4	
+     5	// upsertConditionGeneric updates a generic map-status with a condition entry under 'conditions'.
+     6	// Kubenet NetworkDevice keeps status as an arbitrary object; we model conditions as a []metav1.Condition
+     7	// stored under the "conditions" key.
+     8	func upsertConditionGeneric(status map[string]any, c metav1.Condition) map[string]any {
+     9		if status == nil {
+    10			status = map[string]any{}
+    11		}
+    12		condsAny, ok := status["conditions"]
+    13		var conds []metav1.Condition
+    14		if ok {
+    15			if typed, ok := condsAny.([]metav1.Condition); ok {
+    16				conds = typed
+    17			}
+    18		}
+    19		found := false
+    20		for i := range conds {
+    21			if conds[i].Type == c.Type {
+    22				conds[i] = c
+    23				found = true
+    24				break
+    25			}
+    26		}
+    27		if !found {
+    28			conds = append(conds, c)
+    29		}
+    30		status["conditions"] = conds
+    31		return status
+    32	}

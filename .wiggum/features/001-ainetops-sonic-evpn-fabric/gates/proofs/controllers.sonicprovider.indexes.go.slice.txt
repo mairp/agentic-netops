@@ -1,0 +1,6 @@
+controllers/sonicprovider/indexes.go — field index for Kubenet derived selector
+11: func SetupIndexes(ctx context.Context, mgr ctrl.Manager) error {
+14:   return idx.IndexField(ctx, &kubenet.NetworkDevice{}, "metadata.labels.network.kubenet.dev/derived", func(o client.Object) []string {
+23:     if v, ok := labels["network.kubenet.dev/derived"]; ok && v == "true" {
+24:       return []string{"true"}
+25:     }

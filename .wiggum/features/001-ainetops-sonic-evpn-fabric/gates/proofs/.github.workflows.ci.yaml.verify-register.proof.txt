@@ -1,0 +1,9 @@
+File: .github/workflows/ci.yaml
+24:
+25:	- name: Verify pins and CRDs
+26:	  run: |
+27:	    make verify-compat
+28:
+29:	- name: Register guard
+30:	  run: |
+31:	    make verify-register

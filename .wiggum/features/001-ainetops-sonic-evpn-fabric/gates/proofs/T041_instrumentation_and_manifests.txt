@@ -1,0 +1,13 @@
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:59:		r.tracer = otel.Tracer("ainetops/sonicprovider")
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:61:	ctx, span := r.tracer.Start(ctx, "ReconcileNetworkDevice")
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:244:		r.renderCounter = promauto.NewCounter(prometheus.CounterOpts{
+controllers/sonicprovider/controller.go:controllers/sonicprovider/controller.go:247:			Name:      "applies_total",
+controllers/sonicprovider/controller.go:cmd/sonic-provider/main.go:99:	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+controllers/sonicprovider/controller.go:cmd/sonic-provider/main.go:103:	if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil {
+controllers/sonicprovider/controller.go:cmd/sonic-provider/main.go:109:	if err := mgr.Start(ctx); err != nil {
+controllers/sonicprovider/controller.go:deploy/ainetops/manifests/provider.yaml:27:        readinessProbe:
+controllers/sonicprovider/controller.go:deploy/ainetops/manifests/provider.yaml:30:        livenessProbe:
+cmd/sonic-provider/main.go:99:	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+cmd/sonic-provider/main.go:103:	if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil {
+deploy/ainetops/manifests/provider.yaml:27:        readinessProbe:
+deploy/ainetops/manifests/provider.yaml:30:        livenessProbe:

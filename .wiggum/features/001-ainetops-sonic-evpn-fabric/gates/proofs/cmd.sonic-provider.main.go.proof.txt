@@ -1,0 +1,15 @@
+File: cmd/sonic-provider/main.go
+38:	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+43:	var enableLeaderElection bool
+46:	flag.BoolVar(&enableLeaderElection, "leader-elect", true, "Enable leader election for controller manager.")
+53:	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+60:		LeaderElection:         enableLeaderElection,
+61:		LeaderElectionID:       "ainetops-sonic-provider",
+62:		LeaderElectionReleaseOnCancel: true,
+66:		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+76:	if err := kubenet.AddToScheme(scheme); err != nil {
+82:	if err := sonicprovider.SetupIndexes(ctx, mgr); err != nil {
+88:	if err := sdc.AddToScheme(scheme); err != nil {
+99:	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+103:	if err := mgr.AddReadyzCheck("readyz", healthz.Checker(func(req *http.Request) error { return nil })); err != nil {
+119:	_ = corev1.AddToScheme(scheme)

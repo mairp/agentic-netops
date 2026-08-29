@@ -1,0 +1,73 @@
+$ nl -ba controllers/sonicprovider/controller.go | sed -n '1,200p'
+     1	package sonicprovider
+     2	
+     3	import (
+     4		"context"
+     5		"fmt"
+     6		"time"
+     7	
+     8		"github.com/go-logr/logr"
+     9		"github.com/mairp/ainetops/pkg/kubenet"
+    10		"github.com/mairp/ainetops/pkg/reasons"
+    11		metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    12		"k8s.io/apimachinery/pkg/runtime"
+    13		ctrl "sigs.k8s.io/controller-runtime"
+    14		"sigs.k8s.io/controller-runtime/pkg/client"
+    15		"sigs.k8s.io/controller-runtime/pkg/predicate"
+    16	)
+    17	
+    18	// Reconciler watches Kubenet NetworkDevice resources and reconciles downstream SDC Config.
+    19	
+    20	type Reconciler struct {
+    21		client.Client
+    22		Scheme *runtime.Scheme
+    23		Log    logr.Logger
+    24	}
+    25	
+    26	func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+    27		r.Log.Info("reconcile NetworkDevice", "name", req.NamespacedName)
+    28		var nd kubenet.NetworkDevice
+    29		if err := r.Get(ctx, req.NamespacedName, &nd); err != nil {
+    30			return ctrl.Result{}, client.IgnoreNotFound(err)
+    31		}
+    32	
+    33		// Initialize current-generation conditions to gate downstream changes
+    34		updated := nd.DeepCopy()
+    35		condReady := metav1.Condition{
+    36			Type:               "Ready",
+    37			Status:             metav1.ConditionFalse,
+    38			ObservedGeneration: nd.Generation,
+    39			LastTransitionTime: metav1.NewTime(time.Now()),
+    40			Reason:             reasons.ReasonWaitingDependencies,
+    41			Message:            "Waiting for Kubenet/KUID, targets, schema, SDC validation",
+    42		}
+    43		updated.Status = upsertConditionGeneric(nd.Status, condReady)
+    44		if err := r.Status().Patch(ctx, updated, client.MergeFrom(&nd)); err != nil {
+    45			return ctrl.Result{}, err
+    46		}
+    47		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+    48	}
+    49	
+    50	func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+    51		return ctrl.NewControllerManagedBy(mgr).
+    52			For(&kubenet.NetworkDevice{}).
+    53			WithEventFilter(ignoreNonNetworkDevice()).
+    54			Complete(r)
+    55	}
+    56	
+    57	func ignoreNonNetworkDevice() predicate.Predicate {
+    58		return predicate.NewPredicateFuncs(func(obj client.Object) bool {
+    59			labels := obj.GetLabels()
+    60			if labels == nil {
+    61				return false
+    62			}
+    63			// Use Kubenet's derived label to select only devices the provider should reconcile
+    64			if v, ok := labels["network.kubenet.dev/derived"]; ok && v == "true" {
+    65				return true
+    66			}
+    67			return false
+    68		})
+    69	}
+    70	
+    71	// ensure import
+    72	var _ = fmt.Sprintf

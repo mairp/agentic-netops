@@ -1,0 +1,120 @@
+     1	package sonicprovider
+     2	
+     3	import (
+     4		"context"
+     5		"fmt"
+     6		"math/rand"
+     7		"time"
+     8	
+     9		"github.com/go-logr/logr"
+    10		"github.com/mairp/ainetops/pkg/compat"
+    11		"github.com/mairp/ainetops/pkg/kubenet"
+    12		"github.com/mairp/ainetops/pkg/reasons"
+    13		"github.com/mairp/ainetops/pkg/render"
+    14		"github.com/mairp/ainetops/pkg/sdc"
+    15		"github.com/prometheus/client_golang/prometheus"
+    16		"github.com/prometheus/client_golang/prometheus/promauto"
+    17		metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    18		apierrors "k8s.io/apimachinery/pkg/api/errors"
+    19		"k8s.io/apimachinery/pkg/runtime"
+    20		ctrl "sigs.k8s.io/controller-runtime"
+    21		"sigs.k8s.io/controller-runtime/pkg/client"
+    22		"sigs.k8s.io/controller-runtime/pkg/predicate"
+    23	
+    24		// OpenTelemetry instrumentation (T041)
+    25		"go.opentelemetry.io/otel"
+    26		"go.opentelemetry.io/otel/attribute"
+    27		"go.opentelemetry.io/otel/trace"
+    28	)
+    29	
+    30	// Reconciler watches Kubenet NetworkDevice resources and reconciles downstream SDC Config.
+    31	
+    32	type Reconciler struct {
+    33		client.Client
+    34		Scheme   *runtime.Scheme
+    35		Log      logr.Logger
+    36		Recorder recordEventer
+    37	
+    38		// metrics
+    39		renderCounter prometheus.Counter
+    40	
+    41		// tracing
+    42		tracer trace.Tracer
+    43	}
+    44	
+    45	type recordEventer interface {
+    46		Eventf(object runtime.Object, eventtype, reason, messageFmt string, args ...any)
+    47	}
+    48	
+    49	const (
+    50		finalizerName   = "ainetops.dev/finalizer"
+    51		fieldManager    = "ainetops-sonic-provider"
+    52		annotationHash  = "ainetops.dev/config-hash"
+    53		ownerKind       = "NetworkDevice"
+    54	)
+    55	
+    56	func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+    57		// OTel span
+    58		if r.tracer == nil {
+    59			r.tracer = otel.Tracer("ainetops/sonicprovider")
+    60		}
+    61		ctx, span := r.tracer.Start(ctx, "ReconcileNetworkDevice")
+    62		defer span.End()
+    63		span.SetAttributes(attribute.String("k8s.name", req.Name), attribute.String("k8s.namespace", req.Namespace))
+    64	
+    65		r.Log.Info("reconcile NetworkDevice", "name", req.NamespacedName)
+    66		var nd kubenet.NetworkDevice
+    67		if err := r.Get(ctx, req.NamespacedName, &nd); err != nil {
+    68			return ctrl.Result{}, client.IgnoreNotFound(err)
+    69		}
+    70	
+    71		// Handle deletion with ordered finalization: delete owned SDC intent, confirm/timeout, retain evidence
+    72		if !nd.DeletionTimestamp.IsZero() {
+    73			cfgName := ownedConfigName(nd.Name)
+    74			cfg := &sdc.Config{ObjectMeta: metav1.ObjectMeta{Name: cfgName, Namespace: nd.Namespace}}
+    75			// Attempt delete each pass
+    76			_ = r.Delete(ctx, cfg)
+    77			// Confirm deletion via independent read path
+    78			err := r.Get(ctx, client.ObjectKey{Name: cfgName, Namespace: nd.Namespace}, cfg)
+    79			if err == nil {
+    80				// Still exists; requeue without removing finalizer yet
+    81				r.Log.Info("waiting for owned SDC Config to be deleted", "name", cfgName)
+    82				return resultWithBackoff(false), nil
+    83			}
+    84			if !apierrors.IsNotFound(err) {
+    85				// API error; retry
+    86				return resultWithBackoff(true), nil
+    87			}
+    88			// It's gone; add finalized-at evidence and remove finalizer
+    89			anno := nd.Annotations
+    90			if anno == nil { anno = map[string]string{} }
+    91			anno["ainetops.dev/finalized-at"] = time.Now().UTC().Format(time.RFC3339)
+    92			nd.Annotations = anno
+    93			nd.Finalizers = removeString(nd.Finalizers, finalizerName)
+    94			if err := r.Update(ctx, &nd); err != nil {
+    95				return ctrl.Result{}, err
+    96			}
+    97			return ctrl.Result{}, nil
+    98		}
+    99	
+   100		// Ensure finalizer present
+   101		if !containsString(nd.Finalizers, finalizerName) {
+   102			nd.Finalizers = append(nd.Finalizers, finalizerName)
+   103			if err := r.Update(ctx, &nd); err != nil {
+   104				return ctrl.Result{}, err
+   105			}
+   106		}
+   107	
+   108		// Initialize/gate conditions
+   109		condReady := metav1.Condition{
+   110			Type:               "Ready",
+   111			Status:             metav1.ConditionFalse,
+   112			ObservedGeneration: nd.Generation,
+   113			LastTransitionTime: metav1.NewTime(time.Now()),
+   114			Reason:             reasons.ReasonWaitingDependencies,
+   115			Message:            "Waiting for Kubenet/KUID, targets, schema, SDC validation",
+   116		}
+   117		updated := nd
+   118		updated.Status = upsertConditionGeneric(nd.Status, condReady)
+   119		if err := r.Status().Patch(ctx, &updated, client.MergeFrom(&nd)); err != nil {
+   120			return ctrl.Result{}, err

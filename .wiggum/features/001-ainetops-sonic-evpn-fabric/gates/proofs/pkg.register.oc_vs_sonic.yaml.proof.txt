@@ -1,0 +1,45 @@
+1	# OpenConfig vs SONiC-native path register
+2	# Prefer OpenConfig where supported; record native-path gaps with justification.
+3	# This register is CI-checked to prevent regressions.
+4	entries:
+5	  - path: /interfaces/interface
+6	    prefer: openconfig
+7	  - path: /interfaces/interface[vtep]
+8	    prefer: openconfig
+9	  - path: /network-instances/network-instance
+10	    prefer: openconfig
+11	  - path: /network-instances/network-instance/protocols/bgp/neighbors
+12	    prefer: openconfig
+13	  - path: /network-instances/network-instance/bridges
+14	    prefer: openconfig
+15	  - path: /network-instances/network-instance/l3vni
+16	    prefer: openconfig
+17	  - path: /network-instances/network-instance/evpn/type5
+18	    prefer: openconfig
+19	  - path: /network-instances/network-instance/bridges/irb
+20	    prefer: openconfig
+21	
+22	  - path: /sonic-bgp:sonic-bgp/BGP_GLOBALS
+23	    prefer: sonic
+24	    native_path: /sonic-bgp:sonic-bgp/BGP_GLOBALS
+25	    justification: SONiC BGP global settings not fully covered by OpenConfig on pinned image
+26	  - path: /sonic-srv6:sonic-srv6/SRV6_GLOBAL
+27	    prefer: sonic
+28	    native_path: /sonic-srv6:sonic-srv6/SRV6_GLOBAL
+29	    justification: SRv6 gNMI paths are SONiC-native; no OpenConfig equivalent on pinned image
+30	  - path: /sonic-srv6:sonic-srv6/MYSID
+31	    prefer: sonic
+32	    native_path: /sonic-srv6:sonic-srv6/MYSID
+33	    justification: SRv6 MySID entries use SONiC-native tables on pinned image
+34	  - path: /sonic-srv6:sonic-srv6/SID_LIST
+35	    prefer: sonic
+36	    native_path: /sonic-srv6:sonic-srv6/SID_LIST
+37	    justification: SRv6 steering SID lists are SONiC-native on pinned image
+38	  - path: /sonic-srv6:sonic-srv6/POLICY
+39	    prefer: sonic
+40	    native_path: /sonic-srv6:sonic-srv6/POLICY
+41	    justification: SRv6 steering policy configuration is SONiC-native on pinned image
+42	  - path: /sonic-srv6:sonic-srv6/BEHAVIORS
+43	    prefer: sonic
+44	    native_path: /sonic-srv6:sonic-srv6/BEHAVIORS
+45	    justification: SRv6 behaviors (H.Encaps.Red, End, End.DT46) are SONiC-native on pinned image
