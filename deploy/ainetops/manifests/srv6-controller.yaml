@@ -15,6 +15,10 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: ainetops-srv6-controller
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: ainetops-srv6-controller
       containers:

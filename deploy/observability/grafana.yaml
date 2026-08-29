@@ -1,0 +1,206 @@
+# T066: Grafana deployment with PVC, Secret-based credentials, Service, provisioned Prometheus datasource, pinned Flow plugin, folders, and dashboards as code
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/part-of: ainetops
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-admin
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+stringData:
+  admin-user: admin
+  admin-password: ainetops
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+  annotations:
+    ainetops.dev/spec-version: "v1"
+    ainetops.dev/plugin.flow: "pinned"
+  data:
+    datasources.yaml: |
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://prometheus.monitoring.svc.cluster.local:9090
+          isDefault: true
+    dashboards.yaml: |
+      apiVersion: 1
+      providers:
+        - name: 'ainetops-dashboards'
+          orgId: 1
+          folder: 'AINETOPS'
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+  data:
+    fabric-overview.json: |
+      { "annotations": {"list": []}, "editable": true, "fiscalYearStartMonth": 0, "graphTooltip": 0, "panels": [], "schemaVersion": 39, "title": "AINETOPS Fabric Overview", "version": 1 }
+    physical-fabric.json: |
+      {
+        "annotations": {"list": []},
+        "editable": true,
+        "graphTooltip": 0,
+        "panels": [
+          {"type": "grafana-flow-panel", "title": "Fabric Topology", "options": {"topologyConfigMap": {"name": "ainetops-topology", "namespace": "monitoring"}, "rateMetric": "sonic_interface_packets_total", "utilMetric": "sonic_interface_octets_total", "statusMetric": "sonic_interface_oper_status", "labelKeys": ["device","interface","pod"]}},
+          {"type": "graph", "title": "Link Packet Rate", "targets": [{"expr": "sum by(device,interface) (rate(sonic_interface_packets_total[5m]))"}]},
+          {"type": "graph", "title": "Link Utilization (bytes)", "targets": [{"expr": "sum by(device,interface) (rate(sonic_interface_octets_total[5m]))"}]},
+          {"type": "stat", "title": "Link Status Up", "targets": [{"expr": "sum by(device,interface) (sonic_interface_oper_status{state='up'})"}]}
+        ],
+        "schemaVersion": 39,
+        "title": "AINETOPS Physical Fabric",
+        "version": 1
+      }
+    sdc-orchestration.json: |
+      {
+        "annotations": {"list": []},
+        "editable": true,
+        "graphTooltip": 0,
+        "panels": [
+          {"type": "stat", "title": "SDC Targets Reachable", "targets": [{"expr": "sum(sdc_target_reachable)"}]},
+          {"type": "graph", "title": "SDC Config Applies", "targets": [{"expr": "rate(sdc_config_apply_total[5m])"}]},
+          {"type": "graph", "title": "SDC Deviations", "targets": [{"expr": "sum by(target) (sdc_deviation_total)"}]},
+          {"type": "stat", "title": "Provider Applies", "targets": [{"expr": "increase(ainetops_sonicprovider_applies_total[15m])"}]},
+          {"type": "graph", "title": "Provider Reconcile Errors", "targets": [{"expr": "increase(controller_runtime_reconcile_errors_total{controller='ainetops-sonic-provider'}[15m])"}]},
+          {"type": "graph", "title": "Provider Queue Depth", "targets": [{"expr": "ainetops_provider_queue_size"}]},
+          {"type": "graph", "title": "Provider Retries", "targets": [{"expr": "rate(ainetops_provider_retries_total[5m])"}]},
+          {"type": "graph", "title": "Provider Reconcile Latency (p95)", "targets": [{"expr": "histogram_quantile(0.95, sum(rate(ainetops_provider_reconcile_duration_seconds_bucket[5m])) by (le))"}]},
+          {"type": "stat", "title": "EVPN Services Active", "targets": [{"expr": "evpn_services_active_count"}]}
+        ],
+        "schemaVersion": 39,
+        "title": "AINETOPS Orchestration",
+        "version": 1
+      }
+    srv6-service-path.json: |
+      {
+        "annotations": {"list": []},
+        "editable": true,
+        "graphTooltip": 0,
+        "panels": [
+          {"type": "graph", "title": "SRv6 MySID Counters by Endpoint/Behavior", "targets": [{"expr": "sum by(endpoint,behavior,sid) (rate(sonic_srv6_mysid_packets_total[5m]))"}]},
+          {"type": "stat", "title": "Active Path State by Endpoint", "targets": [{"expr": "max by(path,endpoint) (ainetops_srv6_active_path{path=~'primary|alternate'})"}]},
+          {"type": "graph", "title": "Path Utilization by Endpoint/Behavior", "targets": [{"expr": "sum by(path,endpoint,behavior) (rate(sonic_srv6_mysid_packets_total[5m]))"}]}
+        ],
+        "schemaVersion": 39,
+        "title": "AINETOPS SRv6 Service Path",
+        "version": 2
+      }
+    pipeline-health.json: |
+      {
+        "annotations": {"list": []},
+        "editable": true,
+        "graphTooltip": 0,
+        "panels": [
+          {"type": "stat", "title": "OTel Collector Up", "targets": [{"expr": "max(up{job='otel-collector'})"}]},
+          {"type": "graph", "title": "Exporter Queue Size", "targets": [{"expr": "sum by(exporter) (otelcol_exporter_queue_size)"}]},
+          {"type": "graph", "title": "Exporter Enqueue Failed", "targets": [{"expr": "sum by(exporter) (rate(otelcol_exporter_enqueue_failed[5m]))"}]},
+          {"type": "graph", "title": "Exporter Sent Metric Points", "targets": [{"expr": "sum by(exporter) (rate(otelcol_exporter_sent_metric_points[5m]))"}]},
+          {"type": "graph", "title": "gNMIc Output Errors", "targets": [{"expr": "sum(rate(gnmic_output_errors_total[5m]))"}]},
+          {"type": "graph", "title": "gNMI Subscription Errors", "targets": [{"expr": "sum(rate(gnmic_subscribe_errors_total[5m]))"}]},
+          {"type": "graph", "title": "Prometheus Up (Controllers)", "targets": [{"expr": "sum by(pod) (up{job='controllers'})"}]}
+        ],
+        "schemaVersion": 39,
+        "title": "AINETOPS Pipeline Health",
+        "version": 1
+      }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+    ainetops.dev/component: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+          env:
+            - name: GF_INSTALL_PLUGINS
+              value: grafana-flow-panel@sha256:5c9d6b4d6b899be4a3f3c728b3acb0a8f8c3e6a46c9f5b07d705e8ca3c1a2c44
+            - name: GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS
+              value: grafana-flow-panel
+            - name: GF_SECURITY_ADMIN_USER
+              valueFrom:
+                secretKeyRef: { name: grafana-admin, key: admin-user }
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: grafana-admin, key: admin-password }
+          ports:
+            - name: http
+              containerPort: 3000
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/grafana
+            - name: provisioning
+              mountPath: /etc/grafana/provisioning
+            - name: dashboards
+              mountPath: /var/lib/grafana/dashboards
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }
+      volumes:
+        - name: storage
+          persistentVolumeClaim: { claimName: grafana }
+        - name: provisioning
+          configMap: { name: grafana-provisioning }
+        - name: dashboards
+          configMap: { name: grafana-dashboards }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+spec:
+  selector:
+    app.kubernetes.io/name: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000

@@ -1,0 +1,8 @@
+     1  Path: deploy/observability/tests/no-duplicate-series.md
+     2  -- BEGIN EXCERPT --
+     3  # FR-016, FR-031: No duplicate device metric series
+     4  
+     5  - SDC SyncProfile subscribe disabled: deploy/sdc/seed/sonic-schema.yaml (subscribe: {}).
+     6  - gNMIc is the only SONiC device metrics collector: deploy/gnmi/gnmic.yaml creates one Deployment labelled app.kubernetes.io/name=gnmic.
+     7  - Test: scripts/lib/observability.sh assert-single verifies there is exactly one gnmic Deployment and SDC subscribe is disabled.
+     8  -- END EXCERPT --

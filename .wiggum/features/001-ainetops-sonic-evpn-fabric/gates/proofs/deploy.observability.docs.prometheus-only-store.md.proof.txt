@@ -1,0 +1,10 @@
+     1  Path: deploy/observability/docs/prometheus-only-store.md
+     2  -- BEGIN EXCERPT --
+     3  # T072 Prometheus is the metrics store
+     4  
+     5  Prometheus is the only metrics store deployed and tested in this feature. Remote read/write and long-term storage are not configured. Loki (logs) and Tempo (traces) are intentionally not deployed; no durable log or trace query features are exposed.
+     6  
+     7  - Prometheus deployment manifest: deploy/observability/prometheus.yaml
+     8  - Grafana datasource points only at Prometheus: deploy/observability/grafana.yaml
+     9  - OTel Collector exports metrics to Prometheus exporter only: deploy/observability/otel-collector.yaml
+    10  -- END EXCERPT --

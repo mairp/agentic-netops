@@ -1,0 +1,41 @@
+   100	          {"type": "graph", "title": "Provider Reconcile Latency (p95)", "targets": [{"expr": "histogram_quantile(0.95, sum(rate(ainetops_provider_reconcile_duration_seconds_bucket[5m])) by (le))"}]},
+   101	          {"type": "stat", "title": "EVPN Services Active", "targets": [{"expr": "evpn_services_active_count"}]}
+   102	        ],
+   103	        "schemaVersion": 39,
+   104	        "title": "AINETOPS Orchestration",
+   105	        "version": 1
+   106	      }
+   107	    srv6-service-path.json: |
+   108	      {
+   109	        "annotations": {"list": []},
+   110	        "editable": true,
+   111	        "graphTooltip": 0,
+   112	        "panels": [
+   113	          {"type": "graph", "title": "SRv6 MySID Counters by Endpoint/Behavior", "targets": [{"expr": "sum by(endpoint,behavior,sid) (rate(sonic_srv6_mysid_packets_total[5m]))"}]},
+   114	          {"type": "stat", "title": "Active Path State by Endpoint", "targets": [{"expr": "max by(path,endpoint) (ainetops_srv6_active_path{path=~'primary|alternate'})"}]},
+   115	          {"type": "graph", "title": "Path Utilization by Endpoint/Behavior", "targets": [{"expr": "sum by(path,endpoint,behavior) (rate(sonic_srv6_mysid_packets_total[5m]))"}]}
+   116	        ],
+   117	        "schemaVersion": 39,
+   118	        "title": "AINETOPS SRv6 Service Path",
+   119	        "version": 2
+   120	      }
+   121	    pipeline-health.json: |
+   122	      {
+   123	        "annotations": {"list": []},
+   124	        "editable": true,
+   125	        "graphTooltip": 0,
+   126	        "panels": [
+   127	          {"type": "stat", "title": "OTel Collector Up", "targets": [{"expr": "max(up{job='otel-collector'})"}]},
+   128	          {"type": "graph", "title": "Exporter Queue Size", "targets": [{"expr": "sum by(exporter) (otelcol_exporter_queue_size)"}]},
+   129	          {"type": "graph", "title": "Exporter Enqueue Failed", "targets": [{"expr": "sum by(exporter) (rate(otelcol_exporter_enqueue_failed[5m]))"}]},
+   130	          {"type": "graph", "title": "Exporter Sent Metric Points", "targets": [{"expr": "sum by(exporter) (rate(otelcol_exporter_sent_metric_points[5m]))"}]},
+   131	          {"type": "graph", "title": "gNMIc Output Errors", "targets": [{"expr": "sum(rate(gnmic_output_errors_total[5m]))"}]},
+   132	          {"type": "graph", "title": "gNMI Subscription Errors", "targets": [{"expr": "sum(rate(gnmic_subscribe_errors_total[5m]))"}]},
+   133	          {"type": "graph", "title": "Prometheus Up (Controllers)", "targets": [{"expr": "sum by(pod) (up{job='controllers'})"}]}
+   134	        ],
+   135	        "schemaVersion": 39,
+   136	        "title": "AINETOPS Pipeline Health",
+   137	        "version": 1
+   138	      }
+   139	---
+   140	apiVersion: apps/v1

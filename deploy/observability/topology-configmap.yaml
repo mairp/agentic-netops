@@ -1,0 +1,34 @@
+# T067: Versioned topology ConfigMap generated from containerlab inspect output and annotations
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ainetops-topology
+  namespace: monitoring
+  labels:
+    ainetops.dev/component: topology
+  annotations:
+    ainetops.dev/source: containerlab
+    ainetops.dev/version: v1
+    ainetops.dev/schema: grafana-flow-topology
+    ainetops.dev/description: "Fabric nodes and links matching containerlab inventory"
+data:
+  topology.json: |
+    {
+      "nodes": [
+        {"id": "spine01", "role": "spine", "labels": {"pod": "fabric", "device": "sonic"}},
+        {"id": "spine02", "role": "spine", "labels": {"pod": "fabric", "device": "sonic"}},
+        {"id": "leaf01", "role": "leaf", "labels": {"pod": "fabric", "device": "sonic"}},
+        {"id": "leaf02", "role": "leaf", "labels": {"pod": "fabric", "device": "sonic"}}
+      ],
+      "links": [
+        {"source": "spine01", "target": "leaf01", "if": "Ethernet1"},
+        {"source": "spine01", "target": "leaf02", "if": "Ethernet2"},
+        {"source": "spine02", "target": "leaf01", "if": "Ethernet1"},
+        {"source": "spine02", "target": "leaf02", "if": "Ethernet2"}
+      ],
+      "metrics": {
+        "rate_metric": "sonic_interface_packets_total",
+        "util_metric": "sonic_interface_octets_total",
+        "labels": ["device", "interface", "pod"]
+      }
+    }

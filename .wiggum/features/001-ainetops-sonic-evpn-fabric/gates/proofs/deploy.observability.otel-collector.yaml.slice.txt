@@ -1,0 +1,23 @@
+     1  Path: deploy/observability/otel-collector.yaml
+     2  -- BEGIN EXCERPT --
+     3  receivers:
+     4    otlp:
+     5      protocols:
+     6        http:
+     7          endpoint: 0.0.0.0:4318
+     8        grpc:
+     9          endpoint: 0.0.0.0:4317
+    10  processors:
+    11    k8sattributes:
+    12      auth_type: serviceAccount
+    13      passthrough: false
+    14  exporters:
+    15    prometheus:
+    16      endpoint: 0.0.0.0:9464
+    17  service:
+    18    pipelines:
+    19      metrics:
+    20        receivers: [otlp, prometheus/self]
+    21        processors: [memory_limiter, k8sattributes, attributes, transform, batch]
+    22        exporters: [prometheus]
+    23  -- END EXCERPT --

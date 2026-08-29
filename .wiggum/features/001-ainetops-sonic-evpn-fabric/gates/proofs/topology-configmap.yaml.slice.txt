@@ -1,0 +1,10 @@
+Path: deploy/observability/topology-configmap.yaml
+-- BEGIN EXCERPT --
+metadata:
+  name: ainetops-topology
+  namespace: monitoring
+  annotations:
+    ainetops.dev/source: containerlab
+    ainetops.dev/version: v1
+    ainetops.dev/schema: grafana-flow-topology
+-- END EXCERPT --

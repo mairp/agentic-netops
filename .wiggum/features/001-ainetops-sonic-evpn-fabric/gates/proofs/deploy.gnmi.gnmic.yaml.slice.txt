@@ -1,0 +1,14 @@
+     1  Path: deploy/gnmi/gnmic.yaml
+     2  -- BEGIN EXCERPT --
+     3  kind: Deployment
+     4  metadata:
+     5    name: gnmic
+     6    namespace: ainetops-system
+     7  ...
+     8    outputs:
+     9      otlp:
+    10        type: otlp
+    11        url: http://otel-collector.ainetops-system:4318
+    12        compression: gzip
+    13        enable-metrics: true
+    14  -- END EXCERPT --

@@ -1,0 +1,152 @@
+# T065: Prometheus deployment with PVC, retention, resource limits, scrape, rules, and healthy-target assertions
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/part-of: ainetops
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+  data:
+    prometheus.yml: |
+      global:
+        scrape_interval: 15s
+        evaluation_interval: 15s
+      scrape_configs:
+        - job_name: 'otel-collector'
+          static_configs:
+            - targets: ['otel-collector.ainetops-system.svc.cluster.local:9464']
+        - job_name: 'controllers'
+          kubernetes_sd_configs:
+            - role: pod
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+              action: keep
+              regex: true
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+              action: replace
+              target_label: __metrics_path__
+              regex: (.+)
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+              action: replace
+              regex: (\d+)
+              target_label: __address__
+              replacement: $1
+            - action: labelmap
+              regex: __meta_kubernetes_pod_label_(.+)
+      rule_files:
+        - /etc/prometheus/rules/*.rules.yml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+  data:
+    targets.rules.yml: |
+      groups:
+        - name: targets.health
+          rules:
+            - alert: OTelCollectorDown
+              expr: up{job="otel-collector"} == 0
+              for: 2m
+              labels: { severity: critical }
+              annotations:
+                summary: OTel Collector target down
+                description: Prometheus cannot scrape the OTel Collector exporter.
+            - alert: AinetopsControllersDown
+              expr: sum by(pod) (up{job="controllers"}) == 0
+              for: 2m
+              labels: { severity: warning }
+              annotations:
+                summary: AINETOPS controller target missing
+                description: Prometheus scrape discovered no controller metrics endpoints.
+    ainetops.rules.yml: |
+      groups:
+        - name: ainetops.alerts.include
+          rules:
+            - record: ainetops_constant_one
+              expr: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    ainetops.dev/component: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus@sha256:f20d3127bf2876f4a1df76246fca576b41ddf1125ed1c546fbd8b16ea55117e6
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time=24h
+            - --storage.tsdb.retention.size=4GB
+            - --web.enable-lifecycle
+            - --web.enable-remote-write-receiver=false
+          ports:
+            - name: http
+              containerPort: 9090
+          volumeMounts:
+            - name: storage
+              mountPath: /prometheus
+            - name: config
+              mountPath: /etc/prometheus
+            - name: rules
+              mountPath: /etc/prometheus/rules
+          resources:
+            requests: { cpu: "200m", memory: "512Mi" }
+            limits:   { cpu: "1", memory: "1Gi" }
+      volumes:
+        - name: storage
+          persistentVolumeClaim: { claimName: prometheus }
+        - name: config
+          configMap: { name: prometheus-config }
+        - name: rules
+          configMap: { name: prometheus-rules }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+spec:
+  selector:
+    app.kubernetes.io/name: prometheus
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090

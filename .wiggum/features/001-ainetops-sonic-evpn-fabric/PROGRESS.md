@@ -20,4 +20,4 @@ verified:
 blocked:
   - None
 next:
-  - Publish corrected GATE6 evidence and await critic approval.
+  - Addressed critic for T063: added grounded Prometheus results for exporter distinctness by device and interface-level duplicates (packets/octet) and updated queries doc; re-submitted GATE7-EVIDENCE.md.

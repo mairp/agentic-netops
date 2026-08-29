@@ -1,0 +1,13 @@
+Path: deploy/observability/metrics-inventory.md
+-- BEGIN EXCERPT --
+- SONiC (via gNMIc OTLP):
+  - sonic_interface_packets_total{device,interface,dir}
+  - sonic_interface_octets_total{device,interface,dir}
+  - sonic_bgp_session_state{device,neighbor,state}
+  - sonic_srv6_mysid_packets_total{device,sid,behavior}
+...
+Bounded labels and joins:
+- device: one of {spine01, spine02, leaf01, leaf02}
+- interface: Ethernet[0-9]+
+- link (derived): nodeA:ifA<->nodeB:ifB constructed from containerlab inspect
+-- END EXCERPT --

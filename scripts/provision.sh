@@ -54,6 +54,10 @@ fi
 if [[ -x "${REPO_ROOT}/deploy/sdc/install.sh" ]]; then
   "${REPO_ROOT}/deploy/sdc/install.sh"
 fi
+# Install observability stack (OTel Collector, gNMIc, Prometheus, Grafana)
+if [[ -x "${LIB_DIR}/observability.sh" ]]; then
+  "${LIB_DIR}/observability.sh" install || true
+fi
 
 # Build, load, and deploy provider and srv6-controller images into Kind (T041)
 if command -v docker >/dev/null 2>&1 && command -v kind >/dev/null 2>&1 && command -v kubectl >/dev/null 2>&1; then

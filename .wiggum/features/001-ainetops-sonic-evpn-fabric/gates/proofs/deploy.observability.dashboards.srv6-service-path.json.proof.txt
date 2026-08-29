@@ -1,0 +1,13 @@
+     1	{
+     2	  "annotations": {"list": []},
+     3	  "editable": true,
+     4	  "graphTooltip": 0,
+     5	  "panels": [
+     6	    {"type": "graph", "title": "SRv6 MySID Counters by Endpoint/Behavior", "targets": [{"expr": "sum by(endpoint,behavior,sid) (rate(sonic_srv6_mysid_packets_total[5m]))"}]},
+     7	    {"type": "stat", "title": "Active Path State by Endpoint", "targets": [{"expr": "max by(path,endpoint) (ainetops_srv6_active_path{path=~'primary|alternate'})"}]},
+     8	    {"type": "graph", "title": "Path Utilization by Endpoint/Behavior", "targets": [{"expr": "sum by(path,endpoint,behavior) (rate(sonic_srv6_mysid_packets_total[5m]))"}]}
+     9	  ],
+    10	  "schemaVersion": 39,
+    11	  "title": "AINETOPS SRv6 Service Path",
+    12	  "version": 2
+    13	}

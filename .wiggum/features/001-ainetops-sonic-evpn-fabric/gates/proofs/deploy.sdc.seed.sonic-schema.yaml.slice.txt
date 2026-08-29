@@ -1,0 +1,35 @@
+     1	# T024: SONiC Schema and profiles (pinned)
+     2	apiVersion: sdc.sdcio.dev/v1alpha1
+     3	kind: Schema
+     4	metadata:
+     5	  name: sonic-oc
+     6	  namespace: sdc-system
+     7	spec:
+     8	  image: ghcr.io/sonic-net/sonic-vs:202403@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+     9	  openconfigCommit: b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0
+    10	  nativeCommit: c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1
+    11	---
+    12	apiVersion: sdc.sdcio.dev/v1alpha1
+    13	kind: Config
+    14	metadata:
+    15	  name: sonic-conn-profile
+    16	  namespace: sdc-system
+    17	spec:
+    18	  type: ConnectionProfile
+    19	  data:
+    20	    encoding: JSON_IETF
+    21	    port: 9339
+    22	    tls: true
+    23	---
+    24	apiVersion: sdc.sdcio.dev/v1alpha1
+    25	kind: Config
+    26	metadata:
+    27	  name: sonic-sync-profile
+    28	  namespace: sdc-system
+    29	spec:
+    30	  type: SyncProfile
+    31	  data:
+    32	    reconcileInterval: 30s
+    33	    # Telemetry Phase 7 (T063): disable overlapping SDC Subscriptions.
+    34	    # gNMIc is the sole device-metric collector exporting to OTel; SDC subscribe is disabled.
+    35	    subscribe: {}

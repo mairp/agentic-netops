@@ -30,5 +30,6 @@ spec:
   type: SyncProfile
   data:
     reconcileInterval: 30s
-    subscribe:
-      sampleInterval: 10s
+    # Telemetry Phase 7 (T063): disable overlapping SDC Subscriptions.
+    # gNMIc is the sole device-metric collector exporting to OTel; SDC subscribe is disabled.
+    subscribe: {}

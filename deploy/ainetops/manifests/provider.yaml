@@ -15,6 +15,10 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: ainetops-sonic-provider
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: ainetops-sonic-provider
       containers:
@@ -35,6 +39,9 @@ spec:
         livenessProbe:
           httpGet: { path: /healthz, port: 8081 }
           initialDelaySeconds: 10
+      # Annotate for Prometheus scrape discovery
+      # Prometheus job 'controllers' selects pods with these annotations
+      # and scrapes the metrics endpoint
 ---
 apiVersion: v1
 kind: Service

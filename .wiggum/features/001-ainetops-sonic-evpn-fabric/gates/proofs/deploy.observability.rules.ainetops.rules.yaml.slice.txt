@@ -1,0 +1,12 @@
+     1  Path: deploy/observability/rules/ainetops.rules.yaml
+     2  -- BEGIN EXCERPT --
+     3  kind: PrometheusRule
+     4  metadata:
+     5    name: ainetops-alerts
+     6  ...
+     7    - alert: SRv6PathDown
+     8      expr: max_over_time(sonic_srv6_mysid_packets_total[10m]) == 0
+     9      for: 10m
+    10      labels: { severity: critical }
+    11      annotations: { description: "No SRv6 MySID packets observed", summary: "SRv6 path/counter failure" }
+    12  -- END EXCERPT --

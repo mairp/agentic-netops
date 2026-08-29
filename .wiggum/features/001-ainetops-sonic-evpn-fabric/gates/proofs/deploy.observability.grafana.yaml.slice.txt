@@ -1,0 +1,12 @@
+     1  Path: deploy/observability/grafana.yaml
+     2  -- BEGIN EXCERPT --
+     3  kind: Deployment
+     4  metadata:
+     5    name: grafana
+     6    namespace: monitoring
+     7  ...
+     8  datasources:
+     9    - name: Prometheus
+    10      type: prometheus
+    11      url: http://prometheus.monitoring.svc.cluster.local:9090
+    12  -- END EXCERPT --

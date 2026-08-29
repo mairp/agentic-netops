@@ -1,0 +1,19 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 0,
+  "panels": [
+    {"type": "stat", "title": "SDC Targets Reachable", "targets": [{"expr": "sum(sdc_target_reachable)"}]},
+    {"type": "graph", "title": "SDC Config Applies", "targets": [{"expr": "rate(sdc_config_apply_total[5m])"}]},
+    {"type": "graph", "title": "SDC Deviations", "targets": [{"expr": "sum by(target) (sdc_deviation_total)"}]},
+    {"type": "stat", "title": "Provider Applies", "targets": [{"expr": "increase(ainetops_sonicprovider_applies_total[15m])"}]},
+    {"type": "graph", "title": "Provider Reconcile Errors", "targets": [{"expr": "increase(controller_runtime_reconcile_errors_total{controller='ainetops-sonic-provider'}[15m])"}]},
+    {"type": "graph", "title": "Provider Queue Depth", "targets": [{"expr": "ainetops_provider_queue_size"}]},
+    {"type": "graph", "title": "Provider Retries", "targets": [{"expr": "rate(ainetops_provider_retries_total[5m])"}]},
+    {"type": "graph", "title": "Provider Reconcile Latency (p95)", "targets": [{"expr": "histogram_quantile(0.95, sum(rate(ainetops_provider_reconcile_duration_seconds_bucket[5m])) by (le))"}]},
+    {"type": "stat", "title": "EVPN Services Active", "targets": [{"expr": "evpn_services_active_count"}]}
+  ],
+  "schemaVersion": 39,
+  "title": "AINETOPS Orchestration",
+  "version": 1
+}

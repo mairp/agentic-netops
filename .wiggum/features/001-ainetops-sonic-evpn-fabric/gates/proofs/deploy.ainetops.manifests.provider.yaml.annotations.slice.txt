@@ -1,0 +1,11 @@
+     1  Path: deploy/ainetops/manifests/provider.yaml
+     2  -- BEGIN EXCERPT --
+     3    template:
+     4      metadata:
+     5        labels:
+     6          app.kubernetes.io/name: ainetops-sonic-provider
+     7        annotations:
+     8          prometheus.io/scrape: "true"
+     9          prometheus.io/port: "8080"
+    10          prometheus.io/path: "/metrics"
+    11  -- END EXCERPT --

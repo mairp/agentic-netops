@@ -1,0 +1,112 @@
+# T063: Deploy gNMIc inside Kind as the sole SONiC device-metric collector
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ainetops-system
+  labels:
+    app.kubernetes.io/part-of: ainetops
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gnmic
+  namespace: ainetops-system
+  labels:
+    app.kubernetes.io/name: gnmic
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gnmic-config
+  namespace: ainetops-system
+  labels:
+    app.kubernetes.io/name: gnmic
+  annotations:
+    ainetops.dev/spec-version: "v1"
+    ainetops.dev/export: "otlp"
+    ainetops.dev/role: "device-metrics"
+  data:
+    gnmic.yaml: |
+      username: ${GNMIC_USERNAME}
+      password: ${GNMIC_PASSWORD}
+      skip-verify: true
+      encoding: json_ietf
+      targets:
+        spine01: { address: 172.31.0.11:9339 }
+        spine02: { address: 172.31.0.12:9339 }
+        leaf01:  { address: 172.31.0.21:9339 }
+        leaf02:  { address: 172.31.0.22:9339 }
+      subscriptions:
+        ifaces:
+          paths:
+            - /interfaces/interface[name=*]/state/counters
+          mode: sample
+          sample-interval: 10s
+        bgp:
+          paths:
+            - /network-instances/network-instance[name=*]/protocols/protocol[identifier=BGP][name=*]/bgp/neighbors/neighbor[neighbor-address=*]/state
+          mode: sample
+          sample-interval: 30s
+        srv6:
+          paths:
+            - /sonic-srv6:sonic-srv6/my-sid-counters/my-sid-counter[my-sid=*]/state
+          mode: sample
+          sample-interval: 15s
+      outputs:
+        otlp:
+          type: otlp
+          url: http://otel-collector.ainetops-system:4318
+          compression: gzip
+          enable-metrics: true
+      processors:
+        labelmap:
+          type: processor
+          actions:
+            - type: add
+              key: ainetops.dev/topology
+              value: containerlab
+            - type: copy
+              from: target
+              to: device
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gnmic
+  namespace: ainetops-system
+  labels:
+    app.kubernetes.io/name: gnmic
+    ainetops.dev/component: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gnmic
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gnmic
+        ainetops.dev/component: observability
+    spec:
+      serviceAccountName: gnmic
+      containers:
+        - name: gnmic
+          image: ghcr.io/openconfig/gnmic@sha256:fd59f5f1c7a98e14ff5b14f85329e5e0a4d49ef1d5b0dddfd910b6caef03b9fb
+          args: ["--config=/etc/gnmic/gnmic.yaml", "subscribe", "--log=info"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/gnmic
+          env:
+            - name: GNMIC_USERNAME
+              valueFrom:
+                secretKeyRef: { name: gnmi-lab-creds, key: username }
+            - name: GNMIC_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: gnmi-lab-creds, key: password }
+          ports:
+            - name: http
+              containerPort: 9804
+      volumes:
+        - name: config
+          configMap:
+            name: gnmic-config

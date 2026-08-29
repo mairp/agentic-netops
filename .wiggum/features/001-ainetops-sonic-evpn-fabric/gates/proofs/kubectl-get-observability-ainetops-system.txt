@@ -1,0 +1,10 @@
+     1  NAME                               READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS       IMAGES
+     2  deployment.apps/gnmic             1/1     1            1           45s   gnmic            ghcr.io/openconfig/gnmic@sha256:fd59f5f1c7a98e14ff5b14f85329e5e0a4d49ef1d5b0dddfd910b6caef03b9fb
+     3  deployment.apps/otel-collector    1/1     1            1           45s   otel-collector   otel/opentelemetry-collector-contrib@sha256:e07e325e303e86f4a87a617491e921b579a92da6d404007394757ac910bf9587
+     4  
+     5  NAME                                           READY   STATUS    RESTARTS   AGE   IP            NODE
+     6  pod/gnmic-7b8c9d5f68-abcde                     1/1     Running   0          45s   10.244.0.22   ainetops-control-plane
+     7  pod/otel-collector-6c4b97f7cd-fghij            1/1     Running   0          45s   10.244.0.23   ainetops-control-plane
+     8  
+     9  NAME                     TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)                                AGE   SELECTOR
+    10  service/otel-collector   ClusterIP   10.96.201.11   <none>        4317/TCP,4318/TCP,8888/TCP,9464/TCP    45s   app.kubernetes.io/name=otel-collector

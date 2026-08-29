@@ -1,0 +1,24 @@
+     1  Path: scripts/lib/observability.sh
+     2  -- BEGIN EXCERPT --
+     3  obs::install() {
+     4    echo "[obs] applying OTel Collector, gNMIc, Prometheus, Grafana"
+     5    kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/otel-collector.yaml"
+     6    kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/gnmi/gnmic.yaml"
+     7    kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/prometheus.yaml"
+     8    kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/grafana.yaml"
+     9  }
+    10  
+    11  obs::assert_single_device_collector() {
+    12    local count
+    13    count=$(kubectl --context "$CTX" -n ainetops-system get deploy -l app.kubernetes.io/name=gnmic --no-headers 2>/dev/null | wc -l | tr -d ' ')
+    14    if [[ "${count:-0}" -ne 1 ]]; then
+    15      echo "[obs] ERROR: expected exactly one gNMIc deployment, found $count" >&2
+    16      return 1
+    17    fi
+    18    if ! kubectl --context "$CTX" -n sdc-system get config sonic-sync-profile -o jsonpath='{.spec.data.subscribe}' 2>/dev/null | grep -q "^{}$"; then
+    19      echo "[obs] ERROR: SDC SyncProfile subscribe not disabled" >&2
+    20      return 1
+    21    fi
+    22    echo "[obs] single device collector and disabled SDC subscribe verified"
+    23  }
+    24  -- END EXCERPT --
