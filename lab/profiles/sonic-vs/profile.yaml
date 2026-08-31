@@ -1,7 +1,7 @@
 # AINETOPS SONiC lab profile: sonic-vs
 profile: sonic-vs
 kind: sonic-vs
-image: localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
+image: localhost:5000/sonic-vs-gnmi:202605@sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb45d7a68710ba9d64ac27b1870768
 bootstrap:
   # Limited bootstrap: management, TLS, gNMI only; persistent config under /etc/sonic
   path: lab/profiles/sonic-vs/bootstrap
@@ -14,3 +14,11 @@ persistence:
 notes: |
   This immutable profile is used for fast qualification. No underlay or overlay control-plane
   is configured by bootstrap; only gNMI/TLS is enabled and /etc/sonic persists across restarts.
+
+  SRv6/gNMI-qualified as of 2026-08-31. The image is the community sonic-vs build with a
+  sonic-gnmi telemetry server layered in (lab/images/sonic-vs-gnmi/); it carries
+  /usr/sbin/telemetry, supervisord program:telemetry, and sonic-srv6.yang, so
+  scripts/lib/qualify.sh has a live gNMI endpoint to gate on. The previously pinned image
+  (versions.lock.yaml sonic_vs_base, a build frozen since 2022-01) shipped no gNMI server
+  at all, which is why the capability gate failed closed against it — that was a property
+  of the image, not a misconfiguration.

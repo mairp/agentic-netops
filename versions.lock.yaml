@@ -59,6 +59,8 @@ tooling:
   otel_collector: otel/opentelemetry-collector-contrib@sha256:e07e325e303e86f4a87a617491e921b579a92da6d404007394757ac910bf9587
   prometheus: prom/prometheus@sha256:f20d3127bf2876f4a1df76246fca576b41ddf1125ed1c546fbd8b16ea55117e6
   grafana: grafana/grafana@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+  # presentation reference only (FR-032): records the upstream visualization
+  # pattern; NOT installed by the lab Grafana (built-in panels only).
   grafana_flow_plugin: grafana/flow-plugin@sha256:5c9d6b4d6b899be4a3f3c728b3acb0a8f8c3e6a46c9f5b07d705e8ca3c1a2c44
   topology_generator: ghcr.io/ainetops/topology-generator@sha256:9a0b2b0d57a4c2b2b5c78a7d34c8a0c1f9a3b7d6e2c4e5f6a7b8c9d0e1f2a3b4
 
@@ -71,14 +73,42 @@ tooling:
 # ---------------------------------------------------------------------------
 sonic_images:
   sonic_vs:
+    image: localhost:5000/sonic-vs-gnmi:202605@sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb45d7a68710ba9d64ac27b1870768
+    digest: sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb45d7a68710ba9d64ac27b1870768
+    tag: 202605
+    notes: >
+      Fast profile; no KVM required; containerlab kind sonic-vs. SRv6/gNMI-qualified:
+      carries /usr/sbin/telemetry (gNMI server, supervisord program:telemetry) and
+      sonic-srv6.yang, so the capability gate in scripts/lib/qualify.sh can run
+      Capabilities/Get/Set/Subscribe/sonic-srv6 against a live endpoint. Verified
+      2026-08-31: gNMI 0.7.0 answers Capabilities on :8080 over TLS.
+      Build recipe and provenance: lab/images/sonic-vs-gnmi/.
+  sonic_vs_base:
     image: localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
     digest: sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
     tag: 20220111
-    notes: Fast profile; no KVM required; containerlab kind sonic-vs
+    notes: >
+      The community sonic-vs build that sonic_vs is layered on
+      (netreplica/docker-sonic-vs:20220111). Kept pinned for provenance and rebuilds.
+      NOT SRv6-qualified on its own: it ships no gNMI server at all, which is why the
+      capability gate failed closed against it (2026-08-30/31).
   sonic_vm:
     image: local/sonic-vm
     digest: sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5
     notes: Conformance profile; build via vrnetlab; requires KVM; digest is operator-built
+
+# ---------------------------------------------------------------------------
+# Linux endpoint images (containerlab linux-kind traffic/SRv6 clients, T012)
+#   Built from lab/clients/Dockerfile.linux-net and lab/clients/Dockerfile.linux-srv6
+#   and pinned by immutable digest in lab/topology.clab.yml.
+# ---------------------------------------------------------------------------
+endpoint_images:
+  linux_net:
+    image: localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f
+    digest: sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f
+  linux_srv6:
+    image: localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f
+    digest: sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f
 
 # ---------------------------------------------------------------------------
 # SONiC/OpenConfig YANG schema pins and compatibility mapping per image
@@ -91,7 +121,7 @@ sonic_yang:
   sonic_native_branch: '202405'
   sonic_native_commit: cfc766e13eccab4e7603808db3bfa9c5b2dfef17
   compatibility:
-    - image: localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
+    - image: localhost:5000/sonic-vs-gnmi:202605@sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb45d7a68710ba9d64ac27b1870768
       oc_version: openconfig@f3443414
       native_version: sonic_yang@cfc766e1
     - image: local/sonic-vm@sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5
