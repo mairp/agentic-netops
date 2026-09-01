@@ -371,6 +371,24 @@ drive_client_traffic() {
   docker exec "$c2" ip -6 addr del 2001:db8:2::21/127 dev eth1 2>/dev/null || true
   docker exec "$c1" bash -c 'ip -br addr show eth1 | grep -q "192.0.2.11/24" || ip addr add 192.0.2.11/24 dev eth1' || true
   docker exec "$c2" bash -c 'ip -br addr show eth1 | grep -q "192.0.2.21/24" || ip addr add 192.0.2.21/24 dev eth1' || true
+  # Wait for the EVPN control plane to converge BEFORE pinging: flooding to
+  # the remote VTEP only starts once the IMET (Type-3) from the peer leaf has
+  # arrived. Cycle-3 (2026-09-01 07:41) pinged before that and lost 100% of
+  # ARPs despite the RIB being complete seconds later.
+  local n wait_ok
+  IFS=',' read -ra nodes <<<"$LEAF_NODES"
+  for n in "${nodes[@]}"; do
+    wait_ok=0
+    for i in $(seq 1 20); do
+      # Remote VTEPs column ≥ 1 for vni 100 means the peer IMET arrived
+      if docker exec "$n" vtysh -c 'show evpn vni' 2>/dev/null | grep -E '^100 .*[1-9][0-9]*\s+default' >/dev/null; then
+        wait_ok=1
+        break
+      fi
+      sleep 3
+    done
+    [[ "$wait_ok" -eq 1 ]] || echo "[$n] WARN: no remote VTEP on vni 100 after 60s — ping will likely fail" >&2
+  done
   local i out
   for i in $(seq 1 6); do
     out=$(docker exec "$c1" ping -c3 -W2 192.0.2.21 2>&1) || true
