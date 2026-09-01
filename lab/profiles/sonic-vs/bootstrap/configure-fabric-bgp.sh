@@ -333,6 +333,16 @@ apply_frr() {
       docker exec "$c" supervisorctl restart bgpd >/dev/null 2>&1 || true
       sleep 10
     done
+    # Exhausting the escalation is a HARD failure, not a warning. Without the L2
+    # VNI adopted, bgpd never processes the peer IMET: zebra installs no remote
+    # VTEP, nothing floods, and every overlay ping fails 100%. This previously
+    # fell through silently and provision still exited 0, so a structurally dead
+    # fabric reached test-fabric and was misread as slow convergence
+    # (2026-09-01: re-run cycle 1/2, leaf01, all 3 attempts exhausted).
+    if [ "$adopted" -ne 1 ]; then
+      echo "[fabric-bgp] ERROR: $node: bgpd never adopted L2 VNI $L2VNI after 3 restarts — overlay cannot forward; failing provision" >&2
+      return 1
+    fi
   fi
   docker exec "$c" bash -c 'pgrep -x bgpd >/dev/null' 2>/dev/null || { echo "[fabric-bgp] ERROR: bgpd did not start on $node" >&2; return 1; }
   return 0
@@ -572,14 +582,23 @@ main() {
   done <<<"$FABRIC"
 
   # pass 2 — durable FRR config + bgpd, once every peer's interfaces are addressed
+  local frr_failed=""
   while IFS='|' read -r node asn lo4 lo6 svi4 peers; do
     [[ -z "$node" ]] && continue
     c="${CLAB_PREFIX}${node}"
     docker ps --format '{{.Names}}' | grep -qx "$c" || continue
     role=$(node_role "$node")
     log "$node: writing bgpd.conf + starting bgpd"
-    apply_frr "$c" "$node" "$asn" "$lo4" "$role" "$svi4" "$peers"
+    # apply_frr's status was previously discarded, so a leaf that never adopted
+    # its L2 VNI still produced provision exit=0. Collect and fail at the end so
+    # every node is still attempted (better diagnostics) but the run fails.
+    apply_frr "$c" "$node" "$asn" "$lo4" "$role" "$svi4" "$peers" \
+      || frr_failed="${frr_failed}${frr_failed:+, }${node}"
   done <<<"$FABRIC"
+  if [[ -n "$frr_failed" ]]; then
+    echo "[fabric-bgp] ERROR: FRR/EVPN bring-up failed on: ${frr_failed}" >&2
+    return 1
+  fi
 
   # converge, nudging past connect backoff once
   local i established=0

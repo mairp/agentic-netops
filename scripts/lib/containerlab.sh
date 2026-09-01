@@ -104,8 +104,15 @@ clab::bootstrap() {
   # tests/integration/fabric_verify.sh (T043 [US3]) reports.
   if [[ -x "$bdir/configure-fabric-bgp.sh" ]]; then
     echo "[clab] bootstrap: configuring underlay BGP + EVPN across the fabric"
+    # This used to downgrade a hook failure to a WARN and continue, which made
+    # it the single break in the failure chain: configure-fabric-bgp.sh could
+    # report a structurally dead overlay (e.g. bgpd never adopting the L2 VNI)
+    # and provision.sh:176 would still see success and exit 0. The lab then
+    # reached test-fabric with no possible forwarding path, where 100% packet
+    # loss was misdiagnosed as slow convergence. Fail closed instead.
     if ! "$bdir/configure-fabric-bgp.sh"; then
-      echo "[clab] WARN: fabric BGP/EVPN configuration reported a problem; fabric_verify.sh has the detail" >&2
+      echo "[clab] ERROR: fabric BGP/EVPN configuration failed; the overlay cannot forward — see the [fabric-bgp] ERROR lines above" >&2
+      return 1
     fi
   fi
 }

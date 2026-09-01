@@ -18,6 +18,10 @@ CLAB_PREFIX=${CLAB_PREFIX:-clab-ainetops-fabric-}
 # CONFIG_DB state, so it is read through vtysh over docker exec — the same route
 # evpn_srv6_suite.sh and mtu_ecmp.sh already use.
 LEAF_NODES=${LEAF_NODES:-"${CLAB_PREFIX}leaf01,${CLAB_PREFIX}leaf02"}
+# L2 VNI carrying the bridged tenant VLAN. Used by both the peer-arrival
+# assertion in verify_evpn_overlay and the convergence wait in
+# drive_client_traffic (previously hardcoded as 100 in the latter).
+L2VNI=${L2VNI:-100}
 SPINE_NODES=${SPINE_NODES:-"${CLAB_PREFIX}spine01,${CLAB_PREFIX}spine02"}
 AINETOPS_CLUSTER_NAME=${AINETOPS_CLUSTER_NAME:-ainetops}
 KUBE_CTX=${KUBE_CTX:-kind-${AINETOPS_CLUSTER_NAME}}
@@ -169,24 +173,31 @@ sdb_body() {
     # self-explains (cycle-1 of the 2026-09-01 reconciliation left an
     # unexplainable auth failure because only the literal marker was logged).
     grep -E 'rpc error|^Error:' <<<"$out" | head -1 | sed "s/^/[$t] sonic-db query error: /" >&2 || true
-    # Unauthenticated right after a provision is a transition artifact (telemetry
-    # was just restarted by the bootstrap/qualify suites; creds themselves are
-    # consistent on a settled lab — verified 2026-09-01 07:35). One refetch +
-    # retry converts it into the answer the lab actually holds.
-    if grep -q 'Unauthenticated' <<<"$out"; then
-      local u2 p2
-      u2=$(kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.username}' 2>/dev/null | base64 -d 2>/dev/null || true)
-      p2=$(kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.password}' 2>/dev/null | base64 -d 2>/dev/null || true)
-      if [[ -n "$u2" && -n "$p2" ]]; then
-        sleep 8
+    # Unauthenticated/Unavailable right after a provision is a transition
+    # artifact (telemetry was just restarted by the bootstrap/qualify suites;
+    # creds themselves are consistent on a settled lab — verified 2026-09-01
+    # 07:35). A single refetch+retry was NOT always enough: in the 2026-09-01
+    # cycle run, cycle-2's BGP_NEIGHBOR queries failed after one retry while the
+    # identical queries passed on the settled lab and in cycle-3 — so retry up
+    # to 3 times with increasing backoff before declaring the query unaskable.
+    if grep -qE 'Unauthenticated|Unavailable' <<<"$out"; then
+      local attempt backoff u2 p2
+      for attempt in 1 2 3; do
+        backoff=$(( 8 * attempt + (attempt - 1) * 2 ))  # 8s, 18s, 28s
+        u2=$(kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.username}' 2>/dev/null | base64 -d 2>/dev/null || true)
+        p2=$(kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.password}' 2>/dev/null | base64 -d 2>/dev/null || true)
+        if [[ -z "$u2" || -z "$p2" ]]; then break; fi
+        sleep "$backoff"
         out=$("$GNMIC_BIN" --address "$t" --timeout 10s --username "$u2" --password "$p2" --tls-ca "$GNMI_CACERT" --tls-cert "$GNMI_CERT" --tls-key "$GNMI_KEY" --encoding "$GNMI_ENCODING" get --path "/$table" --target CONFIG_DB 2>&1)
         e=$?
         if [[ $e -eq 0 ]] && ! grep -qE 'rpc error|^Error:' <<<"$out"; then
           printf '%s' "$out" | tr -d ' \n\t'
           return 0
         fi
-        grep -E 'rpc error|^Error:' <<<"$out" | head -1 | sed "s/^/[$t] sonic-db retry error: /" >&2 || true
-      fi
+        grep -E 'rpc error|^Error:' <<<"$out" | head -1 | sed "s/^/[$t] sonic-db retry $attempt error: /" >&2 || true
+        # Stop early if the error class changed (no longer a transition artifact).
+        grep -qE 'Unauthenticated|Unavailable' <<<"$out" || break
+      done
     fi
     printf 'QUERY_FAILED'
     return 0
@@ -329,7 +340,14 @@ verify_evpn_overlay() {
     local t
     for t in 2 3 5; do
       if grep -qE "\\[$t\\]:" <<<"$out"; then
-        echo "[$n] assertion passed: EVPN Type-$t route present"
+        # NOTE: presence only. A leaf originates its OWN Type-2 (local MACs) and
+        # Type-3 (IMET), so this grep passes even when NOTHING has been received
+        # from the peer. It is not evidence of a working overlay — the
+        # peer-arrival assertion below is. (2026-09-01: this check reported
+        # "Type-2 and Type-3 present on both leaves" through an entire run in
+        # which bgpd had never adopted the L2 VNI and no route was ever
+        # exchanged, which is why 100% packet loss was misread as convergence.)
+        echo "[$n] assertion passed: EVPN Type-$t route present in local RIB (origin not checked)"
       else
         if [[ "$t" == 5 ]]; then
           # Type-5 needs the L3VNI to be adopted by bgpd. The full recipe is
@@ -347,6 +365,27 @@ verify_evpn_overlay() {
         rc=1
       fi
     done
+    # Peer-arrival assertion: the remote VTEP count for the L2 VNI is the one
+    # signal that cannot be satisfied by self-origination — it is non-zero only
+    # once the peer leaf's IMET has actually been received AND installed by
+    # zebra. This was previously only a WARN inside drive_client_traffic, so a
+    # structurally dead overlay produced a passing route section and a failing
+    # ping with no explanation connecting them.
+    local vni_out remote_vteps
+    vni_out=$(docker exec "$n" vtysh -c 'show evpn vni' 2>/dev/null || true)
+    if [[ -z "$vni_out" ]] || ! grep -qE "^${L2VNI}[[:space:]]" <<<"$vni_out"; then
+      echo "[$n] ASSERTION FAILED: L2 VNI ${L2VNI} not present in 'show evpn vni' — bgpd/zebra never adopted the VNI, so the overlay cannot forward" >&2
+      rc=1
+    else
+      # Columns: VNI Type VxLAN-IF #MACs #ARPs #RemoteVTEPs TenantVRF
+      remote_vteps=$(awk -v vni="$L2VNI" '$1==vni {print $(NF-1)}' <<<"$vni_out" | head -1)
+      if [[ "$remote_vteps" =~ ^[0-9]+$ ]] && (( remote_vteps > 0 )); then
+        echo "[$n] assertion passed: ${remote_vteps} remote VTEP(s) on L2 VNI ${L2VNI} — peer EVPN routes received"
+      else
+        echo "[$n] ASSERTION FAILED: 0 remote VTEPs on L2 VNI ${L2VNI} — no EVPN route has been received from the peer leaf (self-originated routes above do not prove exchange)" >&2
+        rc=1
+      fi
+    fi
   done
   return $rc
 }
@@ -365,41 +404,47 @@ drive_client_traffic() {
       return 1
     fi
   done
+  # Client image is busybox (no bash — `bash -c` execs fail with "executable
+  # file not found"; observed in every 2026-09-01 cycle log).
   docker exec "$c1" ip addr del 192.0.2.11/31 dev eth1 2>/dev/null || true
   docker exec "$c2" ip addr del 192.0.2.21/31 dev eth1 2>/dev/null || true
   docker exec "$c1" ip -6 addr del 2001:db8:1::11/127 dev eth1 2>/dev/null || true
   docker exec "$c2" ip -6 addr del 2001:db8:2::21/127 dev eth1 2>/dev/null || true
-  docker exec "$c1" bash -c 'ip -br addr show eth1 | grep -q "192.0.2.11/24" || ip addr add 192.0.2.11/24 dev eth1' || true
-  docker exec "$c2" bash -c 'ip -br addr show eth1 | grep -q "192.0.2.21/24" || ip addr add 192.0.2.21/24 dev eth1' || true
+  docker exec "$c1" sh -c 'ip -br addr show eth1 | grep -q "192.0.2.11/24" || ip addr add 192.0.2.11/24 dev eth1' || true
+  docker exec "$c2" sh -c 'ip -br addr show eth1 | grep -q "192.0.2.21/24" || ip addr add 192.0.2.21/24 dev eth1' || true
   # Wait for the EVPN control plane to converge BEFORE pinging: flooding to
   # the remote VTEP only starts once the IMET (Type-3) from the peer leaf has
-  # arrived. Cycle-3 (2026-09-01 07:41) pinged before that and lost 100% of
-  # ARPs despite the RIB being complete seconds later.
-  local n wait_ok
-  IFS=',' read -ra nodes <<<"$LEAF_NODES"
-  for n in "${nodes[@]}"; do
-    wait_ok=0
-    for i in $(seq 1 20); do
-      # Remote VTEPs column ≥ 1 for vni 100 means the peer IMET arrived
-      if docker exec "$n" vtysh -c 'show evpn vni' 2>/dev/null | grep -E '^100 .*[1-9][0-9]*\s+default' >/dev/null; then
-        wait_ok=1
-        break
-      fi
-      sleep 3
-    done
-    [[ "$wait_ok" -eq 1 ]] || echo "[$n] WARN: no remote VTEP on vni 100 after 60s — ping will likely fail" >&2
+  # arrived. Fresh cycle labs converge ~25-30 min after the gate's netns-
+  # preserving persistence restart (measured 2026-09-01: cycle-2's first
+  # passing ping 29 min after deploy; cycle-3's test at 07:41 still 100%
+  # loss). The wait is therefore bounded at ~10 min and the ping window at
+  # ~4 min; the assertion stays fail-closed.
+  local i wait_ok ok1 ok2
+  local n1="${LEAF_NODES%%,*}" n2="${LEAF_NODES##*,}"
+  wait_ok=0
+  for i in $(seq 1 60); do
+    # Remote VTEPs column ≥ 1 for vni 100 means the peer IMET arrived
+    ok1=0; ok2=0
+    docker exec "$n1" vtysh -c 'show evpn vni' 2>/dev/null | grep -E '^100 .*[1-9][0-9]*\s+default' >/dev/null && ok1=1
+    docker exec "$n2" vtysh -c 'show evpn vni' 2>/dev/null | grep -E '^100 .*[1-9][0-9]*\s+default' >/dev/null && ok2=1
+    if [[ "$ok1" -eq 1 && "$ok2" -eq 1 ]]; then
+      wait_ok=1
+      break
+    fi
+    sleep 10
   done
-  local i out
-  for i in $(seq 1 6); do
+  [[ "$wait_ok" -eq 1 ]] || echo "[client01→client02] WARN: no remote VTEP on vni 100 on both leaves after 600s — ping may fail" >&2
+  local out
+  for i in $(seq 1 24); do
     out=$(docker exec "$c1" ping -c3 -W2 192.0.2.21 2>&1) || true
     # Match with a leading space: a bare "0% packet loss" grep also matches
     # "100% packet loss" (substring), which reported a false pass on a 100%
-    # loss run in cycles cycle-1 (observed 2026-09-01).
+    # loss run in cycle-1 (observed 2026-09-01).
     if grep -q " 0% packet loss" <<<"$out"; then
       echo "[client01→client02] assertion passed: bridged Vlan100 reachability ($(grep ' 0% packet loss' <<<"$out"))"
       return 0
     fi
-    sleep 3
+    sleep 5
   done
   echo "[client01→client02] ASSERTION FAILED: no bridged Vlan100 reachability across the overlay (last: $(grep -E 'packet loss|From' <<<"$out" | tail -1))" >&2
   return 1
@@ -419,22 +464,39 @@ _fetch_loopback_v6() {
 
 verify_loopback_reachability() {
   echo "[fabric-verify] loopback reachability across all nodes (IPv6)"
-  # Use containerlab exec to ping between leaf loopbacks via mgmt net namespace
+  # Loopback0 IPv6 is advertised by the underlay BGP (redistribute connected in
+  # both AFs — lab/profiles/sonic-vs/bootstrap/configure-fabric-bgp.sh), so a
+  # fresh lab needs a bounded convergence wait before the routes are installed:
+  # cycle-3 (2026-09-01 07:41) lost 100% of a single 3-packet probe right
+  # after the gate's persistence restart even though the BGP sessions were up.
   local l1="${CLAB_PREFIX}leaf01" l2="${CLAB_PREFIX}leaf02"
   # Discover loopback IPv6 addresses via gNMI
   local lo1 lo2
   lo1=$(_fetch_loopback_v6 "${LEAVES%%,*}") || true
   lo2=$(_fetch_loopback_v6 "${LEAVES##*,}") || true
-  if [[ -n "${lo1:-}" && -n "${lo2:-}" ]]; then
-    echo "[fabric-verify] ping6 leaf01(${lo1}) -> leaf02(${lo2})"
-    docker exec "$l1" bash -lc "ping -6 -c 3 -W 2 ${lo2}"
-    echo "[fabric-verify] ping6 leaf02(${lo2}) -> leaf01(${lo1})"
-    docker exec "$l2" bash -lc "ping -6 -c 3 -W 2 ${lo1}"
-    echo "loopback reachability" # keyword for proof grepping
-  else
-    echo "[fabric-verify] WARN: could not auto-discover loopback IPv6 addresses; skipping loopback ping" >&2
+  if [[ -z "${lo1:-}" || -z "${lo2:-}" ]]; then
+    echo "[fabric-verify] ASSERTION FAILED: could not auto-discover loopback IPv6 addresses (gNMI/CONFIG_DB not answering)" >&2
     return 1
   fi
+  local rc=0 i out ok src dst
+  for pair in "1:2" "2:1"; do
+    if [[ "$pair" == "1:2" ]]; then src="$l1"; dst="$l2"; else src="$l2"; dst="$l1"; fi
+    echo "[fabric-verify] ping6 $src(${src#"$CLAB_PREFIX"}) -> $dst(${dst#"$CLAB_PREFIX"})"
+    ok=0
+    for i in $(seq 1 30); do
+      out=$(docker exec "$src" ping -6 -c 3 -W 2 "$dst" 2>&1) || true
+      if grep -q " 0% packet loss" <<<"$out"; then ok=1; break; fi
+      sleep 5
+    done
+    if [[ "$ok" -eq 1 ]]; then
+      echo "[${src#"$CLAB_PREFIX"}→${dst#"$CLAB_PREFIX"}] assertion passed: loopback IPv6 reachable ($(grep ' 0% packet loss' <<<"$out"))"
+    else
+      echo "[${src#"$CLAB_PREFIX"}→${dst#"$CLAB_PREFIX"}] ASSERTION FAILED: loopback IPv6 unreachable after convergence wait (last: $(grep -E 'packet loss' <<<"$out" | tail -1))" >&2
+      rc=1
+    fi
+  done
+  echo "loopback reachability" # keyword for proof grepping
+  return $rc
 }
 
 verify_ipv6_waypoint_reachability() {
