@@ -165,6 +165,10 @@ sdb_body() {
     return 0
   fi
   if [[ $e -ne 0 ]] || grep -qE 'rpc error|^Error:' <<<"$out"; then
+    # Emit the underlying rpc error so a QUERY_FAILED in the evidence log
+    # self-explains (cycle-1 of the 2026-09-01 reconciliation left an
+    # unexplainable auth failure because only the literal marker was logged).
+    grep -E 'rpc error|^Error:' <<<"$out" | head -1 | sed "s/^/[$t] sonic-db query error: /" >&2 || true
     printf 'QUERY_FAILED'
     return 0
   fi
@@ -351,13 +355,16 @@ drive_client_traffic() {
   local i out
   for i in $(seq 1 6); do
     out=$(docker exec "$c1" ping -c3 -W2 192.0.2.21 2>&1) || true
-    if grep -q "0% packet loss" <<<"$out"; then
-      echo "[client01→client02] assertion passed: bridged Vlan100 reachability ($(grep '0% packet loss' <<<"$out"))"
+    # Match with a leading space: a bare "0% packet loss" grep also matches
+    # "100% packet loss" (substring), which reported a false pass on a 100%
+    # loss run in cycles cycle-1 (observed 2026-09-01).
+    if grep -q " 0% packet loss" <<<"$out"; then
+      echo "[client01→client02] assertion passed: bridged Vlan100 reachability ($(grep ' 0% packet loss' <<<"$out"))"
       return 0
     fi
     sleep 3
   done
-  echo "[client01→client02] ASSERTION FAILED: no bridged Vlan100 reachability across the overlay (last: $(grep -E 'loss|From' <<<"$out" | tail -1))" >&2
+  echo "[client01→client02] ASSERTION FAILED: no bridged Vlan100 reachability across the overlay (last: $(grep -E 'packet loss|From' <<<"$out" | tail -1))" >&2
   return 1
 }
 
