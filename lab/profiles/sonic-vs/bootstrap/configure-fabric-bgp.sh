@@ -314,11 +314,28 @@ apply_frr() {
     || { echo "[fabric-bgp] ERROR: bgpd on $node could not be (re)started" >&2; return 1; }
   local i
   for i in $(seq 1 30); do
-    docker exec "$c" bash -c 'pgrep -x bgpd >/dev/null' 2>/dev/null && return 0
+    docker exec "$c" bash -c 'pgrep -x bgpd >/dev/null' 2>/dev/null && break
     sleep 2
   done
-  echo "[fabric-bgp] ERROR: bgpd did not start on $node" >&2
-  return 1
+  # VNI-adoption verification (mirrors hook step 6b): bgpd queries zebra's VNI
+  # table once at startup — a lost race leaves it with zero VNIs permanently.
+  # Restart-escalate until the L2 VNI shows up (leaf only).
+  if [ "$role" = leaf ]; then
+    local attempt adopted
+    for attempt in 1 2 3; do
+      adopted=0
+      for i in $(seq 1 10); do
+        docker exec "$c" bash -c "vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -q '^ \\* $L2VNI '" && { adopted=1; break; }
+        sleep 3
+      done
+      [ "$adopted" -eq 1 ] && { echo "[fabric-bgp] $node: bgpd adopted L2 VNI $L2VNI (attempt $attempt)"; break; }
+      echo "[fabric-bgp] $node: bgpd missing L2 VNI $L2VNI (attempt $attempt) — restarting"
+      docker exec "$c" supervisorctl restart bgpd >/dev/null 2>&1 || true
+      sleep 10
+    done
+  fi
+  docker exec "$c" bash -c 'pgrep -x bgpd >/dev/null' 2>/dev/null || { echo "[fabric-bgp] ERROR: bgpd did not start on $node" >&2; return 1; }
+  return 0
 }
 
 # Restart-persistence: install a boot hook inside the node so the fabric comes
@@ -494,6 +511,27 @@ for i in $(seq 1 30); do
   pgrep -x bgpd >/dev/null && { log "bgpd running (role=$ROLE)"; break; }
   sleep 2
 done
+# 6b) VERIFY the VNI table actually adopted (leaf only). bgpd queries zebra's
+#     VNI table exactly once at startup; losing that race leaves bgpd with zero
+#     VNIs forever — no IMET, no remote VTEPs, no Type-2/3 (observed again in the
+#     2026-09-01 forced rerun, cycle 1: leaf02 ended with "L2 VNIs: 0" while
+#     leaf01 won the race). bgpd restarts are cheap and re-trigger the query, so
+#     verify-and-restart makes adoption deterministic instead of lucky.
+if [ "$ROLE" = leaf ]; then
+  for attempt in 1 2 3; do
+    adopted=0
+    for i in $(seq 1 10); do
+      vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -q "^ \\* $L2VNI " && { adopted=1; break; }
+      sleep 3
+    done
+    [ "$adopted" -eq 1 ] && { log "bgpd adopted L2 VNI $L2VNI (attempt $attempt)"; break; }
+    log "bgpd missing L2 VNI $L2VNI (attempt $attempt) — restarting bgpd to re-query zebra"
+    supervisorctl restart bgpd >/dev/null 2>&1 || true
+    sleep 10
+  done
+  vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -q "^ \\* $L2VNI " || \
+    log "WARN: bgpd still has no L2 VNI $L2VNI after 3 restarts"
+fi
 # 7) nudge peers past connect backoff once, late in the boot window
 sleep 10
 vtysh -c 'clear bgp *' >/dev/null 2>&1 || true
