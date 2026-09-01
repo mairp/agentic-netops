@@ -1,0 +1,122 @@
+"""Allocator worker server — Phase 2 skeleton (T083).
+
+Same structure as the mapper skeleton: ``A2AStarletteApplication`` +
+``DefaultRequestHandler`` + ``InMemoryTaskStore`` + the ``/v1/health``
+route, uvicorn on the subject's port 9091 (contracts/supervisor-http.md).
+Routable card id ``devnet/provisioning/network-allocator``, skill
+``allocate_network_service`` (contracts/a2a-transport.md).
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+
+from a2a.server.apps import A2AStarletteApplication
+from a2a.server.request_handlers import DefaultRequestHandler
+from a2a.server.tasks import InMemoryTaskStore
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from starlette.middleware.cors import CORSMiddleware
+from starlette.routing import Route
+from uvicorn import Config, Server
+
+from config.config import DEFAULT_MESSAGE_TRANSPORT, ENABLE_HTTP, TRANSPORT_SERVER_ENDPOINT
+from provisioning.allocator.agent_executor import AllocationAgentExecutor
+from provisioning.allocator.card import AGENT_CARD
+
+logger = logging.getLogger("devnet.network_allocator.server")
+logging.basicConfig(level=logging.INFO)
+
+WORKER = "allocator"
+PORT = 9091  # subject's port, kept (contracts/supervisor-http.md)
+
+
+# ---------------- HEALTH ----------------
+
+async def liveness_probe(request) -> JSONResponse:
+    """Phase 2: plain liveness; Phase 3 wires the A2A-session probe over SLIM."""
+    return JSONResponse(
+        {
+            "status": "alive",
+            "worker": WORKER,
+            "transport": DEFAULT_MESSAGE_TRANSPORT,
+            "endpoint": TRANSPORT_SERVER_ENDPOINT,
+        }
+    )
+
+
+# ---------------- HTTP APP ----------------
+
+
+def build_http_server(a2a_app: A2AStarletteApplication) -> FastAPI:
+    app_ = a2a_app.build()
+    app_.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app_.router.routes.append(Route("/v1/health", liveness_probe, methods=["GET"]))
+    return app_
+
+
+def create_app() -> FastAPI:
+    request_handler = DefaultRequestHandler(
+        agent_executor=AllocationAgentExecutor(),
+        task_store=InMemoryTaskStore(),
+    )
+
+    server = A2AStarletteApplication(
+        agent_card=AGENT_CARD,
+        http_handler=request_handler,
+    )
+
+    return build_http_server(server)
+
+
+app = create_app()
+
+
+# ---------------- RUNNERS ----------------
+
+
+async def run_http_server(server: A2AStarletteApplication) -> None:
+    app_ = build_http_server(server)
+    config = Config(app=app_, host="0.0.0.0", port=PORT, loop="asyncio")
+    await Server(config).serve()
+
+
+async def run_transport(server: A2AStarletteApplication) -> None:
+    """Phase 3 hook: SLIM registration over ``TRANSPORT_SERVER_ENDPOINT``."""
+    logger.info("transport registration for %s is Phase 3 wiring", WORKER)
+
+
+# ---------------- MAIN ----------------
+
+
+async def main(enable_http: bool) -> None:
+    request_handler = DefaultRequestHandler(
+        agent_executor=AllocationAgentExecutor(),
+        task_store=InMemoryTaskStore(),
+    )
+
+    server = A2AStarletteApplication(
+        agent_card=AGENT_CARD,
+        http_handler=request_handler,
+    )
+
+    tasks: list[asyncio.Task] = []
+    if enable_http:
+        tasks.append(asyncio.create_task(run_http_server(server)))
+    tasks.append(asyncio.create_task(run_transport(server)))
+
+    await asyncio.gather(*tasks)
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main(ENABLE_HTTP))
+    except KeyboardInterrupt:
+        logger.info("Shutting down gracefully.")

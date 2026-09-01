@@ -1,0 +1,253 @@
+# T035: tier telemetry pipeline — one emission, two sinks (research.md Decision 8).
+#
+# Agents emit OTLP exactly ONCE, to this tier-owned collector
+# (http://agent-otel-collector.ainetops-agents.svc:4318, OTLP/HTTP). This collector
+# is the single fan-out point: a clickhouse exporter into the tier's agent-analytics
+# store, and an otlp exporter forwarding to feature 001's unmodified collector at
+# otel-collector.ainetops-system:4317. No feature-001 file changes.
+#
+# ---------------------------------------------------------------------------
+# QUALIFIED OTLP SHAPE (T034) — captured live from the pinned
+# ioa-observe-sdk==1.0.24 (agents/.venv) by POSTing the subject's own
+# instrumentation entrypoints (Observe.init, @agent, @graph, session_start)
+# at a local OTLP/HTTP sink. Full capture + decoded payload:
+#   .wiggum/features/002-agntcy-intent-tier/gates/proofs/t034-otlp-shape.log
+#
+# Transport:
+#   POST {IOA_OBSERVE_BASE_URL}/v1/traces
+#   Content-Type: application/x-protobuf
+#   Content-Encoding: gzip
+#   Authorization: Bearer <IOA_OBSERVE key>
+#
+# Resource attributes (per resource_spans):
+#   service.name = the app_name passed to Observe.init (per agent workload)
+#
+# Instrumentation scope names observed:
+#   ioa_observe.sdk.tracing.tracing   (session spans, e.g. set_session_id)
+#   ioa_observe.sdk.decorators.base   (agent_start_event / agent_end_event)
+#   ioa.observe.tracer                (the decorated spans)
+#
+# Span shape:
+#   "<name>.agent"  (from @agent(name=...)) and "<name>.graph" (from @graph(name=...))
+#   attributes:
+#     ioa_observe.span.kind        = "agent" | "graph"
+#     ioa_observe.entity.name      = the decorator name
+#     ioa_observe.entity.input     = JSON-encoded call input (string)
+#     ioa_observe.entity.output    = JSON-encoded call output (string)
+#     ioa_observe.workflow.name    = the workflow/agent name
+#     session.id                   = "<agent>_<uuid>" — the per-session join key
+#     agent_id                     = the agent name (agent spans only)
+#     execution.success            = bool
+#     ioa_start_time               = float (epoch seconds)
+#     agent_chain_start_time       = float (agent spans only)
+#   The W3C trace_id on every span (32 lowercase hex) is the correlation
+#   identifier per research.md Decision 9; the collector needs no custom
+#   processing to keep it — it is standard span baggage.
+#
+# Consequences for this file:
+#   - the pipeline carries TRACES (the SDK's decorated path emits spans, not
+#     metrics, in the qualified run); a metrics pipeline is configured too,
+#     because the SDK's MetricsWrapper can emit standard OTLP metrics and the
+#     plan names them ainetops_agent_* so they pass feature 001's filter
+#     processor regexp (.*sonic_.*, .*srv6.*, .*ainetops.*) unchanged.
+#   - the clickhouse exporter needs the generated Secret clickhouse-auth
+#     (T054) — never admin/admin (REVERSE.md Finding 4).
+# ---------------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-otel-config
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          # T034: the SDK speaks OTLP/HTTP (POST /v1/traces, protobuf+gzip).
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+            cors:
+              allowed_origins: ["*"]
+
+    processors:
+      batch: {}
+
+    # The single fan-out point (Decision 8): two exporters, one emission.
+    exporters:
+      clickhouse:
+        endpoint: "tcp://clickhouse.ainetops-agents.svc:9000"
+        database: agent_analytics
+        traces_table_name: traces
+        metrics_table_name: metrics
+        timeout: 10s
+        username:
+          env_var: CLICKHOUSE_USERNAME
+        password:
+          env_var: CLICKHOUSE_PASSWORD
+      otlp/feature001:
+        # Forward to feature 001's collector, which already accepts OTLP on
+        # :4317 and exports to Prometheus. Its filter processor keeps
+        # metrics matching .*sonic_.*|.*srv6.*|.*ainetops.*, so every tier
+        # metric is named ainetops_agent_* (plan.md Component 8).
+        endpoint: otel-collector.ainetops-system.svc:4317
+        tls:
+          insecure: true
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [clickhouse, otlp/feature001]
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [clickhouse, otlp/feature001]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-otel-collector
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+    app: agent-otel-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-otel-collector
+  template:
+    metadata:
+      labels:
+        # ainetops.io/tier: intent — the pod is addressed by the
+        # allow-egress-scoped and apiserver-egress-cluster-clients policies
+        # in namespace-rbac.yaml like every other tier pod.
+        ainetops.owner: ainetops
+        ainetops.io/tier: intent
+        app: agent-otel-collector
+    spec:
+      # The collector talks to the 001 collector and ClickHouse, not the API
+      # server; it holds no token.
+      automountServiceAccountToken: false
+      containers:
+      - name: collector
+        # Pinned by digest (versions.lock.yaml tooling.otel_collector).
+        image: otel/opentelemetry-collector-contrib@sha256:e07e325e303e86f4a87a617491e921b579a92da6d404007394757ac910bf9587
+        args: ["--config=/etc/otel/config.yaml"]
+        ports:
+        - {name: otlp-grpc, containerPort: 4317}
+        - {name: otlp-http, containerPort: 4318}
+        env:
+        - name: CLICKHOUSE_USERNAME
+          valueFrom:
+            secretKeyRef: {name: clickhouse-auth, key: username}
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef: {name: clickhouse-auth, key: password}
+        volumeMounts:
+        - {name: config, mountPath: /etc/otel}
+        readinessProbe:
+          httpGet: {path: /, port: 13133}
+          initialDelaySeconds: 5
+        livenessProbe:
+          httpGet: {path: /, port: 13133}
+          initialDelaySeconds: 10
+      volumes:
+      - name: config
+        configMap:
+          name: agent-otel-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-otel-collector
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+spec:
+  selector:
+    app: agent-otel-collector
+  ports:
+  - {name: otlp-grpc, port: 4317, targetPort: 4317}
+  - {name: otlp-http, port: 4318, targetPort: 4318}
+---
+# The agent-analytics sink. Single-replica StatefulSet with a PVC; the
+# password comes from the generated Secret clickhouse-auth (T054) — never a
+# literal, never admin/admin (REVERSE.md Finding 4).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: clickhouse
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+    app: clickhouse
+spec:
+  replicas: 1
+  serviceName: clickhouse
+  selector:
+    matchLabels:
+      app: clickhouse
+  template:
+    metadata:
+      labels:
+        ainetops.owner: ainetops
+        ainetops.io/tier: intent
+        app: clickhouse
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: clickhouse
+        # Pinned by digest (versions.lock.yaml intent_tier.clickhouse).
+        image: clickhouse/clickhouse-server:24.9@sha256:efaa7d174383830fbe83a0589fc19804cc3581c628d663969d198d48822d3119
+        ports:
+        - {name: native, containerPort: 9000}
+        - {name: http, containerPort: 8123}
+        env:
+        - name: CLICKHOUSE_USER
+          valueFrom:
+            secretKeyRef: {name: clickhouse-auth, key: username}
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef: {name: clickhouse-auth, key: password}
+        volumeMounts:
+        - {name: data, mountPath: /var/lib/clickhouse}
+        readinessProbe:
+          tcpSocket: {port: 8123}
+          initialDelaySeconds: 10
+        livenessProbe:
+          tcpSocket: {port: 8123}
+          initialDelaySeconds: 30
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+spec:
+  selector:
+    app: clickhouse
+  ports:
+  - {name: native, port: 9000, targetPort: 9000}
+  # Queried directly over :8123 (plan.md Component 8).
+  - {name: http, port: 8123, targetPort: 8123}
