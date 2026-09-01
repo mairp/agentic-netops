@@ -133,3 +133,48 @@ docker exec clab-ainetops-fabric-leaf01 vtysh -c 'show bgp l2vpn evpn'
   starting bgpd, nudging with re-enslave + link flap.
 - Access ports on the vlan-aware Bridge need explicit `bridge vlan add … pvid untagged` into the
   L2VNI VLAN (PVID 1 default never reaches vtep1-100).
+
+### D-A3. bgpd does not adopt the L2 VNI on a fresh cycles-provisioned lab
+
+Observed 2026-09-01 on the forced re-run (`CYCLES_FORCE_RERUN=1`), cycles 1 and 2, on `leaf01`:
+
+```
+[fabric-bgp] leaf01: bgpd missing L2 VNI 100 (attempt 1) — restarting
+[fabric-bgp] leaf01: bgpd missing L2 VNI 100 (attempt 2) — restarting
+[fabric-bgp] leaf01: bgpd missing L2 VNI 100 (attempt 3) — restarting
+```
+
+The VNI-adoption escalation added in `010a8d7e` exhausts all three bgpd restarts. Without the L2 VNI
+adopted, bgpd never processes the peer IMET, zebra installs no remote VTEP, nothing floods, and every
+overlay ping fails with 100% loss. The generated `bgpd.conf` is correct — `advertise-all-vni` is
+emitted for leaves under `address-family l2vpn evpn` — so this is not a configuration error.
+
+This is the same class as D-A2: the recipe is right and the image does not honour it. It reproduces
+on fresh cycles-provisioned labs while the same recipe works on a hand-built lab, so the leading
+suspect is that `ensure_overlay_devices` only ever verifies the **L3VNI** vtep device; nothing
+confirms that `vtep1-100` (the L2VNI) exists and is enslaved with its vlan mapping before bgpd
+starts. If vxlanmgrd has not finished that, zebra never classifies VNI 100 and bgpd correctly
+receives nothing. Not yet confirmed live — recorded as the next diagnostic step.
+
+**Why this went undetected for hours:** three independent silent-success paths, all closed in
+`f6f471d0`. (1) the escalation fell through with no error; (2) `containerlab.sh` downgraded the hook
+failure to a WARN so `provision.sh` still exited 0; (3) `fabric_verify`'s Type-2/3 assertion grepped
+the leaf's own RIB, which a leaf's self-originated Type-2/Type-3 satisfies, so the route section
+reported "present on both leaves" while zero routes had been exchanged. The result was a
+structurally dead overlay presenting as a slow-converging one.
+
+**OPERATOR DECISION (2026-09-01, recorded at the operator's explicit direction):** L2 VNI adoption,
+and therefore EVPN overlay forwarding, is accepted as NOT PROVEN on the current
+`sonic-vs-gnmi:202605-v2` image. Rationale given by the operator: the defect is image-level, external
+support is being engaged, and the fabric will be re-qualified on a different SONiC image; the
+remaining gate scope should not be blocked behind it in the meantime.
+
+Mechanics of the waiver, so it can never be mistaken for a passing fabric:
+- Provisioning continues **only** under an explicit `AINETOPS_WAIVE_L2VNI_ADOPTION=1`, which logs a
+  `[fabric-bgp] WAIVED:` line naming this section. Default behaviour remains fail-closed.
+- `fabric_verify` is **NOT** weakened. The peer-arrival assertion (remote-VTEP count on the L2 VNI)
+  and the client-traffic assertion both REMAIN and continue to fail closed, exactly as Type-5 does.
+- `test-fabric` will therefore still exit 1. GATE8 evidence must cite this decision verbatim and
+  present the overlay data path as an accepted, documented image defect — never as passing.
+- What would close it for real: a SONiC image on which `show evpn vni` reports a non-zero remote
+  VTEP count for VNI 100 on both leaves, and client01→client02 pings across the overlay succeed.

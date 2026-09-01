@@ -340,8 +340,19 @@ apply_frr() {
     # fabric reached test-fabric and was misread as slow convergence
     # (2026-09-01: re-run cycle 1/2, leaf01, all 3 attempts exhausted).
     if [ "$adopted" -ne 1 ]; then
-      echo "[fabric-bgp] ERROR: $node: bgpd never adopted L2 VNI $L2VNI after 3 restarts — overlay cannot forward; failing provision" >&2
-      return 1
+      # Explicit, recorded operator waiver (docs/FABRIC_BGP_EVPN_DEFERRED.md D-A3).
+      # Default is fail-closed; the waiver must be opted into by environment and
+      # says so loudly in the log so it can never be mistaken for a healthy run.
+      # It lets provisioning continue so the rest of the gate (parity,
+      # observability, idempotence, teardown, supply chain) can still be
+      # exercised on an image whose overlay is known-broken. It does NOT weaken
+      # fabric_verify: the peer-arrival assertion still fails closed.
+      if [ "${AINETOPS_WAIVE_L2VNI_ADOPTION:-0}" = "1" ]; then
+        echo "[fabric-bgp] WAIVED: $node: bgpd never adopted L2 VNI $L2VNI after 3 restarts. Continuing under AINETOPS_WAIVE_L2VNI_ADOPTION=1 (operator decision, docs/FABRIC_BGP_EVPN_DEFERRED.md D-A3). THE OVERLAY CANNOT FORWARD — client traffic and remote-VTEP assertions WILL fail and must be cited as this documented defect, not as a passing fabric." >&2
+      else
+        echo "[fabric-bgp] ERROR: $node: bgpd never adopted L2 VNI $L2VNI after 3 restarts — overlay cannot forward; failing provision" >&2
+        return 1
+      fi
     fi
   fi
   docker exec "$c" bash -c 'pgrep -x bgpd >/dev/null' 2>/dev/null || { echo "[fabric-bgp] ERROR: bgpd did not start on $node" >&2; return 1; }
