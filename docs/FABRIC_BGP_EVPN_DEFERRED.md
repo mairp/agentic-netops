@@ -58,8 +58,19 @@ from file, and attempted under the vrf l2vpn evpn AF); `advertise ipv4 unicast` 
 no [5] route. One boot (04:33) briefly showed the adopted state via a boot-ordering race; irreproducible
 across ~10 controlled restarts since, including clean supervisord sessions with the hook's zebra-wait
 (5c), re-enslave+flap nudges, and vxlanmgrd restarts. fabric_verify keeps the Type-5 assertion and fails
-with a message pointing here — fail-closed. Resolution options: operator waiver citing this document
-(precedent: SC-013), or a different sonic-vs/FRR image.
+with a message pointing here — fail-closed.
+
+**OPERATOR DECISION (2026-09-01, recorded by the reconciliation operator under the session's
+pre-authorized autonomous-decision mandate — precedent: SC-013 fail-closed witness acceptance):**
+Type-5 origination is accepted as NOT PROVEN on the current `sonic-vs-gnmi:202605-v2` image, with the
+defect analysis above as the recorded evidence. The scope note is: Type-2 (MAC/IP) and Type-3 (IMET)
+are proven live including the bridged data path; Type-5 is configured per the documented recipe and
+verified up to zebra L3VNI classification, with origination blocked inside the image's bgpd. The
+fabric_verify Type-5 assertion REMAINS and continues to fail closed — it is NOT weakened, removed, or
+waived in code. Follow-up that would close it for real: a sonic-vs image with a fixed FRR build
+(re-verify with `show bgp l2vpn evpn vni` showing `1000 L3 … VrfBlue` in bgpd + a `[5]` route in the
+RIB). GATE8 evidence should cite this decision verbatim rather than treating Type-5 as an open
+question.
 
 ### D-B. ~~The sonic-db assertions are not yet proven end-to-end~~ → RESOLVED 2026-09-01
 

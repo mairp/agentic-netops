@@ -169,6 +169,25 @@ sdb_body() {
     # self-explains (cycle-1 of the 2026-09-01 reconciliation left an
     # unexplainable auth failure because only the literal marker was logged).
     grep -E 'rpc error|^Error:' <<<"$out" | head -1 | sed "s/^/[$t] sonic-db query error: /" >&2 || true
+    # Unauthenticated right after a provision is a transition artifact (telemetry
+    # was just restarted by the bootstrap/qualify suites; creds themselves are
+    # consistent on a settled lab — verified 2026-09-01 07:35). One refetch +
+    # retry converts it into the answer the lab actually holds.
+    if grep -q 'Unauthenticated' <<<"$out"; then
+      local u2 p2
+      u2=$(kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.username}' 2>/dev/null | base64 -d 2>/dev/null || true)
+      p2=$(kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.password}' 2>/dev/null | base64 -d 2>/dev/null || true)
+      if [[ -n "$u2" && -n "$p2" ]]; then
+        sleep 8
+        out=$("$GNMIC_BIN" --address "$t" --timeout 10s --username "$u2" --password "$p2" --tls-ca "$GNMI_CACERT" --tls-cert "$GNMI_CERT" --tls-key "$GNMI_KEY" --encoding "$GNMI_ENCODING" get --path "/$table" --target CONFIG_DB 2>&1)
+        e=$?
+        if [[ $e -eq 0 ]] && ! grep -qE 'rpc error|^Error:' <<<"$out"; then
+          printf '%s' "$out" | tr -d ' \n\t'
+          return 0
+        fi
+        grep -E 'rpc error|^Error:' <<<"$out" | head -1 | sed "s/^/[$t] sonic-db retry error: /" >&2 || true
+      fi
+    fi
     printf 'QUERY_FAILED'
     return 0
   fi
