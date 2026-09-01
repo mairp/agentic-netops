@@ -1,6 +1,0 @@
-32: 	// Strict parsing rejects unknown fields and raw CLI leakage.
-33: 	inputs, err := migration.ParseStrictBatch(data)
-34: 	if err != nil {
-35: 		// Emit structured JSON error (consistent shape) before any output.
-36: 		msg := migration.MarshalError(err)
-37: 		fmt.Fprintln(os.Stderr, msg)

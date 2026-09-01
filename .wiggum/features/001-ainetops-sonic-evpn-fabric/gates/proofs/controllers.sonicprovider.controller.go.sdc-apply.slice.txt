@@ -1,3 +1,0 @@
-192: 	// Compute canonical hash and apply via SSA with dedicated field manager and minimal policy fields
-208: 	if err := r.Patch(ctx, obj, apply, &client.PatchOptions{FieldManager: fieldManager, Force: &force}); err != nil {
-219: 	cfg := &sdc.Config{}

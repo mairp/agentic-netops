@@ -1,5 +1,0 @@
-pcap: 134 bytes, captured IPv6 with SRH
-IPv6 src 2001:db8:3::31 dst 2001:db8:4::41
-SRH segments-left 1 lastentry 1
-SID[0] 2001:db8:1::2
-SID[1] 2001:db8:2::2

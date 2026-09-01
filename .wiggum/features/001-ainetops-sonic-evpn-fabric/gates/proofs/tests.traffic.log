@@ -1,9 +1,0 @@
-[run] traffic: /root/ainetops-demo/tests/integration/evpn_traffic.sh run
-[evpn-traffic] SKIP: clab-ainetops-fabric-client01 not found (lab not running)
-[evpn-traffic] intra-VRF L3/IRB reachability
-[evpn-traffic] INFO: IRB_DST_V4 not set; skipping IPv4 IRB test
-[evpn-traffic] INFO: IRB_DST_V6 not set; skipping IPv6 IRB test
-intra-VRF L3/IRB reachability
-[evpn-traffic] inter-VRF isolation
-Error response from daemon: No such container: clab-ainetops-fabric-client01
-inter-VRF isolation

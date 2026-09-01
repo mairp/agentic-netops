@@ -1,4 +1,0 @@
-1: total 14
-2: -rw------- 1 root root  653 Aug 29 02:05 groupversion_info.go
-3: -rw------- 1 root root 5618 Aug 29 01:44 srv6service_types.go
-4: -rw------- 1 root root 2623 Aug 29 02:06 zz_generated.deepcopy.go

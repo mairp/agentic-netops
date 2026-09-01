@@ -1,6 +1,0 @@
-     1	# Key excerpts proving Kind ensure/attach/context phases are invoked
-     2	if [[ -x "${LIB_DIR}/kind.sh" ]]; then
-     3	  "${LIB_DIR}/kind.sh" ensure
-     4	  "${LIB_DIR}/kind.sh" attach-mgmt
-     5	  "${LIB_DIR}/kind.sh" verify-context
-     6	fi

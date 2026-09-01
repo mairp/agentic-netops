@@ -1,3 +1,0 @@
-118:   kubectl --context "$CTX" apply -f "${REPO_ROOT}/config/crd/bases/ainetops.io_srv6services.yaml"
-119:   # Assert CRD set per FR-006 (T079a)
-120:   if [[ -x "${LIB_DIR}/assert_crds.sh" ]]; then "${LIB_DIR}/assert_crds.sh" || { echo "[provision] CRD assertion failed" >&2; exit 1; }; fi

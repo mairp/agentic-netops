@@ -1,9 +1,0 @@
-     1		apply := client.Apply
-     2		force := true
-     3		if err := r.Patch(ctx, obj, apply, &client.PatchOptions{FieldManager: fieldManager, Force: &force}); err != nil {
-     4			cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplyFailed, Message: err.Error()}
-     5			patched := nd
-     6			patched.Status = upsertConditionGeneric(nd.Status, cond)
-     7			_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
-     8			return resultWithBackoff(true), nil
-     9		}

@@ -1,9 +1,0 @@
-      1  {
-      2    "status": "success",
-      3    "data": {
-      4      "resultType": "vector",
-      5      "result": [
-      6        {"metric": {}, "value": [ 1724880000, "1" ]}
-      7      ]
-      8    }
-      9  }

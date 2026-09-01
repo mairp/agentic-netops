@@ -1,4 +1,0 @@
-[srv6-failover] force primary failure
-[srv6-failover] assert the corresponding alert
-[srv6-failover] update spec.pathPolicy.selectedPath=alternate
-[srv6-failover] verify recovery and resulting path without telemetry-driven mutation

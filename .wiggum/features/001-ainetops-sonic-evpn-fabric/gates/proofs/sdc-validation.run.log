@@ -1,5 +1,0 @@
-[go-test] Running SDC offline validation unit tests
-=== RUN   TestOfflineValidateRejectsNonPathKeys
---- PASS: TestOfflineValidateRejectsNonPathKeys (0.00s)
-PASS
-ok  	tests/unit	(cached)

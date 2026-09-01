@@ -1,6 +1,0 @@
-controllers/controllers/sonicprovider/controller.go/253:		WithEventFilter(ignoreNonNetworkDevice()).
-controllers/controllers/sonicprovider/controller.go/258:func ignoreNonNetworkDevice() predicate.Predicate {
-controllers/controllers/sonicprovider/controller.go/265:		if v, ok := labels["network.kubenet.dev/derived"]; ok && v == "true" {
-controllers/controllers/sonicprovider/indexes.go/14:	// Index NetworkDevices by the 'network.kubenet.dev/derived' label presence
-controllers/controllers/sonicprovider/indexes.go/15:	return idx.IndexField(ctx, &kubenet.NetworkDevice{}, "metadata.labels.network.kubenet.dev/derived", func(o client.Object) []string {
-controllers/controllers/sonicprovider/indexes.go/23:		if v, ok := labels["network.kubenet.dev/derived"]; ok && v == "true" {

@@ -1,2 +1,0 @@
-     1	[verify-pins] validating versions.lock.yaml
-     2	[verify-pins] versions.lock.yaml pins and compatibility are consistent

@@ -1,3 +1,0 @@
-SC-006 — Alert rules present and pinned
-- Evidence: deploy/observability/rules/ainetops.rules.yaml
-- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.observability.rules.ainetops.rules.yaml.slice.txt

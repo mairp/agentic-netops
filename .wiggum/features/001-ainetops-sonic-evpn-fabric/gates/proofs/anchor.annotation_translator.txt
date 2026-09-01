@@ -1,2 +1,0 @@
-44:			"ainetops.io/translator":          TranslatorName,
-45:			"ainetops.io/translator-version":  TranslatorVersion,

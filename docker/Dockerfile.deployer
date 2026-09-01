@@ -1,0 +1,35 @@
+# docker/Dockerfile.deployer — deployer worker agent (feature 002).
+#
+# Base image: the digest-pinned python:3.13-slim recorded under intent_tier.python
+# in versions.lock.yaml (NFR-003: immutable digest; no floating tags).
+# Build context: repository root.
+#
+# The deployer Pod runs a second container built from Dockerfile.intent-translator
+# (the Go translator sidecar on pod-local 127.0.0.1:8090). This image is the
+# Python worker only.
+ARG PYTHON_BASE_IMAGE=python:3.13-slim@sha256:881d80734ee05dca6f7f42dcb080975652a53c7eda9ba1f03bb8da31aa6a6ec2
+FROM ${PYTHON_BASE_IMAGE}
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# uv manages the environment from the lockfile; dependencies are installed
+# before the source so the dependency layer caches across source changes.
+RUN pip install --no-cache-dir uv
+
+WORKDIR /app
+COPY agents/pyproject.toml agents/uv.lock ./
+RUN uv sync --frozen --no-dev
+
+# Application source: agents/ -> /app
+COPY agents/ /app/
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Deployer card id devnet/provisioning/network-deployer (contracts/a2a-transport.md)
+EXPOSE 9093
+# Entrypoint module lands with the deployer implementation phase.
+CMD ["python", "provisioning/deployer/server.py"]

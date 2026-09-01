@@ -2,14 +2,16 @@ SHELL := /bin/bash
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: help verify-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest build build-migration-cli supply-chain denylist security-audit acceptance suites test-all
+.PHONY: help verify-pins verify-intent-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest build build-migration-cli build-intent-translator supply-chain denylist security-audit acceptance suites test-all
 
 help:
 	@echo "Targets:"
 	@echo "  verify-pins       Validate versions.lock.yaml has immutable pins and consistency"
+	@echo "  verify-intent-pins Validate every feature-002 intent_tier: image is pinned by digest"
 	@echo "  validate-crds     Server-side dry-run validation of Kubenet/KUID/SDC CRDs and examples"
 	@echo "  verify-register   Guard: fail if any rendered path is missing from the OC-vs-SONiC register"
-	@echo "  verify-compat     Run verify-pins and validate-crds together"
+	@echo "  verify-compat     Run verify-pins, intent_tier digest validation, and validate-crds"
+	@echo "  build-intent-translator  Build the static cmd/intent-translator sidecar (feature 002)"
 	@echo "  lab-qualify       Run lab capability qualification suite (blocks downstream on failure)"
 	@echo "  build             Build provider, SRv6 controller, and migration CLI"
 	@echo "  build-migration-cli  Build only cmd/migration-translator"
@@ -27,8 +29,12 @@ validate-crds:
 	@mkdir -p .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs
 	@"$(PWD)/scripts/lib/validate_crds.sh" 2>&1 | tee .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log
 
-verify-compat: verify-pins validate-crds verify-register
-	@echo "[verify-compat] pins, CRD, and register validations passed" 
+verify-intent-pins:
+	@echo "[verify-intent-pins] validating intent_tier: image digests in versions.lock.yaml"
+	@"$(PWD)/scripts/lib/verify_pins.sh" intent-tier
+
+verify-compat: verify-pins validate-crds verify-register verify-intent-pins
+	@echo "[verify-compat] pins, intent_tier digests, CRD, and register validations passed"
 
 supply-chain:
 	@"$(PWD)/scripts/ci/supply_chain.sh"
@@ -52,6 +58,10 @@ build:
 build-migration-cli:
 	@echo "[build] building cmd/migration-translator"
 	@GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -buildid=" ./cmd/migration-translator
+
+build-intent-translator:
+	@echo "[build] building cmd/intent-translator (static, vendored sources)"
+	@GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -mod=vendor -trimpath -ldflags "-s -w -buildid=" ./cmd/intent-translator
 
 # Lifecycle wrappers (do not reimplement phases): call scripts directly
 PROF ?= sonic-vs

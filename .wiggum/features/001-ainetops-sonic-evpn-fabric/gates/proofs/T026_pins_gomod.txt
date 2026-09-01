@@ -1,9 +1,0 @@
-go.mod:3:go 1.22
-go.mod:9:	go.opentelemetry.io/otel v1.24.0
-go.mod:11:	go.uber.org/zap v1.26.0
-go.mod:13:	k8s.io/api v0.29.4
-go.mod:14:	k8s.io/apiextensions-apiserver v0.29.2
-go.mod:16:	k8s.io/client-go v0.29.4
-go.mod:17:	sigs.k8s.io/controller-runtime v0.17.5
-go.mod:75:	k8s.io/api => k8s.io/api v0.29.4
-go.mod:77:	k8s.io/client-go => k8s.io/client-go v0.29.4

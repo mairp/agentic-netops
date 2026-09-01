@@ -1,9 +1,0 @@
-1:name: Denylist Scan
-6:  pull_request:
-9:  denylist:
-20:      - name: Run repository-wide deny-list checks (SC-010, FR-020, FR-023, FR-032)
-33:            matches=$(printf "%s" "${matches}" | rg -v '^(\.github/workflows/denylist\.yml|scripts/ci/denylist_policy\.sh|scripts/ci/supply_chain\.sh|scripts/ci/denylist_runtime_scan\.sh|tests/integration/cycles_runner\.sh):' || true)
-117:            | rg -v '^(\.github/workflows/denylist\.yml|scripts/ci/denylist_policy\.sh|scripts/ci/denylist_runtime_scan\.sh|tests/integration/cycles_runner\.sh):' || true)
-125:            echo "Deny-list checks failed" >&2
-126:            exit 1
-128:          echo "All deny-list checks passed"

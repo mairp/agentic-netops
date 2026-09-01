@@ -1,8 +1,0 @@
-# pkg/migration/parse.go — ParseStrictBatch with DisallowUnknownFields
-10:// ParseStrictBatch decodes a JSON object or array of ServiceInput with
-11:// DisallowUnknownFields to ensure unknown properties are rejected.
-12:func ParseStrictBatch(data []byte) ([]ServiceInput, error) {
-26:			if err := strictUnmarshal(raws[i], &in); err != nil {
-34:		if err := strictUnmarshal(trim, &in); err != nil {
-43:func strictUnmarshal(b []byte, v any) error {
-45:	dec.DisallowUnknownFields()

@@ -1,6 +1,0 @@
-customresourcedefinition.apiextensions.k8s.io/networks.network.kubenet.dev condition met
-customresourcedefinition.apiextensions.k8s.io/networkdevices.network.kubenet.dev condition met
-customresourcedefinition.apiextensions.k8s.io/ipindices.id.kuid.dev condition met
-customresourcedefinition.apiextensions.k8s.io/asnindices.id.kuid.dev condition met
-customresourcedefinition.apiextensions.k8s.io/vniindices.id.kuid.dev condition met
-customresourcedefinition.apiextensions.k8s.io/claims.id.kuid.dev condition met

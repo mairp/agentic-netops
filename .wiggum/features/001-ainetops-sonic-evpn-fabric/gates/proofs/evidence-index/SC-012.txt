@@ -1,3 +1,0 @@
-SC-012 — Deterministic render with canonical hash annotations
-- Evidence: controllers/sonicprovider/controller.go (annotation "ainetops.dev/config-hash")
-- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/controllers.sonicprovider.controller.go.hash.slice.txt

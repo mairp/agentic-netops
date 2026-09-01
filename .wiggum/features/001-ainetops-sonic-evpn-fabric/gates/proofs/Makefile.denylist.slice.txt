@@ -1,2 +1,0 @@
-$(nl -ba Makefile | sed -n '1,40p' | sed -n '1,20p')
-$(nl -ba Makefile | sed -n '31,36p')

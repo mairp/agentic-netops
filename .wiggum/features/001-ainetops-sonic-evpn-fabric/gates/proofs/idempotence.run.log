@@ -1,7 +1,0 @@
-[idempotence] snapshot before
-unchanged intent produces zero SDC spec writes (before)
-unchanged intent produces zero gNMI Sets (before)
-[idempotence] re-applying current manifests as no-op (fabric, tenants, and SRv6)
-[idempotence] snapshot after
-unchanged intent produces zero SDC spec writes
-unchanged intent produces zero gNMI Sets

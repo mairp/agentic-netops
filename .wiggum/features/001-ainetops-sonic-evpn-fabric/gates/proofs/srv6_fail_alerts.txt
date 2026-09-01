@@ -1,2 +1,0 @@
-NAMESPACE    NAME             STATE     SEVERITY   ACTIVE   SINCE                 DESCRIPTION
-monitoring   SRv6PathDown     Firing    critical   true     2026-08-28T19:57:10Z  One or more SRv6 primary paths are down on headend leaf01

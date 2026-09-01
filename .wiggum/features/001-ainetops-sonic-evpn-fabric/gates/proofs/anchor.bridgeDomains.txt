@@ -1,4 +1,0 @@
-59:		// bridgeDomains + attachments (VLANs)
-71:		spec["bridgeDomains"] = []any{bd}
-92:		// routers + bridgeDomains with irb
-113:		spec["bridgeDomains"] = []any{bd}

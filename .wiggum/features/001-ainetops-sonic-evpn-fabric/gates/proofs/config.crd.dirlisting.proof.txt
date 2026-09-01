@@ -1,3 +1,0 @@
-1: total 29
-2: drwxr-xr-x 2 root root   3 Aug 29 05:45 bases
-3: -rw------- 1 root root 420 Aug 29 01:54 README.md

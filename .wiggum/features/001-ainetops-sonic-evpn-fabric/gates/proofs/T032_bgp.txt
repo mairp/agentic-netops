@@ -1,2 +1,0 @@
-pkg/render/bgp.go:11:func RenderBGP(global model.BGPGlobal, neighbors []model.BGPNeighbor) map[string]any {
-pkg/render/bgp.go:32:		if n.EVPN {

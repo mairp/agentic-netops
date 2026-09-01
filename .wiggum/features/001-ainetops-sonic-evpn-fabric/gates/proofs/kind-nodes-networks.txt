@@ -1,2 +1,0 @@
-/ainetops-control-plane {"ainetops-mgmt":{"IPAddress":"172.31.0.2","MacAddress":"02:42:ac:1f:00:02"},"kind":{"IPAddress":"172.18.0.2","MacAddress":"02:42:ac:12:00:02"}}
-/ainetops-worker {"ainetops-mgmt":{"IPAddress":"172.31.0.3","MacAddress":"02:42:ac:1f:00:03"},"kind":{"IPAddress":"172.18.0.3","MacAddress":"02:42:ac:12:00:03"}}

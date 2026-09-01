@@ -1,3 +1,0 @@
-SC-007 — Prometheus as metrics store
-- Evidence: docs/OPERATORS.md (Prometheus is the metrics store); deploy/observability/prometheus.yaml (deployment)
-- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/docs.OPERATORS.prometheus.slice.txt

@@ -1,6 +1,0 @@
-     1  # T049 partial failure/recovery, provider restart mid-transaction, invalid-YANG, partial SRv6 endpoint programming
-     2  echo "partial target failure/recovery"
-     3  echo "provider restart mid-transaction"
-     4  echo "invalid-YANG tests"
-     5  echo "partial SRv6 endpoint programming"
-     6  echo "prohibit false aggregate Ready or partial service activation"

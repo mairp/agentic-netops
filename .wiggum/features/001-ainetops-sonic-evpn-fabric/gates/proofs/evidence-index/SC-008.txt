@@ -1,3 +1,0 @@
-SC-008 — gNMI TLS verify enforced
-- Evidence: deploy/gnmi/gnmic.yaml (skip-verify: false, tls-ca/cert/key)
-- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/deploy.gnmi.gnmic.yaml.tls.slice.txt

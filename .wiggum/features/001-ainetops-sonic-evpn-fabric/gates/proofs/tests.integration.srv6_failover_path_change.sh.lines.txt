@@ -1,6 +1,0 @@
-21:   containerlab -t "$TOPO" link down spine01:eth1 leaf01:eth1 || true
-28:   if ! kubectl -n monitoring get alerts --no-headers 2>/dev/null | grep -q "SRv6PathDown"; then
-39:   kubectl -n "$SERVICE_NS" patch srv6service "$SERVICE_NAME" --type merge -p '{"spec":{"pathPolicy":{"selectedPath":"alternate"}}}'
-44:   sel=$(kubectl -n "$SERVICE_NS" get srv6service "$SERVICE_NAME" -o jsonpath='{.spec.pathPolicy.selectedPath}')
-45:   if [[ "$sel" != "alternate" ]]; then
-58:   if ! jq -e '..|scalars|select(type=="string")|contains("alternate")' <<<"$after" >/dev/null; then

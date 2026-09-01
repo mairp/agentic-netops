@@ -1,6 +1,0 @@
-2:# T050 [US2] Managed-path drift restoration and unmanaged-path preservation tests
-17:  echo "[drift] managed-path drift restoration"
-19:  $GNMIC_BIN --address "$LEAF1" "${_args_common[@]}" set --update \
-26:  echo "[drift] unmanaged-path preservation"
-28:  $GNMIC_BIN --address "$LEAF1" "${_args_common[@]}" set --update \
-29:    "/openconfig-interfaces:interfaces/interface[name=Ethernet100]/config/description=lab-freeform-note" || true

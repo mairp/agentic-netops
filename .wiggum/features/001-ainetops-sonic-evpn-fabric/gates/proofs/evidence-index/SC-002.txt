@@ -1,3 +1,0 @@
-SC-002 — Kind/Kubernetes pins
-- Evidence: versions.lock.yaml; Makefile verify-compat; scripts/lib/preflight.sh tool_versions
-- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/config.kind.cluster.yaml.proof.txt

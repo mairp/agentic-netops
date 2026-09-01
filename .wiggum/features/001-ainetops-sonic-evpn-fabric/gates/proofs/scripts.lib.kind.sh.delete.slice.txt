@@ -1,9 +1,0 @@
-   102	kind::delete() {
-   103	  require kind
-   104	  if kind::cluster_exists; then
-   105	    echo "[kind] deleting cluster '${KIND_CLUSTER_NAME}'"
-   106	    kind delete cluster --name "${KIND_CLUSTER_NAME}" || true
-   107	  else
-   108	    echo "[kind] cluster '${KIND_CLUSTER_NAME}' not present (idempotent)"
-   109	  fi
-   110	}

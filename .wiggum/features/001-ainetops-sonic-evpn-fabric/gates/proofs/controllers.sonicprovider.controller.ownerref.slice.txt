@@ -1,5 +1,0 @@
-File: controllers/sonicprovider/controller.go
-201:	// Set owner reference
-203:	if err := ctrl.SetControllerReference(&nd, obj, r.Scheme); err != nil {
-204:		r.Log.Error(err, "set owner reference")
-205:	}

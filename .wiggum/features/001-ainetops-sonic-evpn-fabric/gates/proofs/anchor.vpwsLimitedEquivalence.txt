@@ -1,2 +1,0 @@
-63:	VPWSLimitedEquivalence bool `json:"vpwsLimitedEquivalence,omitempty"`
-191:			causes = append(causes, "policy: vpwsLimitedEquivalence must be true to allow limited equivalence mapping")

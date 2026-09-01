@@ -1,9 +1,0 @@
-     1  Path: deploy/observability/dashboards/pipeline-health.json
-     2  -- BEGIN EXCERPT --
-     3    {"type": "stat", "title": "OTel Collector Up", "targets": [{"expr": "up{job='otel-collector'}"}]},
-     4    {"type": "stat", "title": "Controllers Scrape Up", "targets": [{"expr": "min(up{job='controllers'})"}]},
-     5    {"type": "stat", "title": "gNMIc Export OK", "targets": [{"expr": "sum(rate(otelcol_exporter_sent_metric_points{}[5m]))"}]},
-     6    {"type": "graph", "title": "Exporter Queue Size", "targets": [{"expr": "otelcol_exporter_queue_size{}"}]},
-     7    {"type": "graph", "title": "Dropped Points", "targets": [{"expr": "rate(otelcol_exporter_enqueue_failed{}[5m])"}]},
-     8    {"type": "graph", "title": "gNMI Subscribe Errors", "targets": [{"expr": "increase(gnmic_subscribe_errors_total[5m])"}]}
-     9  -- END EXCERPT --

@@ -1,5 +1,0 @@
-   124:		if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: nd.Namespace}, cfg); err == nil {
-   129:				if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", name) }
-   216:	if r.renderCounter != nil { r.renderCounter.Inc() }
-   216:	if r.Recorder != nil { r.Recorder.Eventf(&nd, "Normal", reasons.ReasonApplySucceeded, "Applied SDC Config %s with hash %s", obj.Name, hash) }
-   233:				if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", obj.Name) }

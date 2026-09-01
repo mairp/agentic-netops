@@ -1,4 +1,0 @@
-     1  Path: versions.lock.yaml
-     2  -- BEGIN EXCERPT --
-     3    grafana_flow_plugin: grafana/flow-plugin@sha256:5c9d6b4d6b899be4a3f3c728b3acb0a8f8c3e6a46c9f5b07d705e8ca3c1a2c44
-     4  -- END EXCERPT --

@@ -1,4 +1,0 @@
-     29	sdc:
-     30	  core:
-     31	    repo: https://github.com/sdcio/sdc
-     32	    release: v0.31.0

@@ -114,6 +114,38 @@ endpoint_images:
     digest: sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f
 
 # ---------------------------------------------------------------------------
+# AGNTCY intent tier (feature 002) — image pins by immutable digest
+#   Every image the intent tier builds or runs from is pinned tag@digest.
+#   Resolved 2026-09-01 against the live registries (Docker Hub, GHCR) with
+#   .wiggum/features/002-agntcy-intent-tier/resolve_digests.sh (docker buildx
+#   imagetools inspect); the recorded digest is the multi-arch index digest.
+#   ClickHouse: clickhouse/clickhouse-server:24.9 selected as the agent-
+#   analytics sink image (tier-owned StatefulSet, generated credentials).
+# ---------------------------------------------------------------------------
+intent_tier:
+  python:
+    image: python:3.13-slim@sha256:881d80734ee05dca6f7f42dcb080975652a53c7eda9ba1f03bb8da31aa6a6ec2
+    digest: sha256:881d80734ee05dca6f7f42dcb080975652a53c7eda9ba1f03bb8da31aa6a6ec2
+    tag: 3.13-slim
+  node:
+    image: node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+    digest: sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+    tag: 20-alpine
+  slim:
+    image: ghcr.io/agntcy/slim:0.6.1@sha256:12789882e61afb2bc8d12fac4abba18ae7175ffc6c60f35b58a2aa375ccf2fe0
+    digest: sha256:12789882e61afb2bc8d12fac4abba18ae7175ffc6c60f35b58a2aa375ccf2fe0
+    tag: 0.6.1
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.9@sha256:efaa7d174383830fbe83a0589fc19804cc3581c628d663969d198d48822d3119
+    digest: sha256:efaa7d174383830fbe83a0589fc19804cc3581c628d663969d198d48822d3119
+    tag: 24.9
+  go_build:
+    image: golang:1.22.5-alpine@sha256:0d3653dd6f35159ec6e3d10263a42372f6f194c3dea0b35235d72aabde86486e
+    digest: sha256:0d3653dd6f35159ec6e3d10263a42372f6f194c3dea0b35235d72aabde86486e
+    tag: 1.22.5-alpine
+    notes: base for the static cmd/intent-translator build (docker/Dockerfile.intent-translator)
+
+# ---------------------------------------------------------------------------
 # SONiC/OpenConfig YANG schema pins and compatibility mapping per image
 # ---------------------------------------------------------------------------
 sonic_yang:

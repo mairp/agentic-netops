@@ -1,2 +1,0 @@
-     1	[off] WARN: containerlab helper not found; skipping lab teardown
-     2	[off] Teardown complete (idempotent).

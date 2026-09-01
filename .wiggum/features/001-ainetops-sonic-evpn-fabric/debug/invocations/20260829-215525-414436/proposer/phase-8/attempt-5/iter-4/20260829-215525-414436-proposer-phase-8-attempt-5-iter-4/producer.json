@@ -1,9 +1,0 @@
-{
-  "contract": "wiggum-producer-status/v1",
-  "duration_ms": 615646,
-  "launch_failed": false,
-  "parser_exit_code": 0,
-  "producer_exit_code": 0,
-  "producer_signal": null,
-  "timed_out": false
-}

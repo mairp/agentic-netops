@@ -1,6 +1,0 @@
-     1	# verify-register: build a representative spec using current renderer scaffolds
-     2	# and fail if any rendered path is not present in pkg/register/oc_vs_sonic.yaml.
-     3	verify-register:
-     4		@echo "[verify-register] checking renderer paths against register"
-     5		@go test ./tests/unit -run TestRendererPathsCoveredByRegister -v
-     6	

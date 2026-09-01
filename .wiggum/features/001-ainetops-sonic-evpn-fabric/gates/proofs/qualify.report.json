@@ -1,2 +1,0 @@
-{"tests":[
-{"name":"Capabilities","status":"fail"},{"name":"Get","status":"fail"},{"name":"Set","status":"fail"},{"name":"Subscribe","status":"fail"},{"name":"sonic-srv6","status":"fail"}],"result":"fail"}

@@ -1,9 +1,0 @@
-Path: deploy/gnmi/gnmic.yaml
--- BEGIN EXCERPT --
-       outputs:
-         otlp:
-           type: otlp
-           url: http://otel-collector.ainetops-system:4318
-           compression: gzip
-           enable-metrics: true
--- END EXCERPT --

@@ -1,4 +1,0 @@
-     1  deploy/kubenet/networks/default.yaml
-     2  deploy/kubenet/networks/tenants/l2-bridged.yaml
-     3  deploy/kubenet/networks/tenants/l3-routed.yaml
-     4  deploy/kubenet/networks/tenants/irb-symmetric.yaml

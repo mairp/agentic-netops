@@ -1,1 +1,0 @@
-23:- Mention of the telemetry visualization lab reference (FR-032) as a presentation-only pattern (no runtime dependency)

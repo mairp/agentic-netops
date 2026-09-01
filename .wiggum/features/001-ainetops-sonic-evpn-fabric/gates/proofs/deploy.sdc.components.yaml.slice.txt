@@ -1,5 +1,0 @@
-     1	# SDC components: schema, config, data, cache (T021)
-    10	kind: Deployment
-    11	metadata:
-    12	  name: sdc-schema
-    13	  namespace: sdc-system

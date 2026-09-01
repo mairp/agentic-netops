@@ -1,8 +1,0 @@
-{
-  "sonic-srv6:sonic-srv6": {
-    "SID_LIST": {
-      "active": true,
-      "sids": ["2001:db8:100::2", "2001:db8:200::2"]
-    }
-  }
-}

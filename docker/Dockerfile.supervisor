@@ -1,0 +1,32 @@
+# docker/Dockerfile.supervisor — conversational supervisor agent (feature 002).
+#
+# Base image: the digest-pinned python:3.13-slim recorded under intent_tier.python
+# in versions.lock.yaml (NFR-003: immutable digest; no floating tags).
+# Build context: repository root.
+ARG PYTHON_BASE_IMAGE=python:3.13-slim@sha256:881d80734ee05dca6f7f42dcb080975652a53c7eda9ba1f03bb8da31aa6a6ec2
+FROM ${PYTHON_BASE_IMAGE}
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# uv manages the environment from the lockfile; dependencies are installed
+# before the source so the dependency layer caches across source changes.
+RUN pip install --no-cache-dir uv
+
+WORKDIR /app
+COPY agents/pyproject.toml agents/uv.lock ./
+RUN uv sync --frozen --no-dev
+
+# Application source: agents/ -> /app
+COPY agents/ /app/
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Supervisor HTTP surface (contracts/supervisor-http.md): exactly five routes,
+# NDJSON stream over POST /agent/prompt/stream. No WebSocket route.
+EXPOSE 9090
+# Entrypoint module lands with the supervisor implementation phase.
+CMD ["python", "supervisors/provisioning/main.py"]

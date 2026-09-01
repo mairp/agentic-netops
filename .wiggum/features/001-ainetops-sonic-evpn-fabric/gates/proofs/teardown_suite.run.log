@@ -1,7 +1,0 @@
-== case1 ==
-[off] Teardown complete (idempotent).
-== case2 ==
-[off] Teardown complete (idempotent).
-== case3 ==
-[off] Teardown complete (idempotent).
-TEARDOWN_SUITE_OK

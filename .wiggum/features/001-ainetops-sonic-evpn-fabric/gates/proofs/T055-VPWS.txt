@@ -1,8 +1,0 @@
-# pkg/migration/input.go — VPWS validation: exactly 2 endpoints and opt-in policy
-63:	VPWSLimitedEquivalence bool `json:"vpwsLimitedEquivalence,omitempty"`
-183:	case ServiceVPWS:
-186:		if len(in.Endpoints) != 2 { causes = append(causes, "endpoints: VPWS requires exactly 2 endpoints") }
-191:			causes = append(causes, "policy: vpwsLimitedEquivalence must be true to allow limited equivalence mapping")
-# pkg/migration/translate.go — VPWS limited-equivalence annotation
-117:			ann["ainetops.io/limited-equivalence"] = "vpws-to-l2vni"
-186:		"ainetops.io/limited-equivalence",

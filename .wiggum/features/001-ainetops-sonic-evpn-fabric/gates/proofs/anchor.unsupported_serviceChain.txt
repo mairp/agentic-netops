@@ -1,1 +1,0 @@
-157:	if u.ServiceChain != nil { causes = append(causes, "unsupported: serviceChain") }

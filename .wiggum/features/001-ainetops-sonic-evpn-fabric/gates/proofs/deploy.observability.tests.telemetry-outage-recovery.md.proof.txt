@@ -1,5 +1,0 @@
-     1  Path: deploy/observability/tests/telemetry-outage-recovery.md
-     2  -- BEGIN EXCERPT --
-     3  # T071 Telemetry outage/recovery test plan
-     4  - Simulate OTel Collector outage by scaling deployment to 0; verify reconciliation continues and OTelCollectorDown alert fires; exporter queue grows and gnmic_output_errors_total increments; recover by scaling back.
-     5  -- END EXCERPT --

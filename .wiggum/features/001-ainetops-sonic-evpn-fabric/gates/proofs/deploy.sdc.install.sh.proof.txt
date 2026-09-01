@@ -1,4 +1,0 @@
-     1	#!/usr/bin/env bash
-     2	# Install pinned SDC CRDs/controllers into Kind and wait for readiness (Phase 3)
-     3	kubectl --context "kind-ainetops" apply -f deploy/sdc/crds/sdc-crds.yaml
-     4	kubectl --context "kind-ainetops" create namespace sdc-system --dry-run=client -o yaml | kubectl --context "kind-ainetops" apply -f -

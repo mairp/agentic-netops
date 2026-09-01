@@ -1,8 +1,0 @@
-1\t# T025: Topology resource (simplified) per pinned API
-2\tapiVersion: network.kubenet.dev/v1alpha1
-3\tkind: Topology
-4\tmetadata:
-5\t  name: ainetops-topology
-6\t  namespace: kubenet-system
-7\tspec:
-8\t  # Simplified node list; actual provider consumes NetworkDevice derived by Kubenet

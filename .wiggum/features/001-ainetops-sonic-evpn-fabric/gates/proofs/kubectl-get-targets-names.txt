@@ -1,4 +1,0 @@
-target.sdc.sdcio.dev/172-31-0-11
-target.sdc.sdcio.dev/172-31-0-12
-target.sdc.sdcio.dev/172-31-0-21
-target.sdc.sdcio.dev/172-31-0-22

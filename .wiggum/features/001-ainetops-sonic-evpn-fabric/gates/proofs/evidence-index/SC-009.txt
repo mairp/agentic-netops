@@ -1,3 +1,0 @@
-SC-009 — Deny-list policy in CI
-- Evidence: .github/workflows/denylist.yml
-- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/github.workflows.denylist.yml.slice.txt

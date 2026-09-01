@@ -1,0 +1,28 @@
+# docker/Dockerfile.intent-translator — Go translator sidecar (feature 002).
+#
+# Builds cmd/intent-translator statically from this repository's vendored Go
+# sources. The pkg/migration single-translator rule: ALL translation logic
+# lives in Go (pkg/migration); this sidecar is the only HTTP surface the
+# Python tier uses to reach it, and no translation logic is reimplemented in
+# Python (FR-011).
+#
+# Base image: the digest-pinned golang:1.22.5-alpine recorded under
+# intent_tier.go_build in versions.lock.yaml (NFR-003: immutable digest).
+# Build context: repository root. The vendored module graph makes the build
+# fully offline — no network access is needed at build time.
+ARG GO_BASE_IMAGE=golang:1.22.5-alpine@sha256:0d3653dd6f35159ec6e3d10263a42372f6f194c3dea0b35235d72aabde86486e
+FROM ${GO_BASE_IMAGE} AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+COPY vendor/ vendor/
+COPY pkg/ pkg/
+COPY cmd/intent-translator/ cmd/intent-translator/
+RUN CGO_ENABLED=0 GOFLAGS=-mod=vendor go build -trimpath -ldflags "-s -w -buildid=" -o /out/intent-translator ./cmd/intent-translator
+
+# Static binary, no runtime dependencies.
+FROM scratch
+COPY --from=build /out/intent-translator /usr/local/bin/intent-translator
+# Pod-local only (127.0.0.1:8090): no Service, no NetworkPolicy allowance,
+# no cluster-visible surface (contracts/translator-api.md).
+EXPOSE 8090
+ENTRYPOINT ["/usr/local/bin/intent-translator"]

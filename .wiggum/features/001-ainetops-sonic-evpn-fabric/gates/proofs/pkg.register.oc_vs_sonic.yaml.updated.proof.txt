@@ -1,1 +1,0 @@
-$ nl -ba pkg/register/oc_vs_sonic.yaml | sed -n '1,200p'

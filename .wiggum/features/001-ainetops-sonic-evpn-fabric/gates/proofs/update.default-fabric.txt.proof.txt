@@ -1,1 +1,0 @@
-     1	network.network.kubenet.dev/default-fabric
