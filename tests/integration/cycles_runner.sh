@@ -122,7 +122,13 @@ echo "[cycles] idempotence-off exit=$?" | tee -a "$PROOFS/cycles.run.log"
 
 # --- Off from partial state (provision aborted at the capability gate) -------
 echo "[cycles] ===== off-from-partial =====" | tee -a "$PROOFS/cycles.run.log"
-run_provision "$PROOFS/partial-provision.log" sonic-vs
+# T077 off-from-PARTIAL: the provision here must FAIL partway so off.sh cleans a
+# genuinely partial state. sonic-vs now passes the capability gate (re-pinned v2
+# gNMI image), so the old sonic-vs call degraded into a full-provision test; the
+# documented gate-fail path is the sonic-vm profile (capability gate fails →
+# exit=1 → off.sh cleans the partial state) — the same shape off-conformance
+# exercises below. (Fix 2026-09-01, operator reconciliation.)
+run_provision "$PROOFS/partial-provision.log" sonic-vm
 run_off "$PROOFS/off-from-partial.log"
 run_off_noop "$PROOFS/off-from-partial-noop.log"
 
