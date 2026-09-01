@@ -9,7 +9,6 @@ srv6_force_clean() {
   docker exec "$c" bash -c 'redis-cli -n 4 --scan --pattern "SRV6_MY_LOCATORS*" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern "SRV6_MY_SIDS*" | xargs -r redis-cli -n 4 del >/dev/null; config save -y >/dev/null 2>&1'
 }
 
-v bash
 # Persistence qualification helper: program a value, restart SONiC containers,
 # verify it persists (T014).
 #
