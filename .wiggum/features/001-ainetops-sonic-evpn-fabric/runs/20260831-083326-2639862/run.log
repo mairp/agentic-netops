@@ -1,0 +1,116 @@
+{"canonicalPath": "/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/runs/20260831-083326-2639862/verification/verification-plan.json", "contentHash": "2dc3dfb091ab087ba0a8060b94955682356ee0e3f086578fd31fbf6e02ec6307", "generated": [{"framework": "canonical", "path": "/root/ainetops-demo/testautomation/001-ainetops-sonic-evpn-fabric/generated/verification.generated.json", "reused": true}], "markdownPath": "/root/ainetops-demo/testautomation/001-ainetops-sonic-evpn-fabric/TEST_PLAN.md", "planId": "verification-85ce0e584936afa1b033"}
+
+  The Autonomous Ralph Wiggum Loop
+
+                       .   ,,,.......
+                  .-:;;:-:=====!;;;;~:~~, ..
+               ..:!!!==*+!*!=+N!=N;+*;z!==~~~-.
+            .,,=+!!*=!z*!z!=zM*=Nz:zM==N*=z!;!;:-.
+          .,.~+*=++=+N!!N+;NNN:zN+;NNN:+M*;N+;+!=!~,.
+         ,..=N!=Nz;+N!!NM;+NNz*NMz*NNM!*NM*!N+!N**z;-,.
+        ,..!M=!NN:+N+;NNN+zNNz++++zNNNNNNNNNNz++zzzz;..,
+       ,. =M!;NM=!NN*+NNNNN!*zMMMNz!*NNNNNN**zNMMz*!z-
+      ., ~NN:zNz:zNNNNNNNN!+@$#@@@@$**NNNM=z@@@MN$$+!=.
+         :z+*NNz*NNNNNNNNN;#@=,z@$@@M=MNNM=z@@$!;$@N==.
+       .;*+**zNNNNNNNNNNNN+!M##$@@$M!zNzzzz!+M#$$#N!+;
+       ~M*=+NNNNNNNNNNNNNNNz**zzz+**zMz++**!=****+zzz-
+       ,!z*zMNNNNNNNNNNNNNNNNNzzzN**z++NMMMN;!MNNNNNz=,
+        .-;=*+NNNNNNNNNNNNNNNNNNN+:=*+*:!+*!;+NNNNNNNz*~.
+            -*NNNNNNNNNNNNNNNNMz=!zNMz!=!**+zNNNNNNNNNzz-
+             ,=zNNNNNNNNNNN:*N+;zMNN*~=!!!+NNMNNMMNNz+!:.
+             .~==+NMNNNNNN*!**~+MNNN+*zNz=~=!***!=;~-.
+            .;MN+!=!*zNNNNNMMM;+NNNNNMN**+z*~!+*~
+            .*MNNNNz*!!!!*+z**~*NNMNNNNNNNzz;!!~,
+          .-::;+NNNNNNNzzz+:=z*!!!*zNNNNN!~;!;!*!:,
+        .=zNNNz*!*zNNNNNNz;*MNNNNz+!=*NNN=;zz!:=:!*-
+        -NNNNNNNN+*!*+zz!;+MNNNNNNNNz!;*+:*z+=:!!;*;,.
+        -zNNNNNNNNNNz+;;*NNNNNNNNNNNNN+-:;===+z++*;~;;.
+
+  ME FAIL SPEC?  THAT IS UNPOSSIBLE.
+
+
+wiggum orchestrator start 2026-08-31T08:33:27+04:00
+  workdir  : /root/ainetops-demo
+  specs    : /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/tasks.md  (9 phases: 1 2 3 4 5 6 7 8 9)
+  feature  : 001-ainetops-sonic-evpn-fabric   (state: .wiggum/features/001-ainetops-sonic-evpn-fabric/)
+  proposer : dsh:qwen3.8-27b
+  critic   : dsh:zai/glm-5.3-flash
+  max-rej  : 30   max-iter/phase: 30
+  timeouts : proposer 3600s  critic 300s   wall: 0min
+  git      : auto
+  telemetry: loki: export configured (http://127.0.0.1:3110)
+  otel     : otel: endpoint reachable (http://127.0.0.1:4318)
+  verify   : required  plan: /root/ainetops-demo/testautomation/001-ainetops-sonic-evpn-fabric/TEST_PLAN.md  scaffolds: /root/ainetops-demo/testautomation/001-ainetops-sonic-evpn-fabric/generated
+  resume   : phase 8
+  run_id   : 20260831-083326-2639862
+  stop with: touch /root/ainetops-demo/.wiggum/stop.flag
+
+
+===== PHASE 8 — Security, reproducibility, and release acceptance  (2026-08-31T08:33:27+04:00) =====
+>>> long-job(phase 8 attempt 1): launching detached — ./tests/integration/cycles_runner.sh
+----- proposer: phase 8 attempt 1/30 (dsh:qwen3.8-27b) -----
+----- proposer pass 1/30  2026-08-31T08:33:38+04:00 -----
+This pass is complete. I stopped without writing evidence, per the pass discipline for a still-running verification job. Here's what I confirmed independently and recorded in `PROGRESS.md`:
+
+**Long job (do not touch):** a fresh `cycles_runner.sh` run started 2026-08-31T04:33:27Z (pid 2639962), currently in clean cycle 1; expected to finish ~06:06Z and rewrite the whole `gates/proofs/cycles/` set. The prior complete run (02:37:28Z→04:10:51Z, `CYCLES_DONE`) is fully on disk but will be superseded — evidence will cite only the final consistent set.
+
+**Fresh verifications this pass (resolving critic point #5):**
+- **envtest now genuinely passes** with real assets (`KUBEBUILDER_ASSETS=/root/.local/share/kubebuilder-envtest/1.29.4-linux-amd64`): all tests PASS, including `TestSRv6ServiceCRD_Envtest` (10.75s real run) and `TestProviderFinalization_Envtest` (9.94s), RC=0.
+- **SDC-validation selector matches 5 real tests** (FullValidate/OfflineValidate/RegisterGuard×2/RendererPathsCoveredByRegister) — all PASS.
+- `scripts/ci/run_suites.sh` is the strict rewrite (PASS/FAIL/SKIP summary, non-zero exit on failure). The stale Aug-30 `tests.api.log`/`tests.sdc-validation.log` will be regenerated after the cycles.
+
+**Strategic finding (the path to a truly green gate / SC-013):** the existing `build-gnmi/` work area is *nearly complete* — real `sonic-gnmi@dd99be18`/`sonic-mgmt-common@cdb612e` checkouts, working build container (gcc/swig/go/pyang), runtime libs extracted, and a stage Dockerfile that injects the telemetry gNMI service into the pinned image. The last build failed at only two fixable points: `rsync` missing in the build container (broke the CVL yang tree) and an `rc: unbound variable` bug at `build.sh:92`. Also confirmed: the host is **not** air-gapped, and the host kernel (7.0.6) supports SRv6 (`net.ipv6.conf.all.seg6_enabled` exists; containers run privileged) — so the SRv6 dataplane gate items are feasible once a gNMI-capable image exists.
+
+**Next pass plan (recorded):** fix and kick off the gNMI build in the background in parallel with the cycles run; after cycles finish, re-run the strict suite runner, capture the T079a CRD assertion and final runtime scan, stage tight line-numbered proof slices, and only then write `GATE8-EVIDENCE.md` atomically with an honest VERIFIED/ENV-BLOCKED status per SC.
+----- proposer pass 2/30  2026-08-31T08:51:23+04:00 -----
+run_with_idle_watchdog: absolute backstop 3600s reached (still showing progress, but this is a hard ceiling) -- killing pid 2707449.
+`openconfig-network-instance`/`openconfig-bgp` are **not present** in the schema — the EVPN probe must also be re-based on the SONiC-native `sonic-bgp` model. To complete the gate design, let's check the flex-counter model for MySID counter groups:
+
+
+----- proposer pass 3/30  2026-08-31T09:51:41+04:00 -----
+run_with_idle_watchdog: absolute backstop 3600s reached (still showing progress, but this is a hard ceiling) -- killing pid 2914778.
+Mystery solved: SONiC applies `0001-pr2362-lyd_validate_noextdeps.patch` to trixie's libyang. Let's extract that patch and apply the header hunks to the headers we extracted:
+
+
+----- proposer pass 4/30  2026-08-31T10:51:57+04:00 -----
+>>> long-job(phase 8 attempt 1): process 2639962 no longer running — treating as ended, NOT auto-restarting. See /root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/long-jobs/phase8-attempt1-20260831-083326-2639862.log
+run_with_idle_watchdog: absolute backstop 3600s reached (still showing progress, but this is a hard ceiling) -- killing pid 3372589.
+While build5 runs, let me handle the remaining gate fixes. First, check what dbus service the ConfigSave client needs:
+
+
+----- proposer pass 5/30  2026-08-31T11:52:08+04:00 -----
+run_with_idle_watchdog: absolute backstop 3600s reached (still showing progress, but this is a hard ceiling) -- killing pid 3851426.
+I need to investigate this further. Let me check the details. Found it — it's a `grep -q` + `pipefail` bug: `grep -q` exits early, `dpkg-deb` receives SIGPIPE (exit code 141), and pipefail makes the entire pipeline fail. Fix:
+
+
+----- proposer pass 6/30  2026-08-31T12:52:27+04:00 -----
+run_with_idle_watchdog: absolute backstop 3600s reached (still showing progress, but this is a hard ceiling) -- killing pid 605939.
+Let's verify the claim about SAI vs's data plane — check whether the VS driver handles SRH/extension headers somewhere:
+
+
+----- proposer pass 7/30  2026-08-31T13:52:34+04:00 -----
+run_with_idle_watchdog: absolute backstop 3600s reached (still showing progress, but this is a hard ceiling) -- killing pid 780527.
+While build5f links, let me prepare the re-pin details — read versions.lock.yaml and topology image lines.
+
+
+----- proposer pass 8/30  2026-08-31T14:52:50+04:00 -----
+run_with_idle_watchdog: absolute backstop 3600s reached (still showing progress, but this is a hard ceiling) -- killing pid 1136217.
+The bootstrap design matches my injected image. I'll verify that the telemetry binary's flag names match `telemetry.service.sh` and check the smoke test.
+
+
+----- proposer pass 9/30  2026-08-31T15:53:00+04:00 -----
+run_with_idle_watchdog: absolute backstop 3600s reached (still showing progress, but this is a hard ceiling) -- killing pid 1489840.
+Password auth = SSH login to local sshd. The bootstrap must create the SSH user. Let me check the smoke container's sshd state.
+
+
+----- proposer pass 10/30  2026-08-31T16:53:14+04:00 -----
+run_with_idle_watchdog: absolute backstop 3600s reached (still showing progress, but this is a hard ceiling) -- killing pid 1624134.
+This is a deep but productive thread. gNMI **Set now works end-to-end with config persistence to file** (via the `sonic-db` native path + D-Bus GCU). The current test suites use OpenConfig model paths this build doesn't serve. Let me check the time budget and verify the remaining path families before deciding scope.
+
+
+----- proposer pass 11/30  2026-08-31T17:53:20+04:00 -----
+OC platform/lldp paths resolve; interfaces doesn't. Let me verify the exact SRv6/BGP table names in the image's YANG models:
+
+
+proposer.sh: stop.flag detected — stopping after pass 11
+>>> stop.flag detected during proposer — halting cleanly (exit 6; rerun resumes).

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-pfc-priority-queue-map"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:ppqm="http://github.com/sonic-net/sonic-pfc-priority-queue-map">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-pfc-priority-queue-map"/>
+  <prefix value="ppqm"/>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>PFC_PRIORITY_TO_QUEUE_MAP yang Module for SONiC OS</text>
+  </description>
+  <revision date="2021-04-15">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-pfc-priority-queue-map">
+    <container name="MAP_PFC_PRIORITY_TO_QUEUE">
+      <description>
+        <text>Maps PFC priority values to egress queues.</text>
+      </description>
+      <list name="MAP_PFC_PRIORITY_TO_QUEUE_LIST">
+        <key value="name"/>
+        <description>
+          <text>A named PFC priority to egress queue map.</text>
+        </description>
+        <leaf name="name">
+          <type name="string">
+            <pattern value="[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,31})"/>
+            <length value="1..32">
+              <error-message>
+                <value>Invalid length for map name.</value>
+              </error-message>
+              <error-app-tag value="map-name-invalid-length"/>
+            </length>
+          </type>
+          <description>
+            <text>Name of the PFC priority to queue map.</text>
+          </description>
+        </leaf>
+        <list name="MAP_PFC_PRIORITY_TO_QUEUE">
+          <key value="pfc_priority"/>
+          <description>
+            <text>Single mapping entry from a PFC priority to an egress queue.</text>
+          </description>
+          <leaf name="pfc_priority">
+            <type name="string">
+              <pattern value="[0-7]?">
+                <error-message>
+                  <value>Invalid pfc priority</value>
+                </error-message>
+                <error-app-tag value="pfc-priority-invalid"/>
+              </pattern>
+            </type>
+            <description>
+              <text>PFC priority value (0-7).</text>
+            </description>
+          </leaf>
+          <leaf name="qindex">
+            <type name="string">
+              <pattern value="[0-7]?">
+                <error-message>
+                  <value>Invalid queue index</value>
+                </error-message>
+                <error-app-tag value="queue-index-invalid"/>
+              </pattern>
+            </type>
+            <description>
+              <text>Target egress queue index (0-7).</text>
+            </description>
+          </leaf>
+        </list>
+      </list>
+    </container>
+  </container>
+</module>

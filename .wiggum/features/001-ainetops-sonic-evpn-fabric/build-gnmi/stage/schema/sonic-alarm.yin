@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-alarm"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:salarm="http://github.com/sonic-net/sonic-alarm"
+        xmlns:event="http://github.com/sonic-net/sonic-event">
+  <namespace uri="http://github.com/sonic-net/sonic-alarm"/>
+  <prefix value="salarm"/>
+  <yang-version value="1.1"/>
+  <import module="sonic-event">
+    <prefix value="event"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>This module defines operational state data for SONiC alarms.</text>
+  </description>
+  <revision date="2024-01-30">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <grouping name="alarm-state">
+    <leaf name="id">
+      <type name="string"/>
+      <description>
+        <text>Sequence identifier for an alarm.</text>
+      </description>
+    </leaf>
+    <leaf name="resource">
+      <type name="string"/>
+      <description>
+        <text>The item that is under alarm within the device.</text>
+      </description>
+    </leaf>
+    <leaf name="text">
+      <type name="string"/>
+      <description>
+        <text>Dynamic message raised with the alarm.</text>
+      </description>
+    </leaf>
+    <leaf name="time-created">
+      <type name="uint64"/>
+      <description>
+        <text>The time at which the alarm was raised by the system.
+Expressed in nanoseconds since Unix epoch.</text>
+      </description>
+    </leaf>
+    <leaf name="type-id">
+      <type name="string"/>
+      <description>
+        <text>Type of the alarm raised</text>
+      </description>
+    </leaf>
+    <leaf name="severity">
+      <type name="event:severity-type"/>
+      <description>
+        <text>Severity of a raised condition.</text>
+      </description>
+    </leaf>
+    <leaf name="acknowledged">
+      <type name="boolean"/>
+      <description>
+        <text>This denotes whether an alarm is acknowledged by the operator.
+An acknowledged alarm is not considered in determining the
+health of the system.</text>
+      </description>
+    </leaf>
+    <leaf name="acknowledge-time">
+      <type name="uint64"/>
+      <description>
+        <text>The time at which alarm is acknowledged by the system.
+This value is expressed as nanoseconds since the Unix Epoch.</text>
+      </description>
+    </leaf>
+  </grouping>
+  <container name="sonic-alarm">
+    <container name="ALARM">
+      <list name="ALARM_LIST">
+        <key value="id"/>
+        <uses name="alarm-state"/>
+      </list>
+    </container>
+    <container name="ALARM_STATS">
+      <list name="ALARM_STATS_LIST">
+        <key value="id"/>
+        <leaf name="id">
+          <type name="enumeration">
+            <enum name="state"/>
+          </type>
+          <description>
+            <text>Table identifier value defined as state.</text>
+          </description>
+        </leaf>
+        <leaf name="alarms">
+          <type name="uint64"/>
+          <description>
+            <text>Total alarms in the system.</text>
+          </description>
+        </leaf>
+        <leaf name="critical">
+          <type name="uint64"/>
+          <description>
+            <text>Total critical alarms in the system.</text>
+          </description>
+        </leaf>
+        <leaf name="major">
+          <type name="uint64"/>
+          <description>
+            <text>Total major alarms in the system.</text>
+          </description>
+        </leaf>
+        <leaf name="minor">
+          <type name="uint64"/>
+          <description>
+            <text>Total minor alarms in the system.</text>
+          </description>
+        </leaf>
+        <leaf name="warning">
+          <type name="uint64"/>
+          <description>
+            <text>Total warnings in the system.</text>
+          </description>
+        </leaf>
+        <leaf name="acknowledged">
+          <type name="uint64"/>
+          <description>
+            <text>Total acknowledged alarms in the system.</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

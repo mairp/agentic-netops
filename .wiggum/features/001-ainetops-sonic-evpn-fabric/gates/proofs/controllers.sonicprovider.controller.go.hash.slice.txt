@@ -1,0 +1,8 @@
+    49	const (
+    50		finalizerName   = "ainetops.dev/finalizer"
+    51		fieldManager    = "ainetops-sonic-provider"
+    52		annotationHash  = "ainetops.dev/config-hash"
+    53		ownerKind       = "NetworkDevice"
+    54	)
+    55	
+    56	func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

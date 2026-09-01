@@ -1,0 +1,3 @@
+SC-003 — Containerlab pin and topology
+- Evidence: versions.lock.yaml.containerlab.version; lab/topology.clab.yml
+- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/topology.clab.yml.proof.txt

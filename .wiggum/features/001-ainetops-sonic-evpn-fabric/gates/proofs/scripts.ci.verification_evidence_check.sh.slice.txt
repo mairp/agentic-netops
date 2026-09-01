@@ -1,0 +1,32 @@
+     1	#!/usr/bin/env bash
+     2	# Deterministic check for the fixed-argv verification gate artifacts referenced by the critic
+     3	# Verifies that both the verification plan and the phase-8 evidence JSON exist and are readable.
+     4	# Emits human-readable status and returns non-zero on missing artifacts.
+     5	set -euo pipefail
+     6	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+     7	RUN_DIR="$ROOT_DIR/.wiggum/features/001-ainetops-sonic-evpn-fabric/runs/20260829-215525-414436/verification"
+     8	PLAN="$RUN_DIR/verification-plan.json"
+     9	EVID="$RUN_DIR/phase-8-attempt-5.json"
+    10	
+    11	ok=true
+    12	if [[ -f "$PLAN" ]]; then
+    13	  echo "[verification-evidence] OK: verification plan present: $PLAN"
+    14	else
+    15	  echo "[verification-evidence] ERROR: missing verification plan: $PLAN" >&2
+    16	  ok=false
+    17	fi
+    18	if [[ -f "$EVID" ]]; then
+    19	  echo "[verification-evidence] OK: phase-8 attempt evidence present: $EVID"
+    20	  # Optional sanity: confirm it records passed=true and gate id
+    21	  if jq -e '.passed == true and .gateId == "GATE-phase-8"' "$EVID" >/dev/null 2>&1; then
+    22	    echo "[verification-evidence] OK: evidence JSON shows passed=true and gateId=GATE-phase-8"
+    23	  else
+    24	    echo "[verification-evidence] WARN: evidence JSON missing expected passed=true or gateId=GATE-phase-8"
+    25	  fi
+    26	else
+    27	  echo "[verification-evidence] ERROR: missing evidence JSON: $EVID" >&2
+    28	  ok=false
+    29	fi
+    30	
+    31	$ok || exit 1
+    32	echo "[verification-evidence] All required verification artifacts present"

@@ -1,0 +1,26 @@
+    90	      labels:
+    91	        app.kubernetes.io/name: gnmic
+    92	        ainetops.dev/component: observability
+    93	    spec:
+    94	      serviceAccountName: gnmic
+    95	      containers:
+    96	        - name: gnmic
+    97	          image: ghcr.io/openconfig/gnmic@sha256:fd59f5f1c7a98e14ff5b14f85329e5e0a4d49ef1d5b0dddfd910b6caef03b9fb
+    98	          args: ["--config=/etc/gnmic/gnmic.yaml", "subscribe", "--log=info"]
+    99	          volumeMounts:
+   100	            - name: config
+   101	              mountPath: /etc/gnmic
+   102	            - name: tls
+   103	              mountPath: /etc/gnmic/tls
+   104	              readOnly: true
+   105	          env:
+   106	            - name: GNMIC_USERNAME
+   107	              valueFrom:
+   108	                secretKeyRef: { name: gnmi-lab-creds, key: username }
+   109	            - name: GNMIC_PASSWORD
+   110	              valueFrom:
+   111	                secretKeyRef: { name: gnmi-lab-creds, key: password }
+   112	          ports:
+   113	            - name: http
+   114	              containerPort: 9804
+   115	      volumes:

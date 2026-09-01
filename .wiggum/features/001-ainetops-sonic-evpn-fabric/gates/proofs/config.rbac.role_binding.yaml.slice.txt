@@ -1,0 +1,27 @@
+     1	apiVersion: rbac.authorization.k8s.io/v1
+     2	kind: RoleBinding
+     3	metadata:
+     4	  name: ainetops-sonic-provider
+     5	  namespace: ainetops-system
+     6	subjects:
+     7	- kind: ServiceAccount
+     8	  name: ainetops-sonic-provider
+     9	  namespace: ainetops-system
+    10	roleRef:
+    11	  apiGroup: rbac.authorization.k8s.io
+    12	  kind: Role
+    13	  name: ainetops-sonic-provider
+    14	---
+    15	apiVersion: rbac.authorization.k8s.io/v1
+    16	kind: RoleBinding
+    17	metadata:
+    18	  name: ainetops-srv6-controller
+    19	  namespace: ainetops-system
+    20	subjects:
+    21	- kind: ServiceAccount
+    22	  name: ainetops-srv6-controller
+    23	  namespace: ainetops-system
+    24	roleRef:
+    25	  apiGroup: rbac.authorization.k8s.io
+    26	  kind: Role
+    27	  name: ainetops-srv6-controller

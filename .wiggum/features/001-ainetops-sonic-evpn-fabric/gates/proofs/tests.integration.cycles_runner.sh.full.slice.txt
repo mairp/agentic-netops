@@ -1,0 +1,108 @@
+     1	#!/usr/bin/env bash
+     2	# T080: Run three clean provision/test/off cycles, plus a second-provision
+     3	# idempotence check, an off-from-partial-state test, and a conformance-profile
+     4	# cycle. Stores logs under gates/proofs/cycles/.
+     5	#
+     6	# A "clean" cycle starts from Absent (off.sh --delete-kind true removes the
+     7	# Kind cluster, lab, and owned network at cycle end), runs the ordered
+     8	# provision workflow, the test phase against the live lab, and a full teardown.
+     9	#
+    10	# The capability gate (scripts/lib/qualify.sh) is executed by provision.sh and
+    11	# is the single source of truth for SRv6 qualification (FR-022). When the
+    12	# selected profile is not SRv6-qualified, provision exits non-zero with the
+    13	# documented message; the cycle runner records that designed outcome and
+    14	# continues with teardown so each cycle ends in a verified clean state.
+    15	set -u
+    16	
+    17	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+    18	PROOFS="$ROOT_DIR/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles"
+    19	mkdir -p "$PROOFS"
+    20	
+    21	TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    22	echo "[cycles] start $TS host=$(hostname) cpu=$(nproc) mem=$(awk '/MemTotal/{print int($2/1024)"MB"}' /proc/meminfo)" | tee "$PROOFS/cycles.run.log"
+    23	
+    24	run_provision() {
+    25	  # $1=log-file  $2=profile
+    26	  local log=$1 profile=$2
+    27	  echo "[cycles] provision profile=$profile log=$log" >>"$PROOFS/cycles.run.log"
+    28	  ( cd "$ROOT_DIR" && ./scripts/provision.sh --profile "$profile" --cluster-name ainetops --timeout 120s ) >"$log" 2>&1
+    29	  local rc=$?
+    30	  echo "[cycles] provision profile=$profile exit=$rc" | tee -a "$PROOFS/cycles.run.log"
+    31	  return 0
+    32	}
+    33	
+    34	run_off() {
+    35	  local log=$1
+    36	  echo "[cycles] off log=$log" >>"$PROOFS/cycles.run.log"
+    37	  ( cd "$ROOT_DIR" && ./scripts/off.sh --cluster-name ainetops --delete-kind true --capture-evidence true ) >"$log" 2>&1
+    38	  local rc=$?
+    39	  echo "[cycles] off exit=$rc" | tee -a "$PROOFS/cycles.run.log"
+    40	  return 0
+    41	}
+    42	
+    43	run_off_noop() {
+    44	  local log=$1
+    45	  ( cd "$ROOT_DIR" && ./scripts/off.sh --cluster-name ainetops --delete-kind true ) >"$log" 2>&1
+    46	  echo "[cycles] off-noop log=$(basename "$log") exit=$?" | tee -a "$PROOFS/cycles.run.log"
+    47	  return 0
+    48	}
+    49	
+    50	run_tests() {
+    51	  local idx=$1
+    52	  ( cd "$ROOT_DIR" && AINETOPS_CLUSTER_NAME=ainetops ./tests/integration/fabric_verify.sh run ) >"$PROOFS/test-fabric-$idx.log" 2>&1
+    53	  echo "[cycles] test-fabric-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
+    54	  ( cd "$ROOT_DIR" && ./tests/integration/topology_parity.sh ) >"$PROOFS/test-parity-$idx.log" 2>&1
+    55	  echo "[cycles] test-parity-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
+    56	  ( cd "$ROOT_DIR" && AINETOPS_CLUSTER_NAME=ainetops ./tests/integration/observability_suite.sh ) >"$PROOFS/test-observability-$idx.log" 2>&1
+    57	  echo "[cycles] test-observability-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
+    58	}
+    59	
+    60	runtime_inventory() {
+    61	  local idx=$1
+    62	  if command -v kubectl >/dev/null 2>&1 && kubectl --context kind-ainetops cluster-info >/dev/null 2>&1; then
+    63	    kubectl --context kind-ainetops get pods -A -o wide 2>/dev/null | tee "$PROOFS/runtime-inventory-kubectl-$idx.log" || true
+    64	  else
+    65	    echo "no live kind-ainetops context at inventory time" >"$PROOFS/runtime-inventory-kubectl-$idx.log"
+    66	  fi
+    67	  helm list -A 2>/dev/null | tee "$PROOFS/runtime-inventory-helm-$idx.log" || true
+    68	  if command -v docker >/dev/null 2>&1; then
+    69	    docker ps -a --format "{{.ID}} {{.Image}} {{.Names}} {{.Labels}}" 2>/dev/null | tee "$PROOFS/runtime-inventory-docker-$idx.log" || true
+    70	  fi
+    71	  ( cd "$ROOT_DIR" && ./scripts/ci/denylist_runtime_scan.sh ) >"$PROOFS/runtime-scan-runtime-$idx.log" 2>&1
+    72	  echo "[cycles] runtime-scan-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
+    73	}
+    74	
+    75	# --- Three clean provision/test/off cycles (sonic-vs fast profile) -----------
+    76	for idx in 1 2 3; do
+    77	  echo "[cycles] ===== clean cycle $idx =====" | tee -a "$PROOFS/cycles.run.log"
+    78	  run_provision "$PROOFS/provision-$idx.log" sonic-vs
+    79	  run_tests "$idx"
+    80	  runtime_inventory "$idx"
+    81	  run_off "$PROOFS/off-$idx.log"
+    82	  # Repeatable no-op: off again from the just-cleaned state must succeed
+    83	  run_off_noop "$PROOFS/off-$idx-noop.log"
+    84	done
+    85	
+    86	# --- Second-provision idempotence (provision twice without teardown) ---------
+    87	echo "[cycles] ===== second-provision idempotence =====" | tee -a "$PROOFS/cycles.run.log"
+    88	run_provision "$PROOFS/idempotence-provision-1.log" sonic-vs
+    89	run_provision "$PROOFS/idempotence-provision-2.log" sonic-vs
+    90	( cd "$ROOT_DIR" && ./scripts/off.sh --cluster-name ainetops --delete-kind true ) >"$PROOFS/idempotence-off.log" 2>&1
+    91	echo "[cycles] idempotence-off exit=$?" | tee -a "$PROOFS/cycles.run.log"
+    92	
+    93	# --- Off from partial state (provision aborted at the capability gate) -------
+    94	echo "[cycles] ===== off-from-partial =====" | tee -a "$PROOFS/cycles.run.log"
+    95	run_provision "$PROOFS/partial-provision.log" sonic-vs
+    96	run_off "$PROOFS/off-from-partial.log"
+    97	run_off_noop "$PROOFS/off-from-partial-noop.log"
+    98	
+    99	# --- Conformance-profile cycle (sonic-vm, where applicable) ------------------
+   100	echo "[cycles] ===== conformance profile (sonic-vm) =====" | tee -a "$PROOFS/cycles.run.log"
+   101	run_provision "$PROOFS/provision-conformance.log" sonic-vm
+   102	run_off "$PROOFS/off-conformance.log"
+   103	
+   104	# --- Final runtime scan -------------------------------------------------------
+   105	( cd "$ROOT_DIR" && ./scripts/ci/denylist_runtime_scan.sh ) >"$PROOFS/runtime-scan-runtime.log" 2>&1
+   106	echo "[cycles] final runtime-scan exit=$?" | tee -a "$PROOFS/cycles.run.log"
+   107	echo "[cycles] end $(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a "$PROOFS/cycles.run.log"
+   108	echo "CYCLES_DONE"

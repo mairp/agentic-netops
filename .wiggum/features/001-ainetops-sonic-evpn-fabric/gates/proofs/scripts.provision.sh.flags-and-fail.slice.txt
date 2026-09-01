@@ -1,0 +1,29 @@
+    18	usage() {
+    19	  cat <<EOF
+    20	Usage: $0 [--profile sonic-vs|sonic-vm] [--cluster-name NAME] [--timeout DURATION]
+    21	
+    22	Flags:
+    23	  --profile       SONiC lab profile (sonic-vs fast, sonic-vm conformance)
+    24	  --cluster-name  Kind cluster name (default: ainetops)
+    25	  --timeout       Rollout wait timeout (default: 180s)
+    26	EOF
+    27	}
+    28	
+    29	# Parse flags
+    30	while [[ $# -gt 0 ]]; do
+    31	  case "$1" in
+    32	    --profile) shift; AINETOPS_PROFILE=${1:-$AINETOPS_PROFILE} ;;
+    33	    --cluster-name) shift; AINETOPS_CLUSTER_NAME=${1:-$AINETOPS_CLUSTER_NAME} ;;
+    34	    --timeout) shift; AINETOPS_TIMEOUT=${1:-$AINETOPS_TIMEOUT} ;;
+    35	    -h|--help) usage; exit 0 ;;
+    36	    *) echo "[provision] unknown flag: $1" >&2; usage; exit 2 ;;
+    37	  esac
+    38	  shift || true
+    39	done
+   145	    echo "[provision] capability gate failed for profile ${AINETOPS_PROFILE}" >&2
+   146	    if [[ "${AINETOPS_PROFILE}" == "sonic-vs" ]]; then
+   147	      echo "[provision] sonic-vs failed gate; this profile is not SRv6-qualified. Use --profile sonic-vm for conformance." >&2
+   148	    fi
+   149	    exit 1
+   150	  fi
+   151	fi

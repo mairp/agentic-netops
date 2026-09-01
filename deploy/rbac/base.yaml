@@ -19,7 +19,9 @@ metadata:
   namespace: ainetops-system
 rules:
 - apiGroups: [""]
-  resources: ["configmaps", "events"]
+  # The secret-generator Job (serviceAccountName ainetops-controller) must read and
+  # (re)create the runtime gnmi-lab-creds / gnmi-lab-tls Secrets in this namespace.
+  resources: ["configmaps", "events", "secrets"]
   verbs: ["get", "list", "watch", "create", "update", "patch"]
 - apiGroups: ["coordination.k8s.io"]
   resources: ["leases"]

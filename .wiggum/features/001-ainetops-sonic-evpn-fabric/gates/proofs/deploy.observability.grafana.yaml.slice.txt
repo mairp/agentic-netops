@@ -1,12 +1,200 @@
-     1  Path: deploy/observability/grafana.yaml
-     2  -- BEGIN EXCERPT --
-     3  kind: Deployment
-     4  metadata:
-     5    name: grafana
-     6    namespace: monitoring
-     7  ...
-     8  datasources:
-     9    - name: Prometheus
-    10      type: prometheus
-    11      url: http://prometheus.monitoring.svc.cluster.local:9090
-    12  -- END EXCERPT --
+     1	# T066: Grafana deployment with PVC, Secret-based credentials, Service, provisioned Prometheus datasource, pinned Flow plugin, folders, and dashboards as code
+     2	apiVersion: v1
+     3	kind: Namespace
+     4	metadata:
+     5	  name: monitoring
+     6	  labels:
+     7	    app.kubernetes.io/part-of: ainetops
+     8	---
+     9	# Secret grafana-admin is generated at runtime by deploy/observability/grafana-secret-generator-job.yaml
+    10	# No static credentials are stored in Git.
+    11	
+    12	apiVersion: v1
+    13	kind: PersistentVolumeClaim
+    14	metadata:
+    15	  name: grafana
+    16	  namespace: monitoring
+    17	spec:
+    18	  accessModes: ["ReadWriteOnce"]
+    19	  resources:
+    20	    requests:
+    21	      storage: 1Gi
+    22	---
+    23	apiVersion: v1
+    24	kind: ConfigMap
+    25	metadata:
+    26	  name: grafana-provisioning
+    27	  namespace: monitoring
+    28	  labels:
+    29	    app.kubernetes.io/name: grafana
+    30	  annotations:
+    31	    ainetops.dev/spec-version: "v1"
+    32	    ainetops.dev/plugin.flow: "pinned"
+    33	  data:
+    34	    datasources.yaml: |
+    35	      apiVersion: 1
+    36	      datasources:
+    37	        - name: Prometheus
+    38	          type: prometheus
+    39	          access: proxy
+    40	          url: http://prometheus.monitoring.svc.cluster.local:9090
+    41	          isDefault: true
+    42	    dashboards.yaml: |
+    43	      apiVersion: 1
+    44	      providers:
+    45	        - name: 'ainetops-dashboards'
+    46	          orgId: 1
+    47	          folder: 'AINETOPS'
+    48	          type: file
+    49	          disableDeletion: false
+    50	          editable: true
+    51	          options:
+    52	            path: /var/lib/grafana/dashboards
+    53	---
+    54	apiVersion: v1
+    55	kind: ConfigMap
+    56	metadata:
+    57	  name: grafana-dashboards
+    58	  namespace: monitoring
+    59	  labels:
+    60	    app.kubernetes.io/name: grafana
+    61	  data:
+    62	    fabric-overview.json: |
+    63	      { "annotations": {"list": []}, "editable": true, "fiscalYearStartMonth": 0, "graphTooltip": 0, "panels": [], "schemaVersion": 39, "title": "AINETOPS Fabric Overview", "version": 1 }
+    64	    physical-fabric.json: |
+    65	      {
+    66	        "annotations": {"list": []},
+    67	        "editable": true,
+    68	        "graphTooltip": 0,
+    69	        "panels": [
+    70	          {"type": "grafana-flow-panel", "title": "Fabric Topology", "options": {"topologyConfigMap": {"name": "ainetops-topology", "namespace": "monitoring"}, "rateMetric": "sonic_interface_packets_total", "utilMetric": "sonic_interface_octets_total", "statusMetric": "sonic_interface_oper_status", "labelKeys": ["device","interface","pod"]}},
+    71	          {"type": "graph", "title": "Link Packet Rate", "targets": [{"expr": "sum by(device,interface) (rate(sonic_interface_packets_total[5m]))"}]},
+    72	          {"type": "graph", "title": "Link Utilization (bytes)", "targets": [{"expr": "sum by(device,interface) (rate(sonic_interface_octets_total[5m]))"}]},
+    73	          {"type": "stat", "title": "Link Status Up", "targets": [{"expr": "sum by(device,interface) (sonic_interface_oper_status{state='up'})"}]}
+    74	        ],
+    75	        "schemaVersion": 39,
+    76	        "title": "AINETOPS Physical Fabric",
+    77	        "version": 1
+    78	      }
+    79	    sdc-orchestration.json: |
+    80	      {
+    81	        "annotations": {"list": []},
+    82	        "editable": true,
+    83	        "graphTooltip": 0,
+    84	        "panels": [
+    85	          {"type": "stat", "title": "SDC Targets Reachable", "targets": [{"expr": "sum(sdc_target_reachable)"}]},
+    86	          {"type": "graph", "title": "SDC Config Applies", "targets": [{"expr": "rate(sdc_config_apply_total[5m])"}]},
+    87	          {"type": "graph", "title": "SDC Deviations", "targets": [{"expr": "sum by(target) (sdc_deviation_total)"}]},
+    88	          {"type": "stat", "title": "Provider Applies", "targets": [{"expr": "increase(ainetops_sonicprovider_applies_total[15m])"}]},
+    89	          {"type": "graph", "title": "Provider Reconcile Errors", "targets": [{"expr": "increase(controller_runtime_reconcile_errors_total{controller='ainetops-sonic-provider'}[15m])"}]},
+    90	          {"type": "graph", "title": "Provider Queue Depth", "targets": [{"expr": "ainetops_provider_queue_size"}]},
+    91	          {"type": "graph", "title": "Provider Retries", "targets": [{"expr": "rate(ainetops_provider_retries_total[5m])"}]},
+    92	          {"type": "graph", "title": "Provider Reconcile Latency (p95)", "targets": [{"expr": "histogram_quantile(0.95, sum(rate(ainetops_provider_reconcile_duration_seconds_bucket[5m])) by (le))"}]},
+    93	          {"type": "stat", "title": "EVPN Services Active", "targets": [{"expr": "evpn_services_active_count"}]}
+    94	        ],
+    95	        "schemaVersion": 39,
+    96	        "title": "AINETOPS Orchestration",
+    97	        "version": 1
+    98	      }
+    99	    srv6-service-path.json: |
+   100	      {
+   101	        "annotations": {"list": []},
+   102	        "editable": true,
+   103	        "graphTooltip": 0,
+   104	        "panels": [
+   105	          {"type": "graph", "title": "SRv6 MySID Counters by Endpoint/Behavior", "targets": [{"expr": "sum by(endpoint,behavior,sid) (rate(sonic_srv6_mysid_packets_total[5m]))"}]},
+   106	          {"type": "stat", "title": "Active Path State by Endpoint", "targets": [{"expr": "max by(path,endpoint) (ainetops_srv6_active_path{path=~'primary|alternate'})"}]},
+   107	          {"type": "graph", "title": "Path Utilization by Endpoint/Behavior", "targets": [{"expr": "sum by(path,endpoint,behavior) (rate(sonic_srv6_mysid_packets_total[5m]))"}]}
+   108	        ],
+   109	        "schemaVersion": 39,
+   110	        "title": "AINETOPS SRv6 Service Path",
+   111	        "version": 2
+   112	      }
+   113	    pipeline-health.json: |
+   114	      {
+   115	        "annotations": {"list": []},
+   116	        "editable": true,
+   117	        "graphTooltip": 0,
+   118	        "panels": [
+   119	          {"type": "stat", "title": "OTel Collector Up", "targets": [{"expr": "max(up{job='otel-collector'})"}]},
+   120	          {"type": "graph", "title": "Exporter Queue Size", "targets": [{"expr": "sum by(exporter) (otelcol_exporter_queue_size)"}]},
+   121	          {"type": "graph", "title": "Exporter Enqueue Failed", "targets": [{"expr": "sum by(exporter) (rate(otelcol_exporter_enqueue_failed[5m]))"}]},
+   122	          {"type": "graph", "title": "Exporter Sent Metric Points", "targets": [{"expr": "sum by(exporter) (rate(otelcol_exporter_sent_metric_points[5m]))"}]},
+   123	          {"type": "graph", "title": "gNMIc Output Errors", "targets": [{"expr": "sum(rate(gnmic_output_errors_total[5m]))"}]},
+   124	          {"type": "graph", "title": "gNMI Subscription Errors", "targets": [{"expr": "sum(rate(gnmic_subscribe_errors_total[5m]))"}]},
+   125	          {"type": "graph", "title": "Prometheus Up (Controllers)", "targets": [{"expr": "sum by(pod) (up{job='controllers'})"}]}
+   126	        ],
+   127	        "schemaVersion": 39,
+   128	        "title": "AINETOPS Pipeline Health",
+   129	        "version": 1
+   130	      }
+   131	---
+   132	apiVersion: apps/v1
+   133	kind: Deployment
+   134	metadata:
+   135	  name: grafana
+   136	  namespace: monitoring
+   137	  labels:
+   138	    app.kubernetes.io/name: grafana
+   139	    ainetops.dev/component: observability
+   140	spec:
+   141	  replicas: 1
+   142	  selector:
+   143	    matchLabels:
+   144	      app.kubernetes.io/name: grafana
+   145	  template:
+   146	    metadata:
+   147	      labels:
+   148	        app.kubernetes.io/name: grafana
+   149	    spec:
+   150	      containers:
+   151	        - name: grafana
+   152	          image: grafana/grafana@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+   153	          env:
+   154	            - name: GF_INSTALL_PLUGINS
+   155	              value: grafana-flow-panel@sha256:5c9d6b4d6b899be4a3f3c728b3acb0a8f8c3e6a46c9f5b07d705e8ca3c1a2c44
+   156	            - name: GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS
+   157	              value: grafana-flow-panel
+   158	            - name: GF_AUTH_ANONYMOUS_ENABLED
+   159	              value: "false"
+   160	            - name: GF_SECURITY_ADMIN_USER
+   161	              valueFrom:
+   162	                secretKeyRef: { name: grafana-admin, key: admin-user }
+   163	            - name: GF_SECURITY_ADMIN_PASSWORD
+   164	              valueFrom:
+   165	                secretKeyRef: { name: grafana-admin, key: admin-password }
+   166	          ports:
+   167	            - name: http
+   168	              containerPort: 3000
+   169	          volumeMounts:
+   170	            - name: storage
+   171	              mountPath: /var/lib/grafana
+   172	            - name: provisioning
+   173	              mountPath: /etc/grafana/provisioning
+   174	            - name: dashboards
+   175	              mountPath: /var/lib/grafana/dashboards
+   176	          resources:
+   177	            requests: { cpu: "100m", memory: "256Mi" }
+   178	            limits:   { cpu: "500m", memory: "512Mi" }
+   179	      volumes:
+   180	        - name: storage
+   181	          persistentVolumeClaim: { claimName: grafana }
+   182	        - name: provisioning
+   183	          configMap: { name: grafana-provisioning }
+   184	        - name: dashboards
+   185	          configMap: { name: grafana-dashboards }
+   186	---
+   187	apiVersion: v1
+   188	kind: Service
+   189	metadata:
+   190	  name: grafana
+   191	  namespace: monitoring
+   192	  labels:
+   193	    app.kubernetes.io/name: grafana
+   194	spec:
+   195	  selector:
+   196	    app.kubernetes.io/name: grafana
+   197	  ports:
+   198	    - name: http
+   199	      port: 3000
+   200	      targetPort: 3000

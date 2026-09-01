@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-fast-linkup"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:sfl="http://github.com/sonic-net/sonic-fast-linkup">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-fast-linkup"/>
+  <prefix value="sfl"/>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>YANG model for SWITCH_FAST_LINKUP global configuration.</text>
+  </description>
+  <revision date="2025-10-20">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-fast-linkup">
+    <container name="SWITCH_FAST_LINKUP">
+      <description>
+        <text>Global fast link-up profile configuration for reduced link initialization time</text>
+      </description>
+      <container name="GLOBAL">
+        <description>
+          <text>Global fast link-up parameters</text>
+        </description>
+        <leaf name="polling_time">
+          <type name="uint16"/>
+          <description>
+            <text>Polling time in seconds</text>
+          </description>
+        </leaf>
+        <leaf name="guard_time">
+          <type name="uint8"/>
+          <description>
+            <text>Guard time in seconds</text>
+          </description>
+        </leaf>
+        <leaf name="ber_threshold">
+          <type name="uint8"/>
+          <description>
+            <text>BER threshold exponent (e.g., 12 for 1e-12)</text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

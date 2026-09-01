@@ -1,0 +1,83 @@
+     1	#!/usr/bin/env bash
+     2	# Assert installed AINETOPS-owned CRDs (T079a): exactly SRv6Service.ainetops.io
+     3	# and enforce FR-006: fail if duplicate/conflicting fabric/device-config CRDs exist.
+     4	# Note: The Kubernetes CRD name is the lowercase plural form srv6services.ainetops.io,
+     5	# while the success criterion names the Kind.Group form "SRv6Service.ainetops.io".
+     6	# Both refer to the same CRD family:
+     7	#   - Kind: SRv6Service
+     8	#   - Group: ainetops.io
+     9	#   - Plural name: srv6services.ainetops.io
+    10	# Allowed (only if T060 enables it): MigrationPlan.ainetops.io (plural: migrationplans.ainetops.io)
+    11	set -euo pipefail
+    12	
+    13	CTX="kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
+    14	
+    15	# Get all CRD names in the cluster
+    16	all_crds=$(kubectl --context "$CTX" get crds -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || true)
+    17	
+    18	# AINETOPS-owned must contain exactly srv6services.ainetops.io
+    19	owned_want=(srv6services.ainetops.io)
+    20	
+    21	# Build found list filtered by group ainetops.io
+    22	owned_found=()
+    23	for n in $all_crds; do
+    24	  if [[ "$n" == *.ainetops.io ]]; then owned_found+=("$n"); fi
+    25	done
+    26	
+    27	# If MigrationPlan was explicitly enabled by T060 in future, allow it; otherwise enforce single CRD
+    28	allow_migration=${AINETOPS_ALLOW_MIGRATIONPLAN:-false}
+    29	
+    30	ok=true
+    31	if [[ "$allow_migration" == "true" ]]; then
+    32	  # Allow two CRDs at most
+    33	  for n in "${owned_found[@]}"; do
+    34	    if [[ "$n" != "srv6services.ainetops.io" && "$n" != "migrationplans.ainetops.io" ]]; then
+    35	      ok=false
+    36	    fi
+    37	  done
+    38	else
+    39	  # Must be exactly one and match desired
+    40	  if [[ ${#owned_found[@]} -ne 1 || "${owned_found[0]}" != "srv6services.ainetops.io" ]]; then
+    41	    ok=false
+    42	  fi
+    43	fi
+    44	
+    45	# FR-006 duplicate/conflict detection across fabric/device-config CRDs.
+    46	# Parse each CRD name into <plural>.<group>. Flag any fabric-related plural in the wrong group.
+    47	# Allowed groups for our fabric categories:
+    48	#   - Kubenet fabric intent: network.kubenet.dev (networkconfigs, networkdevices, topologies)
+    49	#   - KUID allocation: id.kuid.dev (ipindices, asnindices, vniindices, claims)
+    50	#   - SDC device-config: sdc.sdcio.dev (schemas, configs, targets)
+    51	conflicts=()
+    52	for n in $all_crds; do
+    53	  plural=${n%%.*}
+    54	  group=${n#*.}
+    55	  # Kubenet
+    56	  case "$plural" in
+    57	    networkconfigs|networkdevices|topologies)
+    58	      if [[ "$group" != "network.kubenet.dev" ]]; then conflicts+=("$n (expected group network.kubenet.dev)"); fi ;;
+    59	  esac
+    60	  # KUID
+    61	  case "$plural" in
+    62	    ipindices|asnindices|vniindices|claims)
+    63	      if [[ "$group" != "id.kuid.dev" ]]; then conflicts+=("$n (expected group id.kuid.dev)"); fi ;;
+    64	  esac
+    65	  # SDC
+    66	  case "$plural" in
+    67	    schemas|configs|targets)
+    68	      if [[ "$group" != "sdc.sdcio.dev" ]]; then conflicts+=("$n (expected group sdc.sdcio.dev)"); fi ;;
+    69	  esac
+    70	done
+    71	
+    72	if [[ ${#conflicts[@]} -gt 0 ]]; then
+    73	  echo "[assert-crds] ERROR: Found duplicate/conflicting fabric/device-config CRDs:" >&2
+    74	  for c in "${conflicts[@]}"; do echo " - $c" >&2; done
+    75	  exit 1
+    76	fi
+    77	
+    78	if ! $ok; then
+    79	  echo "[assert-crds] ERROR: AINETOPS-owned CRD set invalid: ${owned_found[*]:-<none>}" >&2
+    80	  exit 1
+    81	fi
+    82	
+    83	echo "[assert-crds] OK: AINETOPS-owned CRDs = ${owned_found[*]} and no duplicate/conflicting fabric/device-config CRDs detected"

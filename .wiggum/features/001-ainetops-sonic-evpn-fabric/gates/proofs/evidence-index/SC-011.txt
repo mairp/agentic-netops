@@ -1,0 +1,3 @@
+SC-011 — Lifecycle scripts are the sole implementations
+- Evidence: scripts/provision.sh; scripts/off.sh; Makefile wrappers call scripts and do not implement phases
+- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/Makefile.quickstart.slice.txt

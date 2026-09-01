@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-vlan-sub-interface"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:vlan-sub-interface="http://github.com/sonic-net/sonic-vlan-sub-interface"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head"
+        xmlns:port="http://github.com/sonic-net/sonic-port"
+        xmlns:lag="http://github.com/sonic-net/sonic-portchannel"
+        xmlns:vrf="http://github.com/sonic-net/sonic-vrf"
+        xmlns:svnet="http://github.com/sonic-net/sonic-vnet">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-vlan-sub-interface"/>
+  <prefix value="vlan-sub-interface"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <import module="sonic-port">
+    <prefix value="port"/>
+  </import>
+  <import module="sonic-portchannel">
+    <prefix value="lag"/>
+  </import>
+  <import module="sonic-vrf">
+    <prefix value="vrf"/>
+  </import>
+  <import module="sonic-vnet">
+    <prefix value="svnet"/>
+  </import>
+  <description>
+    <text>VLAN sub-interface configuration for dot1q encapsulated sub-ports on physical or PortChannel interfaces</text>
+  </description>
+  <revision date="2025-03-06">
+    <description>
+      <text>Add leaf vnet_name</text>
+    </description>
+  </revision>
+  <revision date="2021-11-11">
+    <description>
+      <text>Initial version</text>
+    </description>
+  </revision>
+  <container name="sonic-vlan-sub-interface">
+    <container name="VLAN_SUB_INTERFACE">
+      <description>
+        <text>VLAN sub-interface configuration table for dot1q encapsulated sub-ports</text>
+      </description>
+      <list name="VLAN_SUB_INTERFACE_LIST">
+        <description>
+          <text>Configuration entry for a VLAN sub-interface including VLAN encapsulation and VRF binding</text>
+        </description>
+        <must condition="(substring-before(name, '.') = /port:sonic-port/port:PORT/port:PORT_LIST/port:name) or (substring-before(name, '.') = /lag:sonic-portchannel/lag:PORTCHANNEL/lag:PORTCHANNEL_LIST/lag:name) or vlan">
+          <error-message>
+            <value>Must condition not satisfied, no encap vlan provided for short-name format vlan sub interface</value>
+          </error-message>
+        </must>
+        <key value="name"/>
+        <leaf name="name">
+          <description>
+            <text>Sub-interface name in the format ParentInterface.VlanID (e.g. Ethernet0.100 or Eth0.100)</text>
+          </description>
+          <must condition="(string-length(current()) &lt;= 15) and ((substring-before(current(), '.') = /port:sonic-port/port:PORT/port:PORT_LIST/port:name) or (starts-with(substring-before(current(), '.'), 'Eth') and concat('Ethernet', substring-after(substring-before(current(), '.'), 'Eth')) = /port:sonic-port/port:PORT/port:PORT_LIST/port:name) or (substring-before(current(), '.') = /lag:sonic-portchannel/lag:PORTCHANNEL/lag:PORTCHANNEL_LIST/lag:name) or (starts-with(substring-before(current(), '.'), 'Po') and concat('PortChannel', substring-after(substring-before(current(), '.'), 'Po')) = /lag:sonic-portchannel/lag:PORTCHANNEL/lag:PORTCHANNEL_LIST/lag:name))">
+            <error-message>
+              <value>Must condition not satisfied, please follow vlan sub interface naming convention</value>
+            </error-message>
+          </must>
+          <type name="string">
+            <pattern value="(\w+)\.([1-9][0-9]{0,2}|[1-3][0-9]{3}|[4][0][0-8][0-9]|[4][0][9][0-4])"/>
+          </type>
+        </leaf>
+        <leaf name="admin_status">
+          <description>
+            <text>Administrative state of the VLAN sub-interface</text>
+          </description>
+          <type name="stypes:admin_status"/>
+        </leaf>
+        <leaf name="vrf_name">
+          <description>
+            <text>VRF instance to which this sub-interface is bound</text>
+          </description>
+          <type name="leafref">
+            <path value="/vrf:sonic-vrf/vrf:VRF/vrf:VRF_LIST/vrf:name"/>
+          </type>
+        </leaf>
+        <leaf name="vnet_name">
+          <description>
+            <text>Reference to the name of a VNET in sonic-vnet model</text>
+          </description>
+          <type name="leafref">
+            <path value="/svnet:sonic-vnet/svnet:VNET/svnet:VNET_LIST/svnet:name"/>
+          </type>
+        </leaf>
+        <leaf name="loopback_action">
+          <description>
+            <text>Packet action when a packet ingress and gets routed on the same IP interface</text>
+          </description>
+          <type name="stypes:loopback_action"/>
+        </leaf>
+        <leaf name="vlan">
+          <description>
+            <text>802.1Q VLAN ID for encapsulation on this sub-interface</text>
+          </description>
+          <type name="uint16">
+            <range value="1..4094"/>
+          </type>
+        </leaf>
+      </list>
+      <list name="VLAN_SUB_INTERFACE_IPPREFIX_LIST">
+        <description>
+          <text>IP address prefix assignment for a VLAN sub-interface</text>
+        </description>
+        <key value="name ip-prefix"/>
+        <leaf name="name">
+          <description>
+            <text>Reference to the parent VLAN sub-interface</text>
+          </description>
+          <type name="leafref">
+            <path value="../../VLAN_SUB_INTERFACE_LIST/name"/>
+          </type>
+        </leaf>
+        <leaf name="ip-prefix">
+          <description>
+            <text>IPv4 or IPv6 address with prefix length assigned to the sub-interface</text>
+          </description>
+          <type name="stypes:sonic-ip-prefix"/>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

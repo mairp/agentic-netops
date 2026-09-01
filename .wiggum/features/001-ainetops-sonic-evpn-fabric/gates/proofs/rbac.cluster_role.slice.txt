@@ -1,0 +1,1 @@
+nl -ba config/rbac/cluster_role.yaml | sed -n '1,26p'

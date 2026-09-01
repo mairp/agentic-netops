@@ -1,0 +1,2 @@
+     1	[run] srv6-capture: /root/ainetops-demo/tests/integration/srv6_capture_counters.sh run
+     2	[srv6-capture] SKIP: clab-ainetops-fabric-srv6-client01 not present

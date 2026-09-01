@@ -1,0 +1,314 @@
+     1	package sonicprovider
+     2	
+     3	import (
+     4		"context"
+     5		"fmt"
+     6		"math/rand"
+     7		"time"
+     8	
+     9		"github.com/go-logr/logr"
+    10		"github.com/mairp/ainetops/pkg/compat"
+    11		"github.com/mairp/ainetops/pkg/kubenet"
+    12		"github.com/mairp/ainetops/pkg/reasons"
+    13		"github.com/mairp/ainetops/pkg/render"
+    14		"github.com/mairp/ainetops/pkg/sdc"
+    15		"github.com/prometheus/client_golang/prometheus"
+    16		"github.com/prometheus/client_golang/prometheus/promauto"
+    17		metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    18		apierrors "k8s.io/apimachinery/pkg/api/errors"
+    19		"k8s.io/apimachinery/pkg/runtime"
+    20		ctrl "sigs.k8s.io/controller-runtime"
+    21		"sigs.k8s.io/controller-runtime/pkg/client"
+    22		"sigs.k8s.io/controller-runtime/pkg/predicate"
+    23	
+    24		// OpenTelemetry instrumentation (T041)
+    25		"go.opentelemetry.io/otel"
+    26		"go.opentelemetry.io/otel/attribute"
+    27		"go.opentelemetry.io/otel/trace"
+    28	)
+    29	
+    30	// Reconciler watches Kubenet NetworkDevice resources and reconciles downstream SDC Config.
+    31	
+    32	type Reconciler struct {
+    33		client.Client
+    34		Scheme   *runtime.Scheme
+    35		Log      logr.Logger
+    36		Recorder recordEventer
+    37	
+    38		// metrics
+    39		renderCounter prometheus.Counter
+    40	
+    41		// tracing
+    42		tracer trace.Tracer
+    43	}
+    44	
+    45	type recordEventer interface {
+    46		Eventf(object runtime.Object, eventtype, reason, messageFmt string, args ...any)
+    47	}
+    48	
+    49	const (
+    50		finalizerName   = "ainetops.dev/finalizer"
+    51		fieldManager    = "ainetops-sonic-provider"
+    52		annotationHash  = "ainetops.dev/config-hash"
+    53		ownerKind       = "NetworkDevice"
+    54	)
+    55	
+    56	func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+    57		// OTel span
+    58		if r.tracer == nil {
+    59			r.tracer = otel.Tracer("ainetops/sonicprovider")
+    60		}
+    61		ctx, span := r.tracer.Start(ctx, "ReconcileNetworkDevice")
+    62		defer span.End()
+    63		span.SetAttributes(attribute.String("k8s.name", req.Name), attribute.String("k8s.namespace", req.Namespace))
+    64	
+    65		r.Log.Info("reconcile NetworkDevice", "name", req.NamespacedName)
+    66		var nd kubenet.NetworkDevice
+    67		if err := r.Get(ctx, req.NamespacedName, &nd); err != nil {
+    68			return ctrl.Result{}, client.IgnoreNotFound(err)
+    69		}
+    70	
+    71		// Handle deletion with ordered finalization: delete owned SDC intent, confirm/timeout, retain evidence
+    72		if !nd.DeletionTimestamp.IsZero() {
+    73			cfgName := ownedConfigName(nd.Name)
+    74			cfg := &sdc.Config{ObjectMeta: metav1.ObjectMeta{Name: cfgName, Namespace: nd.Namespace}}
+    75			// Attempt delete each pass
+    76			_ = r.Delete(ctx, cfg)
+    77			// Confirm deletion via independent read path
+    78			err := r.Get(ctx, client.ObjectKey{Name: cfgName, Namespace: nd.Namespace}, cfg)
+    79			if err == nil {
+    80				// Still exists; requeue without removing finalizer yet
+    81				r.Log.Info("waiting for owned SDC Config to be deleted", "name", cfgName)
+    82				return resultWithBackoff(false), nil
+    83			}
+    84			if !apierrors.IsNotFound(err) {
+    85				// API error; retry
+    86				return resultWithBackoff(true), nil
+    87			}
+    88			// It's gone; add finalized-at evidence and remove finalizer
+    89			anno := nd.Annotations
+    90			if anno == nil { anno = map[string]string{} }
+    91			anno["ainetops.dev/finalized-at"] = time.Now().UTC().Format(time.RFC3339)
+    92			nd.Annotations = anno
+    93			nd.Finalizers = removeString(nd.Finalizers, finalizerName)
+    94			if err := r.Update(ctx, &nd); err != nil {
+    95				return ctrl.Result{}, err
+    96			}
+    97			return ctrl.Result{}, nil
+    98		}
+    99	
+   100		// Ensure finalizer present
+   101		if !containsString(nd.Finalizers, finalizerName) {
+   102			nd.Finalizers = append(nd.Finalizers, finalizerName)
+   103			if err := r.Update(ctx, &nd); err != nil {
+   104				return ctrl.Result{}, err
+   105			}
+   106		}
+   107	
+   108		// Initialize/gate conditions
+   109		condReady := metav1.Condition{
+   110			Type:               "Ready",
+   111			Status:             metav1.ConditionFalse,
+   112			ObservedGeneration: nd.Generation,
+   113			LastTransitionTime: metav1.NewTime(time.Now()),
+   114			Reason:             reasons.ReasonWaitingDependencies,
+   115			Message:            "Waiting for Kubenet/KUID, targets, schema, SDC validation",
+   116		}
+   117		updated := nd
+   118		updated.Status = upsertConditionGeneric(nd.Status, condReady)
+   119		if err := r.Status().Patch(ctx, &updated, client.MergeFrom(&nd)); err != nil {
+   120			return ctrl.Result{}, err
+   121		}
+   122	
+   123		// Observe existing SDC status EARLY to emit events regardless of gating (T038)
+   124		{
+   125			name := ownedConfigName(nd.Name)
+   126			cfg := &sdc.Config{}
+   127			if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: nd.Namespace}, cfg); err == nil {
+   128				if len(cfg.Status.Deviation) > 0 {
+   129					// Emit an event even if later gates will block downstream changes.
+   130					if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", name) }
+   131				}
+   132			}
+   133		}
+   134	
+   135		// Compatibility-set validation gates downstream mutations
+   136		set := compat.FromAnnotations(nd.Annotations)
+   137		discovered := map[string]bool{"sai.srv6": nd.Labels["ainetops.dev/cap.sai.srv6"] == "true"}
+   138		if err := compat.FullValidate(set, nd.Labels, discovered); err != nil {
+   139			// Set SchemaMismatch/CapabilityMissing and requeue with terminal backoff, no downstream change
+   140			reason := compat.ReasonFor(err)
+   141			cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reason, Message: err.Error()}
+   142			patched := nd
+   143			patched.Status = upsertConditionGeneric(nd.Status, cond)
+   144			_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
+   145			span.SetAttributes(attribute.String("compat.reason", reason))
+   146			return resultWithBackoff(false), nil
+   147		}
+   148	
+   149		// Observe existing SDC status to propagate Degraded/Ready (T038)
+   150		{
+   151			name := ownedConfigName(nd.Name)
+   152			cfg := &sdc.Config{}
+   153			if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: nd.Namespace}, cfg); err == nil {
+   154				if len(cfg.Status.Deviation) > 0 {
+   155					cond := metav1.Condition{Type: "Degraded", Status: metav1.ConditionTrue, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: "DeviationObserved", Message: fmt.Sprintf("%d deviations", len(cfg.Status.Deviation))}
+   156					patched := nd
+   157					patched.Status = upsertConditionGeneric(nd.Status, cond)
+   158					_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
+   159					if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", name) }
+   160					return resultWithBackoff(false), nil
+   161				}
+   162				if cfg.Status.Ready {
+   163					condOK := metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplySucceeded, Message: "rendered and applied"}
+   164					patched := nd
+   165					patched.Status = upsertConditionGeneric(nd.Status, condOK)
+   166					_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
+   167					return ctrl.Result{}, nil
+   168				}
+   169			}
+   170		}
+   171	
+   172		// Compose minimal rendered spec (placeholders; full renderers in later tasks)
+   173		spec := map[string]any{}
+   174		spec["/interfaces/interface"] = []map[string]any{{"name": "Ethernet1"}}
+   175	
+   176		// Offline schema/path validation and register enforcement prior to SSA
+   177		if err := sdc.OfflineValidate(spec); err != nil {
+   178			cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplyFailed, Message: fmt.Sprintf("offline schema validation failed: %v", err)}
+   179			patched := nd
+   180			patched.Status = upsertConditionGeneric(nd.Status, cond)
+   181			_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
+   182			return resultWithBackoff(true), nil
+   183		}
+   184		if err := sdc.ValidateSpecAgainstRegister(spec, nil); err != nil {
+   185			cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplyFailed, Message: fmt.Sprintf("register validation failed: %v", err)}
+   186			patched := nd
+   187			patched.Status = upsertConditionGeneric(nd.Status, cond)
+   188			_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
+   189			return resultWithBackoff(true), nil
+   190		}
+   191	
+   192		// Compute canonical hash and apply via SSA with dedicated field manager and minimal policy fields
+   193		hash, _ := render.CanonicalHash(spec)
+   194		obj := &sdc.Config{ObjectMeta: metav1.ObjectMeta{Name: ownedConfigName(nd.Name), Namespace: nd.Namespace, Labels: map[string]string{"ainetops.dev/ownerKind": ownerKind}}, Spec: map[string]any{}}
+   195		// seed spec with policy block and rendered fragments (T037)
+   196		obj.Spec["$policy"] = sdc.BuildPolicy(100, "replace", true, "retain")
+   197		for k, v := range spec { obj.Spec[k] = v }
+   198		if obj.Annotations == nil { obj.Annotations = map[string]string{} }
+   199		obj.Annotations[annotationHash] = hash
+   200		// propagate compatibility annotations (T035)
+   201		copyCompatAnnotations(nd.Annotations, obj.Annotations)
+   202		// Set owner reference
+   203		if err := ctrl.SetControllerReference(&nd, obj, r.Scheme); err != nil {
+   204			r.Log.Error(err, "set owner reference")
+   205		}
+   206		apply := client.Apply
+   207		force := true
+   208		if err := r.Patch(ctx, obj, apply, &client.PatchOptions{FieldManager: fieldManager, Force: &force}); err != nil {
+   209			cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplyFailed, Message: err.Error()}
+   210			patched := nd
+   211			patched.Status = upsertConditionGeneric(nd.Status, cond)
+   212			_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
+   213			return resultWithBackoff(true), nil
+   214		}
+   215		if r.renderCounter != nil { r.renderCounter.Inc() }
+   216		if r.Recorder != nil { r.Recorder.Eventf(&nd, "Normal", reasons.ReasonApplySucceeded, "Applied SDC Config %s with hash %s", obj.Name, hash) }
+   217	
+   218		// Observe SDC Config status to update aggregate conditions and events
+   219		cfg := &sdc.Config{}
+   220		if err := r.Get(ctx, client.ObjectKey{Name: obj.Name, Namespace: obj.Namespace}, cfg); err == nil {
+   221			if cfg.Status.Ready {
+   222				condOK := metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplySucceeded, Message: "rendered and applied"}
+   223				patched := nd
+   224				patched.Status = upsertConditionGeneric(nd.Status, condOK)
+   225				_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
+   226				return ctrl.Result{}, nil
+   227			}
+   228			if len(cfg.Status.Deviation) > 0 {
+   229				cond := metav1.Condition{Type: "Degraded", Status: metav1.ConditionTrue, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: "DeviationObserved", Message: fmt.Sprintf("%d deviations", len(cfg.Status.Deviation))}
+   230				patched := nd
+   231				patched.Status = upsertConditionGeneric(nd.Status, cond)
+   232				_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
+   233				if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", obj.Name) }
+   234			}
+   235		}
+   236	
+   237		// Requeue while waiting for SDC to report Ready
+   238		return resultWithBackoff(true), nil
+   239	}
+   240	
+   241	func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+   242		// initialize metrics once per manager
+   243		if r.renderCounter == nil {
+   244			r.renderCounter = promauto.NewCounter(prometheus.CounterOpts{
+   245				Namespace: "ainetops",
+   246				Subsystem: "sonicprovider",
+   247				Name:      "applies_total",
+   248				Help:      "Number of successful SDC Config apply operations",
+   249			})
+   250		}
+   251		return ctrl.NewControllerManagedBy(mgr).
+   252			For(&kubenet.NetworkDevice{}).
+   253			WithEventFilter(ignoreNonNetworkDevice()).
+   254			Owns(&sdc.Config{}).
+   255			Complete(r)
+   256	}
+   257	
+   258	func ignoreNonNetworkDevice() predicate.Predicate {
+   259		return predicate.NewPredicateFuncs(func(obj client.Object) bool {
+   260			labels := obj.GetLabels()
+   261			if labels == nil {
+   262				return false
+   263			}
+   264			// Use Kubenet's derived label to select only devices the provider should reconcile
+   265			if v, ok := labels["network.kubenet.dev/derived"]; ok && v == "true" {
+   266				return true
+   267			}
+   268			return false
+   269		})
+   270	}
+   271	
+   272	// propagate selected compatibility annotations from source to destination
+   273	func copyCompatAnnotations(src, dst map[string]string) {
+   274		if src == nil || dst == nil { return }
+   275		keys := []string{
+   276			"ainetops.dev/sonic-image",
+   277			"ainetops.dev/openconfig-commit",
+   278			"ainetops.dev/sonic-native-commit",
+   279			"ainetops.dev/mapping-version",
+   280			"ainetops.dev/kubenet-commit",
+   281			"ainetops.dev/kuid-commit",
+   282			"ainetops.dev/sdc-release",
+   283		}
+   284		for _, k := range keys {
+   285			if v, ok := src[k]; ok && v != "" { dst[k] = v }
+   286		}
+   287	}
+   288	
+   289	// ensure import
+   290	var _ = fmt.Sprintf
+   291	
+   292	func containsString(list []string, s string) bool {
+   293		for _, i := range list {
+   294			if i == s { return true }
+   295		}
+   296		return false
+   297	}
+   298	func removeString(list []string, s string) []string {
+   299		out := make([]string, 0, len(list))
+   300		for _, i := range list { if i != s { out = append(out, i) } }
+   301		return out
+   302	}
+   303	func ownedConfigName(owner string) string { return fmt.Sprintf("nd-%s", owner) }
+   304	
+   305	func resultWithBackoff(transient bool) ctrl.Result {
+   306		// Minimal bounded backoff with jitter
+   307		base := 5 * time.Second
+   308		if !transient {
+   309			base = 20 * time.Second
+   310		}
+   311		j := time.Duration(rand.Intn(3000)) * time.Millisecond
+   312		if j > 5*time.Second { j = 5 * time.Second }
+   313		return ctrl.Result{RequeueAfter: base + j}
+   314	}

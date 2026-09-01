@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-lossless-traffic-pattern"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:lossless-traffic-pattern="http://github.com/sonic-net/sonic-lossless-traffic-pattern">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-lossless-traffic-pattern"/>
+  <prefix value="lossless-traffic-pattern"/>
+  <description>
+    <text>LOSSLESS_TRAFFIC_PATTERN YANG module for SONiC OS</text>
+  </description>
+  <revision date="2022-05-31">
+    <description>
+      <text>Initial version</text>
+    </description>
+  </revision>
+  <container name="sonic-lossless-traffic-pattern">
+    <container name="LOSSLESS_TRAFFIC_PATTERN">
+      <description>
+        <text>Default lossless traffic pattern parameters for headroom calculation</text>
+      </description>
+      <list name="LOSSLESS_TRAFFIC_PATTERN_LIST">
+        <key value="name"/>
+        <leaf name="name">
+          <description>
+            <text>Name of the lossless traffic pattern entry</text>
+          </description>
+          <type name="string">
+            <pattern value="[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,31})">
+              <error-message>
+                <value>Invalid lossless traffic pattern list name.</value>
+              </error-message>
+              <error-app-tag value="lossless-traffic-pattern-invalid-list-name"/>
+            </pattern>
+            <length value="1..32">
+              <error-message>
+                <value>Invalid length for the lossless traffic pattern list name.</value>
+              </error-message>
+              <error-app-tag value="lossless-traffic-pattern-invalid-list-name-length"/>
+            </length>
+          </type>
+        </leaf>
+        <leaf name="mtu">
+          <type name="uint16">
+            <range value="1..9216">
+              <error-message>
+                <value>Invaild MTU which should be in [1, 9216].</value>
+              </error-message>
+            </range>
+          </type>
+          <mandatory value="true"/>
+          <description>
+            <text>The maximum packet size of a lossless packet</text>
+          </description>
+        </leaf>
+        <leaf name="small_packet_percentage">
+          <type name="uint8">
+            <range value="0..100">
+              <error-message>
+                <value>Invalid small packets percentage which should be in [0, 100].</value>
+              </error-message>
+            </range>
+          </type>
+          <mandatory value="true"/>
+          <description>
+            <text>The percentage of small packets which is used to calculate the headroom size</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

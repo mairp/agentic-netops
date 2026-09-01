@@ -1,23 +1,213 @@
-     1  Path: deploy/observability/otel-collector.yaml
-     2  -- BEGIN EXCERPT --
-     3  receivers:
-     4    otlp:
-     5      protocols:
-     6        http:
-     7          endpoint: 0.0.0.0:4318
-     8        grpc:
-     9          endpoint: 0.0.0.0:4317
-    10  processors:
-    11    k8sattributes:
-    12      auth_type: serviceAccount
-    13      passthrough: false
-    14  exporters:
-    15    prometheus:
-    16      endpoint: 0.0.0.0:9464
-    17  service:
-    18    pipelines:
-    19      metrics:
-    20        receivers: [otlp, prometheus/self]
-    21        processors: [memory_limiter, k8sattributes, attributes, transform, batch]
-    22        exporters: [prometheus]
-    23  -- END EXCERPT --
+     1	# T064: OpenTelemetry Collector deployment inside Kind with receivers, enrichment, normalization, batching, memory limiter, queues/retries, Prometheus exporter, and self-telemetry
+     2	apiVersion: v1
+     3	kind: Namespace
+     4	metadata:
+     5	  name: ainetops-system
+     6	  labels:
+     7	    app.kubernetes.io/part-of: ainetops
+     8	---
+     9	apiVersion: v1
+    10	kind: ServiceAccount
+    11	metadata:
+    12	  name: otel-collector
+    13	  namespace: ainetops-system
+    14	  labels:
+    15	    app.kubernetes.io/name: otel-collector
+    16	---
+    17	apiVersion: rbac.authorization.k8s.io/v1
+    18	kind: ClusterRole
+    19	metadata:
+    20	  name: otel-collector
+    21	rules:
+    22	  - apiGroups: [""]
+    23	    resources: ["pods", "namespaces", "nodes"]
+    24	    verbs: ["get", "list", "watch"]
+    25	---
+    26	apiVersion: rbac.authorization.k8s.io/v1
+    27	kind: ClusterRoleBinding
+    28	metadata:
+    29	  name: otel-collector
+    30	roleRef:
+    31	  apiGroup: rbac.authorization.k8s.io
+    32	  kind: ClusterRole
+    33	  name: otel-collector
+    34	subjects:
+    35	  - kind: ServiceAccount
+    36	    name: otel-collector
+    37	    namespace: ainetops-system
+    38	---
+    39	apiVersion: v1
+    40	kind: ConfigMap
+    41	metadata:
+    42	  name: otel-collector-config
+    43	  namespace: ainetops-system
+    44	  labels:
+    45	    app.kubernetes.io/name: otel-collector
+    46	    ainetops.dev/component: observability
+    47	    ainetops.dev/config: otel
+    48	  annotations:
+    49	    ainetops.dev/spec-version: "v1"
+    50	    ainetops.dev/pipeline: "gnmic -> otel -> prometheus"
+    51	    ainetops.dev/receivers: "otlphttp, otlpgrpc"
+    52	    ainetops.dev/exporters: "prometheus"
+    53	    ainetops.dev/processors: "k8sattributes, attributes, memory_limiter, batch, transform, resourcedetection, filter"
+    54	    ainetops.dev/queue-retry: "enabled"
+    55	    ainetops.dev/telemetry: "enabled"
+    56	  data:
+    57	    otel-collector-config.yaml: |
+    58	      receivers:
+    59	        otlp:
+    60	          protocols:
+    61	            http:
+    62	              endpoint: 0.0.0.0:4318
+    63	            grpc:
+    64	              endpoint: 0.0.0.0:4317
+    65	        prometheus/self:
+    66	          config:
+    67	            scrape_configs:
+    68	              - job_name: 'otel-collector'
+    69	                scrape_interval: 15s
+    70	                static_configs:
+    71	                  - targets: ['0.0.0.0:8888']
+    72	      processors:
+    73	        memory_limiter:
+    74	          check_interval: 1s
+    75	          limit_percentage: 80
+    76	          spike_limit_percentage: 25
+    77	        batch:
+    78	          send_batch_size: 2048
+    79	          timeout: 5s
+    80	        k8sattributes:
+    81	          auth_type: serviceAccount
+    82	          passthrough: false
+    83	          extract:
+    84	            metadata: ["k8s.namespace.name","k8s.pod.name","k8s.pod.uid","k8s.deployment.name","k8s.node.name"]
+    85	        attributes:
+    86	          actions:
+    87	            - key: ainetops.pipeline
+    88	              value: gnmic→otel→prom
+    89	              action: upsert
+    90	            - key: service.namespace
+    91	              from_attribute: k8s.namespace.name
+    92	              action: upsert
+    93	        transform:
+    94	          metric_statements:
+    95	            - context: metric
+    96	              statements:
+    97	                - set(unit, "packets") where name == "sonic_interface_packets_total"
+    98	                - set(unit, "bytes") where name == "sonic_interface_octets_total"
+    99	                - set(metric.description, "Number of successful SDC Config apply operations") where name == "ainetops_sonicprovider_applies_total"
+   100	        resourcedetection:
+   101	          detectors: [env, system]
+   102	          timeout: 2s
+   103	        filter:
+   104	          metrics:
+   105	            include:
+   106	              match_type: regexp
+   107	              metric_names:
+   108	                - ".*sonic_.*"
+   109	                - ".*srv6.*"
+   110	                - ".*ainetops.*"
+   111	      exporters:
+   112	        prometheus:
+   113	          endpoint: 0.0.0.0:9464
+   114	          const_labels:
+   115	            ainetops.dev/metrics_store: prometheus
+   116	          sending_queue:
+   117	            enabled: true
+   118	            queue_size: 2048
+   119	          retry_on_failure:
+   120	            enabled: true
+   121	            initial_interval: 5s
+   122	            max_interval: 30s
+   123	            max_elapsed_time: 300s
+   124	        debug:
+   125	          verbosity: basic
+   126	      extensions:
+   127	        health_check: {}
+   128	      service:
+   129	        telemetry:
+   130	          logs:
+   131	            level: info
+   132	          metrics:
+   133	            level: normal
+   134	        extensions: [health_check]
+   135	        pipelines:
+   136	          metrics:
+   137	            receivers: [otlp, prometheus/self]
+   138	            processors: [memory_limiter, k8sattributes, attributes, transform, batch]
+   139	            exporters: [prometheus]
+   140	---
+   141	apiVersion: apps/v1
+   142	kind: Deployment
+   143	metadata:
+   144	  name: otel-collector
+   145	  namespace: ainetops-system
+   146	  labels:
+   147	    app.kubernetes.io/name: otel-collector
+   148	    app.kubernetes.io/part-of: ainetops
+   149	    ainetops.dev/component: observability
+   150	spec:
+   151	  replicas: 1
+   152	  selector:
+   153	    matchLabels:
+   154	      app.kubernetes.io/name: otel-collector
+   155	  template:
+   156	    metadata:
+   157	      labels:
+   158	        app.kubernetes.io/name: otel-collector
+   159	        app.kubernetes.io/part-of: ainetops
+   160	      annotations:
+   161	        prometheus.io/scrape: "true"
+   162	        prometheus.io/port: "8888"
+   163	        prometheus.io/path: "/metrics"
+   164	    spec:
+   165	      serviceAccountName: otel-collector
+   166	      containers:
+   167	        - name: otel-collector
+   168	          image: otel/opentelemetry-collector-contrib@sha256:e07e325e303e86f4a87a617491e921b579a92da6d404007394757ac910bf9587
+   169	          imagePullPolicy: IfNotPresent
+   170	          args: ["--config=/etc/otel-collector-config/otel-collector-config.yaml"]
+   171	          ports:
+   172	            - name: otlp-grpc
+   173	              containerPort: 4317
+   174	            - name: otlp-http
+   175	              containerPort: 4318
+   176	            - name: metrics
+   177	              containerPort: 8888
+   178	            - name: prom-exp
+   179	              containerPort: 9464
+   180	          volumeMounts:
+   181	            - name: otel-config
+   182	              mountPath: /etc/otel-collector-config
+   183	          resources:
+   184	            requests: { cpu: "100m", memory: "128Mi" }
+   185	            limits:   { cpu: "500m", memory: "512Mi" }
+   186	      volumes:
+   187	        - name: otel-config
+   188	          configMap:
+   189	            name: otel-collector-config
+   190	---
+   191	apiVersion: v1
+   192	kind: Service
+   193	metadata:
+   194	  name: otel-collector
+   195	  namespace: ainetops-system
+   196	  labels:
+   197	    app.kubernetes.io/name: otel-collector
+   198	spec:
+   199	  selector:
+   200	    app.kubernetes.io/name: otel-collector
+   201	  ports:
+   202	    - name: otlp-http
+   203	      port: 4318
+   204	      targetPort: 4318
+   205	    - name: otlp-grpc
+   206	      port: 4317
+   207	      targetPort: 4317
+   208	    - name: prom-exp
+   209	      port: 9464
+   210	      targetPort: 9464
+   211	    - name: metrics
+   212	      port: 8888
+   213	      targetPort: 8888

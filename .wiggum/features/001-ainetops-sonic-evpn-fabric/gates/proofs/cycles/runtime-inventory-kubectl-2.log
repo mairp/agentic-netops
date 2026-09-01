@@ -1,0 +1,26 @@
+NAMESPACE            NAME                                             READY   STATUS             RESTARTS   AGE   IP            NODE                     NOMINATED NODE   READINESS GATES
+ainetops-system      ainetops-secret-generator-qtfrg                  0/1     Completed          0          18m   10.244.1.2    ainetops-worker          <none>           <none>
+ainetops-system      ainetops-sonic-provider-66c5b5dbd8-xvcjs         1/1     Running            0          12m   10.244.1.20   ainetops-worker          <none>           <none>
+ainetops-system      ainetops-srv6-controller-847c65957f-6sdqf        1/1     Running            0          12m   10.244.1.21   ainetops-worker          <none>           <none>
+ainetops-system      gnmic-bcf9db789-xxvf4                            1/1     Running            0          13m   10.244.1.12   ainetops-worker          <none>           <none>
+ainetops-system      otel-collector-7c6b7bdfc4-n4kfk                  1/1     Running            0          13m   10.244.1.11   ainetops-worker          <none>           <none>
+kube-system          coredns-76f75df574-5k6vm                         1/1     Running            0          19m   10.244.0.4    ainetops-control-plane   <none>           <none>
+kube-system          coredns-76f75df574-drbmk                         1/1     Running            0          19m   10.244.0.2    ainetops-control-plane   <none>           <none>
+kube-system          etcd-ainetops-control-plane                      1/1     Running            0          19m   172.30.0.2    ainetops-control-plane   <none>           <none>
+kube-system          kindnet-gsfn6                                    1/1     Running            0          19m   172.30.0.2    ainetops-control-plane   <none>           <none>
+kube-system          kindnet-wmnd2                                    1/1     Running            0          19m   172.30.0.3    ainetops-worker          <none>           <none>
+kube-system          kube-apiserver-ainetops-control-plane            1/1     Running            0          19m   172.30.0.2    ainetops-control-plane   <none>           <none>
+kube-system          kube-controller-manager-ainetops-control-plane   1/1     Running            0          19m   172.30.0.2    ainetops-control-plane   <none>           <none>
+kube-system          kube-proxy-cql6q                                 1/1     Running            0          19m   172.30.0.2    ainetops-control-plane   <none>           <none>
+kube-system          kube-proxy-thkpd                                 1/1     Running            0          19m   172.30.0.3    ainetops-worker          <none>           <none>
+kube-system          kube-scheduler-ainetops-control-plane            1/1     Running            0          19m   172.30.0.2    ainetops-control-plane   <none>           <none>
+kubenet-system       kubenet-controller-6cf57dbc95-hwgjj              0/1     ImagePullBackOff   0          18m   10.244.1.3    ainetops-worker          <none>           <none>
+kuid-system          kuid-controller-6d7498fdbf-jfzg7                 0/1     ImagePullBackOff   0          18m   10.244.1.4    ainetops-worker          <none>           <none>
+local-path-storage   local-path-provisioner-75b59d495-tmlnd           1/1     Running            0          19m   10.244.0.3    ainetops-control-plane   <none>           <none>
+monitoring           grafana-66b47bcbc8-mc2hf                         1/1     Running            0          12m   10.244.1.17   ainetops-worker          <none>           <none>
+monitoring           grafana-admin-secret-generator-j8xrl             0/1     Completed          0          13m   10.244.1.14   ainetops-worker          <none>           <none>
+monitoring           prometheus-57675bbb5b-hn5hs                      1/1     Running            0          13m   10.244.1.15   ainetops-worker          <none>           <none>
+sdc-system           sdc-cache-5cdd7897d8-zlpqh                       0/1     ImagePullBackOff   0          16m   10.244.1.9    ainetops-worker          <none>           <none>
+sdc-system           sdc-config-f55f769cd-sd7st                       0/1     ImagePullBackOff   0          16m   10.244.1.6    ainetops-worker          <none>           <none>
+sdc-system           sdc-data-6b5ff949cd-s52fr                        0/1     ImagePullBackOff   0          16m   10.244.1.10   ainetops-worker          <none>           <none>
+sdc-system           sdc-schema-5bf5ff6fbc-6bdlb                      0/1     ErrImagePull       0          16m   10.244.1.5    ainetops-worker          <none>           <none>

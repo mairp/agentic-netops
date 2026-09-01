@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-snmp"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:ssnmp="http://github.com/sonic-net/sonic-snmp"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types">
+  <namespace uri="http://github.com/sonic-net/sonic-snmp"/>
+  <prefix value="ssnmp"/>
+  <yang-version value="1.1"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>Simple Network Management Protocol (SNMP) agent configuration YANG module for SONiC OS.</text>
+  </description>
+  <revision date="2022-05-13">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-snmp">
+    <container name="SNMP">
+      <description>
+        <text>SNMP system information (contact and location).</text>
+      </description>
+      <container name="CONTACT">
+        <description>
+          <text>SNMP system contact information.</text>
+        </description>
+        <leaf name="Contact">
+          <type name="string">
+            <length value="1..255"/>
+            <pattern value="[^\n]+"/>
+          </type>
+          <description>
+            <text>SNMP System Contact.</text>
+          </description>
+        </leaf>
+      </container>
+      <container name="LOCATION">
+        <description>
+          <text>SNMP system physical location.</text>
+        </description>
+        <leaf name="Location">
+          <type name="string">
+            <length value="1..255"/>
+            <pattern value="[^\n]+"/>
+          </type>
+          <description>
+            <text>SNMP System Location.</text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+    <container name="SNMP_COMMUNITY">
+      <description>
+        <text>SNMPv1/v2c community string configuration.</text>
+      </description>
+      <list name="SNMP_COMMUNITY_LIST">
+        <key value="name"/>
+        <description>
+          <text>List of communities.</text>
+        </description>
+        <leaf name="name">
+          <type name="string">
+            <length value="4..32"/>
+            <pattern value="[^ @,\\']*">
+              <error-message>
+                <value>Invalid snmp community string (Valid chars are ASCII printable except SPACE, single quote,"@", "," and "\")</value>
+              </error-message>
+            </pattern>
+          </type>
+          <description>
+            <text>Index into the community list which must be the community name.</text>
+          </description>
+        </leaf>
+        <leaf name="TYPE">
+          <type name="enumeration">
+            <enum name="RO"/>
+            <enum name="RW"/>
+          </type>
+          <description>
+            <text>Type of community, read-only or read-write.</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+    <container name="SNMP_USER">
+      <description>
+        <text>SNMPv3 user authentication and encryption configuration.</text>
+      </description>
+      <list name="SNMP_USER_LIST">
+        <key value="name"/>
+        <description>
+          <text>List of users.</text>
+        </description>
+        <leaf name="name">
+          <type name="string">
+            <length value="4..32"/>
+            <pattern value="[^ :@,\\']*">
+              <error-message>
+                <value>Invalid snmp user string (Valid chars are ASCII printable except \
+                                 SPACE, single quote,"@", ",", "\" and ":")</value>
+              </error-message>
+            </pattern>
+          </type>
+          <description>
+            <text>Name defining the SNMP User.</text>
+          </description>
+        </leaf>
+        <leaf name="SNMP_USER_TYPE">
+          <mandatory value="true"/>
+          <type name="enumeration">
+            <enum name="noAuthNoPriv"/>
+            <enum name="AuthNoPriv"/>
+            <enum name="Priv"/>
+          </type>
+          <description>
+            <text>Authentication and encryption method used for the user, can be noAuthNoPriv,AuthNoPriv or Priv</text>
+          </description>
+        </leaf>
+        <leaf name="SNMP_USER_PERMISSION">
+          <mandatory value="true"/>
+          <type name="enumeration">
+            <enum name="RO"/>
+            <enum name="RW"/>
+          </type>
+          <description>
+            <text>Specify if the user permission can be Read only or Read write user, can be RO or RW</text>
+          </description>
+        </leaf>
+        <leaf name="SNMP_USER_AUTH_TYPE">
+          <type name="string"/>
+          <must condition="(current()/../SNMP_USER_TYPE = 'noAuthNoPriv' and current() = '') or&#10;((current()/../SNMP_USER_TYPE = 'AuthNoPriv' or current()/../SNMP_USER_TYPE = 'Priv')&#10;and (current() = 'SHA' or current() = 'MD5' or current() = 'HMAC-SHA-2'))"/>
+          <default value=""/>
+          <description>
+            <text>Specify authentication type used for user, can be MD5, SHA or HMAC-SHA-2</text>
+          </description>
+        </leaf>
+        <leaf name="SNMP_USER_AUTH_PASSWORD">
+          <type name="string">
+            <length value="0..64"/>
+            <pattern value="[^ @:]*">
+              <error-message>
+                <value>Invalid snmp user authentication password (Valid chars are ASCII
+                                 printable except ":" and"@")</value>
+              </error-message>
+            </pattern>
+          </type>
+          <must condition="(current()/../SNMP_USER_TYPE = 'AuthNoPriv' and string-length(current()) &gt;= 8) or&#10;(current()/../SNMP_USER_TYPE = 'Priv' and string-length(current()) &gt;= 8) or&#10;(current()/../SNMP_USER_TYPE = 'noAuthNoPriv' and current() = '')"/>
+          <description>
+            <text>Authentication password for the user.</text>
+          </description>
+        </leaf>
+        <leaf name="SNMP_USER_ENCRYPTION_TYPE">
+          <type name="string"/>
+          <must condition="(current()/../SNMP_USER_TYPE = 'noAuthNoPriv' and current() = '') or&#10;(current()/../SNMP_USER_TYPE = 'AuthNoPriv' and current() = '') or&#10;(current()/../SNMP_USER_TYPE = 'Priv' and (current() = 'DES' or current() = 'AES'))"/>
+          <default value=""/>
+          <description>
+            <text>Encryption type for the user (AES or DES).</text>
+          </description>
+        </leaf>
+        <leaf name="SNMP_USER_ENCRYPTION_PASSWORD">
+          <mandatory value="true"/>
+          <type name="string">
+            <length value="0..64"/>
+            <pattern value="[^ @:]*">
+              <error-message>
+                <value>Invalid snmp user encryption password (Valid chars are ASCII \
+                                 printable except ":" and"@")</value>
+              </error-message>
+            </pattern>
+          </type>
+          <must condition="(current()/../SNMP_USER_TYPE = 'noAuthNoPriv' and current() = '') or&#10;(current()/../SNMP_USER_TYPE = 'AuthNoPriv' and current() = '') or&#10;(current()/../SNMP_USER_TYPE = 'Priv' and string-length(current()) &gt;= 8)"/>
+          <description>
+            <text>Encryption password for the user.</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+    <container name="SNMP_AGENT_ADDRESS_CONFIG">
+      <description>
+        <text>SNMP agent listening address and port configuration.</text>
+      </description>
+      <list name="SNMP_AGENT_ADDRESS_CONFIG_LIST">
+        <key value="agent_ip port vrf_name"/>
+        <unique tag="agent_ip port"/>
+        <description>
+          <text>List of SNMP agent listening IP Addresses and ports.</text>
+        </description>
+        <leaf name="agent_ip">
+          <type name="inet:ip-address"/>
+          <description>
+            <text>SNMP agent listening IP</text>
+          </description>
+        </leaf>
+        <leaf name="port">
+          <type name="union">
+            <type name="string">
+              <pattern value=""/>
+            </type>
+            <type name="inet:port-number"/>
+          </type>
+          <description>
+            <text>SNMP agent listening port number</text>
+          </description>
+        </leaf>
+        <leaf name="vrf_name">
+          <type name="union">
+            <type name="string">
+              <pattern value=""/>
+            </type>
+            <type name="string">
+              <pattern value="mgmt"/>
+            </type>
+            <type name="string">
+              <pattern value="Vrf[a-zA-Z0-9_-]+"/>
+            </type>
+          </type>
+          <description>
+            <text>VRF name</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

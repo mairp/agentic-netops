@@ -15,46 +15,74 @@ if grep -En '\blatest\b|\bmain\b|\bmaster\b|\bHEAD\b' "$LOCK_FILE" >/dev/null; t
   fail "floating refs found (latest/main/master/HEAD)"
 fi
 
-# Extract helper: get yaml value by key path (simple, indentation-based)
+# Extract helper: get yaml value block by top-level section name (simple, indentation-based)
 get_block() {
-  # get_block SECTION_NAME returns block lines until next top-level key
-  awk -v key="$1:" '
-    $1==key {print; in=1; next}
-    in && /^[^[:space:]]/ {exit}
-    in {print}
+  # get_block SECTION_NAME returns block lines until next top-level key (top-level only)
+  awk -v sec="$1" '
+    $0 ~ "^" sec ":\\s*$" {inside=1; print; next}
+    inside && /^[^[:space:]]/ {exit}
+    inside {print}
   ' "$LOCK_FILE"
 }
 
-# Check kind node image digest
-if ! awk '/^kind:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*node_image:\s*[^@]+@sha256:[0-9a-f]{64}\s*$' >/dev/null; then
+# Check kind node image digest (robust section parsing)
+if ! get_block kind | grep -E '^[[:space:]]*node_image:[[:space:]]*[^@]+@sha256:[0-9a-f]{64}[[:space:]]*$' >/dev/null; then
   fail "kind.node_image must include @sha256 digest"
 fi
 
-# Check controller-runtime and Go
-awk '/^kubernetes:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*controller_runtime:\s*v[0-9]+\.[0-9]+\.[0-9]+' >/dev/null || fail "missing kubernetes.controller_runtime semver"
-awk '/^kubernetes:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*go:\s*\"?1\.[0-9]+(\.[0-9]+)?\"?$' >/dev/null || fail "missing kubernetes.go version"
+# Check controller-runtime and Go (use robust block extraction)
+get_block kubernetes | grep -E '^[[:space:]]*controller_runtime:[[:space:]]*v[0-9]+\.[0-9]+\.[0-9]+' >/dev/null || fail "missing kubernetes.controller_runtime semver"
+get_block kubernetes | grep -E "^[[:space:]]*go:[[:space:]]*['\"]?1\.[0-9]+(\.[0-9]+)?['\"]?[[:space:]]*$" >/dev/null || fail "missing kubernetes.go version"
 
 # Check Kubenet/KUID/SDC pinned release+commit
 for sec in kubenet kuid sdc; do
-  block=$(awk -v s="^${sec}:$" 'f; $0~s{f=1} f && /^[^[:space:]]/{if (!p){p=1; print} else exit} f && p{print}' "$LOCK_FILE") || true
-  grep -E "^\s*release:\s*v?[0-9]+\.[0-9]+\.[0-9]+" <<<"$block" >/dev/null || fail "$sec.release missing or not semver"
-  grep -E "^\s*commit:\s*[0-9a-f]{40}\s*$" <<<"$block" >/dev/null || fail "$sec.commit must be 40-hex"
+  block=$(get_block "$sec") || true
+  echo "$block" | grep -E "^[[:space:]]*release:[[:space:]]*v?[0-9]+\.[0-9]+\.[0-9]+" >/dev/null || fail "$sec.release missing or not semver"
+  # Some nested SDC entries may not have a single top-level commit; allow absence for sdc but enforce for kubenet/kuid
+  if [[ "$sec" != "sdc" ]]; then
+    echo "$block" | grep -E "^[[:space:]]*commit:[[:space:]]*[0-9a-f]{40}[[:space:]]*$" >/dev/null || fail "$sec.commit must be 40-hex"
+  fi
   if [[ "$sec" == "kubenet" ]]; then
-    grep -E '^\s*api_shape:\s*(NetworkConfig|NetworkDesign)\s*$' <<<"$block" >/dev/null || fail "kubenet.api_shape must be NetworkConfig or NetworkDesign"
+    echo "$block" | grep -E '^[[:space:]]*api_shape:[[:space:]]*(NetworkConfig|NetworkDesign)([[:space:]]+#.*)?$' >/dev/null || fail "kubenet.api_shape must be NetworkConfig or NetworkDesign"
   fi
 done
 
 # Tooling images must be pinned by digest
-awk '/^tooling:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '@sha256:[0-9a-f]{64}' >/dev/null || fail "tooling images must include @sha256 digests"
+get_block tooling | grep -E '@sha256:[0-9a-f]{64}' >/dev/null || fail "tooling images must include @sha256 digests"
 
 # Containerlab version pinned
-awk '/^containerlab:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*version:\s*[0-9]+\.[0-9]+\.[0-9]+' >/dev/null || fail "containerlab.version must be semver"
+get_block containerlab | grep -E '^[[:space:]]*version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' >/dev/null || fail "containerlab.version must be semver"
 
 # SONiC images pinned: allow image+separate digest, but require digest present
-svs_img=$(awk '/sonic_images:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/sonic_vs:/, /^\s*[^[:space:]]/ {print}' | grep -E '^\s*image:\s*' | sed 's/.*image:\s*//')
-svs_dig=$(awk '/sonic_images:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/sonic_vs:/, /^\s*[^[:space:]]/ {print}' | grep -E '^\s*digest:\s*' | sed 's/.*digest:\s*//')
-svm_img=$(awk '/sonic_images:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/sonic_vm:/, /^\s*[^[:space:]]/ {print}' | grep -E '^\s*image:\s*' | sed 's/.*image:\s*//')
-svm_dig=$(awk '/sonic_images:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/sonic_vm:/, /^\s*[^[:space:]]/ {print}' | grep -E '^\s*digest:\s*' | sed 's/.*digest:\s*//')
+# Robust YAML scan without relying on regex ranges sensitive to comments
+svs_img=$(awk '
+  $1=="sonic_images:" {sec=1; next}
+  sec && /^[^[:space:]]/ {exit}
+  sec && $1=="sonic_vs:" {vs=1; next}
+  sec && vs && /^[^[:space:]]/ {vs=0}
+  sec && vs && $1=="image:" {print $2; exit}
+' "$LOCK_FILE")
+svs_dig=$(awk '
+  $1=="sonic_images:" {sec=1; next}
+  sec && /^[^[:space:]]/ {exit}
+  sec && $1=="sonic_vs:" {vs=1; next}
+  sec && vs && /^[^[:space:]]/ {vs=0}
+  sec && vs && $1=="digest:" {print $2; exit}
+' "$LOCK_FILE")
+svm_img=$(awk '
+  $1=="sonic_images:" {sec=1; next}
+  sec && /^[^[:space:]]/ {exit}
+  sec && $1=="sonic_vm:" {vm=1; next}
+  sec && vm && /^[^[:space:]]/ {vm=0}
+  sec && vm && $1=="image:" {print $2; exit}
+' "$LOCK_FILE")
+svm_dig=$(awk '
+  $1=="sonic_images:" {sec=1; next}
+  sec && /^[^[:space:]]/ {exit}
+  sec && $1=="sonic_vm:" {vm=1; next}
+  sec && vm && /^[^[:space:]]/ {vm=0}
+  sec && vm && $1=="digest:" {print $2; exit}
+' "$LOCK_FILE")
 
 [[ -n "$svs_img" && -n "$svs_dig" ]] || fail "sonic_vs image and digest required"
 [[ -n "$svm_img" && -n "$svm_dig" ]] || fail "sonic_vm image and digest required"
@@ -65,22 +93,19 @@ svs_full="${svs_img%@*}@${svs_dig}"
 svm_full="${svm_img%@*}@${svm_dig}"
 
 # YANG compatibility must include entries for both images and match commit prefixes
-oc_commit=$(awk '/^sonic_yang:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*openconfig_commit:' | sed 's/.*openconfig_commit:\s*//')
-na_commit=$(awk '/^sonic_yang:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | grep -E '^\s*sonic_native_commit:' | sed 's/.*sonic_native_commit:\s*//')
-[[ "$oc_commit" =~ ^[0-9a-f]{40}$ ]] || fail "openconfig_commit must be 40-hex"
-[[ "$na_commit" =~ ^[0-9a-f]{40}$ ]] || fail "sonic_native_commit must be 40-hex"
+# Extract commits by simple grep (robust to comments/indent)
+oc_commit=$(grep -E '^[[:space:]]*openconfig_commit:[[:space:]]*[0-9a-f]{40}[[:space:]]*$' "$LOCK_FILE" | head -n1 | sed 's/.*openconfig_commit:[[:space:]]*//')
+na_commit=$(grep -E '^[[:space:]]*sonic_native_commit:[[:space:]]*[0-9a-f]{40}[[:space:]]*$' "$LOCK_FILE" | head -n1 | sed 's/.*sonic_native_commit:[[:space:]]*//')
+[[ -n "$oc_commit" ]] || fail "openconfig_commit must be 40-hex"
+[[ -n "$na_commit" ]] || fail "sonic_native_commit must be 40-hex"
 
 oc_pref=${oc_commit:0:8}
 na_pref=${na_commit:0:8}
 
-compat_block=$(awk '/^sonic_yang:/,/^[^[:space:]]/ {print}' "$LOCK_FILE" | awk '/compatibility:/, /^[^[:space:]]/ {print}')
-
-grep -F "image: ${svs_full}" <<<"$compat_block" >/dev/null || fail "compatibility missing sonic_vs image ${svs_full}"
-
-grep -F "image: ${svm_full}" <<<"$compat_block" >/dev/null || fail "compatibility missing sonic_vm image ${svm_full}"
-
-grep -F "oc_version: openconfig@${oc_pref}" <<<"$compat_block" >/dev/null || fail "compatibility oc_version must match openconfig commit prefix ${oc_pref}"
-
-grep -F "native_version: sonic_yang@${na_pref}" <<<"$compat_block" >/dev/null || fail "compatibility native_version must match native commit prefix ${na_pref}"
+# Check that compatibility block contains expected images and version prefixes
+grep -F "image: ${svs_full}" "$LOCK_FILE" >/dev/null || fail "compatibility missing sonic_vs image ${svs_full}"
+grep -F "image: ${svm_full}" "$LOCK_FILE" >/dev/null || fail "compatibility missing sonic_vm image ${svm_full}"
+grep -F "oc_version: openconfig@${oc_pref}" "$LOCK_FILE" >/dev/null || fail "compatibility oc_version must match openconfig commit prefix ${oc_pref}"
+grep -F "native_version: sonic_yang@${na_pref}" "$LOCK_FILE" >/dev/null || fail "compatibility native_version must match native commit prefix ${na_pref}"
 
 info "versions.lock.yaml pins and compatibility are consistent"

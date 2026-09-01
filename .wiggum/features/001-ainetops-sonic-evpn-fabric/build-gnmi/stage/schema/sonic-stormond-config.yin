@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-stormond-config"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:stormond-config="http://github.com/sonic-net/sonic-stormond-config">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-stormond-config"/>
+  <prefix value="stormond-config"/>
+  <description>
+    <text>STORMOND_CONFIG Table yang Module for SONiC</text>
+  </description>
+  <container name="sonic-stormond-config">
+    <container name="STORMOND_CONFIG">
+      <description>
+        <text>Storage monitoring daemon polling and sync intervals</text>
+      </description>
+      <container name="INTERVALS">
+        <description>
+          <text>Timer intervals for storage monitoring operations</text>
+        </description>
+        <leaf name="daemon_polling_interval">
+          <description>
+            <text>Polling interval in seconds for the storage monitoring daemon</text>
+          </description>
+          <type name="uint32">
+            <range value="1..4294967295"/>
+          </type>
+          <default value="3600"/>
+        </leaf>
+        <leaf name="fsstats_sync_interval">
+          <description>
+            <text>Filesystem statistics sync interval in seconds for the storage monitoring daemon</text>
+          </description>
+          <type name="uint32">
+            <range value="1..4294967295"/>
+          </type>
+          <default value="86400"/>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

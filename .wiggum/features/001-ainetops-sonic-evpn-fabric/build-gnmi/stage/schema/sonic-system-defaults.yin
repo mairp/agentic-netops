@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-system-defaults"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:system-defaults="http://github.com/Azure/system-defaults"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/Azure/system-defaults"/>
+  <prefix value="system-defaults"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <description>
+    <text>System-wide default feature settings YANG module for SONiC OS.</text>
+  </description>
+  <container name="sonic-system-defaults">
+    <container name="SYSTEM_DEFAULTS">
+      <description>
+        <text>Default enable/disable state for optional system features.</text>
+      </description>
+      <list name="SYSTEM_DEFAULTS_LIST">
+        <key value="name"/>
+        <description>
+          <text>A system default entry keyed by feature name.</text>
+        </description>
+        <leaf name="name">
+          <description>
+            <text>Name of the system feature.</text>
+          </description>
+          <type name="string">
+            <length value="1..32"/>
+          </type>
+        </leaf>
+        <leaf name="status">
+          <description>
+            <text>Default administrative state of the feature (enabled or disabled).</text>
+          </description>
+          <type name="stypes:admin_mode"/>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-bgp-bbr"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:bgpbbr="http://github.com/sonic-net/sonic-bgp-bbr"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <namespace uri="http://github.com/sonic-net/sonic-bgp-bbr"/>
+  <prefix value="bgpbbr"/>
+  <yang-version value="1.1"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONIC BGP BBR</text>
+  </description>
+  <revision date="2023-12-25">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-bgp-bbr">
+    <container name="BGP_BBR">
+      <description>
+        <text>BGP Border Router (BBR) state for aggregate address awareness.</text>
+      </description>
+      <container name="all">
+        <leaf name="status">
+          <type name="stypes:admin_mode"/>
+          <default value="enabled"/>
+          <description>
+            <text>Enable or disable BGP BBR functionality on this device.</text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-neigh"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:neigh="http://github.com/sonic-net/sonic-neigh"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:yang="urn:ietf:params:xml:ns:yang:ietf-yang-types"
+        xmlns:lag="http://github.com/sonic-net/sonic-portchannel"
+        xmlns:port="http://github.com/sonic-net/sonic-port">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-neigh"/>
+  <prefix value="neigh"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="ietf-yang-types">
+    <prefix value="yang"/>
+  </import>
+  <import module="sonic-portchannel">
+    <prefix value="lag"/>
+  </import>
+  <import module="sonic-port">
+    <prefix value="port"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>NEIGH YANG Module for SONiC OS</text>
+  </description>
+  <revision date="2023-03-31">
+    <description>
+      <text>Initial Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-neigh">
+    <container name="NEIGH">
+      <description>
+        <text>NEIGH configuration</text>
+      </description>
+      <list name="NEIGH_LIST">
+        <key value="port neighbor"/>
+        <leaf name="port">
+          <description>
+            <text>Neighbor interface ex. Vlan1000, PortChannel1024</text>
+          </description>
+          <type name="union">
+            <type name="leafref">
+              <path value="/lag:sonic-portchannel/lag:PORTCHANNEL/lag:PORTCHANNEL_LIST/lag:name"/>
+            </type>
+            <type name="leafref">
+              <path value="/port:sonic-port/port:PORT/port:PORT_LIST/port:name"/>
+            </type>
+            <type name="string">
+              <pattern value="Vlan[0-9]+"/>
+            </type>
+          </type>
+        </leaf>
+        <leaf name="neighbor">
+          <description>
+            <text>Neighbor IP address ex. 100.1.1.3</text>
+          </description>
+          <type name="inet:ip-address"/>
+        </leaf>
+        <leaf name="neigh">
+          <description>
+            <text>Neighbor MAC address</text>
+          </description>
+          <type name="yang:mac-address"/>
+        </leaf>
+        <leaf name="family">
+          <description>
+            <text>IP family of Neighbor address</text>
+          </description>
+          <type name="string">
+            <pattern value="IPv4|IPV4|IPv6|IPV6"/>
+          </type>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

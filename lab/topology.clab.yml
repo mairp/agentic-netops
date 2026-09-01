@@ -16,7 +16,7 @@ topology:
     sonic-vs:
       # Containerlab does not have a special kind for SONiC; we use a linux kind with SONiC images
       kind: linux
-      image: localhost:5000/sonic-vs-gnmi:202605@sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb45d7a68710ba9d64ac27b1870768
+      image: localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e
       env:
         TZ: UTC
 
@@ -66,9 +66,12 @@ topology:
         role: evpn-client
         attach: leaf01
       exec:
+        # both EVPN clients share the bridged Vlan100 subnet (192.0.2.0/24) so
+        # Type-2 MAC/IP reachability is exercisable; /31s would put them in
+        # different subnets and break bridged L2 reachability
         - ip link set dev eth1 up
-        - ip addr add 192.0.2.11/31 dev eth1
-        - ip -6 addr add 2001:db8:1::11/127 dev eth1
+        - ip addr add 192.0.2.11/24 dev eth1
+        - ip -6 addr add 2001:db8:9::11/64 dev eth1
     client02:
       kind: linux
       image: localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f
@@ -78,8 +81,8 @@ topology:
         attach: leaf02
       exec:
         - ip link set dev eth1 up
-        - ip addr add 192.0.2.21/31 dev eth1
-        - ip -6 addr add 2001:db8:2::21/127 dev eth1
+        - ip addr add 192.0.2.21/24 dev eth1
+        - ip -6 addr add 2001:db8:9::21/64 dev eth1
     srv6-client01:
       kind: linux
       image: localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f

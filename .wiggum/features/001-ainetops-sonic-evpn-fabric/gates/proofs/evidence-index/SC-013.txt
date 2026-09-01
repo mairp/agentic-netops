@@ -1,0 +1,3 @@
+SC-013 — Capability gate blocks downstream
+- Evidence: scripts/lib/qualify.sh; Makefile lab-qualify
+- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.qualify.sh.slice.txt

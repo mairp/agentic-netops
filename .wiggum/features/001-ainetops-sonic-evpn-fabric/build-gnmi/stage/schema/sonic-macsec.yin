@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-macsec"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:macsec="http://github.com/sonic-net/sonic-macsec"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-macsec"/>
+  <prefix value="macsec"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <description>
+    <text>IEEE 802.1AE MACsec link-layer encryption YANG module for SONiC OS.</text>
+  </description>
+  <revision date="2022-04-12">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-macsec">
+    <container name="MACSEC_PROFILE">
+      <description>
+        <text>MACsec security profiles applied to physical ports.</text>
+      </description>
+      <list name="MACSEC_PROFILE_LIST">
+        <key value="name"/>
+        <description>
+          <text>A MACsec profile defining encryption and MKA key agreement settings.</text>
+        </description>
+        <leaf name="name">
+          <type name="string">
+            <length value="1..128"/>
+          </type>
+          <description>
+            <text>Unique name identifying this MACsec profile.</text>
+          </description>
+        </leaf>
+        <leaf name="priority">
+          <type name="uint8"/>
+          <default value="255"/>
+          <description>
+            <text>MKA actor priority for key server election; lower values win.</text>
+          </description>
+        </leaf>
+        <leaf name="cipher_suite">
+          <type name="string">
+            <pattern value="GCM-AES-128|GCM-AES-256|GCM-AES-XPN-128|GCM-AES-XPN-256"/>
+          </type>
+          <default value="GCM-AES-128"/>
+          <description>
+            <text>MACsec cipher suite for data encryption.</text>
+          </description>
+        </leaf>
+        <leaf name="primary_cak">
+          <type name="string">
+            <pattern value="[0-9a-fA-F]{66}|[0-9a-fA-F]{130}"/>
+          </type>
+          <mandatory value="true"/>
+          <description>
+            <text>Primary Connectivity Association Key (CAK) in hex.</text>
+          </description>
+        </leaf>
+        <leaf name="primary_ckn">
+          <type name="string">
+            <pattern value="[0-9a-fA-F]{32}|[0-9a-fA-F]{64}"/>
+          </type>
+          <mandatory value="true"/>
+          <description>
+            <text>Primary Connectivity Association Key Name (CKN) in hex.</text>
+          </description>
+        </leaf>
+        <leaf name="fallback_cak">
+          <type name="string">
+            <pattern value="[0-9a-fA-F]{66}|[0-9a-fA-F]{130}"/>
+          </type>
+          <description>
+            <text>Fallback CAK used when the primary key fails, in hex.</text>
+          </description>
+        </leaf>
+        <leaf name="fallback_ckn">
+          <type name="string">
+            <pattern value="[0-9a-fA-F]{32}|[0-9a-fA-F]{64}"/>
+          </type>
+          <description>
+            <text>Fallback CKN corresponding to the fallback CAK, in hex.</text>
+          </description>
+        </leaf>
+        <must condition="string-length(fallback_cak) = 0 or string-length(fallback_cak) = string-length(primary_cak)"/>
+        <must condition="string-length(fallback_ckn) = 0 or primary_ckn != fallback_ckn"/>
+        <leaf name="policy">
+          <type name="string">
+            <pattern value="integrity_only|security"/>
+          </type>
+          <default value="security"/>
+          <description>
+            <text>MACsec policy: integrity_only (no encryption) or security (full encryption).</text>
+          </description>
+        </leaf>
+        <leaf name="enable_replay_protect">
+          <type name="stypes:boolean_type"/>
+          <default value="false"/>
+          <description>
+            <text>Enable or disable replay protection for received MACsec frames.</text>
+          </description>
+        </leaf>
+        <leaf name="replay_window">
+          <when condition="current()/../enable_replay_protect = 'true'"/>
+          <type name="uint32"/>
+          <description>
+            <text>Replay protection window size in packet numbers.</text>
+          </description>
+        </leaf>
+        <leaf name="send_sci">
+          <type name="stypes:boolean_type"/>
+          <default value="true"/>
+          <description>
+            <text>Include the Secure Channel Identifier (SCI) in transmitted MACsec frames.</text>
+          </description>
+        </leaf>
+        <leaf name="rekey_period">
+          <description>
+            <text>The period of proactively refresh (Unit second).
+If the value is 0, which means never proactive refresh SAK.</text>
+          </description>
+          <type name="uint32"/>
+          <default value="0"/>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

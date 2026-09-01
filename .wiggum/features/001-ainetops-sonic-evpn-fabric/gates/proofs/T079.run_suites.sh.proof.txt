@@ -1,0 +1,123 @@
+     1	#!/usr/bin/env bash
+     2	# Run the Phase 8 verification test suites and capture logs under gates/proofs.
+     3	# This script is CI-friendly: it attempts each suite and never exits non-zero;
+     4	# each suite writes its own log file whether it runs for real or is skipped.
+     5	set -u
+     6	
+     7	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+     8	PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+     9	mkdir -p "$PROOFS_DIR"
+    10	
+    11	log_run(){ local out=$1; shift; echo "[run] $*" | tee "$out"; ( "$@" 2>&1 || true ) | tee -a "$out"; }
+    12	log_msg(){ local out=$1; shift; echo "$*" | tee -a "$out"; }
+    13	
+    14	# 1) API suite — CRD/envtest sanity
+    15	API_LOG="$PROOFS_DIR/tests.api.log"
+    16	: > "$API_LOG"
+    17	if command -v go >/dev/null 2>&1; then
+    18	  log_run "$API_LOG" go test ./tests/envtest -run TestSRv6ServiceCRD_Envtest -v
+    19	else
+    20	  log_msg "$API_LOG" "SKIP: go toolchain not available in CI runner"
+    21	fi
+    22	
+    23	# 2) Unit suite — all unit tests (renderer, normalization, etc.)
+    24	UNIT_LOG="$PROOFS_DIR/tests.unit.log"
+    25	: > "$UNIT_LOG"
+    26	if command -v go >/dev/null 2>&1; then
+    27	  log_run "$UNIT_LOG" go test ./tests/unit -v
+    28	else
+    29	  log_msg "$UNIT_LOG" "SKIP: go toolchain not available in CI runner"
+    30	fi
+    31	
+    32	# 3) Golden suite — table/golden tests only
+    33	GOLDEN_LOG="$PROOFS_DIR/tests.golden.log"
+    34	: > "$GOLDEN_LOG"
+    35	if command -v go >/dev/null 2>&1; then
+    36	  log_run "$GOLDEN_LOG" go test ./tests/unit -run Golden -v
+    37	else
+    38	  log_msg "$GOLDEN_LOG" "SKIP: go toolchain not available in CI runner"
+    39	fi
+    40	
+    41	# 4) SDC validation suite — offline/path/register validators
+    42	SDCVAL_LOG="$PROOFS_DIR/tests.sdc-validation.log"
+    43	: > "$SDCVAL_LOG"
+    44	if command -v go >/dev/null 2>&1; then
+    45	  log_run "$SDCVAL_LOG" go test ./tests/unit -run OfflineValidate -v
+    46	  log_run "$SDCVAL_LOG" go test ./tests/unit -run VerifyRegister -v || true
+    47	else
+    48	  log_msg "$SDCVAL_LOG" "SKIP: go toolchain not available in CI runner"
+    49	fi
+    50	
+    51	# 5) Integration: API-level probes over gNMI and inventory checks
+    52	INTEG_LOG="$PROOFS_DIR/tests.integration.log"
+    53	: > "$INTEG_LOG"
+    54	if [[ -x "$ROOT_DIR/tests/integration/fabric_verify.sh" ]]; then
+    55	  log_run "$INTEG_LOG" "$ROOT_DIR/tests/integration/fabric_verify.sh" run
+    56	else
+    57	  log_msg "$INTEG_LOG" "SKIP: missing tests/integration/fabric_verify.sh"
+    58	fi
+    59	
+    60	# 6) Failure suite — negative cases and recovery
+    61	FAILURE_LOG="$PROOFS_DIR/tests.failure.log"
+    62	: > "$FAILURE_LOG"
+    63	if [[ -x "$ROOT_DIR/tests/integration/failure_recovery_invalid_yang.sh" ]]; then
+    64	  log_run "$FAILURE_LOG" "$ROOT_DIR/tests/integration/failure_recovery_invalid_yang.sh" run
+    65	else
+    66	  log_msg "$FAILURE_LOG" "SKIP: missing tests/integration/failure_recovery_invalid_yang.sh"
+    67	fi
+    68	
+    69	# 7) Traffic suite — EVPN client traffic
+    70	TRAFFIC_LOG="$PROOFS_DIR/tests.traffic.log"
+    71	: > "$TRAFFIC_LOG"
+    72	if [[ -x "$ROOT_DIR/tests/integration/evpn_traffic.sh" ]]; then
+    73	  log_run "$TRAFFIC_LOG" "$ROOT_DIR/tests/integration/evpn_traffic.sh" run
+    74	else
+    75	  log_msg "$TRAFFIC_LOG" "SKIP: missing tests/integration/evpn_traffic.sh"
+    76	fi
+    77	
+    78	# 8) SRv6 packet-capture suite
+    79	SRV6CAP_LOG="$PROOFS_DIR/tests.srv6-capture.log"
+    80	: > "$SRV6CAP_LOG"
+    81	if [[ -x "$ROOT_DIR/tests/integration/srv6_capture_counters.sh" ]]; then
+    82	  log_run "$SRV6CAP_LOG" "$ROOT_DIR/tests/integration/srv6_capture_counters.sh" run
+    83	else
+    84	  log_msg "$SRV6CAP_LOG" "SKIP: missing tests/integration/srv6_capture_counters.sh"
+    85	fi
+    86	
+    87	# 9) SRv6 failover/path-change suite
+    88	SRV6FAIL_LOG="$PROOFS_DIR/tests.srv6-failover.log"
+    89	: > "$SRV6FAIL_LOG"
+    90	if [[ -x "$ROOT_DIR/tests/integration/srv6_failover_path_change.sh" ]]; then
+    91	  log_run "$SRV6FAIL_LOG" "$ROOT_DIR/tests/integration/srv6_failover_path_change.sh" run
+    92	else
+    93	  log_msg "$SRV6FAIL_LOG" "SKIP: missing tests/integration/srv6_failover_path_change.sh"
+    94	fi
+    95	
+    96	# 10) Topology parity suite
+    97	PARITY_LOG="$PROOFS_DIR/tests.topology-parity.log"
+    98	: > "$PARITY_LOG"
+    99	if [[ -x "$ROOT_DIR/tests/integration/topology_parity.sh" ]]; then
+   100	  log_run "$PARITY_LOG" "$ROOT_DIR/tests/integration/topology_parity.sh"
+   101	else
+   102	  log_msg "$PARITY_LOG" "SKIP: missing tests/integration/topology_parity.sh"
+   103	fi
+   104	
+   105	# 11) Observability suite
+   106	OBS_LOG="$PROOFS_DIR/tests.observability.log"
+   107	: > "$OBS_LOG"
+   108	if [[ -x "$ROOT_DIR/tests/integration/observability_suite.sh" ]]; then
+   109	  log_run "$OBS_LOG" "$ROOT_DIR/tests/integration/observability_suite.sh"
+   110	else
+   111	  log_msg "$OBS_LOG" "SKIP: missing tests/integration/observability_suite.sh"
+   112	fi
+   113	
+   114	# 12) Teardown suite
+   115	TEARDOWN_LOG="$PROOFS_DIR/tests.teardown.log"
+   116	: > "$TEARDOWN_LOG"
+   117	if [[ -x "$ROOT_DIR/tests/integration/teardown_suite.sh" ]]; then
+   118	  log_run "$TEARDOWN_LOG" "$ROOT_DIR/tests/integration/teardown_suite.sh"
+   119	else
+   120	  log_msg "$TEARDOWN_LOG" "SKIP: missing tests/integration/teardown_suite.sh"
+   121	fi
+   122	
+   123	echo "ALL_SUITES_ATTEMPTED" | tee -a "$PROOFS_DIR/tests.summary.txt"

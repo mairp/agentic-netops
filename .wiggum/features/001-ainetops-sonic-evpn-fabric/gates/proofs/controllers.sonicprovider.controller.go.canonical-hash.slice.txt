@@ -1,0 +1,17 @@
+   190		}
+   191	
+   192		// Compute canonical hash and apply via SSA with dedicated field manager and minimal policy fields
+   193		hash, _ := render.CanonicalHash(spec)
+   194		obj := &sdc.Config{ObjectMeta: metav1.ObjectMeta{Name: ownedConfigName(nd.Name), Namespace: nd.Namespace, Labels: map[string]string{"ainetops.dev/ownerKind": ownerKind}}, Spec: map[string]any{}}
+   195		// seed spec with policy block and rendered fragments (T037)
+   196		obj.Spec["$policy"] = sdc.BuildPolicy(100, "replace", true, "retain")
+   197		for k, v := range spec { obj.Spec[k] = v }
+   198		if obj.Annotations == nil { obj.Annotations = map[string]string{} }
+   199		obj.Annotations[annotationHash] = hash
+   200		// propagate compatibility annotations (T035)
+   201		copyCompatAnnotations(nd.Annotations, obj.Annotations)
+   202		// Set owner reference
+   203		if err := ctrl.SetControllerReference(&nd, obj, r.Scheme); err != nil {
+   204			r.Log.Error(err, "set owner reference")
+   205		}
+   206		apply := client.Apply

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-fips"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:sonic-fips="http://github.com/sonic-net/sonic-fips"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-fips"/>
+  <prefix value="sonic-fips"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <description>
+    <text>Federal Information Processing Standards (FIPS) 140-3 compliance YANG module for SONiC OS.</text>
+  </description>
+  <revision date="2023-06-20">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-fips">
+    <container name="FIPS">
+      <description>
+        <text>FIPS cryptographic compliance configuration.</text>
+      </description>
+      <container name="global">
+        <description>
+          <text>Global FIPS mode settings.</text>
+        </description>
+        <leaf name="enable">
+          <description>
+            <text>Enable or disable FIPS-validated cryptographic modules.</text>
+          </description>
+          <type name="stypes:boolean_type"/>
+          <default value="false"/>
+        </leaf>
+        <leaf name="enforce">
+          <description>
+            <text>When true, enforce FIPS compliance and reject non-compliant operations.</text>
+          </description>
+          <type name="stypes:boolean_type"/>
+          <default value="false"/>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

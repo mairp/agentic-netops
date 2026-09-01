@@ -1,0 +1,3 @@
+34:denylist:
+35:	@"$(PWD)/scripts/ci/denylist_local.sh"
+36:

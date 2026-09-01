@@ -1,6 +1,12 @@
-Proof artifacts collected during Phase 3:
-- gnmi-incluster-check.logs.txt and gnmi-incluster-check.pod.yaml: Job completion logs/status
-- docker-network-ainetops-mgmt.json: Docker network inspect for management network and container attachments
-- kind-nodes-networks.txt: Kind node container network memberships
-- cidr-separation.txt: Recorded pod/service/mgmt CIDRs to prove separation
-- controller manifests and CRDs are cited directly from deploy/* paths in evidence
+Proof artifacts catalog:
+- Phase 3: gnmi-incluster-check.logs.txt and gnmi-incluster-check.pod.yaml: Job completion logs/status
+- Phase 3: docker-network-ainetops-mgmt.json: Docker network inspect for management network and container attachments
+- Phase 3: kind-nodes-networks.txt: Kind node container network memberships
+- Phase 3: cidr-separation.txt: Recorded pod/service/mgmt CIDRs to prove separation
+- Controllers/manifests and CRDs are cited directly from deploy/* paths in evidence
+- Phase 8 additions:
+  - tests/integration/topology_parity.sh: emits TOPOLOGY_PARITY_OK
+  - tests/integration/observability_suite.sh: emits OBSERVABILITY_SUITE_OK
+  - tests/integration/teardown_suite.sh: emits TEARDOWN_SUITE_OK
+  - tests/integration/cycles_runner.sh: writes cycles logs under proofs/cycles/ and emits CYCLES_DONE
+  - scripts/ci/denylist_runtime_scan.sh: emits RUNTIME_SCAN_NO_STANDALONE

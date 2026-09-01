@@ -53,8 +53,8 @@ metadata:
     ainetops.dev/processors: "k8sattributes, attributes, memory_limiter, batch, transform, resourcedetection, filter"
     ainetops.dev/queue-retry: "enabled"
     ainetops.dev/telemetry: "enabled"
-  data:
-    otel-collector-config.yaml: |
+data:
+  otel-collector-config.yaml: |
       receivers:
         otlp:
           protocols:
@@ -96,7 +96,6 @@ metadata:
               statements:
                 - set(unit, "packets") where name == "sonic_interface_packets_total"
                 - set(unit, "bytes") where name == "sonic_interface_octets_total"
-                - set(metric.description, "Number of successful SDC Config apply operations") where name == "ainetops_sonicprovider_applies_total"
         resourcedetection:
           detectors: [env, system]
           timeout: 2s
@@ -113,14 +112,6 @@ metadata:
           endpoint: 0.0.0.0:9464
           const_labels:
             ainetops.dev/metrics_store: prometheus
-          sending_queue:
-            enabled: true
-            queue_size: 2048
-          retry_on_failure:
-            enabled: true
-            initial_interval: 5s
-            max_interval: 30s
-            max_elapsed_time: 300s
         debug:
           verbosity: basic
       extensions:

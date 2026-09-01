@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-bgp-monitor"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:bgpmon="http://github.com/sonic-net/sonic-bgp-monitor"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:bgpcmn="http://github.com/sonic-net/sonic-bgp-common">
+  <namespace uri="http://github.com/sonic-net/sonic-bgp-monitor"/>
+  <prefix value="bgpmon"/>
+  <yang-version value="1.1"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-bgp-common">
+    <prefix value="bgpcmn"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONIC BGP Monitor</text>
+  </description>
+  <revision date="2022-01-11">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-bgp-monitor">
+    <container name="BGP_MONITORS">
+      <list name="BGP_MONITORS_LIST">
+        <description>
+          <text>This list is to support BGP monitor configuration handled by bgpcfgd</text>
+        </description>
+        <key value="addr"/>
+        <leaf name="addr">
+          <type name="inet:ip-address"/>
+          <description>
+            <text>BGP monitor address</text>
+          </description>
+        </leaf>
+        <uses name="bgpcmn:sonic-bgp-cmn-neigh">
+          <refine target-node="name">
+            <must condition="current() = 'BGPMonitor'">
+              <error-message>
+                <value>Invalid BGP monitor name</value>
+              </error-message>
+            </must>
+          </refine>
+        </uses>
+      </list>
+    </container>
+  </container>
+</module>

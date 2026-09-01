@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-mux-cable"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:mux_cable="http://github.com/sonic-net/sonic-mux-cable"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:prt="http://github.com/sonic-net/sonic-port">
+  <namespace uri="http://github.com/sonic-net/sonic-mux-cable"/>
+  <prefix value="mux_cable"/>
+  <yang-version value="1.1"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-port">
+    <prefix value="prt"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>Dual-ToR mux cable state and configuration per port</text>
+  </description>
+  <revision date="2022-08-19">
+    <description>
+      <text>Initial revision</text>
+    </description>
+  </revision>
+  <container name="sonic-mux-cable">
+    <container name="MUX_CABLE">
+      <list name="MUX_CABLE_LIST">
+        <key value="ifname"/>
+        <leaf name="ifname">
+          <type name="leafref">
+            <path value="/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:name"/>
+          </type>
+          <description>
+            <text>Reference of port on which MUX cable to be configured.</text>
+          </description>
+        </leaf>
+        <leaf name="cable_type">
+          <type name="enumeration">
+            <enum name="active-active"/>
+            <enum name="active-standby"/>
+          </type>
+          <default value="active-standby"/>
+          <description>
+            <text>SONiC DualToR interface cable type.</text>
+          </description>
+        </leaf>
+        <leaf name="prober_type">
+          <type name="enumeration">
+            <enum name="hardware"/>
+            <enum name="software"/>
+          </type>
+          <default value="software"/>
+          <description>
+            <text>DualToR LinkMrgrd Icmp Prober mode.</text>
+          </description>
+        </leaf>
+        <leaf name="neighbor_mode">
+          <type name="enumeration">
+            <enum name="prefix-route"/>
+            <enum name="host-route"/>
+          </type>
+          <default value="host-route"/>
+          <description>
+            <text>DualToR MUX neighbor mode.</text>
+          </description>
+        </leaf>
+        <leaf name="server_ipv4">
+          <type name="inet:ipv4-prefix"/>
+          <description>
+            <text>Server IPv4 Address.</text>
+          </description>
+        </leaf>
+        <leaf name="server_ipv6">
+          <type name="inet:ipv6-prefix"/>
+          <description>
+            <text>Server IPv6 Address.</text>
+          </description>
+        </leaf>
+        <leaf name="soc_ipv4">
+          <type name="inet:ipv4-prefix"/>
+          <description>
+            <text>SoC IPv4 address. Optional and for active-active ports only. </text>
+          </description>
+        </leaf>
+        <leaf name="soc_ipv6">
+          <type name="inet:ipv6-prefix"/>
+          <description>
+            <text>SoC IPv6 address. Optional and for active-active ports only. </text>
+          </description>
+        </leaf>
+        <leaf name="state">
+          <type name="enumeration">
+            <enum name="auto"/>
+            <enum name="manual"/>
+            <enum name="detach"/>
+            <enum name="active"/>
+            <enum name="standby"/>
+          </type>
+          <default value="auto"/>
+          <description>
+            <text>MUX mode determining if auto failover is enabled. </text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

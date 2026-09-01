@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-srv6"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:srv6="http://github.com/sonic-net/sonic-srv6"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:vrf="http://github.com/sonic-net/sonic-vrf">
+  <namespace uri="http://github.com/sonic-net/sonic-srv6"/>
+  <prefix value="srv6"/>
+  <yang-version value="1.1"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-vrf">
+    <prefix value="vrf"/>
+  </import>
+  <description>
+    <text>Segment Routing over IPv6 (SRv6) configuration for SONiC.</text>
+  </description>
+  <revision date="2024-12-05">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-srv6">
+    <container name="SRV6_MY_LOCATORS">
+      <description>
+        <text>SRv6 locator definitions partitioning the SID address space.</text>
+      </description>
+      <list name="SRV6_MY_LOCATORS_LIST">
+        <key value="locator_name"/>
+        <leaf name="locator_name">
+          <description>
+            <text>SRv6 locator name.</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+        <leaf name="prefix">
+          <description>
+            <text>IPv6 address prefix for this locator.</text>
+          </description>
+          <type name="inet:ipv6-address"/>
+          <mandatory value="true"/>
+        </leaf>
+        <leaf name="block_len">
+          <description>
+            <text>Length in bits of the SRv6 locator block portion.</text>
+          </description>
+          <type name="uint8">
+            <range value="1..128"/>
+          </type>
+          <default value="32"/>
+        </leaf>
+        <leaf name="node_len">
+          <description>
+            <text>Length in bits of the SRv6 locator node portion.</text>
+          </description>
+          <type name="uint8">
+            <range value="1..128"/>
+          </type>
+          <default value="16"/>
+        </leaf>
+        <leaf name="func_len">
+          <description>
+            <text>Length in bits of the SRv6 SID function portion.</text>
+          </description>
+          <type name="uint8">
+            <range value="0..128"/>
+          </type>
+          <default value="16"/>
+        </leaf>
+        <leaf name="arg_len">
+          <description>
+            <text>Length in bits of the SRv6 SID argument portion.</text>
+          </description>
+          <type name="uint8">
+            <range value="0..128"/>
+          </type>
+          <default value="0"/>
+        </leaf>
+        <must condition="block_len + node_len + func_len + arg_len &lt;= 128"/>
+        <leaf name="vrf">
+          <type name="union">
+            <type name="leafref">
+              <path value="/vrf:sonic-vrf/vrf:VRF/vrf:VRF_LIST/vrf:name"/>
+            </type>
+            <type name="string">
+              <pattern value="default"/>
+            </type>
+          </type>
+          <description>
+            <text>VRF name</text>
+          </description>
+          <default value="default"/>
+        </leaf>
+      </list>
+    </container>
+    <container name="SRV6_MY_SIDS">
+      <description>
+        <text>Local SRv6 SID entries with endpoint behavior and decapsulation settings.</text>
+      </description>
+      <list name="SRV6_MY_SIDS_LIST">
+        <key value="locator ip_prefix"/>
+        <leaf name="ip_prefix">
+          <description>
+            <text>IPv6 prefix representing this SID.</text>
+          </description>
+          <type name="inet:ipv6-prefix"/>
+        </leaf>
+        <leaf name="locator">
+          <description>
+            <text>Reference to the parent SRv6 locator.</text>
+          </description>
+          <type name="leafref">
+            <path value="/srv6:sonic-srv6/srv6:SRV6_MY_LOCATORS/srv6:SRV6_MY_LOCATORS_LIST/srv6:locator_name"/>
+          </type>
+        </leaf>
+        <leaf name="action">
+          <description>
+            <text>SRv6 endpoint behavior (uN for prefix SID, uDT46 for decap with VRF lookup).</text>
+          </description>
+          <type name="enumeration">
+            <enum name="uN"/>
+            <enum name="uDT46"/>
+          </type>
+        </leaf>
+        <leaf name="decap_vrf">
+          <type name="union">
+            <type name="leafref">
+              <path value="/vrf:sonic-vrf/vrf:VRF/vrf:VRF_LIST/vrf:name"/>
+            </type>
+            <type name="string">
+              <pattern value="default"/>
+            </type>
+          </type>
+          <description>
+            <text>VRF name used for decapsulation</text>
+          </description>
+          <default value="default"/>
+        </leaf>
+        <leaf name="decap_dscp_mode">
+          <description>
+            <text>DSCP handling mode for decapsulated packets.</text>
+          </description>
+          <type name="enumeration">
+            <enum name="uniform"/>
+            <enum name="pipe"/>
+          </type>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

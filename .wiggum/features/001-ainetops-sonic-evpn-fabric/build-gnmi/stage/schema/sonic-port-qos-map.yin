@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-port-qos-map"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:pqm="http://github.com/sonic-net/sonic-port-qos-map"
+        xmlns:prt="http://github.com/sonic-net/sonic-port"
+        xmlns:tpgm="http://github.com/sonic-net/sonic-tc-priority-group-map"
+        xmlns:tqm="http://github.com/sonic-net/sonic-tc-queue-map"
+        xmlns:ppqm="http://github.com/sonic-net/sonic-pfc-priority-queue-map"
+        xmlns:pppgm="http://github.com/sonic-net/sonic-pfc-priority-priority-group-map"
+        xmlns:dtm="http://github.com/sonic-net/sonic-dscp-tc-map"
+        xmlns:dot1ptm="http://github.com/sonic-net/sonic-dot1p-tc-map"
+        xmlns:sch="http://github.com/sonic-net/sonic-scheduler"
+        xmlns:tdm="http://github.com/sonic-net/sonic-tc-dscp-map">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-port-qos-map"/>
+  <prefix value="pqm"/>
+  <import module="sonic-port">
+    <prefix value="prt"/>
+  </import>
+  <import module="sonic-tc-priority-group-map">
+    <prefix value="tpgm"/>
+  </import>
+  <import module="sonic-tc-queue-map">
+    <prefix value="tqm"/>
+  </import>
+  <import module="sonic-pfc-priority-queue-map">
+    <prefix value="ppqm"/>
+  </import>
+  <import module="sonic-pfc-priority-priority-group-map">
+    <prefix value="pppgm"/>
+  </import>
+  <import module="sonic-dscp-tc-map">
+    <prefix value="dtm"/>
+  </import>
+  <import module="sonic-dot1p-tc-map">
+    <prefix value="dot1ptm"/>
+  </import>
+  <import module="sonic-scheduler">
+    <prefix value="sch"/>
+  </import>
+  <import module="sonic-tc-dscp-map">
+    <prefix value="tdm"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>Binds QoS maps and scheduler profiles to specific ports or globally.</text>
+  </description>
+  <revision date="2019-05-15">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-port-qos-map">
+    <container name="PORT_QOS_MAP">
+      <description>
+        <text>Configures QoS map bindings, PFC settings, and scheduler for ports.</text>
+      </description>
+      <list name="PORT_QOS_MAP_LIST">
+        <description>
+          <text>QoS map binding for a port or the global default.</text>
+        </description>
+        <key value="ifname"/>
+        <leaf name="ifname">
+          <type name="union">
+            <type name="string">
+              <pattern value="global"/>
+            </type>
+            <type name="leafref">
+              <path value="/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:name"/>
+            </type>
+          </type>
+          <description>
+            <text>Reference of port or global on which QOS MAPS to be configured.</text>
+          </description>
+        </leaf>
+        <leaf name="tc_to_pg_map">
+          <type name="leafref">
+            <path value="/tpgm:sonic-tc-priority-group-map/tpgm:TC_TO_PRIORITY_GROUP_MAP/tpgm:TC_TO_PRIORITY_GROUP_MAP_LIST/tpgm:name"/>
+          </type>
+          <description>
+            <text>Reference to a traffic class to priority group map.</text>
+          </description>
+        </leaf>
+        <leaf name="tc_to_queue_map">
+          <type name="leafref">
+            <path value="/tqm:sonic-tc-queue-map/tqm:TC_TO_QUEUE_MAP/tqm:TC_TO_QUEUE_MAP_LIST/tqm:name"/>
+          </type>
+          <description>
+            <text>Reference to a traffic class to egress queue map.</text>
+          </description>
+        </leaf>
+        <leaf name="pfc_enable">
+          <type name="string">
+            <pattern value="([0-7](,[0-7])*)?"/>
+          </type>
+          <description>
+            <text>Specify the queue(s) on which PFC is enabled. Empty string is allowed to disable PFC on all queues.</text>
+          </description>
+        </leaf>
+        <leaf name="pfcwd_sw_enable">
+          <type name="string">
+            <pattern value="([0-7](,[0-7])*)?"/>
+          </type>
+          <description>
+            <text>Specify the queue(s) on which software pfc watchdog are enabled. Empty string is allowed to disable watchdog on all queues.</text>
+          </description>
+        </leaf>
+        <leaf name="pfc_to_queue_map">
+          <type name="leafref">
+            <path value="/ppqm:sonic-pfc-priority-queue-map/ppqm:MAP_PFC_PRIORITY_TO_QUEUE/ppqm:MAP_PFC_PRIORITY_TO_QUEUE_LIST/ppqm:name"/>
+          </type>
+          <description>
+            <text>Reference to a PFC priority to egress queue map.</text>
+          </description>
+        </leaf>
+        <leaf name="pfc_to_pg_map">
+          <type name="leafref">
+            <path value="/pppgm:sonic-pfc-priority-priority-group-map/pppgm:PFC_PRIORITY_TO_PRIORITY_GROUP_MAP/pppgm:PFC_PRIORITY_TO_PRIORITY_GROUP_MAP_LIST/pppgm:name"/>
+          </type>
+          <description>
+            <text>Reference to a PFC priority to priority group map.</text>
+          </description>
+        </leaf>
+        <leaf name="dscp_to_tc_map">
+          <type name="leafref">
+            <path value="/dtm:sonic-dscp-tc-map/dtm:DSCP_TO_TC_MAP/dtm:DSCP_TO_TC_MAP_LIST/dtm:name"/>
+          </type>
+          <description>
+            <text>Reference to a DSCP to traffic class map.</text>
+          </description>
+        </leaf>
+        <leaf name="tc_to_dscp_map">
+          <type name="leafref">
+            <path value="/tdm:sonic-tc-dscp-map/tdm:TC_TO_DSCP_MAP/tdm:TC_TO_DSCP_MAP_LIST/tdm:name"/>
+          </type>
+          <description>
+            <text>Reference to a traffic class to DSCP remarking map.</text>
+          </description>
+        </leaf>
+        <leaf name="dot1p_to_tc_map">
+          <type name="leafref">
+            <path value="/dot1ptm:sonic-dot1p-tc-map/dot1ptm:DOT1P_TO_TC_MAP/dot1ptm:DOT1P_TO_TC_MAP_LIST/dot1ptm:name"/>
+          </type>
+          <description>
+            <text>Reference to a DOT1P to traffic class map.</text>
+          </description>
+        </leaf>
+        <leaf name="scheduler">
+          <type name="leafref">
+            <path value="/sch:sonic-scheduler/sch:SCHEDULER/sch:SCHEDULER_LIST/sch:name"/>
+          </type>
+          <description>
+            <text>Scheduler for port.</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

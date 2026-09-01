@@ -73,16 +73,19 @@ tooling:
 # ---------------------------------------------------------------------------
 sonic_images:
   sonic_vs:
-    image: localhost:5000/sonic-vs-gnmi:202605@sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb45d7a68710ba9d64ac27b1870768
-    digest: sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb45d7a68710ba9d64ac27b1870768
-    tag: 202605
+    image: localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e
+    digest: sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e
+    tag: 202605-v2
     notes: >
       Fast profile; no KVM required; containerlab kind sonic-vs. SRv6/gNMI-qualified:
       carries /usr/sbin/telemetry (gNMI server, supervisord program:telemetry) and
       sonic-srv6.yang, so the capability gate in scripts/lib/qualify.sh can run
       Capabilities/Get/Set/Subscribe/sonic-srv6 against a live endpoint. Verified
       2026-08-31: gNMI 0.7.0 answers Capabilities on :8080 over TLS.
-      Build recipe and provenance: lab/images/sonic-vs-gnmi/.
+      v2 (2026-08-31): layers supervisord programs for dbus-daemon + sonic-host-server
+      (host_modules was already present but never started), so the GCU dbus provider
+      exists for the gNMI write path. Recipe: lab/images/sonic-vs-gnmi/Dockerfile.v2
+      on top of the v1 digest c04b9edd…; v1 build provenance: lab/images/sonic-vs-gnmi/.
   sonic_vs_base:
     image: localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
     digest: sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
@@ -121,7 +124,7 @@ sonic_yang:
   sonic_native_branch: '202405'
   sonic_native_commit: cfc766e13eccab4e7603808db3bfa9c5b2dfef17
   compatibility:
-    - image: localhost:5000/sonic-vs-gnmi:202605@sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb45d7a68710ba9d64ac27b1870768
+    - image: localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e
       oc_version: openconfig@f3443414
       native_version: sonic_yang@cfc766e1
     - image: local/sonic-vm@sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5

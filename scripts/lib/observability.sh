@@ -9,15 +9,19 @@ obs::install() {
   echo "[obs] applying OTel Collector, gNMIc, Prometheus, Grafana"
   kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/otel-collector.yaml"
   kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/gnmi/gnmic.yaml"
+  kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/prometheus.yaml"
   kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/topology-configmap.yaml"
   kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/rules/ainetops.rules.yaml" || true
-  kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/prometheus.yaml"
+  # Generate Grafana admin Secret with random credentials and apply Grafana
+  kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/grafana-secret-generator-rbac.yaml"
+  kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/grafana-secret-generator-job.yaml"
+  kubectl --context "$CTX" -n monitoring wait --for=condition=Complete --timeout=30s job/grafana-admin-secret-generator || true
   kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/grafana.yaml"
   # Wait for pods
-  kubectl --context "$CTX" -n ainetops-system rollout status deploy/otel-collector --timeout=180s || true
-  kubectl --context "$CTX" -n ainetops-system rollout status deploy/gnmic --timeout=180s || true
-  kubectl --context "$CTX" -n monitoring rollout status deploy/prometheus --timeout=180s || true
-  kubectl --context "$CTX" -n monitoring rollout status deploy/grafana --timeout=180s || true
+  kubectl --context "$CTX" -n ainetops-system rollout status deploy/otel-collector --timeout=60s || true
+  kubectl --context "$CTX" -n ainetops-system rollout status deploy/gnmic --timeout=60s || true
+  kubectl --context "$CTX" -n monitoring rollout status deploy/prometheus --timeout=60s || true
+  kubectl --context "$CTX" -n monitoring rollout status deploy/grafana --timeout=60s || true
   # Capture independent observation proof files
   local proofs="$ROOT_DIR/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
   mkdir -p "$proofs"

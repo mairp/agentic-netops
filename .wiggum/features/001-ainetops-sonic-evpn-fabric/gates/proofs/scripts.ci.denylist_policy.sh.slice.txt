@@ -1,0 +1,60 @@
+     1	#!/usr/bin/env bash
+     2	# Central deny-list policy (T074a) used by CI and local runs
+     3	# Enforces migration (FR-020), visualization (FR-032), and placement (FR-023) boundaries
+     4	# Allowed contexts only: spec.md Scope and interpretation and SC-010; research.md and REVERSE.md citations;
+     5	# README presentation-only mention of srl-telemetry-lab. Fails build on any match outside allowed contexts.
+     6	set -euo pipefail
+     7	
+     8	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+     9	cd "$ROOT_DIR"
+    10	
+    11	fail=0
+    12	
+    13	# Helper: filter allowed contexts from search matches (works with rg or grep output)
+    14	filter_allowed() {
+    15	  local matches="$1"
+    16	  # Normalize leading ./ to ease anchored filters
+    17	  matches=$(printf "%s" "${matches}" | sed -E 's#^\./##')
+    18	  # Allow citations in research.md and REVERSE.md
+    19	  matches=$(printf "%s" "${matches}" | neg_filter '^specs/.+/research\.md:' | neg_filter '(^|.*/)REVERSE\.md:' || true)
+    20	  # Exclude enforcement/policy sources to avoid self-reference false positives
+    21	  matches=$(printf "%s" "${matches}" \
+    22	    | neg_filter '^\.github/workflows/denylist\.yml:' \
+    23	    | neg_filter '^scripts/ci/denylist_policy\.sh:' \
+    24	    | neg_filter '^scripts/ci/supply_chain\.sh:' \
+    25	    | neg_filter '^scripts/ci/denylist_runtime_scan\.sh:' \
+    26	    | neg_filter '^tests/integration/cycles_runner\.sh:' || true)
+    27	
+    28	  # Allow mentions in spec.md "Scope and interpretation" section and SC-010 success criterion only
+    29	  local spec_path="specs/001-ainetops-sonic-evpn-fabric/spec.md"
+    30	  if [[ -f "$spec_path" ]]; then
+    31	    local start end sc010_start sc010_end
+    32	    start=$(awk '/^##\s+Scope and interpretation/{print NR; exit}' "$spec_path" || true)
+    33	    end=$(awk 'p && /^##\s+/{print NR; exit} /^##\s+Scope and interpretation/{p=1}' "$spec_path" || true)
+    34	    sc010_start=$(awk '/^- \*\*SC-010\*\*/{print NR; exit}' "$spec_path" || true)
+    35	    sc010_end=$(awk -v s="$sc010_start" 'NR > s && /^- \*\*SC-/{print NR; exit}' "$spec_path" || true)
+    36	    if [[ -z "$sc010_end" ]]; then sc010_end=999999; fi
+    37	    if [[ -n "${start}" && -n "${end}" ]]; then
+    38	      matches=$(printf "%s" "${matches}" | awk -v s="$start" -v e="$end" -v s2="$sc010_start" -v e2="$sc010_end" -F: '!( $1=="'"$spec_path"'" && ( ($2>=s && $2<=e) || ($2>=s2 && $2<=e2) ) )')
+    39	    fi
+    40	  fi
+    41	
+    42	  printf "%s" "${matches}"
+    43	}
+    44	
+    45	# Prefer ripgrep when present; otherwise fall back to grep -RinE
+    46	have_rg=0
+    47	if command -v rg >/dev/null 2>&1; then have_rg=1; fi
+    48	
+    49	search_all() {
+    50	  local pattern=$1
+    51	  # Scan only tracked repository files to avoid session artifacts under .wiggum/**/attempts/**
+    52	  # and other untracked logs; this enforces the policy over the source tree.
+    53	  if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    54	    local files
+    55	    # Use nul-delimited to handle spaces; prefer ripgrep when present
+    56	    if [[ $have_rg -eq 1 ]]; then
+    57	      # Use ripgrep with explicit excludes to avoid vendor/, .wiggum/, and the policy files themselves
+    58	      rg -i -n --hidden --no-ignore \
+    59	        -g '!*/.git/*' -g '!vendor/**' -g '!.wiggum/**' -g '!scripts/ci/**' \
+    60	        -g '!.github/workflows/denylist.yml' -g '!scripts/ci/denylist_policy.sh' \

@@ -1,0 +1,9 @@
+     1	  CTX="kind-${AINETOPS_CLUSTER_NAME}"
+     2	  echo "[provision] applying SRv6Service CRD and Kubenet default/tenant networks"
+     3	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/config/crd/bases/ainetops.io_srv6services.yaml"
+     4	  # Assert CRD set per FR-006 (T079a)
+     5	  if [[ -x "${LIB_DIR}/assert_crds.sh" ]]; then "${LIB_DIR}/assert_crds.sh" || { echo "[provision] CRD assertion failed" >&2; exit 1; }; fi
+     6	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/topology.yaml"
+     7	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/topology-and-indices.yaml"
+     8	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/claims.yaml"
+     9	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/srv6-pools.yaml"

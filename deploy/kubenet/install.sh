@@ -27,13 +27,30 @@ KUID_CRDS=(
   "https://raw.githubusercontent.com/kuidio/kuid/${kuid_commit}/config/crd/bases/id.kuid.dev_claims.yaml"
 )
 
-# Apply CRDs from pinned upstream
-for u in "${KUBENET_CRDS[@]}"; do
-  kubectl --context "${KIND_CONTEXT}" apply -f "$u"
-done
-for u in "${KUID_CRDS[@]}"; do
-  kubectl --context "${KIND_CONTEXT}" apply -f "$u"
-done
+# Apply CRDs from the pinned upstream commit when reachable; otherwise apply the
+# repo-pinned CRD bundles (the version-controlled pin for this release).
+upstream_reachable=false
+if command -v curl >/dev/null 2>&1; then
+  for u in "${KUBENET_CRDS[@]}" "${KUID_CRDS[@]}"; do
+    if curl -fsS --max-time 10 -o /dev/null "$u" 2>/dev/null; then
+      upstream_reachable=true
+      break
+    fi
+  done
+fi
+if [[ "${upstream_reachable}" == "true" ]]; then
+  echo "[kubenet-install] applying pinned upstream CRDs"
+  for u in "${KUBENET_CRDS[@]}"; do
+    kubectl --context "${KIND_CONTEXT}" apply -f "$u"
+  done
+  for u in "${KUID_CRDS[@]}"; do
+    kubectl --context "${KIND_CONTEXT}" apply -f "$u"
+  done
+else
+  echo "[kubenet-install] WARN: pinned upstream CRD URLs unreachable; applying repo-pinned CRD bundles (deploy/kubenet/crds, deploy/kuid/crds)"
+  kubectl --context "${KIND_CONTEXT}" apply -f "${DIR}/crds/kubenet-crds.yaml"
+  kubectl --context "${KIND_CONTEXT}" apply -f "${ROOT}/deploy/kuid/crds/kuid-crds.yaml"
+fi
 
 # Install controllers via pinned manifests in repo (images pinned in values)
 kubectl --context "${KIND_CONTEXT}" apply -f "${ROOT}/deploy/kubenet/controllers.yaml"
@@ -51,8 +68,15 @@ for crd in \
   kubectl --context "${KIND_CONTEXT}" wait --for=condition=Established --timeout=180s crd/${crd} || true
 done
 
-# Wait for controller pods ready
-kubectl --context "${KIND_CONTEXT}" -n kubenet-system wait --for=condition=Ready --timeout=300s pods -l app.kubernetes.io/name=kubenet-controller || true
-kubectl --context "${KIND_CONTEXT}" -n kuid-system wait --for=condition=Ready --timeout=300s pods -l app.kubernetes.io/name=kuid-controller || true
+# Wait for controller pods ready (bounded best-effort; unpullable pinned images
+# must not block the ordered lifecycle — readiness is reported, not assumed)
+kubenet_ready=false
+kuid_ready=false
+kubectl --context "${KIND_CONTEXT}" -n kubenet-system wait --for=condition=Ready --timeout=60s pods -l app.kubernetes.io/name=kubenet-controller >/dev/null 2>&1 && kubenet_ready=true || true
+kubectl --context "${KIND_CONTEXT}" -n kuid-system wait --for=condition=Ready --timeout=60s pods -l app.kubernetes.io/name=kuid-controller >/dev/null 2>&1 && kuid_ready=true || true
 
-echo "[kubenet-install] Pinned upstream CRDs and controllers applied; basic readiness achieved"
+if [[ "${kubenet_ready}" == "true" && "${kuid_ready}" == "true" ]]; then
+  echo "[kubenet-install] Pinned upstream CRDs and controllers applied; controller pods Ready"
+else
+  echo "[kubenet-install] CRDs applied; controller pods not Ready within window (kubenet=${kubenet_ready} kuid=${kuid_ready}); continuing best-effort"
+fi

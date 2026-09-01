@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-mgmt_port"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:mgmtprt="http://github.com/sonic-net/sonic-mgmt_port"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-mgmt_port"/>
+  <prefix value="mgmtprt"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <description>
+    <text>Out-of-band management port physical properties configuration</text>
+  </description>
+  <revision date="2021-04-07">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-mgmt_port">
+    <container name="MGMT_PORT">
+      <description>
+        <text>Management port physical properties configuration table</text>
+      </description>
+      <list name="MGMT_PORT_LIST">
+        <description>
+          <text>Physical properties for an out-of-band management port</text>
+        </description>
+        <key value="name"/>
+        <leaf name="name">
+          <description>
+            <text>Management port name (e.g. eth0)</text>
+          </description>
+          <type name="string">
+            <pattern value="eth([1-3][0-9]{3}|[1-9][0-9]{2}|[1-9][0-9]|[0-9])"/>
+          </type>
+        </leaf>
+        <leaf name="speed">
+          <type name="uint16">
+            <range value="10|100|1000"/>
+          </type>
+          <description>
+            <text>Management port speed in Mbps.</text>
+          </description>
+        </leaf>
+        <leaf name="autoneg">
+          <description>
+            <text>Enable or disable auto-negotiation on the management port</text>
+          </description>
+          <type name="string">
+            <pattern value="on|off"/>
+          </type>
+        </leaf>
+        <leaf name="alias">
+          <description>
+            <text>Alternative name for the management port</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+        <leaf name="description">
+          <description>
+            <text>User-defined description for the management port</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+        <leaf name="mtu">
+          <description>
+            <text>Maximum transmission unit size in bytes</text>
+          </description>
+          <type name="uint16">
+            <range value="1500..9216"/>
+          </type>
+          <default value="1500"/>
+        </leaf>
+        <leaf name="admin_status">
+          <description>
+            <text>Administrative state of the management port</text>
+          </description>
+          <type name="stypes:admin_status"/>
+          <default value="up"/>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

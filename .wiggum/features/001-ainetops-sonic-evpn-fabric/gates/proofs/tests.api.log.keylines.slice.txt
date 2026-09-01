@@ -1,0 +1,20 @@
+1:[run] api: env KUBEBUILDER_ASSETS=/root/.local/share/kubebuilder-envtest/1.29.4-linux-amd64 go test ./tests/envtest -v
+2:=== RUN   TestKubenetNetworkDeviceCreateGet
+3:--- PASS: TestKubenetNetworkDeviceCreateGet (0.00s)
+4:=== RUN   TestCompat_ReasonFor
+5:=== PAUSE TestCompat_ReasonFor
+6:=== RUN   TestProvider_EmitsDeviationObservedEvent
+7:--- PASS: TestProvider_EmitsDeviationObservedEvent (0.01s)
+8:=== RUN   TestProviderFinalization_Envtest
+9:=== PAUSE TestProviderFinalization_Envtest
+10:=== RUN   TestProviderFinalization
+11:--- PASS: TestProviderFinalization (0.00s)
+12:=== RUN   TestProvider_SDCStatusPropagation
+13:--- PASS: TestProvider_SDCStatusPropagation (0.01s)
+14:=== RUN   TestSRv6ServiceCRD_Envtest
+15:=== PAUSE TestSRv6ServiceCRD_Envtest
+16:=== CONT  TestCompat_ReasonFor
+17:--- PASS: TestCompat_ReasonFor (0.00s)
+18:=== CONT  TestProviderFinalization_Envtest
+19:=== CONT  TestSRv6ServiceCRD_Envtest
+20:--- PASS: TestProviderFinalization_Envtest (9.94s)

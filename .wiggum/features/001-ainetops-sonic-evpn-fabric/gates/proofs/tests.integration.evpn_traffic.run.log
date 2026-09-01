@@ -1,0 +1,3 @@
+[evpn-traffic] cross-leaf L2 reachability
+intra-VRF L3/IRB reachability
+inter-VRF isolation

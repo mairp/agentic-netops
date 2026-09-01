@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-ztp"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:ztp="http://github.com/sonic-net/sonic-ztp">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-ztp"/>
+  <prefix value="ztp"/>
+  <description>
+    <text>Zero Touch Provisioning (ZTP) configuration YANG module for SONiC OS.</text>
+  </description>
+  <revision date="2025-04-03">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-ztp">
+    <container name="ZTP">
+      <description>
+        <text>Transient ZTP state used during initial device provisioning.</text>
+      </description>
+      <container name="mode">
+        <description>
+          <text>ZTP operational mode and provisioning constraints.</text>
+        </description>
+        <leaf name="profile">
+          <type name="enumeration">
+            <enum name="active"/>
+          </type>
+          <description>
+            <text>ZTP activation state; 'active' enables provisioning.</text>
+          </description>
+        </leaf>
+        <leaf name="inband">
+          <type name="boolean"/>
+          <default value="true"/>
+          <description>
+            <text>Allow in-band (front-panel) ports for ZTP provisioning.</text>
+          </description>
+        </leaf>
+        <leaf name="out-of-band">
+          <type name="boolean"/>
+          <default value="true"/>
+          <description>
+            <text>Allow out-of-band (management) ports for ZTP provisioning.</text>
+          </description>
+        </leaf>
+        <leaf name="ipv4">
+          <type name="boolean"/>
+          <default value="true"/>
+          <description>
+            <text>Allow IPv4 DHCP discovery and provisioning for ZTP.</text>
+          </description>
+        </leaf>
+        <leaf name="ipv6">
+          <type name="boolean"/>
+          <default value="true"/>
+          <description>
+            <text>Allow IPv6 DHCP discovery and provisioning for ZTP.</text>
+          </description>
+        </leaf>
+        <leaf name="product-name">
+          <type name="string"/>
+          <description>
+            <text>Switch product name from EEPROM, used in ZTP HTTP headers.</text>
+          </description>
+        </leaf>
+        <leaf name="serial-no">
+          <type name="string"/>
+          <description>
+            <text>Switch serial number from EEPROM, used in ZTP HTTP headers.</text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

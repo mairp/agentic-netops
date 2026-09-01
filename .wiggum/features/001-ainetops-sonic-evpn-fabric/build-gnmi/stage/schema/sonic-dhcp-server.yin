@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-dhcp-server"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:dhcp-server="http://github.com/sonic-net/sonic-dhcp-server"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-dhcp-server"/>
+  <prefix value="dhcp-server"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>DHCP SERVER YANG module for SONiC OS</text>
+  </description>
+  <revision date="2022-09-23">
+    <description>
+      <text>Initial version</text>
+    </description>
+  </revision>
+  <container name="sonic-dhcp-server">
+    <container name="DHCP_SERVER">
+      <description>
+        <text>DHCP server IP addresses used for relay forwarding</text>
+      </description>
+      <list name="DHCP_SERVER_LIST">
+        <description>
+          <text>List of IPs in DHCP_SERVER Table</text>
+        </description>
+        <key value="ip"/>
+        <leaf name="ip">
+          <description>
+            <text>IP as DHCP_SERVER</text>
+          </description>
+          <type name="inet:ip-address"/>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

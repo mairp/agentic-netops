@@ -1,0 +1,5 @@
+     1	kind.binary=
+     2	kubernetes.kubernetes=
+     3	host_tools.kubectl=
+     4	host_tools.helm=
+     5	containerlab.version=

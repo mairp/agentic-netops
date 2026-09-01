@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-bgp-sentinel"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:pr="http://github.com/Azure/sonic-bgp-sentinel"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <namespace uri="http://github.com/Azure/sonic-bgp-sentinel"/>
+  <prefix value="pr"/>
+  <yang-version value="1.1"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONIC BGP Sentinel YANG</text>
+  </description>
+  <revision date="2023-06-06">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-bgp-sentinel">
+    <container name="BGP_SENTINELS">
+      <list name="BGP_SENTINELS_LIST">
+        <key value="sentinel_name"/>
+        <leaf name="sentinel_name">
+          <type name="string"/>
+          <description>
+            <text>BGP Sentinel name</text>
+          </description>
+        </leaf>
+        <leaf name="name">
+          <type name="string"/>
+          <must condition="(current() = current()/../sentinel_name)">
+            <error-message>
+              <value>Invalid BGP Sentinel name</value>
+            </error-message>
+          </must>
+          <description>
+            <text>BGP Sentinel name</text>
+          </description>
+        </leaf>
+        <leaf name="src_address">
+          <type name="inet:ip-address"/>
+          <description>
+            <text>Source address to use for connection</text>
+          </description>
+        </leaf>
+        <leaf-list name="ip_range">
+          <type name="stypes:sonic-ip-prefix"/>
+          <ordered-by value="user"/>
+          <description>
+            <text>A range of addresses</text>
+          </description>
+        </leaf-list>
+      </list>
+    </container>
+  </container>
+</module>

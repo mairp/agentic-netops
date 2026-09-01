@@ -1,0 +1,17 @@
+     1	deploy/gnmi/gnmi-incluster-job-all.yaml:13:        image: ghcr.io/karimra/gnmic@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+     2	deploy/gnmi/gnmi-incluster-job.yaml:13:        image: ghcr.io/karimra/gnmic@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+     3	deploy/gnmi/gnmic.yaml:97:          image: ghcr.io/openconfig/gnmic@sha256:fd59f5f1c7a98e14ff5b14f85329e5e0a4d49ef1d5b0dddfd910b6caef03b9fb
+     4	deploy/observability/prometheus.yaml:110:          image: prom/prometheus@sha256:f20d3127bf2876f4a1df76246fca576b41ddf1125ed1c546fbd8b16ea55117e6
+     5	deploy/observability/otel-collector.yaml:168:          image: otel/opentelemetry-collector-contrib@sha256:e07e325e303e86f4a87a617491e921b579a92da6d404007394757ac910bf9587
+     6	deploy/observability/grafana-secret-generator-job.yaml:14:        image: ghcr.io/ainetops/secret-generator@sha256:3333333333333333333333333333333333333333333333333333333333333333
+     7	deploy/observability/grafana.yaml:152:          image: grafana/grafana@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+     8	deploy/kubenet/controllers.yaml:28:        image: ghcr.io/kubenet-dev/kubenet-controller@sha256:1111111111111111111111111111111111111111111111111111111111111111
+     9	deploy/kubenet/controllers.yaml:73:        image: ghcr.io/kubenet-dev/kuid-controller@sha256:2222222222222222222222222222222222222222222222222222222222222222
+    10	deploy/rbac/secret-generator-job.yaml:14:        image: ghcr.io/ainetops/secret-generator@sha256:3333333333333333333333333333333333333333333333333333333333333333
+    11	deploy/sdc/components.yaml:27:        image: ghcr.io/sdcio/sdc-schema@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    12	deploy/sdc/components.yaml:57:        image: ghcr.io/sdcio/sdc-config@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    13	deploy/sdc/components.yaml:87:        image: ghcr.io/sdcio/sdc-data@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    14	deploy/sdc/components.yaml:124:        image: ghcr.io/sdcio/sdc-cache@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+    15	deploy/sdc/seed/sonic-schema.yaml:8:  image: ghcr.io/sonic-net/sonic-vs:202403@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    16	deploy/ainetops/manifests/srv6-controller.yaml:26:        image: ghcr.io/ainetops/ainetops-srv6-controller@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    17	deploy/ainetops/manifests/provider.yaml:26:        image: ghcr.io/ainetops/ainetops-sonic-provider@sha256:9999999999999999999999999999999999999999999999999999999999999999

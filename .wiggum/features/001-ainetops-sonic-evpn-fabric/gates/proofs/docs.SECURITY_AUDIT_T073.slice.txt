@@ -1,0 +1,37 @@
+     7	1) RBAC verbs/scopes (least privilege)
+     8	- AINETOPS provider and SRv6 controller operate in ainetops-system with minimal Roles/ClusterRoles:
+     9	  - config/rbac/role.yaml: provider Role limited to core events (create,patch), Kubenet NetworkDevice/status (get,list,watch,patch,update), and SDC Config/status (get,list,watch,create,patch,update,delete).
+    10	  - config/rbac/cluster_role.yaml: provider ClusterRole extends read/watch only to SDC Targets/status (get,list,watch); SRv6 controller limited to its CRD and events.
+    11	  - config/rbac/*_binding.yaml: bind their ServiceAccounts only; no broad Subjects.
+    12	  - deploy/observability/otel-collector.yaml: ClusterRole grants get/list/watch on pods,namespaces,nodes for k8s enrichment; no writes.
+    15	2) Secret use and default credentials
+    16	- No static admin credentials in Git for Grafana. An in-cluster Job creates Secret grafana-admin with random user/pass at install time:
+    17	  - deploy/observability/grafana-secret-generator-{rbac,job}.yaml
+    18	- gNMI credentials and TLS materials are generated in-cluster for lab use by ainetops-secret-generator job (deploy/rbac/secret-generator-job.yaml); no private keys in Git.
+    19	
+    20	3) TLS validation
+    21	- gNMIc is configured with TLS, verify enabled: deploy/gnmi/gnmic.yaml sets 'skip-verify: false' and mounts TLS Secret gnmi-lab-tls (ca.crt/tls.crt/tls.key). Encoding is json_ietf.
+    22	- Inter-service traffic inside the cluster (OTLP HTTP to OTel, Prometheus scrape) is internal to Kind; no external exposure configured.
+    23	
+    24	4) Image privileges and pod securityContext
+    25	- Controller images are built distroless and run as non-root:
+    26	  - cmd/sonic-provider/Dockerfile: FROM gcr.io/distroless/static:nonroot; USER nonroot:nonroot
+    27	  - cmd/srv6-controller/Dockerfile: FROM gcr.io/distroless/static:nonroot; USER nonroot:nonroot
+    28	- Deployments set securityContext to enforce non-root, read-only FS, no privilege escalation, and drop all capabilities:
+    29	  - deploy/ainetops/manifests/{provider.yaml,srv6-controller.yaml}
+    30	
+    31	5) Docker/KVM trust boundaries
+    32	- The lab requires a Docker-compatible runtime; containerlab runs privileged network containers in a host-only management network labeled ainetops.owner=ainetops.
+    33	- KVM/nested virtualization is required only for the sonic-vm conformance profile. Preflight enforces /dev/kvm presence when --profile=sonic-vm:
+    34	  - scripts/lib/preflight.sh (preflight::kvm_check)
+    35	
+    36	6) Grafana plugin provenance and anonymous access
+    37	- Grafana Flow plugin is pinned by digest via GF_INSTALL_PLUGINS in deploy/observability/grafana.yaml.
+    38	- Anonymous access is disabled: GF_AUTH_ANONYMOUS_ENABLED="false" in deploy/observability/grafana.yaml.
+    39	- Admin user/password are injected into Grafana only via Secret references: GF_SECURITY_ADMIN_USER and GF_SECURITY_ADMIN_PASSWORD use secretKeyRef to the generated grafana-admin Secret in deploy/observability/grafana.yaml; no static/default credentials are present in the repo.
+    40	
+    41	7) Log/status redaction and developer guidance
+    42	- Developer policy forbids logging secrets and mandates standard Conditions and reason strings:
+    43	  - docs/DEVELOPERS.md (Logging and redaction section)
+    44	- Controllers use structured Events and conditions and never read or log credentials:
+    45	  - controllers/sonicprovider/controller.go emits Recorder.Eventf messages (e.g., "Applied SDC Config ..." and "DeviationObserved") and informational logs; there is no code path that reads Kubernetes Secrets or logs secret values.

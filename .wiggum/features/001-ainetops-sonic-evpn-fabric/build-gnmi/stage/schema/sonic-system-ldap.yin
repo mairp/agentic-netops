@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-system-ldap"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:ssys-ldap="http://github.com/Azure/sonic-system-ldap"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/Azure/sonic-system-ldap"/>
+  <prefix value="ssys-ldap"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <description>
+    <text>Lightweight Directory Access Protocol (LDAP) authentication YANG module for SONiC OS.</text>
+  </description>
+  <revision date="2023-10-01">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-system-ldap">
+    <container name="LDAP_SERVER">
+      <description>
+        <text>LDAP server list for remote user authentication.</text>
+      </description>
+      <list name="LDAP_SERVER_LIST">
+        <description>
+          <text>An LDAP server entry identified by hostname or IP address.</text>
+        </description>
+        <max-elements value="8"/>
+        <key value="hostname"/>
+        <leaf name="hostname">
+          <type name="inet:host"/>
+          <description>
+            <text>LDAP server's Domain name or IP address (IPv4 or IPv6)</text>
+          </description>
+        </leaf>
+        <leaf name="priority">
+          <default value="1"/>
+          <type name="uint8">
+            <range value="1..8">
+              <error-message>
+                <value>LDAP server priority must be 1..8</value>
+              </error-message>
+            </range>
+          </type>
+          <description>
+            <text>Server selection priority; higher values are tried first.</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+    <container name="LDAP">
+      <description>
+        <text>Global LDAP client configuration parameters.</text>
+      </description>
+      <container name="global">
+        <description>
+          <text>Global LDAP connection and authentication settings.</text>
+        </description>
+        <leaf name="bind_dn">
+          <type name="string">
+            <length value="1..65"/>
+          </type>
+          <description>
+            <text>Distinguished name used to bind to the LDAP server.</text>
+          </description>
+        </leaf>
+        <leaf name="bind_password">
+          <type name="string">
+            <length value="1..65"/>
+            <pattern value="[^ #,]*">
+              <error-message>
+                <value>LDAP shared secret (Valid chars are ASCII printable except SPACE, "#", and ",")</value>
+              </error-message>
+            </pattern>
+          </type>
+          <description>
+            <text>Password used to authenticate the bind DN with the LDAP server.</text>
+          </description>
+        </leaf>
+        <leaf name="bind_timeout">
+          <default value="5"/>
+          <type name="uint16">
+            <range value="1..120">
+              <error-message>
+                <value>Ldap bind timeout must be 1..120</value>
+              </error-message>
+            </range>
+          </type>
+          <description>
+            <text>Timeout in seconds for LDAP bind operations.</text>
+          </description>
+        </leaf>
+        <leaf name="version">
+          <default value="3"/>
+          <type name="uint16">
+            <range value="1..3">
+              <error-message>
+                <value>Ldap version must be 1..3</value>
+              </error-message>
+            </range>
+          </type>
+          <description>
+            <text>LDAP protocol version to use when communicating with the server.</text>
+          </description>
+        </leaf>
+        <leaf name="base_dn">
+          <type name="string">
+            <length value="1..65"/>
+          </type>
+          <description>
+            <text>Base distinguished name for LDAP user searches.</text>
+          </description>
+        </leaf>
+        <leaf name="port">
+          <type name="inet:port-number"/>
+          <default value="389"/>
+          <description>
+            <text>TCP port to communicate with LDAP server</text>
+          </description>
+        </leaf>
+        <leaf name="timeout">
+          <description>
+            <text>Timeout in seconds for LDAP search and query operations.</text>
+          </description>
+          <type name="uint16">
+            <range value="1..60">
+              <error-message>
+                <value>LDAP timeout must be 1..60</value>
+              </error-message>
+            </range>
+          </type>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

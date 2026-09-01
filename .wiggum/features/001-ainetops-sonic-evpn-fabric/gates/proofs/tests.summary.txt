@@ -1,0 +1,12 @@
+PASS api
+PASS unit
+PASS golden
+PASS sdc-validation
+PASS integration
+FAIL(rc=1) failure
+PASS traffic
+PASS srv6-capture
+FAIL(rc=1) srv6-failover
+PASS topology-parity
+PASS observability
+PASS teardown

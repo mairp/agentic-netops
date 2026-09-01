@@ -1,0 +1,21 @@
+     1	# Supply-chain checks (T074)
+     2	
+     3	This project enforces the following for the fully open-source distribution:
+     4	
+     5	- Enforced:
+     6	  - SR Linux absence in the dependency graph and runtime manifests per FR-020.
+     7	  - All platform images in deploy/** are pinned by immutable digests.
+     8	- Advisory (documented, run when tools are available):
+     9	  - Vulnerability scanning via govulncheck
+    10	  - Dependency license reporting via go-licenses
+    11	  - SBOM generation via syft
+    12	
+    13	Artifacts and commands:
+    14	- scripts/ci/supply_chain.sh — implements the checks and writes artifacts under .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/
+    15	  - supply-chain.srlinux.ok.txt or supply-chain.srlinux.matches.txt
+    16	  - supply-chain.unpinned-images.txt (only when failures) or supply-chain.images-pinned.ok.txt
+    17	  - optional advisory outputs: supply-chain.govulncheck.txt, syft.sbom.json, supply-chain.licenses.txt
+    18	- Makefile target: make supply-chain
+    19	
+    20	Presentation-only reference:
+    21	- README.md explicitly records srl-labs/srl-telemetry-lab as a visualization/presentation reference only with no runtime dependency.

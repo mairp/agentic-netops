@@ -1,0 +1,60 @@
+     1	#!/usr/bin/env bash
+     2	set -euo pipefail
+     3	
+     4	# AINETOPS SONiC EVPN/VXLAN Fabric — provision script (Phase 8)
+     5	# Sole implementation of environment creation/convergence per contracts/crd-api.md
+     6	# Ordered workflow: preflight → network → Kind → containerlab → in-cluster apps → SDC/fabric intent
+     7	# → generated topology assets → SRv6 service → readiness
+     8	
+     9	SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+    10	REPO_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
+    11	LIB_DIR="${SCRIPT_DIR}/lib"
+    12	
+    13	# Defaults (overridable by flags)
+    14	AINETOPS_CLUSTER_NAME=${AINETOPS_CLUSTER_NAME:-ainetops}
+    15	AINETOPS_PROFILE=${AINETOPS_PROFILE:-sonic-vs}
+    16	AINETOPS_TIMEOUT=${AINETOPS_TIMEOUT:-180s}
+    17	
+    18	usage() {
+    19	  cat <<EOF
+    20	Usage: $0 [--profile sonic-vs|sonic-vm] [--cluster-name NAME] [--timeout DURATION]
+    21	
+    22	Flags:
+    23	  --profile       SONiC lab profile (sonic-vs fast, sonic-vm conformance)
+    24	  --cluster-name  Kind cluster name (default: ainetops)
+    25	  --timeout       Rollout wait timeout (default: 180s)
+    26	EOF
+    27	}
+    28	
+    29	# Parse flags
+    30	while [[ $# -gt 0 ]]; do
+    31	  case "$1" in
+    32	    --profile) shift; AINETOPS_PROFILE=${1:-$AINETOPS_PROFILE} ;;
+    33	    --cluster-name) shift; AINETOPS_CLUSTER_NAME=${1:-$AINETOPS_CLUSTER_NAME} ;;
+    34	    --timeout) shift; AINETOPS_TIMEOUT=${1:-$AINETOPS_TIMEOUT} ;;
+    35	    -h|--help) usage; exit 0 ;;
+    36	    *) echo "[provision] unknown flag: $1" >&2; usage; exit 2 ;;
+    37	  esac
+    38	  shift || true
+    39	done
+    40	export AINETOPS_CLUSTER_NAME AINETOPS_PROFILE AINETOPS_TIMEOUT
+    41	
+    42	# shellcheck source=./lib/preflight.sh
+    43	if [[ -f "${LIB_DIR}/preflight.sh" ]]; then
+    44	  # Preflight validates versions.lock.yaml, host resources, privileges, MTU, address overlaps, KVM (when sonic-vm)
+    45	  source "${LIB_DIR}/preflight.sh"
+    46	  preflight::run
+    47	fi
+    48	
+    49	# Ordered phases: verify pins and CRDs/register
+    50	if [[ -f "${REPO_ROOT}/Makefile" ]]; then
+    51	  make -C "${REPO_ROOT}" verify-compat
+    52	fi
+    53	
+    54	# Ensure external management network exists, labeled, and subnet-correct (idempotent).
+    55	# The subnet MUST be user-configured (172.31.0.0/16) so containerlab can assign the
+    56	# explicit per-node mgmt IPs; see scripts/lib/kind.sh kind::ensure_mgmt_network.
+    57	if command -v docker >/dev/null 2>&1 && [[ -x "${LIB_DIR}/kind.sh" ]]; then
+    58	  "${LIB_DIR}/kind.sh" ensure-mgmt
+    59	fi
+    60	

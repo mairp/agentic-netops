@@ -25,11 +25,14 @@ metadata:
     ainetops.dev/spec-version: "v1"
     ainetops.dev/export: "otlp"
     ainetops.dev/role: "device-metrics"
-  data:
-    gnmic.yaml: |
+data:
+  gnmic.yaml: |
       username: ${GNMIC_USERNAME}
       password: ${GNMIC_PASSWORD}
-      skip-verify: true
+      skip-verify: false
+      tls-ca: /etc/gnmic/tls/ca.crt
+      tls-cert: /etc/gnmic/tls/tls.crt
+      tls-key: /etc/gnmic/tls/tls.key
       encoding: json_ietf
       targets:
         spine01: { address: 172.31.0.11:9339 }
@@ -58,16 +61,8 @@ metadata:
           url: http://otel-collector.ainetops-system:4318
           compression: gzip
           enable-metrics: true
-      processors:
-        labelmap:
-          type: processor
-          actions:
-            - type: add
-              key: ainetops.dev/topology
-              value: containerlab
-            - type: copy
-              from: target
-              to: device
+      # Event processors intentionally omitted: target/device labeling is applied
+      # downstream by the OTel Collector k8sattributes/attributes processors.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -92,10 +87,13 @@ spec:
       containers:
         - name: gnmic
           image: ghcr.io/openconfig/gnmic@sha256:fd59f5f1c7a98e14ff5b14f85329e5e0a4d49ef1d5b0dddfd910b6caef03b9fb
-          args: ["--config=/etc/gnmic/gnmic.yaml", "subscribe", "--log=info"]
+          args: ["--config=/etc/gnmic/gnmic.yaml", "subscribe", "--log"]
           volumeMounts:
             - name: config
               mountPath: /etc/gnmic
+            - name: tls
+              mountPath: /etc/gnmic/tls
+              readOnly: true
           env:
             - name: GNMIC_USERNAME
               valueFrom:
@@ -110,3 +108,13 @@ spec:
         - name: config
           configMap:
             name: gnmic-config
+        - name: tls
+          secret:
+            secretName: gnmi-lab-tls
+            items:
+              - key: ca.crt
+                path: ca.crt
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key

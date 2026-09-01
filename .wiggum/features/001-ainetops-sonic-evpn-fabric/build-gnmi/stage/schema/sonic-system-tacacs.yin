@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-system-tacacs"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:ssys="http://github.com/sonic-net/sonic-system-tacacs"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:port="http://github.com/sonic-net/sonic-port"
+        xmlns:lag="http://github.com/sonic-net/sonic-portchannel"
+        xmlns:loopback="http://github.com/sonic-net/sonic-loopback-interface"
+        xmlns:mgmt-port="http://github.com/sonic-net/sonic-mgmt_port">
+  <namespace uri="http://github.com/sonic-net/sonic-system-tacacs"/>
+  <prefix value="ssys"/>
+  <yang-version value="1.1"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-port">
+    <prefix value="port"/>
+  </import>
+  <import module="sonic-portchannel">
+    <prefix value="lag"/>
+  </import>
+  <import module="sonic-loopback-interface">
+    <prefix value="loopback"/>
+  </import>
+  <import module="sonic-mgmt_port">
+    <prefix value="mgmt-port"/>
+  </import>
+  <description>
+    <text>Terminal Access Controller Access-Control System Plus (TACACS+) YANG module for SONiC OS.</text>
+  </description>
+  <revision date="2021-04-15">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <typedef name="auth_type_enumeration">
+    <type name="enumeration">
+      <enum name="pap"/>
+      <enum name="chap"/>
+      <enum name="mschap"/>
+      <enum name="login"/>
+    </type>
+  </typedef>
+  <typedef name="key_encrypt_type">
+    <type name="boolean"/>
+    <default value="false"/>
+    <description>
+      <text>Indicates if the passkey is encrypted.</text>
+    </description>
+  </typedef>
+  <container name="sonic-system-tacacs">
+    <container name="TACPLUS_SERVER">
+      <description>
+        <text>Per-server TACACS+ configuration entries.</text>
+      </description>
+      <list name="TACPLUS_SERVER_LIST">
+        <description>
+          <text>A TACACS+ server entry identified by hostname or IP address.</text>
+        </description>
+        <max-elements value="8"/>
+        <key value="ipaddress"/>
+        <leaf name="ipaddress">
+          <type name="inet:host"/>
+          <description>
+            <text>TACACS+ server's Domain name or IP address (IPv4 or IPv6)</text>
+          </description>
+        </leaf>
+        <leaf name="priority">
+          <default value="1"/>
+          <type name="uint8">
+            <range value="1..64">
+              <error-message>
+                <value>TACACS server priority must be 1..64</value>
+              </error-message>
+            </range>
+          </type>
+          <description>
+            <text>Server selection priority; higher values are tried first.</text>
+          </description>
+        </leaf>
+        <leaf name="tcp_port">
+          <type name="inet:port-number"/>
+          <default value="49"/>
+          <description>
+            <text>TCP port used to communicate with this TACACS+ server.</text>
+          </description>
+        </leaf>
+        <leaf name="timeout">
+          <default value="5"/>
+          <type name="uint16">
+            <range value="1..60">
+              <error-message>
+                <value>TACACS server timeout must be 1..60</value>
+              </error-message>
+            </range>
+          </type>
+          <description>
+            <text>Per-server response timeout in seconds.</text>
+          </description>
+        </leaf>
+        <leaf name="auth_type">
+          <type name="auth_type_enumeration"/>
+          <default value="pap"/>
+          <description>
+            <text>Per-server authentication protocol (pap, chap, mschap, or login).</text>
+          </description>
+        </leaf>
+        <leaf name="key_encrypt">
+          <type name="key_encrypt_type"/>
+          <description>
+            <text>Indicates whether the per-server passkey is stored encrypted.</text>
+          </description>
+        </leaf>
+        <leaf name="passkey">
+          <type name="string">
+            <length value="1..256"/>
+            <pattern value="[^ #,]*">
+              <error-message>
+                <value>TACACS shared secret (Valid chars are ASCII printable except SPACE, "#", and ",")</value>
+              </error-message>
+            </pattern>
+          </type>
+          <description>
+            <text>Per-server shared secret overriding the global passkey.</text>
+          </description>
+        </leaf>
+        <leaf name="vrf">
+          <type name="string">
+            <pattern value="mgmt|default">
+              <error-message>
+                <value>Error: Invalid VRF name</value>
+              </error-message>
+            </pattern>
+          </type>
+          <description>
+            <text>VRF used to reach this TACACS+ server (mgmt or default).</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+    <container name="TACPLUS">
+      <description>
+        <text>Global TACACS+ client configuration.</text>
+      </description>
+      <container name="global">
+        <description>
+          <text>Global TACACS+ authentication settings applied to all servers.</text>
+        </description>
+        <leaf name="auth_type">
+          <type name="auth_type_enumeration"/>
+          <default value="pap"/>
+          <description>
+            <text>Default authentication protocol for TACACS+ communication.</text>
+          </description>
+        </leaf>
+        <leaf name="timeout">
+          <type name="uint16">
+            <range value="1..60">
+              <error-message>
+                <value>TACACS timeout must be 1..60</value>
+              </error-message>
+            </range>
+          </type>
+          <default value="5"/>
+          <description>
+            <text>Default timeout in seconds for TACACS+ server responses.</text>
+          </description>
+        </leaf>
+        <leaf name="key_encrypt">
+          <type name="key_encrypt_type"/>
+          <description>
+            <text>Indicates whether the global passkey is stored encrypted.</text>
+          </description>
+        </leaf>
+        <leaf name="passkey">
+          <type name="string">
+            <length value="1..256"/>
+            <pattern value="[^ #,]*">
+              <error-message>
+                <value>TACACS shared secret (Valid chars are ASCII printable except SPACE, "#", and ",")</value>
+              </error-message>
+            </pattern>
+          </type>
+          <description>
+            <text>Default shared secret for authenticating TACACS+ server communication.</text>
+          </description>
+        </leaf>
+        <leaf name="src_intf">
+          <type name="union">
+            <type name="leafref">
+              <path value="/port:sonic-port/port:PORT/port:PORT_LIST/port:name"/>
+            </type>
+            <type name="leafref">
+              <path value="/lag:sonic-portchannel/lag:PORTCHANNEL/lag:PORTCHANNEL_LIST/lag:name"/>
+            </type>
+            <type name="string">
+              <pattern value="Vlan([0-9]{1,3}|[1-3][0-9]{3}|[4][0][0-8][0-9]|[4][0][9][0-4])"/>
+            </type>
+            <type name="leafref">
+              <path value="/loopback:sonic-loopback-interface/loopback:LOOPBACK_INTERFACE/loopback:LOOPBACK_INTERFACE_LIST/loopback:name"/>
+            </type>
+            <type name="leafref">
+              <path value="/mgmt-port:sonic-mgmt_port/mgmt-port:MGMT_PORT/mgmt-port:MGMT_PORT_LIST/mgmt-port:name"/>
+            </type>
+          </type>
+          <description>
+            <text>Source interface whose IP address is used for outgoing TACACS+ packets.</text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

@@ -1,0 +1,51 @@
+90	  local profile=${AINETOPS_PROFILE:-sonic-vs}
+91	  if [[ "$profile" == "sonic-vm" ]]; then
+92	    # Require KVM when sonic-vm profile selected
+93	    [[ -e /dev/kvm ]] || preflight::die "/dev/kvm not present for sonic-vm profile"
+94	  fi
+95	}
+96	
+97	# Extract value from versions.lock.yaml given a top-level section and key
+98	preflight::yaml_value() {
+99	  local section=$1 key=$2 file; file=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/versions.lock.yaml
+100	  awk -v sec="$section" -v key="$key" '
+101	    $0 ~ "^"sec":\s*$" {in=1; next}
+102	    in && $0 ~ "^[^[:space:]]" {in=0}
+103	    in && $0 ~ "^[[:space:]]+"key":" {
+104	      val=$0; sub(/^[^:]*:[[:space:]]*/, "", val); gsub(/\"/, "", val); print val; exit
+105	    }
+106	  ' "$file"
+107	}
+108	
+109	preflight::tool_versions() {
+110	  # Verify host tool versions match pins in versions.lock.yaml
+111	  for c in kind kubectl helm containerlab jq curl; do preflight::require_cmd "$c"; done
+112	
+113	  local kind_pin kubectl_pin helm_pin clab_pin
+114	  kind_pin=$(preflight::yaml_value kind binary)
+115	  # Prefer host_tools.kubectl if present, else fall back to kubernetes.kubernetes
+116	  kubectl_pin=$(preflight::yaml_value host_tools kubectl)
+117	  if [[ -z "${kubectl_pin}" ]]; then kubectl_pin=$(preflight::yaml_value kubernetes kubernetes); fi
+118	  helm_pin=$(preflight::yaml_value host_tools helm)
+119	  clab_pin=$(preflight::yaml_value containerlab version)
+120	
+121	  [[ -n "$kind_pin" ]] || preflight::die "missing kind.binary pin in versions.lock.yaml"
+122	  [[ -n "$kubectl_pin" ]] || preflight::die "missing host_tools.kubectl or kubernetes.kubernetes pin in versions.lock.yaml"
+123	  [[ -n "$helm_pin" ]] || preflight::die "missing host_tools.helm pin in versions.lock.yaml"
+124	  [[ -n "$clab_pin" ]] || preflight::die "missing containerlab.version pin in versions.lock.yaml"
+125	
+126	  # kind
+127	  local kind_ver; kind_ver=$(kind version 2>/dev/null | awk '{print $2}') || true
+128	  [[ "$kind_ver" == "$kind_pin" ]] || preflight::die "kind version $kind_ver != pinned $kind_pin"
+129	
+130	  # kubectl
+131	  local kubectl_ver; kubectl_ver=$(kubectl version --client -o json 2>/dev/null | jq -r '.clientVersion.gitVersion' || true)
+132	  [[ "$kubectl_ver" == "$kubectl_pin" ]] || preflight::die "kubectl version $kubectl_ver != pinned $kubectl_pin"
+133	
+134	  # helm
+135	  local helm_ver; helm_ver=$(helm version --short --client 2>/dev/null | sed 's/+.*//' || true)
+136	  [[ "$helm_ver" == "$helm_pin" ]] || preflight::die "helm version $helm_ver != pinned $helm_pin"
+137	
+138	  # containerlab (parse the 'version:' line)
+139	  local clab_ver; clab_ver=$(containerlab version 2>/dev/null | awk -F': *' '/^version:/ {print $2; exit}')
+140	  [[ "$clab_ver" == "$clab_pin" ]] || preflight::die "containerlab version $clab_ver != pinned $clab_pin"

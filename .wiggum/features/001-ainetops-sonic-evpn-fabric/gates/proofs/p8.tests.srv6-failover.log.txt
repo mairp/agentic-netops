@@ -1,0 +1,6 @@
+     1	[run] srv6-failover: /root/ainetops-demo/tests/integration/srv6_failover_path_change.sh run
+     2	[srv6-failover] force primary failure (down eth1 on clab-ainetops-fabric-spine01)
+     3	Error response from daemon: No such container: clab-ainetops-fabric-spine01
+     4	[srv6-failover] SKIP: cannot reach clab-ainetops-fabric-spine01
+     5	[srv6-failover] assert the corresponding alert (SRv6PathDown active in Prometheus)
+     6	[srv6-failover] ERROR: SRv6PathDown alert not observed in Prometheus

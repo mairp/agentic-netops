@@ -1,0 +1,11 @@
+     1	[run] golden: go test ./tests/unit -run Golden -v
+     2	=== RUN   TestGolden_VPLS
+     3	--- PASS: TestGolden_VPLS (0.00s)
+     4	=== RUN   TestGolden_L3VPN
+     5	--- PASS: TestGolden_L3VPN (0.00s)
+     6	=== RUN   TestGolden_VPWS_OptIn
+     7	--- PASS: TestGolden_VPWS_OptIn (0.00s)
+     8	=== RUN   TestIRB_Golden
+     9	--- PASS: TestIRB_Golden (0.00s)
+    10	PASS
+    11	ok  	github.com/mairp/ainetops/tests/unit	(cached)

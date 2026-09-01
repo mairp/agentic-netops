@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-tc-priority-group-map"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:tpgm="http://github.com/sonic-net/sonic-tc-priority-group-map"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-tc-priority-group-map"/>
+  <prefix value="tpgm"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>TC_TO_PRIORITY_GROUP_MAP yang Module for SONiC OS</text>
+  </description>
+  <revision date="2021-04-15">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-tc-priority-group-map">
+    <container name="TC_TO_PRIORITY_GROUP_MAP">
+      <description>
+        <text>Maps traffic class to ingress priority group for buffer admission control.</text>
+      </description>
+      <list name="TC_TO_PRIORITY_GROUP_MAP_LIST">
+        <key value="name"/>
+        <description>
+          <text>A named traffic class to priority group map.</text>
+        </description>
+        <leaf name="name">
+          <type name="string">
+            <pattern value="[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,31})"/>
+            <length value="1..32">
+              <error-message>
+                <value>Invalid length for map name.</value>
+              </error-message>
+              <error-app-tag value="map-name-invalid-length"/>
+            </length>
+          </type>
+          <description>
+            <text>Name of the TC to priority group map.</text>
+          </description>
+        </leaf>
+        <list name="TC_TO_PRIORITY_GROUP_MAP">
+          <key value="tc"/>
+          <description>
+            <text>Single mapping entry from a traffic class to an ingress priority group.</text>
+          </description>
+          <leaf name="tc">
+            <type name="stypes:tc_type"/>
+            <description>
+              <text>Source traffic class.</text>
+            </description>
+          </leaf>
+          <leaf name="pg">
+            <type name="string">
+              <pattern value="[0-7]?">
+                <error-message>
+                  <value>Invalid Priority Group</value>
+                </error-message>
+                <error-app-tag value="pg-invalid"/>
+              </pattern>
+            </type>
+            <description>
+              <text>Target ingress priority group (0-7).</text>
+            </description>
+          </leaf>
+        </list>
+      </list>
+    </container>
+  </container>
+</module>

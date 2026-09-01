@@ -1,0 +1,37 @@
+   140	apiVersion: apps/v1
+   141	kind: Deployment
+   142	metadata:
+   143	  name: grafana
+   144	  namespace: monitoring
+   145	  labels:
+   146	    app.kubernetes.io/name: grafana
+   147	    ainetops.dev/component: observability
+   148	spec:
+   149	  replicas: 1
+   150	  selector:
+   151	    matchLabels:
+   152	      app.kubernetes.io/name: grafana
+   153	  template:
+   154	    metadata:
+   155	      labels:
+   156	        app.kubernetes.io/name: grafana
+   157	    spec:
+   158	      containers:
+   159	        - name: grafana
+   160	          image: grafana/grafana@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+   161	          env:
+   162	            - name: GF_INSTALL_PLUGINS
+   163	              value: grafana-flow-panel@sha256:5c9d6b4d6b899be4a3f3c728b3acb0a8f8c3e6a46c9f5b07d705e8ca3c1a2c44
+   164	            - name: GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS
+   165	              value: grafana-flow-panel
+   166	            - name: GF_SECURITY_ADMIN_USER
+   167	              valueFrom:
+   168	                secretKeyRef: { name: grafana-admin, key: admin-user }
+   169	            - name: GF_SECURITY_ADMIN_PASSWORD
+   170	              valueFrom:
+   171	                secretKeyRef: { name: grafana-admin, key: admin-password }
+   172	          ports:
+   173	            - name: http
+   174	              containerPort: 3000
+   175	          volumeMounts:
+   176	            - name: storage

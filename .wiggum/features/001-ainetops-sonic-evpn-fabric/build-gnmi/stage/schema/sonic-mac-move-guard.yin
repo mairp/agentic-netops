@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-mac-move-guard"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:mmg="http://github.com/sonic-net/sonic-mac-move-guard">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-mac-move-guard"/>
+  <prefix value="mmg"/>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>MAC Move Guard - detect and mitigate excessive (VLAN, MAC)
+moves on the local FDB.</text>
+  </description>
+  <revision date="2026-05-15">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <typedef name="mac-move-guard-action">
+    <type name="enumeration">
+      <enum name="DISABLE_PORT">
+        <description>
+          <text>Pin the bad MAC to one port and admin-disable every
+other port the MAC was bouncing on. The disable is
+reverted after the configured action_interval.</text>
+        </description>
+      </enum>
+      <enum name="DISABLE_LEARN_ON_MAC_WITH_ACL">
+        <description>
+          <text>Install a per-MAC pre-ingress ACL entry matching
+(vlan, smac) with SAI_ACL_ACTION_TYPE_SET_DO_NOT_LEARN
+so the bad MAC stops being (re)learned while existing
+forwarding continues. Requires platform support for
+SET_DO_NOT_LEARN at the PRE_INGRESS stage; soft-disabled
+otherwise.</text>
+        </description>
+      </enum>
+    </type>
+    <default value="DISABLE_PORT"/>
+    <description>
+      <text>Mitigation action applied to a bad MAC. Actions are mutually
+exclusive; only one is in effect at a time.</text>
+    </description>
+  </typedef>
+  <container name="sonic-mac-move-guard">
+    <container name="MAC_MOVE_GUARD">
+      <description>
+        <text>MAC Move Guard configuration. Maps to the
+MAC_MOVE_GUARD table in CONFIG_DB, which holds a single
+GLOBAL row of switch-wide policy.</text>
+      </description>
+      <container name="GLOBAL">
+        <description>
+          <text>Switch-wide MAC Move Guard policy. CONFIG_DB key
+MAC_MOVE_GUARD|GLOBAL.</text>
+        </description>
+        <leaf name="enabled">
+          <type name="boolean"/>
+          <default value="false"/>
+          <description>
+            <text>Master switch for the MAC Move Guard feature.
+When false, the orchestrator reverts every
+in-flight mitigation and stops applying new ones.</text>
+          </description>
+        </leaf>
+        <leaf name="threshold">
+          <type name="uint32">
+            <range value="1..1000000"/>
+          </type>
+          <default value="1000"/>
+          <description>
+            <text>Maximum MAC moves allowed within detect_interval
+for a single (VLAN, MAC) before it is declared
+a bad MAC. Upper bound of 1,000,000 reflects
+the largest count that could ever be reached
+within the maximum detect_interval (3600 s) at
+realistic per-MAC churn rates.</text>
+          </description>
+        </leaf>
+        <leaf name="detect_interval">
+          <type name="uint32">
+            <range value="1..3600"/>
+          </type>
+          <units name="seconds"/>
+          <default value="5"/>
+          <description>
+            <text>Sliding window over which MAC moves are counted
+for the threshold comparison.</text>
+          </description>
+        </leaf>
+        <leaf name="action_interval">
+          <type name="uint32">
+            <range value="1..86400"/>
+          </type>
+          <units name="seconds"/>
+          <default value="600"/>
+          <description>
+            <text>Duration the mitigation action stays in effect
+before the orchestrator reverts it.</text>
+          </description>
+        </leaf>
+        <leaf name="action">
+          <type name="mac-move-guard-action"/>
+          <description>
+            <text>Mitigation action to apply when a (VLAN, MAC)
+crosses the threshold.</text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

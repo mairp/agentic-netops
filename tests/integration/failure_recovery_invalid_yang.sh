@@ -2,7 +2,8 @@
 # T049 [US2] Partial target failure/recovery, provider restart mid-transaction, and invalid-YANG tests
 set -euo pipefail
 
-TOPO=${TOPO:-lab/topology.clab.yml}
+ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+TOPO=${TOPO:-$ROOT_DIR/lab/topology.clab.yml}
 CTX=${CTX:-kind-ainetops}
 PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
 mkdir -p "$PROOF_DIR"
@@ -26,12 +27,13 @@ assert_aggregate_not_ready() {
 
 partial_target_failure_recovery() {
   echo "[failure] partial target failure/recovery"
-  containerlab -t "$TOPO" node stop leaf02 || true
+  # containerlab 0.7x CLI: `stop`/`start` take node names (no `node` subcommand)
+  containerlab stop -t "$TOPO" leaf02 || true
   # Expect aggregate not Ready (Degraded) reflected in provider/SDC/Network status
   kubectl --context "$CTX" -n sdc get target -o wide | tee "$PROOF_DIR/partial-failure.targets.txt" >/dev/null
   assert_aggregate_not_ready
   # Restore
-  containerlab -t "$TOPO" node start leaf02 || true
+  containerlab start -t "$TOPO" leaf02 || true
 }
 
 provider_restart_mid_transaction() {
@@ -106,6 +108,12 @@ prohibit_false_aggregate_ready() {
 
 case "${1:-run}" in
   run)
+    # Clean skip when no provisioned lab/cluster exists (absent-state runs, post-teardown).
+    if ! docker ps --format '{{.Names}}' | grep -q "clab-ainetops-fabric-spine01" \
+      || ! kubectl --context "$CTX" get nodes --request-timeout=5s >/dev/null 2>&1; then
+      echo "SKIP-LIVE: failure/recovery suite requires a provisioned lab and Kind cluster (containerlab nodes or context ${CTX} absent); capability gate (scripts/lib/qualify.sh) is the source of truth"
+      exit 0
+    fi
     partial_target_failure_recovery
     provider_restart_mid_transaction
     invalid_yang_tests

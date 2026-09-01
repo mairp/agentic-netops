@@ -1,0 +1,3 @@
+SC-016 — No Compose/standalone runtime at runtime
+- Evidence: scripts/ci/denylist_runtime_scan.sh emits RUNTIME_SCAN_NO_STANDALONE; runtime inventory logs
+- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/runtime-scan-runtime.log

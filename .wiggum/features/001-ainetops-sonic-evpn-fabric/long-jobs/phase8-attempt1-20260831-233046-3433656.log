@@ -1,0 +1,307 @@
+[cycles] start 2026-08-31T19:30:48Z host=mairp cpu=22 mem=96070MB
+[cycles] ===== clean cycle 1 =====
+[cycles] provision profile=sonic-vs exit=0
+[cycles] test-fabric-1 exit=1
+[cycles] test-parity-1 exit=0
+[cycles] test-observability-1 exit=0
+NAMESPACE            NAME                                             READY   STATUS             RESTARTS   AGE   IP            NODE                     NOMINATED NODE   READINESS GATES
+ainetops-system      ainetops-secret-generator-w7722                  0/1     Completed          0          16m   10.244.1.22   ainetops-worker          <none>           <none>
+ainetops-system      ainetops-sonic-provider-66c5b5dbd8-9w96z         1/1     Running            0          65m   10.244.1.20   ainetops-worker          <none>           <none>
+ainetops-system      ainetops-srv6-controller-847c65957f-8wv98        1/1     Running            0          65m   10.244.1.21   ainetops-worker          <none>           <none>
+ainetops-system      gnmic-bcf9db789-xtlkr                            1/1     Running            0          66m   10.244.1.12   ainetops-worker          <none>           <none>
+ainetops-system      otel-collector-7c6b7bdfc4-vzzrj                  1/1     Running            0          66m   10.244.1.11   ainetops-worker          <none>           <none>
+kube-system          coredns-76f75df574-jpfml                         1/1     Running            0          72m   10.244.0.2    ainetops-control-plane   <none>           <none>
+kube-system          coredns-76f75df574-v7mpx                         1/1     Running            0          72m   10.244.0.3    ainetops-control-plane   <none>           <none>
+kube-system          etcd-ainetops-control-plane                      1/1     Running            0          73m   172.30.0.2    ainetops-control-plane   <none>           <none>
+kube-system          kindnet-n7f9v                                    1/1     Running            0          72m   172.30.0.2    ainetops-control-plane   <none>           <none>
+kube-system          kindnet-xc6zt                                    1/1     Running            0          72m   172.30.0.3    ainetops-worker          <none>           <none>
+kube-system          kube-apiserver-ainetops-control-plane            1/1     Running            0          73m   172.30.0.2    ainetops-control-plane   <none>           <none>
+kube-system          kube-controller-manager-ainetops-control-plane   1/1     Running            0          73m   172.30.0.2    ainetops-control-plane   <none>           <none>
+kube-system          kube-proxy-bvlcn                                 1/1     Running            0          72m   172.30.0.2    ainetops-control-plane   <none>           <none>
+kube-system          kube-proxy-dg6zp                                 1/1     Running            0          72m   172.30.0.3    ainetops-worker          <none>           <none>
+kube-system          kube-scheduler-ainetops-control-plane            1/1     Running            0          73m   172.30.0.2    ainetops-control-plane   <none>           <none>
+kubenet-system       kubenet-controller-6cf57dbc95-qlr7l              0/1     ImagePullBackOff   0          71m   10.244.1.3    ainetops-worker          <none>           <none>
+kuid-system          kuid-controller-6d7498fdbf-vld5f                 0/1     ImagePullBackOff   0          71m   10.244.1.4    ainetops-worker          <none>           <none>
+local-path-storage   local-path-provisioner-75b59d495-cggn9           1/1     Running            0          72m   10.244.0.4    ainetops-control-plane   <none>           <none>
+monitoring           grafana-66b47bcbc8-sq5c6                         1/1     Running            0          66m   10.244.1.17   ainetops-worker          <none>           <none>
+monitoring           grafana-admin-secret-generator-lshc2             0/1     Completed          0          66m   10.244.1.14   ainetops-worker          <none>           <none>
+monitoring           prometheus-57675bbb5b-8vtdd                      1/1     Running            0          66m   10.244.1.15   ainetops-worker          <none>           <none>
+sdc-system           sdc-cache-5cdd7897d8-f8clr                       0/1     ImagePullBackOff   0          69m   10.244.1.10   ainetops-worker          <none>           <none>
+sdc-system           sdc-config-f55f769cd-drx2r                       0/1     ImagePullBackOff   0          69m   10.244.1.6    ainetops-worker          <none>           <none>
+sdc-system           sdc-data-6b5ff949cd-9w4kp                        0/1     ImagePullBackOff   0          69m   10.244.1.9    ainetops-worker          <none>           <none>
+sdc-system           sdc-schema-5bf5ff6fbc-f5wxx                      0/1     ImagePullBackOff   0          69m   10.244.1.5    ainetops-worker          <none>           <none>
+NAME	NAMESPACE	REVISION	UPDATED	STATUS	CHART	APP VERSION
+dcd89f6cd976 localhost:5000/sonic-vs-gnmi:202605-v2 clab-ainetops-fabric-leaf01 ainetops.owner=ainetops,asn=65101,clab-node-lab-dir=/root/ainetops-demo/lab/clab-ainetops-fabric/leaf01,clab-node-type=,com.azure.sonic.versions.sonic-supervisord-utilities-rs=1.0.0,role=leaf,Tag=202605.1205344-adcef327e,ainetops.topology=sonic-evpn,clab-node-group=,com.azure.sonic.versions.libnexthopgroup=1.0.0,com.azure.sonic.versions.sonic_utilities=1.2,clab-owner=root,com.azure.sonic.manifest=
+{
+    "version": "1.0.0",
+    "package": {
+        "version": "",
+        "depends": [],
+        "name": ""
+    },
+    "service": {
+        "name": "",
+        "requires": [],
+        "after": [],
+        "before": [],
+        "dependent-of": [],
+        "asic-service": false,
+        "host-service": false,
+        "warm-shutdown": {
+            "after": [],
+            "before": []
+        },
+        "fast-shutdown": {
+            "after": [],
+            "before": []
+        },
+        "syslog": {
+            "support-rate-limit": true
+        }
+    },
+    "container": {
+        "privileged": false,
+        "volumes": [],
+        "tmpfs": []
+    },
+    "cli": {
+        "config": "",
+        "show": "",
+        "clear": ""
+    }
+},clab-mgmt-net-bridge=br-d972f8e2a134,clab-node-kind=sonic-vs,clab-node-longname=clab-ainetops-fabric-leaf01,clab-node-name=leaf01,containerlab=ainetops-fabric,clab-topo-file=/root/ainetops-demo/lab/topology.clab.yml,com.azure.sonic.versions.libsairedis=1.0.0,com.azure.sonic.versions.libswsscommon=1.0.0
+48ceae15baa7 localhost:5000/sonic-vs-gnmi:202605-v2 clab-ainetops-fabric-spine01 clab-owner=root,com.azure.sonic.versions.libsairedis=1.0.0,ainetops.owner=ainetops,clab-node-lab-dir=/root/ainetops-demo/lab/clab-ainetops-fabric/spine01,clab-node-longname=clab-ainetops-fabric-spine01,clab-topo-file=/root/ainetops-demo/lab/topology.clab.yml,com.azure.sonic.manifest=
+{
+    "version": "1.0.0",
+    "package": {
+        "version": "",
+        "depends": [],
+        "name": ""
+    },
+    "service": {
+        "name": "",
+        "requires": [],
+        "after": [],
+        "before": [],
+        "dependent-of": [],
+        "asic-service": false,
+        "host-service": false,
+        "warm-shutdown": {
+            "after": [],
+            "before": []
+        },
+        "fast-shutdown": {
+            "after": [],
+            "before": []
+        },
+        "syslog": {
+            "support-rate-limit": true
+        }
+    },
+    "container": {
+        "privileged": false,
+        "volumes": [],
+        "tmpfs": []
+    },
+    "cli": {
+        "config": "",
+        "show": "",
+        "clear": ""
+    }
+},com.azure.sonic.versions.libnexthopgroup=1.0.0,containerlab=ainetops-fabric,ainetops.topology=sonic-evpn,asn=65000,clab-mgmt-net-bridge=br-d972f8e2a134,clab-node-group=,clab-node-kind=sonic-vs,com.azure.sonic.versions.libswsscommon=1.0.0,com.azure.sonic.versions.sonic-supervisord-utilities-rs=1.0.0,role=spine,Tag=202605.1205344-adcef327e,clab-node-type=,com.azure.sonic.versions.sonic_utilities=1.2,clab-node-name=spine01
+5599e6a3c941 localhost:5000/sonic-vs-gnmi:202605-v2 clab-ainetops-fabric-spine02 asn=65000,clab-node-group=,com.azure.sonic.versions.sonic-supervisord-utilities-rs=1.0.0,com.azure.sonic.versions.sonic_utilities=1.2,containerlab=ainetops-fabric,ainetops.topology=sonic-evpn,clab-mgmt-net-bridge=br-d972f8e2a134,clab-node-kind=sonic-vs,clab-node-longname=clab-ainetops-fabric-spine02,clab-node-name=spine02,clab-node-type=,clab-owner=root,ainetops.owner=ainetops,clab-node-lab-dir=/root/ainetops-demo/lab/clab-ainetops-fabric/spine02,com.azure.sonic.manifest=
+{
+    "version": "1.0.0",
+    "package": {
+        "version": "",
+        "depends": [],
+        "name": ""
+    },
+    "service": {
+        "name": "",
+        "requires": [],
+        "after": [],
+        "before": [],
+        "dependent-of": [],
+        "asic-service": false,
+        "host-service": false,
+        "warm-shutdown": {
+            "after": [],
+            "before": []
+        },
+        "fast-shutdown": {
+            "after": [],
+            "before": []
+        },
+        "syslog": {
+            "support-rate-limit": true
+        }
+    },
+    "container": {
+        "privileged": false,
+        "volumes": [],
+        "tmpfs": []
+    },
+    "cli": {
+        "config": "",
+        "show": "",
+        "clear": ""
+    }
+},com.azure.sonic.versions.libsairedis=1.0.0,role=spine,clab-topo-file=/root/ainetops-demo/lab/topology.clab.yml,Tag=202605.1205344-adcef327e,com.azure.sonic.versions.libnexthopgroup=1.0.0,com.azure.sonic.versions.libswsscommon=1.0.0
+20bec7f9b44c localhost:5000/sonic-vs-gnmi:202605-v2 clab-ainetops-fabric-leaf02 com.azure.sonic.versions.libsairedis=1.0.0,role=leaf,com.azure.sonic.manifest=
+{
+    "version": "1.0.0",
+    "package": {
+        "version": "",
+        "depends": [],
+        "name": ""
+    },
+    "service": {
+        "name": "",
+        "requires": [],
+        "after": [],
+        "before": [],
+        "dependent-of": [],
+        "asic-service": false,
+        "host-service": false,
+        "warm-shutdown": {
+            "after": [],
+            "before": []
+        },
+        "fast-shutdown": {
+            "after": [],
+            "before": []
+        },
+        "syslog": {
+            "support-rate-limit": true
+        }
+    },
+    "container": {
+        "privileged": false,
+        "volumes": [],
+        "tmpfs": []
+    },
+    "cli": {
+        "config": "",
+        "show": "",
+        "clear": ""
+    }
+},clab-node-longname=clab-ainetops-fabric-leaf02,clab-node-type=,clab-topo-file=/root/ainetops-demo/lab/topology.clab.yml,com.azure.sonic.versions.libnexthopgroup=1.0.0,clab-mgmt-net-bridge=br-d972f8e2a134,com.azure.sonic.versions.libswsscommon=1.0.0,com.azure.sonic.versions.sonic_utilities=1.2,asn=65102,clab-node-group=,clab-node-kind=sonic-vs,clab-node-name=leaf02,clab-owner=root,com.azure.sonic.versions.sonic-supervisord-utilities-rs=1.0.0,containerlab=ainetops-fabric,Tag=202605.1205344-adcef327e,ainetops.owner=ainetops,ainetops.topology=sonic-evpn,clab-node-lab-dir=/root/ainetops-demo/lab/clab-ainetops-fabric/leaf02
+5f10a512c2b4 localhost:5000/linux-srv6:202605 clab-ainetops-fabric-srv6-client01 containerlab=ainetops-fabric,role=srv6-client,ainetops.owner=ainetops,ainetops.topology=sonic-evpn,attach=leaf01,clab-mgmt-net-bridge=br-d972f8e2a134,clab-node-group=,clab-node-lab-dir=/root/ainetops-demo/lab/clab-ainetops-fabric/srv6-client01,clab-node-name=srv6-client01,clab-node-type=,clab-node-kind=linux,clab-node-longname=clab-ainetops-fabric-srv6-client01,clab-owner=root,clab-topo-file=/root/ainetops-demo/lab/topology.clab.yml
+7b6b4e5de99e localhost:5000/linux-net:202605 clab-ainetops-fabric-client01 ainetops.topology=sonic-evpn,attach=leaf01,clab-owner=root,clab-topo-file=/root/ainetops-demo/lab/topology.clab.yml,containerlab=ainetops-fabric,role=evpn-client,ainetops.owner=ainetops,clab-mgmt-net-bridge=br-d972f8e2a134,clab-node-group=,clab-node-kind=linux,clab-node-lab-dir=/root/ainetops-demo/lab/clab-ainetops-fabric/client01,clab-node-longname=clab-ainetops-fabric-client01,clab-node-name=client01,clab-node-type=
+347e43349d58 localhost:5000/linux-net:202605 clab-ainetops-fabric-client02 ainetops.owner=ainetops,clab-node-group=,clab-node-lab-dir=/root/ainetops-demo/lab/clab-ainetops-fabric/client02,clab-node-name=client02,clab-node-type=,clab-topo-file=/root/ainetops-demo/lab/topology.clab.yml,containerlab=ainetops-fabric,role=evpn-client,ainetops.topology=sonic-evpn,attach=leaf02,clab-mgmt-net-bridge=br-d972f8e2a134,clab-node-kind=linux,clab-node-longname=clab-ainetops-fabric-client02,clab-owner=root
+24d4cc0ff7d8 localhost:5000/linux-srv6:202605 clab-ainetops-fabric-srv6-client02 ainetops.topology=sonic-evpn,clab-mgmt-net-bridge=br-d972f8e2a134,clab-node-group=,clab-node-kind=linux,clab-topo-file=/root/ainetops-demo/lab/topology.clab.yml,role=srv6-client,ainetops.owner=ainetops,attach=leaf02,clab-node-lab-dir=/root/ainetops-demo/lab/clab-ainetops-fabric/srv6-client02,clab-node-longname=clab-ainetops-fabric-srv6-client02,clab-node-name=srv6-client02,clab-node-type=,clab-owner=root,containerlab=ainetops-fabric
+6e49f3229269 kindest/node ainetops-worker io.x-k8s.kind.cluster=ainetops,io.x-k8s.kind.role=worker
+92c2e29485c6 kindest/node ainetops-control-plane io.x-k8s.kind.cluster=ainetops,io.x-k8s.kind.role=control-plane
+e281b519b16b ghcr.io/berriai/litellm:main-stable litellm-litellm-1 com.docker.compose.config-hash=a4f90f240d73136075646c585ae326510e9e99f3f2558b5b7fc87f1227f9fac8,com.docker.compose.container-number=1,com.docker.compose.image=sha256:a7218726551839c4e58ee6483185436df8c811c944a86569a143934311a5a9e7,org.opencontainers.image.authors=Chainguard Team https://www.chainguard.dev/,org.opencontainers.image.vendor=Chainguard,dev.chainguard.package.main=,com.docker.compose.oneoff=False,com.docker.compose.project=litellm,com.docker.compose.replace=litellm-1,com.docker.compose.service=litellm,com.docker.compose.version=5.1.4,dev.chainguard.image.title=wolfi-base,org.opencontainers.image.revision=9c117a58be8fb8066e833aa92dd98fdf15771e50,com.docker.compose.project.working_dir=/root/litellm,org.opencontainers.image.source=https://github.com/BerriAI/litellm,org.opencontainers.image.title=wolfi-base,org.opencontainers.image.url=https://images.chainguard.dev/directory/image/wolfi-base/overview,com.docker.compose.depends_on=postgres:service_started:false,com.docker.compose.project.config_files=/root/litellm/docker-compose.yml,org.opencontainers.image.created=2026-05-05T17:11:16Z
+0859a67907f7 agent-obs/grafy-bot:local observability-grafy-bot-1 com.docker.compose.container-number=1,com.docker.compose.image=sha256:0ed1670bd7daf720b3b7a7d2c8af60bea25f8e70ba2aaa6d9ca941aa6bb10462,com.docker.compose.oneoff=False,com.docker.compose.project=observability,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.replace=grafy-bot-1,com.docker.compose.version=5.1.4,com.docker.compose.depends_on=grafana-image-renderer:service_started:false,grafana:service_started:false,prometheus:service_started:false,com.docker.compose.project.working_dir=/root/agent-observability-stack,com.docker.compose.service=grafy-bot,com.docker.compose.config-hash=c23f75e54d4ae5c68392e32da5502ca8d0a1031d4bece67edf1fecbd09fe4853
+62575860cfee debian:bookworm ainetops-gnmi-build 
+084b60c574ac localhost:5000/sonic-vs:202605 ainetops-gnmi-build2 Tag=202605.1205344-adcef327e,com.azure.sonic.manifest=
+{
+    "version": "1.0.0",
+    "package": {
+        "version": "",
+        "depends": [],
+        "name": ""
+    },
+    "service": {
+        "name": "",
+        "requires": [],
+        "after": [],
+        "before": [],
+        "dependent-of": [],
+        "asic-service": false,
+        "host-service": false,
+        "warm-shutdown": {
+            "after": [],
+            "before": []
+        },
+        "fast-shutdown": {
+            "after": [],
+            "before": []
+        },
+        "syslog": {
+            "support-rate-limit": true
+        }
+    },
+    "container": {
+        "privileged": false,
+        "volumes": [],
+        "tmpfs": []
+    },
+    "cli": {
+        "config": "",
+        "show": "",
+        "clear": ""
+    }
+},com.azure.sonic.versions.libnexthopgroup=1.0.0,com.azure.sonic.versions.libsairedis=1.0.0,com.azure.sonic.versions.libswsscommon=1.0.0,com.azure.sonic.versions.sonic-supervisord-utilities-rs=1.0.0,com.azure.sonic.versions.sonic_utilities=1.2
+3731ffe0e81c kuidio/kuid-server:v0.0.13 awesome_jackson org.opencontainers.image.created=2024-12-27T05:35:25Z,org.opencontainers.image.source=https://github.com/kuidio/kuid-server,org.opencontainers.image.title=kuid-server,org.opencontainers.image.version=v0.0.13
+ded0e2a75dad sdcio/cache:v0.0.38 adoring_zhukovsky org.opencontainers.image.created=2025-08-11T10:23:35Z,org.opencontainers.image.source=https://github.com/sdcio/cache,org.opencontainers.image.title=cache,org.opencontainers.image.version=v0.0.38
+d74bbd9536d9 sdcio/data-server:v0.0.72 dazzling_moser org.opencontainers.image.source=https://github.com/sdcio/data-server,org.opencontainers.image.title=data-server,org.opencontainers.image.version=v0.0.72,org.opencontainers.image.created=2026-08-19T07:18:38Z
+1db3259e17fc sdcio/schema-server:v0.0.0-c57e9d6 beautiful_bohr org.opencontainers.image.title=schema-server,org.opencontainers.image.version=v0.0.34,org.opencontainers.image.created=2026-02-26T20:50:44Z,org.opencontainers.image.source=https://github.com/sdcio/schema-server
+4d177d772cc1 localhost:5000/sonic-vs:202605 sonic-explore com.azure.sonic.manifest=
+{
+    "version": "1.0.0",
+    "package": {
+        "version": "",
+        "depends": [],
+        "name": ""
+    },
+    "service": {
+        "name": "",
+        "requires": [],
+        "after": [],
+        "before": [],
+        "dependent-of": [],
+        "asic-service": false,
+        "host-service": false,
+        "warm-shutdown": {
+            "after": [],
+            "before": []
+        },
+        "fast-shutdown": {
+            "after": [],
+            "before": []
+        },
+        "syslog": {
+            "support-rate-limit": true
+        }
+    },
+    "container": {
+        "privileged": false,
+        "volumes": [],
+        "tmpfs": []
+    },
+    "cli": {
+        "config": "",
+        "show": "",
+        "clear": ""
+    }
+},com.azure.sonic.versions.libnexthopgroup=1.0.0,com.azure.sonic.versions.libsairedis=1.0.0,com.azure.sonic.versions.libswsscommon=1.0.0,com.azure.sonic.versions.sonic-supervisord-utilities-rs=1.0.0,com.azure.sonic.versions.sonic_utilities=1.2,Tag=202605.1205344-adcef327e
+aede37782d70 ghcr.io/mostlygeek/llama-swap:cuda 853f2074588f_llama-swap com.docker.compose.depends_on=,com.docker.compose.image=sha256:827fa76dde1d2134aa27026df4567f0ff2f248a386b14233109d92f4fab11674,com.docker.compose.service=llama-swap,com.docker.compose.version=5.1.4,com.docker.compose.oneoff=False,com.docker.compose.project=llama-swap,com.docker.compose.project.config_files=/root/llama-swap/docker-compose.yml,org.opencontainers.image.ref.name=ubuntu,com.docker.compose.project.working_dir=/root/llama-swap,maintainer=NVIDIA CORPORATION <cudatools@nvidia.com>,org.opencontainers.image.created=2026-08-11T05:52:52Z,org.opencontainers.image.revision=4801e3c567d5131dd41b387df5f2d4b1370d92be,org.opencontainers.image.url=https://github.com/ggml-org/llama.cpp,com.docker.compose.config-hash=3f3bd6a5ad3a84a86b403504b8def997cb6d43b87cb5f23c5eb922924fa3d531,com.docker.compose.container-number=1,com.docker.compose.replace=llama-swap,org.opencontainers.image.description=LLM inference in C/C++,org.opencontainers.image.source=https://github.com/ggml-org/llama.cpp,org.opencontainers.image.title=llama.cpp,org.opencontainers.image.version=b10362
+a8b8505d38bd grafana/grafana:11.2.0 observability-grafana-1 com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.replace=grafana-1,com.docker.compose.version=5.1.4,com.docker.compose.container-number=1,com.docker.compose.oneoff=False,com.docker.compose.project.working_dir=/root/agent-observability-stack,com.docker.compose.service=grafana,maintainer=Grafana Labs <hello@grafana.com>,com.docker.compose.config-hash=659516d61ac42458c57e96f1c1fcbc6c1434f55b3bc3d9983df65dca98c150cc,com.docker.compose.depends_on=tempo:service_started:false,prometheus:service_started:false,com.docker.compose.image=sha256:de903bc9ce7c4e27fd447a72849506b3bcebd10a87aab770696442502152bfb5,com.docker.compose.project=observability
+3b30f691846a nginx:1.27-alpine observability-qmd-static-1 com.docker.compose.oneoff=False,com.docker.compose.project=observability,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.service=qmd-static,com.docker.compose.image=sha256:6769dc3a703c719c1d2756bda113659be28ae16cf0da58dd5fd823d6b9a050ea,com.docker.compose.project.working_dir=/root/agent-observability-stack,com.docker.compose.version=5.1.4,maintainer=NGINX Docker Maintainers <docker-maint@nginx.com>,com.docker.compose.config-hash=3ab4f7d110cf75eeb739fa0f77a55b879c46677c6b85f1f71837c5b095475477,com.docker.compose.container-number=1,com.docker.compose.depends_on=
+23443700e89f cc-compass-shim:local cc-compass-shim com.docker.compose.image=sha256:10301c76910dece990a7be9e2438cbead9141a783b849398c03d8cfad275c10c,com.docker.compose.oneoff=False,com.docker.compose.project=cc-compass-shim,com.docker.compose.project.config_files=/root/cc-compass-shim/docker-compose.yml,com.docker.compose.replace=cc-compass-shim,com.docker.compose.depends_on=,com.docker.compose.project.working_dir=/root/cc-compass-shim,com.docker.compose.service=cc-compass-shim,com.docker.compose.version=5.1.4,com.docker.compose.config-hash=399ad19a7f7f7c5461862f7db72af9c9c759e67feee17548ac33b1577ff3b50a,com.docker.compose.container-number=1
+a66b0841b09a grafana/grafana:11.2.0 observability-grafana-run-2ddf11c41b58 com.docker.compose.depends_on=prometheus:service_started:false,tempo:service_started:false,com.docker.compose.image=sha256:de903bc9ce7c4e27fd447a72849506b3bcebd10a87aab770696442502152bfb5,com.docker.compose.oneoff=True,com.docker.compose.project=observability,com.docker.compose.project.working_dir=/root/agent-observability-stack,com.docker.compose.service=grafana,com.docker.compose.slug=2ddf11c41b5876d790f3711e439361b94368cf629d539bd35f94aed5ccda7ec1,maintainer=Grafana Labs <hello@grafana.com>,com.docker.compose.config-hash=53e1148bcf43a6c7e1b0c317fcfcc5584eb5fd5fb85cd9d86eccf83d21d04cec,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.version=5.1.4
+c05f744ba4a3 influxdb:2.7 shares-influxdb com.docker.compose.project=duby,com.docker.compose.version=5.1.4,com.docker.compose.config-hash=e3f7856921c385f70f50922cac27d60c96973f9f6e9d4787fc1c13bcf5f6907b,com.docker.compose.container-number=1,com.docker.compose.image=sha256:9ca9c0cb5b054022f64ce03607d4226c90bf9b5d38a09881283d0497ba9801a8,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/root/duby/docker-compose.yml,com.docker.compose.project.working_dir=/root/duby,com.docker.compose.service=influxdb,com.docker.compose.depends_on=
+2574ae5b87aa otel/opentelemetry-collector-contrib:0.109.0 observability-otel-collector-1 org.opencontainers.image.source=https://github.com/open-telemetry/opentelemetry-collector-releases,com.docker.compose.container-number=1,com.docker.compose.depends_on=tempo:service_started:false,loki:service_started:false,com.docker.compose.image=sha256:34069a0c53cccf0100768bbfcaf6a26ae4e27efcc2f9d38438e2b42666205c5c,com.docker.compose.project.working_dir=/root/agent-observability-stack,org.opencontainers.image.created=2024-09-10T20:09:44Z,org.opencontainers.image.licenses=Apache-2.0,org.opencontainers.image.version=0.109.0,org.opencontainers.image.revision=b07bcb3f966e134245b9879f8e8b5948a44bfc9f,com.docker.compose.config-hash=81597e7723ca953137241629126302e2b80499e3c4e9ab548133fc3e16359f56,com.docker.compose.oneoff=False,com.docker.compose.project=observability,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.service=otel-collector,com.docker.compose.version=5.1.4,org.opencontainers.image.name=opentelemetry-collector-releases
+bedb3a8e174e gcr.io/cadvisor/cadvisor:v0.49.1 observability-cadvisor-1 com.docker.compose.version=5.1.4,com.docker.compose.config-hash=fc0dc7123d782cf6fee061648d83fc548a6d28c2d31c1a9af4ba5d5f34199638,com.docker.compose.depends_on=,com.docker.compose.image=sha256:c02cf39d3dba9fcf5531f23358e33377e50fcc6065d97a27e68a4242229c67a0,com.docker.compose.project=observability,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.service=cadvisor,com.docker.compose.container-number=1,com.docker.compose.oneoff=False,com.docker.compose.project.working_dir=/root/agent-observability-stack
+11575693a8b6 grafana/grafana-image-renderer:3.11.6 observability-grafana-image-renderer-1 com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.version=5.1.4,maintainer=Grafana team <hello@grafana.com>,com.docker.compose.config-hash=83f9b00f6270b7785d60d85d1ba3fee8d594084d0a4be7fd24990d236c461493,com.docker.compose.depends_on=,com.docker.compose.image=sha256:dbfd397803f0440df29be1eacc61774e571534cd450fd51e4c06678dd09288a2,com.docker.compose.project=observability,com.docker.compose.project.working_dir=/root/agent-observability-stack,com.docker.compose.service=grafana-image-renderer,com.docker.compose.container-number=1
+4746747a76d2 clickhouse/clickhouse-server:24.8-alpine observability-clickhouse-1 com.docker.compose.oneoff=False,com.docker.compose.project=observability,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.project.working_dir=/root/agent-observability-stack,com.docker.compose.version=5.1.4,com.docker.compose.config-hash=0fa1015caf8fa73b12452ffbd38787b511ca3f065481f5781c6074448f0619e7,com.docker.compose.container-number=1,com.docker.compose.image=sha256:e452dca0f3e0a541a34f1381e72045f19ede28d511f1de12cb74e2fb22e53df6,com.docker.compose.service=clickhouse,com.clickhouse.build.version=24.8.14.39-alpine,com.docker.compose.depends_on=
+bc737397a160 grafana/tempo:2.6.0 observability-tempo-1 com.docker.compose.service=tempo,org.opencontainers.image.created=2024-09-03T15:55:04Z,com.docker.compose.image=sha256:53dbf1f72e4d0c5a1141b622069d2e657ac5584e02d20565197f8bdc6e2b643e,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.version=5.1.4,org.opencontainers.image.revision=e85bbc57de52cc9044bc0911de0d1afe5d1fbe07,org.opencontainers.image.source=https://github.com/grafana/tempo.git,org.opencontainers.image.url=https://github.com/grafana/tempo,com.docker.compose.config-hash=0749e69f3a14f48938898d0629fd79e1e4fdd42dcc233ec548f9b8aa6155c7ab,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.oneoff=False,com.docker.compose.project=observability,com.docker.compose.project.working_dir=/root/agent-observability-stack
+c3734c1acd44 ncabatoff/process-exporter:0.8.7 observability-process-exporter-1 com.docker.compose.container-number=1,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,org.opencontainers.image.source=https://github.com/ncabatoff/process-exporter,org.opencontainers.image.title=process-exporter,org.opencontainers.image.version=0.8.7,org.opencontainers.image.created=2025-04-21T13:30:58.456Z,org.opencontainers.image.description=Prometheus exporter that mines /proc to report on selected processes,org.opencontainers.image.revision=e52ab0a1c03d6baf8ed60154c254ecc0008549f3,com.docker.compose.config-hash=67231f8ef2fcc7226d103b75fcb7adbd2c78fbb02fff5b5c546d0a5a3237f697,com.docker.compose.depends_on=,com.docker.compose.image=sha256:57e10918a4bacfb25651096c1402930de65ff492ab02c0f102ef3b88b822ddaa,com.docker.compose.project=observability,org.opencontainers.image.url=https://github.com/ncabatoff/process-exporter,org.opencontainers.image.licenses=MIT,com.docker.compose.oneoff=False,com.docker.compose.project.working_dir=/root/agent-observability-stack,com.docker.compose.service=process-exporter,com.docker.compose.version=5.1.4
+e0598adad5a6 prom/prometheus:v2.54.1 observability-prometheus-1 com.docker.compose.config-hash=18ce72e2b6c61e166fc592953052a7d10829b2e68f5325784601d2ba092a1b45,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.version=5.1.4,maintainer=The Prometheus Authors <prometheus-developers@googlegroups.com>,com.docker.compose.image=sha256:4022a502929b890bc9fd6231dda3ca1aec863ee08cef4113742949736ecd234f,com.docker.compose.oneoff=False,com.docker.compose.project=observability,com.docker.compose.project.working_dir=/root/agent-observability-stack,com.docker.compose.service=prometheus
+7d05e73b2ef0 prom/node-exporter:v1.8.2 observability-node-exporter-1 com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.oneoff=False,com.docker.compose.project=observability,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.project.working_dir=/root/agent-observability-stack,com.docker.compose.service=node-exporter,maintainer=The Prometheus Authors <prometheus-developers@googlegroups.com>,com.docker.compose.config-hash=821d943aad5582798f0f673b76d94d2377e4acf7c4cffeadb2ed2280df69e61c,com.docker.compose.image=sha256:71dc9668b154bd072420bf69f59140ceeac04b88cf300bfa24053eb02a04f169,com.docker.compose.version=5.1.4
+759aa07a9ed1 grafana/loki:3.1.1 observability-loki-1 com.docker.compose.container-number=1,com.docker.compose.oneoff=False,com.docker.compose.project=observability,com.docker.compose.service=loki,com.docker.compose.version=5.1.4,com.docker.compose.config-hash=02c6f1714ea9f194f40a06ff306df13f0a8180bbb90319dc2db7b0b1a0a1d312,com.docker.compose.depends_on=,com.docker.compose.image=sha256:a287cb08d791a8d0d818c978f860bbd63658163661e0ff20a805edeae46813b1,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.project.working_dir=/root/agent-observability-stack
+ae9d29cdfb84 prompve/prometheus-pve-exporter:3.4.4 observability-pve-exporter-1 com.docker.compose.container-number=1,com.docker.compose.service=pve-exporter,org.opencontainers.image.title=prometheus-pve-exporter,org.opencontainers.image.version=3.4.4,com.docker.compose.config-hash=24fe6574b6441caacea5f9f94ea796137f14806888480b10bd5ab411197e1bc2,com.docker.compose.project=observability,com.docker.compose.version=5.1.4,org.opencontainers.image.created=2024-08-15T12:13:09.037Z,org.opencontainers.image.revision=0a5ddf2209a918a2871b9d1cd05e0f5bdab7e7d8,org.opencontainers.image.source=https://github.com/prometheus-pve/prometheus-pve-exporter,org.opencontainers.image.url=https://github.com/prometheus-pve/prometheus-pve-exporter,com.docker.compose.depends_on=,com.docker.compose.image=sha256:6cfb80ff8e724fb67aa4dd4af429cac861ca6530063910d49d88f8b09ac21021,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.project.working_dir=/root/agent-observability-stack,org.opencontainers.image.description=Exposes information gathered from Proxmox VE cluster for use by the Prometheus monitoring system,org.opencontainers.image.licenses=Apache-2.0
+715515619ab3 prom/blackbox-exporter:v0.25.0 observability-blackbox-exporter-1 com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.version=5.1.4,maintainer=The Prometheus Authors <prometheus-developers@googlegroups.com>,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.project.working_dir=/root/agent-observability-stack,com.docker.compose.service=blackbox-exporter,com.docker.compose.config-hash=fc3eb37e988cbd1c2c1152e7f91c134b2c52a059f201bb434b0c95cf6cf07b59,com.docker.compose.image=sha256:9b4bb468d49e5b11a88a8c9f95fb8bbf7ebf8ab0943a36a1c138b1577e61dd32,com.docker.compose.oneoff=False,com.docker.compose.project=observability
+5761d8ff4fcd prom/alertmanager:v0.27.0 observability-alertmanager-1 com.docker.compose.config-hash=77c17d48ac958b840e084c8368536015944f35011727e8bdbc50bb242c87febb,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.oneoff=False,com.docker.compose.project=observability,com.docker.compose.project.working_dir=/root/agent-observability-stack,com.docker.compose.image=sha256:11f11916f8cdfb17c1da74b20deb2075d778357b4d60474d82453303f8d461f5,com.docker.compose.project.config_files=/root/agent-observability-stack/docker-compose.yml,/root/agent-observability-stack/docker-compose.override.yml,com.docker.compose.service=alertmanager,com.docker.compose.version=5.1.4,maintainer=The Prometheus Authors <prometheus-developers@googlegroups.com>
+d7bdc59f8d81 registry:2 registry 
+72e4cc3f074d governed/controller:phase2 workflow-controller com.docker.compose.config-hash=80c87fe5e681b932f34f17070f6ffe728648d1136edfd17b8faf90f87cfb3f55,com.docker.compose.project=governed-fleet,com.docker.compose.project.config_files=/root/workflow_orchestration/infra/compose/docker-compose.governed.yml,com.docker.compose.project.working_dir=/root/workflow_orchestration/infra/compose,com.docker.compose.replace=workflow-controller,com.docker.compose.service=workflow-controller,com.docker.compose.version=5.1.4,com.docker.compose.container-number=1,com.docker.compose.depends_on=postgres:service_healthy:false,nats:service_healthy:false,com.docker.compose.image=sha256:f78cc127f5662a7467f8605b33325d5cc0b944e4786af1b47e36ecec2b2cb83f,com.docker.compose.oneoff=False
+f9d5a6668a34 postgres:16-alpine workflow-postgres com.docker.compose.project.working_dir=/root/workflow_orchestration/infra/compose,com.docker.compose.service=postgres,com.docker.compose.version=5.1.4,com.docker.compose.container-number=1,com.docker.compose.project=governed-fleet,com.docker.compose.replace=workflow-postgres,com.docker.compose.config-hash=267370319a657af724045ac7c47f7a8da820ac37ebe787a06ea38510f26c751f,com.docker.compose.depends_on=,com.docker.compose.image=sha256:de3a4eab8fdfa507ea92aac488b916b08089e515db49b055fe71dfa271ba3a28,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/root/workflow_orchestration/infra/compose/docker-compose.governed.yml
+58fdf15b9c90 nats:2.10-alpine workflow-nats com.docker.compose.service=nats,com.docker.compose.version=5.1.4,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.oneoff=False,com.docker.compose.project=governed-fleet,com.docker.compose.config-hash=4acaf15865b572de0ed6aa7fafbd2318a30b816f78263478e9cc79af810c7fdd,com.docker.compose.image=sha256:8b9f712ae2148dcbd9d7f3d16a942d515e290526e5d018500931eab62b18e045,com.docker.compose.project.config_files=/root/workflow_orchestration/infra/compose/docker-compose.governed.yml,com.docker.compose.project.working_dir=/root/workflow_orchestration/infra/compose
+27be575279f2 postgres:16 litellm-postgres-1 com.docker.compose.service=postgres,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:f40a5645a21f34c966c46a283e6b7fd5f4a7d4fc1768a5842f34b38423e90c8f,com.docker.compose.oneoff=False,com.docker.compose.project.working_dir=/root/litellm,com.docker.compose.version=5.1.4,com.docker.compose.config-hash=a82dc0073931c1c9bc119278580a1e87468a88c9b7df7137324f3f995dc4686b,com.docker.compose.project=litellm,com.docker.compose.project.config_files=/root/litellm/docker-compose.yml,com.docker.compose.project.environment_file=/root/litellm/.env
+[cycles] runtime-scan-1 exit=0
+[cycles] off exit=0
+[cycles] off-noop log=off-1-noop.log exit=0
+[cycles] ===== clean cycle 2 =====

@@ -1,0 +1,9 @@
+     1	  echo "[provision] deploying controllers"
+     2	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system apply -f "${REPO_ROOT}/deploy/ainetops/manifests/provider.yaml"
+     3	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system apply -f "${REPO_ROOT}/deploy/ainetops/manifests/srv6-controller.yaml"
+     4	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system set image deploy/ainetops-sonic-provider provider=ainetops-sonic-provider:dev || true
+     5	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system set image deploy/ainetops-srv6-controller srv6-controller=ainetops-srv6-controller:dev || true
+     6	  echo "[provision] waiting for controller pods ready (timeout=${AINETOPS_TIMEOUT})"
+     7	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system rollout status deploy/ainetops-sonic-provider --timeout="${AINETOPS_TIMEOUT}"
+     8	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system rollout status deploy/ainetops-srv6-controller --timeout="${AINETOPS_TIMEOUT}"
+     9	  # Capture independent observation proof

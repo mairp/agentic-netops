@@ -1,0 +1,1 @@
+nl -ba deploy/sdc/install.sh | sed -n '63,74p'

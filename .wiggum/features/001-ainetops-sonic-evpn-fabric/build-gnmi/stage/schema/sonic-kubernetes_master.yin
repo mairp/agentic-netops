@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-kubernetes_master"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:kubernetes_master="http://github.com/sonic-net/sonic-kubernetes_master"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-kubernetes_master"/>
+  <prefix value="kubernetes_master"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <description>
+    <text>KUBERNETES_MASTER YANG Module for SONiC OS</text>
+  </description>
+  <revision date="2022-10-09">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-kubernetes_master">
+    <container name="KUBERNETES_MASTER">
+      <description>
+        <text>Kubernetes master server endpoint and connection settings</text>
+      </description>
+      <container name="SERVER">
+        <description>
+          <text>Kubernetes API server connection parameters</text>
+        </description>
+        <leaf name="ip">
+          <description>
+            <text>Kubernetes api server endpoint(an IP address or a DNS
+domain name.)</text>
+          </description>
+          <type name="inet:host"/>
+        </leaf>
+        <leaf name="port">
+          <description>
+            <text>Kubernetes api server port</text>
+          </description>
+          <type name="inet:port-number"/>
+          <default value="6443"/>
+        </leaf>
+        <leaf name="disable">
+          <description>
+            <text>Whether to disable Kubernetes integration</text>
+          </description>
+          <type name="stypes:boolean_type"/>
+          <default value="false"/>
+        </leaf>
+        <leaf name="insecure">
+          <description>
+            <text>Whether to use HTTP instead of HTTPS for downloading Kubernetes CA certificate</text>
+          </description>
+          <type name="stypes:boolean_type"/>
+          <default value="true"/>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

@@ -97,12 +97,26 @@ preflight::kvm_check() {
 # Extract value from versions.lock.yaml given a top-level section and key
 preflight::yaml_value() {
   local section=$1 key=$2 file; file=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/versions.lock.yaml
-  awk -v s="^"$section":$" -v k="^\\s*"$key":" 'f; $0~s{f=1} f && /^[^[:space:]]/{if(!p){p=1;print}else exit} f && p{if ($0~k){sub(/.*:[[:space:]]*/, ""); gsub(/\"/, ""); print; exit}}' "$file"
+  awk -v sec="$section" -v key="$key" '
+    $0 ~ "^"sec":\s*$" {inside=1; next}
+    inside && $0 ~ "^[^[:space:]]" {inside=0}
+    inside && $0 ~ "^[[:space:]]+"key":" {
+      val=$0; sub(/^[^:]*:[[:space:]]*/, "", val); gsub(/\"/, "", val); print val; exit
+    }
+  ' "$file"
 }
 
 preflight::tool_versions() {
   # Verify host tool versions match pins in versions.lock.yaml
-  for c in kind kubectl helm containerlab jq curl; do preflight::require_cmd "$c"; done
+  local soft=${AINETOPS_SOFT_TOOLCHECK:-false}
+
+  # In soft mode, warn instead of die on missing tools or version mismatches (CI/minimal env)
+  local tools=(kind kubectl helm containerlab jq curl)
+  for c in "${tools[@]}"; do
+    if ! command -v "$c" >/dev/null 2>&1; then
+      if [[ "$soft" == "true" ]]; then preflight::warn "missing tool: $c (soft mode)"; else preflight::die "missing required command: $c"; fi
+    fi
+  done
 
   local kind_pin kubectl_pin helm_pin clab_pin
   kind_pin=$(preflight::yaml_value kind binary)
@@ -118,20 +132,52 @@ preflight::tool_versions() {
   [[ -n "$clab_pin" ]] || preflight::die "missing containerlab.version pin in versions.lock.yaml"
 
   # kind
-  local kind_ver; kind_ver=$(kind version 2>/dev/null | awk '{print $2}') || true
-  [[ "$kind_ver" == "$kind_pin" ]] || preflight::die "kind version $kind_ver != pinned $kind_pin"
+  if command -v kind >/dev/null 2>&1; then
+    local kind_ver; kind_ver=$(kind version 2>/dev/null | awk '{print $2}') || true
+    if [[ "$kind_ver" != "$kind_pin" ]]; then
+      if [[ "$soft" == "true" ]]; then preflight::warn "kind version $kind_ver != pinned $kind_pin (soft mode)"; else preflight::die "kind version $kind_ver != pinned $kind_pin"; fi
+    fi
+  fi
 
   # kubectl
-  local kubectl_ver; kubectl_ver=$(kubectl version --client -o json 2>/dev/null | jq -r '.clientVersion.gitVersion' || true)
-  [[ "$kubectl_ver" == "$kubectl_pin" ]] || preflight::die "kubectl version $kubectl_ver != pinned $kubectl_pin"
+  if command -v kubectl >/dev/null 2>&1; then
+    local kubectl_ver; kubectl_ver=$(kubectl version --client -o json 2>/dev/null | jq -r '.clientVersion.gitVersion' || true)
+    if [[ "$kubectl_ver" != "$kubectl_pin" ]]; then
+      if [[ "$soft" == "true" ]]; then preflight::warn "kubectl version $kubectl_ver != pinned $kubectl_pin (soft mode)"; else preflight::die "kubectl version $kubectl_ver != pinned $kubectl_pin"; fi
+    fi
+  fi
 
   # helm
-  local helm_ver; helm_ver=$(helm version --short --client 2>/dev/null | sed 's/+.*//' || true)
-  [[ "$helm_ver" == "$helm_pin" ]] || preflight::die "helm version $helm_ver != pinned $helm_pin"
+  if command -v helm >/dev/null 2>&1; then
+    local helm_ver; helm_ver=$(helm version --short --client 2>/dev/null | sed 's/+.*//' || true)
+    if [[ "$helm_ver" != "$helm_pin" ]]; then
+      if [[ "$soft" == "true" ]]; then preflight::warn "helm version $helm_ver != pinned $helm_pin (soft mode)"; else preflight::die "helm version $helm_ver != pinned $helm_pin"; fi
+    fi
+  fi
 
-  # containerlab (parse the 'version:' line)
-  local clab_ver; clab_ver=$(containerlab version 2>/dev/null | awk -F': *' '/^version:/ {print $2; exit}')
-  [[ "$clab_ver" == "$clab_pin" ]] || preflight::die "containerlab version $clab_ver != pinned $clab_pin"
+  # containerlab (parse the 'version: X.Y.Z' line from `containerlab version`)
+  # containerlab >=0.7x prints an ASCII banner (possibly with ANSI color codes)
+  # followed by "    version: X.Y.Z" with LEADING WHITESPACE. The parser must trim
+  # the key and strip escape codes, otherwise a correct install reads as an empty
+  # version and is reported as a mismatch.
+  if command -v containerlab >/dev/null 2>&1; then
+    local clab_ver esc
+    esc=$(printf '\033')
+    clab_ver=$(containerlab version 2>/dev/null | sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" | awk -F': *' '{h=tolower($1); gsub(/[^a-z]/,"",h); if (h=="version") {v=$2; gsub(/[^0-9.]/,"",v); if (v!="") {print v; exit}}}')
+    if [[ -z "$clab_ver" ]]; then
+      # Fallback: first three-component version anywhere in the version output
+      clab_ver=$(containerlab version 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
+    fi
+    if [[ -z "$clab_ver" ]]; then
+      # Last resort: legacy flag form (older containerlab)
+      clab_ver=$(containerlab --version 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
+    fi
+    if [[ "$clab_ver" != "$clab_pin" ]]; then
+      if [[ "$soft" == "true" ]]; then preflight::warn "containerlab version $clab_ver != pinned $clab_pin (soft mode)"; else preflight::die "containerlab version $clab_ver != pinned $clab_pin"; fi
+    fi
+  else
+    if [[ "$soft" == "true" ]]; then preflight::warn "containerlab not installed (soft mode)"; else preflight::die "missing required command: containerlab"; fi
+  fi
 }
 
 preflight::run() {

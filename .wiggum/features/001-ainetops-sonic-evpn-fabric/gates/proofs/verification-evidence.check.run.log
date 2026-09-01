@@ -1,0 +1,4 @@
+[verification-evidence] OK: verification plan present: /root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/runs/20260829-215525-414436/verification/verification-plan.json
+[verification-evidence] OK: phase-8 attempt evidence present: /root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/runs/20260829-215525-414436/verification/phase-8-attempt-5.json
+[verification-evidence] OK: evidence JSON shows passed=true and gateId=GATE-phase-8
+[verification-evidence] All required verification artifacts present

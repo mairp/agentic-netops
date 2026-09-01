@@ -39,6 +39,12 @@ spec:
         livenessProbe:
           httpGet: { path: /healthz, port: 8081 }
           initialDelaySeconds: 10
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
       # Annotate for Prometheus scrape discovery
       # Prometheus job 'controllers' selects pods with these annotations
       # and scrapes the metrics endpoint

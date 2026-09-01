@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-console"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:console="http://github.com/sonic-net/sonic-console"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-console"/>
+  <prefix value="console"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <description>
+    <text>Console port switch and management YANG module for SONiC OS.</text>
+  </description>
+  <revision date="2026-02-12">
+    <description>
+      <text>Add escape_char config</text>
+    </description>
+  </revision>
+  <revision date="2022-08-22">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <typedef name="console-mgmt-enabled">
+    <description>
+      <text>Configuration to set if console switch is enabled or not</text>
+    </description>
+    <type name="string">
+      <pattern value="yes|no"/>
+    </type>
+  </typedef>
+  <typedef name="console-mgmt-escape-char">
+    <description>
+      <text>Configuration to set escape character when opening console line</text>
+    </description>
+    <type name="string">
+      <pattern value="[a-z]"/>
+    </type>
+  </typedef>
+  <typedef name="console-flow-control">
+    <description>
+      <text>Configuration to set if enable flow control on a console port</text>
+    </description>
+    <type name="string">
+      <pattern value="0|1"/>
+    </type>
+  </typedef>
+  <container name="sonic-console">
+    <container name="CONSOLE_PORT">
+      <description>
+        <text>Console port configuration for connecting to remote devices.</text>
+      </description>
+      <list name="CONSOLE_PORT_LIST">
+        <key value="name"/>
+        <description>
+          <text>A console port entry identified by port number.</text>
+        </description>
+        <leaf name="name">
+          <description>
+            <text>Console port line number.</text>
+          </description>
+          <type name="uint16"/>
+        </leaf>
+        <leaf name="baud_rate">
+          <description>
+            <text>Serial baud rate for this console port.</text>
+          </description>
+          <type name="uint32"/>
+        </leaf>
+        <leaf name="flow_control">
+          <description>
+            <text>Enable (1) or disable (0) hardware flow control on this console port.</text>
+          </description>
+          <type name="console-flow-control"/>
+          <default value="0"/>
+        </leaf>
+        <leaf name="remote_device">
+          <description>
+            <text>Hostname of the remote device connected to this console port.</text>
+          </description>
+          <type name="stypes:hostname"/>
+        </leaf>
+        <leaf name="escape_char">
+          <description>
+            <text>Per-port escape character overriding the global default.</text>
+          </description>
+          <type name="console-mgmt-escape-char"/>
+        </leaf>
+      </list>
+    </container>
+    <container name="CONSOLE_SWITCH">
+      <description>
+        <text>Console switch feature toggle and global settings.</text>
+      </description>
+      <container name="console_mgmt">
+        <description>
+          <text>Console management feature and global escape character settings.</text>
+        </description>
+        <leaf name="enabled">
+          <description>
+            <text>Enable or disable the console switch management feature.</text>
+          </description>
+          <type name="console-mgmt-enabled"/>
+          <default value="no"/>
+        </leaf>
+        <leaf name="default_escape_char">
+          <description>
+            <text>Default escape character used by picocom for all console lines.</text>
+          </description>
+          <type name="console-mgmt-escape-char"/>
+        </leaf>
+      </container>
+      <container name="controlled_device">
+        <leaf name="enabled">
+          <description>
+            <text>This configuration indicate if enable controlled device feature on SONiC</text>
+          </description>
+          <type name="console-mgmt-enabled"/>
+          <default value="no"/>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

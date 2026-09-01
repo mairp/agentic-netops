@@ -1,0 +1,5 @@
+9:# Secret grafana-admin is generated at runtime by deploy/observability/grafana-secret-generator-job.yaml
+154:            - name: GF_INSTALL_PLUGINS
+158:            - name: GF_AUTH_ANONYMOUS_ENABLED
+162:                secretKeyRef: { name: grafana-admin, key: admin-user }
+165:                secretKeyRef: { name: grafana-admin, key: admin-password }

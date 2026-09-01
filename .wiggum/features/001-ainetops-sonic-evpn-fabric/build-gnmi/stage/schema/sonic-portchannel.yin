@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-portchannel"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:lag="http://github.com/sonic-net/sonic-portchannel"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head"
+        xmlns:yang="urn:ietf:params:xml:ns:yang:ietf-yang-types"
+        xmlns:port="http://github.com/sonic-net/sonic-port"
+        xmlns:vrf="http://github.com/sonic-net/sonic-vrf">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-portchannel"/>
+  <prefix value="lag"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <import module="ietf-yang-types">
+    <prefix value="yang"/>
+  </import>
+  <import module="sonic-port">
+    <prefix value="port"/>
+    <revision-date date="2019-07-01"/>
+  </import>
+  <import module="sonic-vrf">
+    <prefix value="vrf"/>
+  </import>
+  <description>
+    <text>Link Aggregation Group (LAG/PortChannel) configuration using LACP</text>
+  </description>
+  <revision date="2021-06-13">
+    <description>
+      <text>Change min-links valid range from 1-128 to 1-1024</text>
+    </description>
+  </revision>
+  <revision date="2021-03-31">
+    <description>
+      <text>Add PortChannel Interface List with VRF attribute</text>
+    </description>
+  </revision>
+  <revision date="2021-03-15">
+    <description>
+      <text>Add SONiC PortChannel Interface model</text>
+    </description>
+  </revision>
+  <revision date="2019-07-01">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-portchannel">
+    <container name="PORTCHANNEL">
+      <description>
+        <text>PortChannel (LAG) interface configuration table</text>
+      </description>
+      <list name="PORTCHANNEL_LIST">
+        <description>
+          <text>Configuration entry for a PortChannel aggregate interface</text>
+        </description>
+        <key value="name"/>
+        <leaf name="name">
+          <description>
+            <text>PortChannel interface name (e.g. PortChannel0001)</text>
+          </description>
+          <type name="string">
+            <pattern value="PortChannel[0-9]{1,4}"/>
+          </type>
+        </leaf>
+        <leaf name="min_links">
+          <description>
+            <text>Minimum number of active member links required for the PortChannel to be operationally up</text>
+          </description>
+          <type name="uint16">
+            <range value="1..1024"/>
+          </type>
+        </leaf>
+        <leaf name="mode">
+          <description>
+            <text>PortChannel SwitchPort Mode possible values are routed|access|trunk. Default value for mode is routed.</text>
+          </description>
+          <type name="stypes:switchport_mode"/>
+        </leaf>
+        <leaf name="description">
+          <description>
+            <text>User-defined description for the PortChannel interface</text>
+          </description>
+          <type name="string">
+            <length value="1..255"/>
+          </type>
+        </leaf>
+        <leaf name="mtu">
+          <description>
+            <text>Maximum transmission unit size in bytes</text>
+          </description>
+          <type name="uint16">
+            <range value="1..9216"/>
+          </type>
+        </leaf>
+        <leaf name="admin_status">
+          <description>
+            <text>Administrative state of the PortChannel interface</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="stypes:admin_status"/>
+        </leaf>
+        <leaf name="lacp_key">
+          <description>
+            <text>LACP aggregation key; 'auto' derives it from the PortChannel name, or specify a value from 1 to 65535</text>
+          </description>
+          <type name="union">
+            <type name="string">
+              <pattern value="auto"/>
+            </type>
+            <type name="uint16">
+              <range value="1..65535"/>
+            </type>
+          </type>
+        </leaf>
+        <leaf name="tpid">
+          <description>
+            <text>This leaf describes the possible TPID value that can be configured
+to the specified portchannel if the HW supports TPID configuration. The possible
+values are 0x8100, 0x9100, 0x9200, 0x88a8, and 0x88A8</text>
+          </description>
+          <type name="stypes:tpid_type"/>
+        </leaf>
+        <leaf name="fallback">
+          <description>
+            <text>Enable LACP fallback feature</text>
+          </description>
+          <type name="stypes:boolean_type"/>
+        </leaf>
+        <leaf name="fast_rate">
+          <description>
+            <text>Enable LACP fast rate</text>
+          </description>
+          <type name="stypes:boolean_type"/>
+        </leaf>
+      </list>
+    </container>
+    <container name="PORTCHANNEL_MEMBER">
+      <description>
+        <text>Mapping of physical ports to PortChannel aggregate interfaces</text>
+      </description>
+      <list name="PORTCHANNEL_MEMBER_LIST">
+        <description>
+          <text>Association of a physical port as a member of a PortChannel</text>
+        </description>
+        <key value="name port"/>
+        <leaf name="name">
+          <description>
+            <text>Reference to the parent PortChannel interface</text>
+          </description>
+          <type name="leafref">
+            <path value="/lag:sonic-portchannel/lag:PORTCHANNEL/lag:PORTCHANNEL_LIST/lag:name"/>
+          </type>
+        </leaf>
+        <leaf name="port">
+          <description>
+            <text>Reference to the physical port that is a member of this PortChannel</text>
+          </description>
+          <type name="leafref">
+            <path value="/port:sonic-port/port:PORT/port:PORT_LIST/port:name"/>
+          </type>
+        </leaf>
+      </list>
+    </container>
+    <container name="PORTCHANNEL_INTERFACE">
+      <description>
+        <text>PortChannel interface L3 configuration including VRF binding and IP addressing</text>
+      </description>
+      <list name="PORTCHANNEL_INTERFACE_LIST">
+        <description>
+          <text>L3 configuration entry for a PortChannel interface</text>
+        </description>
+        <key value="name"/>
+        <leaf name="name">
+          <description>
+            <text>Reference to the PortChannel interface</text>
+          </description>
+          <type name="leafref">
+            <path value="/lag:sonic-portchannel/lag:PORTCHANNEL/lag:PORTCHANNEL_LIST/lag:name"/>
+          </type>
+        </leaf>
+        <leaf name="vrf_name">
+          <description>
+            <text>VRF instance to which this PortChannel interface is bound</text>
+          </description>
+          <type name="leafref">
+            <path value="/vrf:sonic-vrf/vrf:VRF/vrf:VRF_LIST/vrf:name"/>
+          </type>
+        </leaf>
+        <leaf name="loopback_action">
+          <description>
+            <text>Packet action when a packet ingress and gets routed on the same IP interface</text>
+          </description>
+          <type name="stypes:loopback_action"/>
+        </leaf>
+        <leaf name="nat_zone">
+          <description>
+            <text>NAT Zone for the portchannel interface</text>
+          </description>
+          <type name="uint8">
+            <range value="0..3">
+              <error-message>
+                <value>Invalid nat zone for the portchannel interface.</value>
+              </error-message>
+              <error-app-tag value="nat-zone-invalid"/>
+            </range>
+          </type>
+          <default value="0"/>
+        </leaf>
+        <leaf name="mpls">
+          <description>
+            <text>Enable/disable MPLS routing for the portchannel interface</text>
+          </description>
+          <type name="enumeration">
+            <enum name="enable"/>
+            <enum name="disable"/>
+          </type>
+        </leaf>
+        <leaf name="ipv6_use_link_local_only">
+          <description>
+            <text>Enable/Disable IPv6 link local address on portchannel interface</text>
+          </description>
+          <type name="stypes:mode-status"/>
+          <default value="disable"/>
+        </leaf>
+        <leaf name="mac_addr">
+          <description>
+            <text>Assign administrator-provided MAC address to Interface</text>
+          </description>
+          <type name="yang:mac-address"/>
+        </leaf>
+      </list>
+      <list name="PORTCHANNEL_INTERFACE_IPPREFIX_LIST">
+        <description>
+          <text>IP address prefix assignment for a PortChannel interface</text>
+        </description>
+        <key value="name ip_prefix"/>
+        <leaf name="name">
+          <description>
+            <text>Reference to the PortChannel interface</text>
+          </description>
+          <type name="leafref">
+            <path value="/lag:sonic-portchannel/lag:PORTCHANNEL/lag:PORTCHANNEL_LIST/lag:name"/>
+          </type>
+        </leaf>
+        <leaf name="ip_prefix">
+          <description>
+            <text>IPv4 or IPv6 address with prefix length assigned to the PortChannel interface</text>
+          </description>
+          <type name="stypes:sonic-ip-prefix"/>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

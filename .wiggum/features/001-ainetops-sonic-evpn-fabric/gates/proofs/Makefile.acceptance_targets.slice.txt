@@ -1,0 +1,60 @@
+     1	SHELL := /bin/bash
+     2	.ONESHELL:
+     3	.SHELLFLAGS := -eu -o pipefail -c
+     4	
+     5	.PHONY: help verify-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest build build-migration-cli supply-chain denylist security-audit acceptance suites test-all
+     6	
+     7	help:
+     8		@echo "Targets:"
+     9		@echo "  verify-pins       Validate versions.lock.yaml has immutable pins and consistency"
+    10		@echo "  validate-crds     Server-side dry-run validation of Kubenet/KUID/SDC CRDs and examples"
+    11		@echo "  verify-register   Guard: fail if any rendered path is missing from the OC-vs-SONiC register"
+    12		@echo "  verify-compat     Run verify-pins and validate-crds together"
+    13		@echo "  lab-qualify       Run lab capability qualification suite (blocks downstream on failure)"
+    14		@echo "  build             Build provider, SRv6 controller, and migration CLI"
+    15		@echo "  build-migration-cli  Build only cmd/migration-translator"
+    16		@echo "  supply-chain      Run supply-chain checks (licenses, vuln, provenance, SBOM)"
+    17		@echo "  denylist          Run deny-list policy locally (matches CI)"
+    18		@echo "  security-audit    Run FR-015 security audit (RBAC, Secrets, TLS, privileges, Grafana, logs)"
+    19		@echo "  acceptance        Run Phase 8 acceptance checks (denylist + supply-chain + security-audit)"
+    20	
+    21	verify-pins:
+    22		@echo "[verify-pins] validating versions.lock.yaml"
+    23		@"$(PWD)/scripts/lib/verify_pins.sh"
+    24	
+    25	validate-crds:
+    26		@echo "[validate-crds] server-side validating CRDs and examples"
+    27		@mkdir -p .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs
+    28		@"$(PWD)/scripts/lib/validate_crds.sh" 2>&1 | tee .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log
+    29	
+    30	verify-compat: verify-pins validate-crds verify-register
+    31		@echo "[verify-compat] pins, CRD, and register validations passed" 
+    32	
+    33	supply-chain:
+    34		@"$(PWD)/scripts/ci/supply_chain.sh"
+    35	
+    36	denylist:
+    37		@"$(PWD)/scripts/ci/denylist_local.sh"
+    38	
+    39	security-audit:
+    40		@"$(PWD)/scripts/ci/security_audit.sh"
+    41	
+    42	acceptance: denylist supply-chain security-audit
+    43		@echo "[acceptance] Phase 8 policy checks passed"
+    44	
+    45	build:
+    46		@echo "[build] building provider, SRv6 controller, and migration CLI"
+    47		@for d in cmd/sonic-provider cmd/srv6-controller cmd/migration-translator; do \
+    48		  echo "Building $$d"; \
+    49		  GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -buildid=" ./$$d; \
+    50		done
+    51	
+    52	build-migration-cli:
+    53		@echo "[build] building cmd/migration-translator"
+    54		@GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -buildid=" ./cmd/migration-translator
+    55	
+    56	# Lifecycle wrappers (do not reimplement phases): call scripts directly
+    57	PROF ?= sonic-vs
+    58	CLUSTER ?= ainetops
+    59	TIMEOUT ?= 180s
+    60	

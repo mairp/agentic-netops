@@ -1,0 +1,14 @@
+     1	# T078: quickstart wrappers
+     2	quickstart:
+     3		@"$(PWD)/scripts/provision.sh" --profile $(PROF) --cluster-name $(CLUSTER) --timeout $(TIMEOUT)
+     4		@$(MAKE) -s verify-compat lab-qualify
+     5	
+     6	provision:
+     7		@"$(PWD)/scripts/provision.sh" --profile $(PROF) --cluster-name $(CLUSTER) --timeout $(TIMEOUT)
+     8	
+     9	off:
+    10		@AINETOPS_DELETE_KIND=$(DELETE_KIND) AINETOPS_CAPTURE_EVIDENCE=$(CAPTURE) "$(PWD)/scripts/off.sh" --cluster-name $(CLUSTER)
+    11	
+    12	lab-qualify:
+    13		@echo "[lab-qualify] Running capability gate"
+    14		@"$(PWD)/scripts/lib/qualify.sh"

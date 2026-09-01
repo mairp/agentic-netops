@@ -56,3 +56,20 @@ After a rebuild, push and re-pin:
     docker push localhost:5000/sonic-vs-gnmi:202605 && docker inspect --format '{{index .RepoDigests 0}}' localhost:5000/sonic-vs-gnmi:202605
 
 then update `versions.lock.yaml` (`sonic_images.sonic_vs` + the `sonic_yang.compatibility` row), `lab/topology.clab.yml`, and `lab/profiles/sonic-vs/profile.yaml` with the new digest.
+
+## v2 (2026-08-31) — dbus + sonic-host-server runtime
+
+v1 carried `/usr/bin/dbus-daemon` and `/usr/local/bin/sonic-host-server` +
+`host_modules/` but never started them, so the gNMI→GCU write path had no GCU
+dbus provider (docs/SRV6_GNMI_CAPABILITY_FINDINGS.md §4.1). v2 layers only the
+supervisord programs that run them — no rebuild of the telemetry binary:
+
+    cd lab/images/sonic-vs-gnmi
+    docker build -f Dockerfile.v2 -t localhost:5000/sonic-vs-gnmi:202605-v2 .
+    docker push localhost:5000/sonic-vs-gnmi:202605-v2
+
+Re-pin the resulting digest (versions.lock.yaml sonic_vs + sonic_yang.compatibility,
+lab/topology.clab.yml, lab/profiles/sonic-vs/profile.yaml) and run
+scripts/lib/verify_pins.sh. Bootstrap requirements for a working write path:
+DEVICE_METADATA.localhost.switch_type=npu, cert paths with ".cer" suffix, and no
+TELEMETRY|CLIENTS table in CONFIG_DB (see profile.yaml notes).

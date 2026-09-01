@@ -1,0 +1,552 @@
+[build4] extracting runtime libs + cvlyang set from pinned image (via temp container)
+[build4] reusing live build container ainetops-gnmi-build
+[build4] copying libyang headers into build container
+/opt/libyang-include/libyang.h
+[build4] installing build tools (+ libpam0g-dev for (f))
+debconf: delaying package configuration, since apt-utils is not installed
+TOOLS_OK
+gcc (Debian 12.2.0-14+deb12u1) 12.2.0
+SWIG Version 4.1.0
+libprotoc 3.21.12
+/usr/include/security/pam_appl.h
+[build4] installing Go 1.25.9
+go version go1.25.9 linux/amd64
+[build4] installing pyang
+pyang 2.7.1
+[build4] staging swss-common headers + swig interface (pinned 240a31a)
+141
+[build4] generating cfg_schema.h inside pinned image (gen_cfg_schema.py @ 240a31a)
+[build4] cfg_schema.h: 246 table macros
+[build4] building sonic-mgmt-common yang tree
+annotations
+common
+extensions
+gnsi-authz.yang
+gnsi-certz.yang
+CVL_SCHEMA_OK-CACHED
+[build4] reusing existing CVL schema (/tmp/cvl-schema)
+[build4] generating ocbinds/ocbinds.go (ygot) in sonic-mgmt-common
+MGMT_GO_DEPS_OK
+29387 translib/ocbinds/ocbinds.go
+[build4] patching sonic-gnmi Makefiles for build container layout
+33:export CGO_LDFLAGS := -L/libs -lswsscommon -lhiredis -Wl,-rpath,/lib/x86_64-linux-gnu
+34:export CGO_CXXFLAGS := -I/opt/swss-include -w -Wall -fpermissive
+35:export MEMCHECK_CGO_LDFLAGS := $(CGO_LDFLAGS) -fsanitize=address
+36:export MEMCHECK_CGO_CXXFLAGS := $(CGO_CXXFLAGS) -fsanitize=leak
+[build4] clean rebuild of sonic-gnmi (fresh vendor so ocbinds.go is re-vendored)
+patching file ygot/struct_validation_map.go
+patching file ytypes/container.go
+patching file ytypes/leaf.go
+patching file ytypes/list.go
+patching file ytypes/node.go
+patching file ytypes/string_type.go
+patching file ytypes/unmarshal.go
+patching file ytypes/util_types.go
+patching file ytypes/validate.go
++ patch -d vendor/github.com/openconfig/goyang -p1
+patching file README.md
+patching file annotate.go
+patching file pkg/yang/ast.go
+patching file pkg/yang/entry.go
+patching file pkg/yang/types.go
+patching file yang.go
++ patch -d vendor/github.com/antchfx/jsonquery -p1
+patching file node.go
+patching file query.go
++ patch -d vendor/github.com/antchfx/xmlquery -p1
+patching file node.go
+patching file query.go
++ patch -d vendor/github.com/antchfx/xpath -p1
+patching file build.go
+patching file func.go
+patching file operator.go
+patching file query.go
+patching file xpath.go
+sed -i 's/#patch -d ${DEST_DIR}\/github.com\/golang\/glog/patch -d ${DEST_DIR}\/github.com\/golang\/glog/g' /src/sonic-gnmi/../sonic-mgmt-common/patches/apply.sh
+chmod -R u+w vendor
+patch -d vendor -p0 < patches/gnmi_path.patch
+(Stripping trailing CRs from patch; use --binary to disable.)
+patching file ./github.com/google/gnxi/utils/xpath/path.go
+patch -d vendor -p0 < patches/gnmi_xpath.patch
+patching file ./github.com/google/gnxi/utils/xpath/xpath.go
+touch vendor/.done
+Checking Go file formatting...
+./show_client/clock_cli.go ./show_client/show_common.go ./show_client/show_paths.go ./show_client/chassis_module_cli.go ./show_client/show_opts.go ./show_client/reboot_cause_cli.go ./show_client/interface_cli.go ./show_client/interface_transceiver_cli.go ./show_client/system_health_cli.go ./show_client/watermark_telemetry_interval.go ./show_client/ipv6_cli.go ./transl_utils/transl_utils.go ./transl_utils/ygot_diff.go ./transl_utils/ygot_diff_test.go ./transl_utils/ygot_diff_bench_test.go ./transl_utils/transl_utils_test.go ./sonic_db_config/db_config.go ./sonic_db_config/db_config_test.go ./testdata/tls/tls_test.go ./testdata/tls/tls.go ./sonic_data_client/virtual_db.go ./sonic_data_client/transl_subscriber_test.go ./sonic_data_client/dummy_client_test.go ./sonic_data_client/client_test.go ./sonic_data_client/events_client.go ./sonic_data_client/mixed_db_client.go ./sonic_data_client/json_client.go ./sonic_data_client/non_db_client.go ./sonic_data_client/transl_data_client.go ./sonic_data_client/transl_data_client_test.go ./sonic_data_client/show_client.go ./sonic_data_client/transl_subscriber.go ./sonic_data_client/trie.go ./sonic_data_client/show_client_helpers.go ./sonic_data_client/db_client.go ./sonic_data_client/super_subscription.go ./sonic_data_client/virtual_db_test.go ./sonic_data_client/show_client_types.go ./sonic_data_client/super_subscription_test.go ./common_utils/shareMem.go ./common_utils/notification_producer_test.go ./common_utils/notification_producer.go ./common_utils/context.go ./common_utils/constants.go ./gnmi_server/connection_manager.go ./gnmi_server/gnoi_containerz_test.go ./gnmi_server/interface_transceiver_cli_test.go ./gnmi_server/cli_helpers_test.go ./gnmi_server/virtual_db_test.go ./gnmi_server/gnsi_credentialz.go ./gnmi_server/gnoi.go ./gnmi_server/clock_cli_test.go ./gnmi_server/transl_sub_test.go ./gnmi_server/ipv6_cli_test.go ./gnmi_server/db_journal_test.go ./gnmi_server/gnsi_authz.go ./gnmi_server/gnoi_reset_test.go ./gnmi_server/constants_native_write.go ./gnmi_server/multi_request_tcp_conn_test.go ./gnmi_server/client_subscribe.go ./gnmi_server/interface_errors_cli_test.go ./gnmi_server/watermark_telemetry_interval_cli_test.go ./gnmi_server/gnsi_pathz.go ./gnmi_server/interface_fec_status_cli_test.go ./gnmi_server/interface_cli_test.go ./gnmi_server/gnoi_healthz.go ./gnmi_server/gnsi_certz.go ./gnmi_server/clear_neighbor_dummy_test.go ./gnmi_server/constants_translib.go ./gnmi_server/system_health_cli_test.go ./gnmi_server/poll_mode_test.go ./gnmi_server/db_journal.go ./gnmi_server/pamAuth.go ./gnmi_server/gnoi_os.go ./gnmi_server/constants_translib_write.go ./gnmi_server/jwtAuth.go ./gnmi_server/basicAuth.go ./gnmi_server/debug.go ./gnmi_server/gnsi_pathz_test.go ./gnmi_server/gnoi_file_test.go ./gnmi_server/server_test.go ./gnmi_server/reboot_cause_cli_test.go ./gnmi_server/swss_util.go ./gnmi_server/gnoi_os_test.go ./gnmi_server/clientCertAuth.go ./gnmi_server/cli_options_test.go ./gnmi_server/server.go ./gnmi_server/gnsi_certz_test.go ./gnmi_server/gnoi_healthz_test.go ./gnmi_server/mocks/mock_system_setpackage_server.go ./gnmi_server/mocks/mock_system_server.go ./gnmi_server/gnsi_util_test.go ./gnmi_server/chassis_module_test.go ./gnmi_server/gnoi_system.go ./gnmi_server/crl_test.go ./gnmi_server/gnsi_util.go ./gnmi_server/constants_native.go ./gnmi_server/gnoi_debug.go ./gnmi_server/gnoi_file.go ./gnmi_server/chassis_state_db_test.go ./gnmi_server/gnoi_reset.go ./gnmi_server/gnoi_containerz.go ./gnmi_server/jwtAuth_test.go ./gnmi_server/gnsi_authz_test.go ./gnmi_server/gnsi_credentialz_test.go ./gnmi_server/gnoi_system_test.go ./internal/diskspace/diskspace.go ./internal/diskspace/diskspace_test.go ./internal/hash/hash_test.go ./internal/hash/hash.go ./internal/download/download.go ./internal/download/download_test.go ./internal/firmware/firmware_test.go ./internal/firmware/firmware.go ./internal/exec/command_test.go ./internal/exec/command.go ./sonic_service_client/dbus_client.go ./sonic_service_client/dbus_client_test.go ./sonic_service_client/dbus_fake_client.go ./sonic_service_client/dbus_fake_client_test.go ./test_utils/memcheck_disable.go ./test_utils/memcheck_enable.go ./test_utils/test_utils.go ./gnmi_dump/gnmi_dump.go ./pathz_authorizer/pathz_authorizer.go ./pathz_authorizer/pathz_authorizer_test.go ./gnoi_client/healthz/healthz.go ./gnoi_client/factory_reset/factory_reset.go ./gnoi_client/sonic/jwt.go ./gnoi_client/sonic/sonic.go ./gnoi_client/gnoi_client.go ./gnoi_client/system/time.go ./gnoi_client/system/kill_process.go ./gnoi_client/system/system_mock_test.go ./gnoi_client/system/system_test.go ./gnoi_client/system/reboot.go ./gnoi_client/system/set_package.go ./gnoi_client/os/os.go ./gnoi_client/config/flag.go ./gnoi_client/utils/utils_log.go ./gnoi_client/utils/creds.go ./gnoi_client/containerz/deploy.go ./gnoi_client/file/file.go ./pkg/server/operational-handler/disk_space_test.go ./pkg/server/operational-handler/operational_handler.go ./pkg/server/operational-handler/doc.go ./pkg/server/operational-handler/firmware_handler.go ./pkg/server/operational-handler/operational_handler_test.go ./pkg/server/operational-handler/disk_space.go ./pkg/server/operational-handler/firmware_handler_test.go ./pkg/gnoi/file/file.go ./pkg/gnoi/file/dpu_monkey_test.go ./pkg/gnoi/file/remove_test.go ./pkg/gnoi/file/coverage_boost_test.go ./pkg/gnoi/file/file_test.go ./pkg/gnoi/os/os.go ./pkg/gnoi/os/os_monkey_test.go ./pkg/gnoi/os/os_test.go ./pkg/gnoi/debug/debug_test.go ./pkg/gnoi/debug/validate.go ./pkg/gnoi/debug/debug.go ./pkg/gnoi/debug/whitelist_test.go ./pkg/gnoi/debug/whitelist.go ./pkg/gnoi/debug/validate_test.go ./pkg/gnoi/system/system_monkey_test.go ./pkg/gnoi/system/system_test.go ./pkg/gnoi/system/system.go ./pkg/bypass/bypass.go ./pkg/bypass/bypass_test.go ./pkg/interceptors/dpuproxy/proxy.go ./pkg/interceptors/dpuproxy/resolver.go ./pkg/interceptors/dpuproxy/singleton_test.go ./pkg/interceptors/dpuproxy/resolver_integration_test.go ./pkg/interceptors/dpuproxy/metadata.go ./pkg/interceptors/dpuproxy/resolver_test.go ./pkg/interceptors/dpuproxy/proxy_monkey_test.go ./pkg/interceptors/dpuproxy/proxy_test.go ./pkg/interceptors/dpuproxy/redis.go ./pkg/interceptors/setup_test.go ./pkg/interceptors/interceptor.go ./pkg/interceptors/setup.go ./pkg/interceptors/interceptor_test.go ./pkg/exec/example_test.go ./pkg/exec/doc.go ./pkg/exec/command.go ./pkg/exec/command_test.go ./dialout/dialout_server_cli/dialout_server_cli.go ./dialout/dialout_client_cli/dialout_client_cli.go ./dialout/dialout_client/dialout_client_test.go ./dialout/dialout_client/dialout_client.go ./dialout/dialout_server/dialout_server.go ./telemetry/telemetry_test.go ./telemetry/telemetry.go
+mkdir -p build/bin
+All files are properly formatted.
+touch build/bin/.formatcheck
+patch -d vendor -p0 < patches/0002-Fix-advance-tls-build-with-go-119.patch
+patching file ./google.golang.org/grpc/security/advancedtls/advancedtls.go
+patching file ./google.golang.org/grpc/security/advancedtls/crl.go
+patch -d vendor -p0 < patches/0004-CloseWrite-event-support.patch
+patching file ./github.com/fsnotify/fsnotify/fsnotify.go
+patching file ./github.com/fsnotify/fsnotify/inotify.go
+/usr/local/go/bin/go install -mod=vendor  github.com/sonic-net/sonic-gnmi/telemetry
+# github.com/Azure/sonic-mgmt-common/cvl/internal/util
+vendor/github.com/Azure/sonic-mgmt-common/cvl/internal/util/util.go:24:10: fatal error: libyang/libyang.h: No such file or directory
+   24 | #include <libyang/libyang.h>
+      |          ^~~~~~~~~~~~~~~~~~~
+compilation terminated.
+# github.com/sonic-net/sonic-gnmi/swsscommon
+In file included from swsscommon_wrap.cxx:351:
+/opt/swss-include/dbconnector.h:11:10: fatal error: boost/functional/hash.hpp: No such file or directory
+   11 | #include <boost/functional/hash.hpp>
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+make: *** [Makefile:102: sonic-gnmi] Error 1
+[build4] sonic-gnmi build failed; dumping logs
++ update_modules_txt
++ local modules_file=vendor/modules.txt
++ grep -q '^github.com/openconfig/gnmi/ctree$' vendor/modules.txt
++ grep -q '^github.com/openconfig/ygot/ygen$' vendor/modules.txt
++ echo ''
++ echo '# github.com/openconfig/ygot v0.7.1'
++ echo '## explicit'
++ echo github.com/openconfig/ygot/genutil
++ echo github.com/openconfig/ygot/generator
++ echo github.com/openconfig/ygot/ygen
++ patch -d vendor/github.com/openconfig/ygot -p1
+patching file generator/generator.go
+patching file genutil/common.go
+patching file util/debug.go
+patching file util/path.go
+patching file util/reflect.go
+patching file ygen/codegen.go
+patching file ygen/genstate.go
+patching file ygen/schemaparse.go
+patching file ygot/render.go
+patching file ygot/struct_validation_map.go
+patching file ytypes/container.go
+patching file ytypes/leaf.go
+patching file ytypes/list.go
+patching file ytypes/node.go
+patching file ytypes/string_type.go
+patching file ytypes/unmarshal.go
+patching file ytypes/util_types.go
+patching file ytypes/validate.go
++ patch -d vendor/github.com/openconfig/goyang -p1
+patching file README.md
+patching file annotate.go
+patching file pkg/yang/ast.go
+patching file pkg/yang/entry.go
+patching file pkg/yang/types.go
+patching file yang.go
++ patch -d vendor/github.com/antchfx/jsonquery -p1
+patching file node.go
+patching file query.go
++ patch -d vendor/github.com/antchfx/xmlquery -p1
+patching file node.go
+patching file query.go
++ patch -d vendor/github.com/antchfx/xpath -p1
+patching file build.go
+patching file func.go
+patching file operator.go
+patching file query.go
+patching file xpath.go
+sed -i 's/#patch -d ${DEST_DIR}\/github.com\/golang\/glog/patch -d ${DEST_DIR}\/github.com\/golang\/glog/g' /src/sonic-gnmi/../sonic-mgmt-common/patches/apply.sh
+chmod -R u+w vendor
+patch -d vendor -p0 < patches/gnmi_path.patch
+(Stripping trailing CRs from patch; use --binary to disable.)
+patching file ./github.com/google/gnxi/utils/xpath/path.go
+patch -d vendor -p0 < patches/gnmi_xpath.patch
+patching file ./github.com/google/gnxi/utils/xpath/xpath.go
+touch vendor/.done
+Checking Go file formatting...
+./show_client/clock_cli.go ./show_client/show_common.go ./show_client/show_paths.go ./show_client/chassis_module_cli.go ./show_client/show_opts.go ./show_client/reboot_cause_cli.go ./show_client/interface_cli.go ./show_client/interface_transceiver_cli.go ./show_client/system_health_cli.go ./show_client/watermark_telemetry_interval.go ./show_client/ipv6_cli.go ./transl_utils/transl_utils.go ./transl_utils/ygot_diff.go ./transl_utils/ygot_diff_test.go ./transl_utils/ygot_diff_bench_test.go ./transl_utils/transl_utils_test.go ./sonic_db_config/db_config.go ./sonic_db_config/db_config_test.go ./testdata/tls/tls_test.go ./testdata/tls/tls.go ./sonic_data_client/virtual_db.go ./sonic_data_client/transl_subscriber_test.go ./sonic_data_client/dummy_client_test.go ./sonic_data_client/client_test.go ./sonic_data_client/events_client.go ./sonic_data_client/mixed_db_client.go ./sonic_data_client/json_client.go ./sonic_data_client/non_db_client.go ./sonic_data_client/transl_data_client.go ./sonic_data_client/transl_data_client_test.go ./sonic_data_client/show_client.go ./sonic_data_client/transl_subscriber.go ./sonic_data_client/trie.go ./sonic_data_client/show_client_helpers.go ./sonic_data_client/db_client.go ./sonic_data_client/super_subscription.go ./sonic_data_client/virtual_db_test.go ./sonic_data_client/show_client_types.go ./sonic_data_client/super_subscription_test.go ./common_utils/shareMem.go ./common_utils/notification_producer_test.go ./common_utils/notification_producer.go ./common_utils/context.go ./common_utils/constants.go ./gnmi_server/connection_manager.go ./gnmi_server/gnoi_containerz_test.go ./gnmi_server/interface_transceiver_cli_test.go ./gnmi_server/cli_helpers_test.go ./gnmi_server/virtual_db_test.go ./gnmi_server/gnsi_credentialz.go ./gnmi_server/gnoi.go ./gnmi_server/clock_cli_test.go ./gnmi_server/transl_sub_test.go ./gnmi_server/ipv6_cli_test.go ./gnmi_server/db_journal_test.go ./gnmi_server/gnsi_authz.go ./gnmi_server/gnoi_reset_test.go ./gnmi_server/constants_native_write.go ./gnmi_server/multi_request_tcp_conn_test.go ./gnmi_server/client_subscribe.go ./gnmi_server/interface_errors_cli_test.go ./gnmi_server/watermark_telemetry_interval_cli_test.go ./gnmi_server/gnsi_pathz.go ./gnmi_server/interface_fec_status_cli_test.go ./gnmi_server/interface_cli_test.go ./gnmi_server/gnoi_healthz.go ./gnmi_server/gnsi_certz.go ./gnmi_server/clear_neighbor_dummy_test.go ./gnmi_server/constants_translib.go ./gnmi_server/system_health_cli_test.go ./gnmi_server/poll_mode_test.go ./gnmi_server/db_journal.go ./gnmi_server/pamAuth.go ./gnmi_server/gnoi_os.go ./gnmi_server/constants_translib_write.go ./gnmi_server/jwtAuth.go ./gnmi_server/basicAuth.go ./gnmi_server/debug.go ./gnmi_server/gnsi_pathz_test.go ./gnmi_server/gnoi_file_test.go ./gnmi_server/server_test.go ./gnmi_server/reboot_cause_cli_test.go ./gnmi_server/swss_util.go ./gnmi_server/gnoi_os_test.go ./gnmi_server/clientCertAuth.go ./gnmi_server/cli_options_test.go ./gnmi_server/server.go ./gnmi_server/gnsi_certz_test.go ./gnmi_server/gnoi_healthz_test.go ./gnmi_server/mocks/mock_system_setpackage_server.go ./gnmi_server/mocks/mock_system_server.go ./gnmi_server/gnsi_util_test.go ./gnmi_server/chassis_module_test.go ./gnmi_server/gnoi_system.go ./gnmi_server/crl_test.go ./gnmi_server/gnsi_util.go ./gnmi_server/constants_native.go ./gnmi_server/gnoi_debug.go ./gnmi_server/gnoi_file.go ./gnmi_server/chassis_state_db_test.go ./gnmi_server/gnoi_reset.go ./gnmi_server/gnoi_containerz.go ./gnmi_server/jwtAuth_test.go ./gnmi_server/gnsi_authz_test.go ./gnmi_server/gnsi_credentialz_test.go ./gnmi_server/gnoi_system_test.go ./internal/diskspace/diskspace.go ./internal/diskspace/diskspace_test.go ./internal/hash/hash_test.go ./internal/hash/hash.go ./internal/download/download.go ./internal/download/download_test.go ./internal/firmware/firmware_test.go ./internal/firmware/firmware.go ./internal/exec/command_test.go ./internal/exec/command.go ./sonic_service_client/dbus_client.go ./sonic_service_client/dbus_client_test.go ./sonic_service_client/dbus_fake_client.go ./sonic_service_client/dbus_fake_client_test.go ./test_utils/memcheck_disable.go ./test_utils/memcheck_enable.go ./test_utils/test_utils.go ./gnmi_dump/gnmi_dump.go ./pathz_authorizer/pathz_authorizer.go ./pathz_authorizer/pathz_authorizer_test.go ./gnoi_client/healthz/healthz.go ./gnoi_client/factory_reset/factory_reset.go ./gnoi_client/sonic/jwt.go ./gnoi_client/sonic/sonic.go ./gnoi_client/gnoi_client.go ./gnoi_client/system/time.go ./gnoi_client/system/kill_process.go ./gnoi_client/system/system_mock_test.go ./gnoi_client/system/system_test.go ./gnoi_client/system/reboot.go ./gnoi_client/system/set_package.go ./gnoi_client/os/os.go ./gnoi_client/config/flag.go ./gnoi_client/utils/utils_log.go ./gnoi_client/utils/creds.go ./gnoi_client/containerz/deploy.go ./gnoi_client/file/file.go ./pkg/server/operational-handler/disk_space_test.go ./pkg/server/operational-handler/operational_handler.go ./pkg/server/operational-handler/doc.go ./pkg/server/operational-handler/firmware_handler.go ./pkg/server/operational-handler/operational_handler_test.go ./pkg/server/operational-handler/disk_space.go ./pkg/server/operational-handler/firmware_handler_test.go ./pkg/gnoi/file/file.go ./pkg/gnoi/file/dpu_monkey_test.go ./pkg/gnoi/file/remove_test.go ./pkg/gnoi/file/coverage_boost_test.go ./pkg/gnoi/file/file_test.go ./pkg/gnoi/os/os.go ./pkg/gnoi/os/os_monkey_test.go ./pkg/gnoi/os/os_test.go ./pkg/gnoi/debug/debug_test.go ./pkg/gnoi/debug/validate.go ./pkg/gnoi/debug/debug.go ./pkg/gnoi/debug/whitelist_test.go ./pkg/gnoi/debug/whitelist.go ./pkg/gnoi/debug/validate_test.go ./pkg/gnoi/system/system_monkey_test.go ./pkg/gnoi/system/system_test.go ./pkg/gnoi/system/system.go ./pkg/bypass/bypass.go ./pkg/bypass/bypass_test.go ./pkg/interceptors/dpuproxy/proxy.go ./pkg/interceptors/dpuproxy/resolver.go ./pkg/interceptors/dpuproxy/singleton_test.go ./pkg/interceptors/dpuproxy/resolver_integration_test.go ./pkg/interceptors/dpuproxy/metadata.go ./pkg/interceptors/dpuproxy/resolver_test.go ./pkg/interceptors/dpuproxy/proxy_monkey_test.go ./pkg/interceptors/dpuproxy/proxy_test.go ./pkg/interceptors/dpuproxy/redis.go ./pkg/interceptors/setup_test.go ./pkg/interceptors/interceptor.go ./pkg/interceptors/setup.go ./pkg/interceptors/interceptor_test.go ./pkg/exec/example_test.go ./pkg/exec/doc.go ./pkg/exec/command.go ./pkg/exec/command_test.go ./dialout/dialout_server_cli/dialout_server_cli.go ./dialout/dialout_client_cli/dialout_client_cli.go ./dialout/dialout_client/dialout_client_test.go ./dialout/dialout_client/dialout_client.go ./dialout/dialout_server/dialout_server.go ./telemetry/telemetry_test.go ./telemetry/telemetry.go
+mkdir -p build/bin
+All files are properly formatted.
+touch build/bin/.formatcheck
+patch -d vendor -p0 < patches/0002-Fix-advance-tls-build-with-go-119.patch
+patching file ./google.golang.org/grpc/security/advancedtls/advancedtls.go
+patching file ./google.golang.org/grpc/security/advancedtls/crl.go
+patch -d vendor -p0 < patches/0004-CloseWrite-event-support.patch
+patching file ./github.com/fsnotify/fsnotify/fsnotify.go
+patching file ./github.com/fsnotify/fsnotify/inotify.go
+/usr/local/go/bin/go install -mod=vendor  github.com/sonic-net/sonic-gnmi/telemetry
+# github.com/Azure/sonic-mgmt-common/cvl/internal/util
+vendor/github.com/Azure/sonic-mgmt-common/cvl/internal/util/util.go:24:10: fatal error: libyang/libyang.h: No such file or directory
+   24 | #include <libyang/libyang.h>
+      |          ^~~~~~~~~~~~~~~~~~~
+compilation terminated.
+# github.com/sonic-net/sonic-gnmi/swsscommon
+In file included from swsscommon_wrap.cxx:351:
+/opt/swss-include/dbconnector.h:11:10: fatal error: boost/functional/hash.hpp: No such file or directory
+   11 | #include <boost/functional/hash.hpp>
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+make: *** [Makefile:102: sonic-gnmi] Error 1
+bin
+gnoi_yang
+[build4] FAILED: sonic-gnmi
+[build4] reusing live build container ainetops-gnmi-build
+[build4] copying libyang headers into build container
+cp: -r not specified; omitting directory '/opt/libyang-include-libyang-tmp/.'
+[build4] FAILED: stage libyang headers
+[build4] reusing live build container ainetops-gnmi-build
+[build4] copying libyang headers into build container
+/opt/libyang-include/libyang/libyang.h
+/opt/libyang-include/libyang/log.h
+[build4] installing build tools (+ libpam0g-dev (f), boost/hiredis/uuid/zmq/lua for swsscommon wrap)
+debconf: delaying package configuration, since apt-utils is not installed
+TOOLS_OK
+gcc (Debian 12.2.0-14+deb12u1) 12.2.0
+SWIG Version 4.1.0
+libprotoc 3.21.12
+/usr/include/boost/serialization/vector.hpp
+/usr/include/hiredis/hiredis.h
+/usr/include/security/pam_appl.h
+/usr/include/uuid/uuid.h
+/usr/include/zmq.h
+[build4] installing Go 1.25.9
+go version go1.25.9 linux/amd64
+[build4] installing pyang
+pyang 2.7.1
+[build4] staging swss-common headers + swig interface (pinned 240a31a)
+141
+[build4] generating cfg_schema.h inside pinned image (gen_cfg_schema.py @ 240a31a)
+[build4] cfg_schema.h: 246 table macros
+[build4] building sonic-mgmt-common yang tree
+annotations
+common
+extensions
+gnsi-authz.yang
+gnsi-certz.yang
+CVL_SCHEMA_OK-CACHED
+[build4] reusing existing CVL schema (/tmp/cvl-schema)
+[build4] generating ocbinds/ocbinds.go (ygot) in sonic-mgmt-common
+MGMT_GO_DEPS_OK
+29385 translib/ocbinds/ocbinds.go
+[build4] patching sonic-gnmi Makefiles for build container layout
+33:export CGO_LDFLAGS := -L/libs -lswsscommon -lhiredis -lzmq -Wl,-rpath,/lib/x86_64-linux-gnu
+34:export CGO_CXXFLAGS := -I/opt/swss-include -w -Wall -fpermissive
+35:export MEMCHECK_CGO_LDFLAGS := $(CGO_LDFLAGS) -fsanitize=address
+36:export MEMCHECK_CGO_CXXFLAGS := $(CGO_CXXFLAGS) -fsanitize=leak
+[build4] clean rebuild of sonic-gnmi (fresh vendor so ocbinds.go is re-vendored)
+patching file ygen/genstate.go
+patching file ygen/schemaparse.go
+patching file ygot/render.go
+patching file ygot/struct_validation_map.go
+patching file ytypes/container.go
+patching file ytypes/leaf.go
+patching file ytypes/list.go
+patching file ytypes/node.go
+patching file ytypes/string_type.go
+patching file ytypes/unmarshal.go
+patching file ytypes/util_types.go
+patching file ytypes/validate.go
++ patch -d vendor/github.com/openconfig/goyang -p1
+patching file README.md
+patching file annotate.go
+patching file pkg/yang/ast.go
+patching file pkg/yang/entry.go
+patching file pkg/yang/types.go
+patching file yang.go
++ patch -d vendor/github.com/antchfx/jsonquery -p1
+patching file node.go
+patching file query.go
++ patch -d vendor/github.com/antchfx/xmlquery -p1
+patching file node.go
+patching file query.go
++ patch -d vendor/github.com/antchfx/xpath -p1
+patching file build.go
+patching file func.go
+patching file operator.go
+patching file query.go
+patching file xpath.go
+sed -i 's/#patch -d ${DEST_DIR}\/github.com\/golang\/glog/patch -d ${DEST_DIR}\/github.com\/golang\/glog/g' /src/sonic-gnmi/../sonic-mgmt-common/patches/apply.sh
+chmod -R u+w vendor
+patch -d vendor -p0 < patches/gnmi_path.patch
+(Stripping trailing CRs from patch; use --binary to disable.)
+patching file ./github.com/google/gnxi/utils/xpath/path.go
+patch -d vendor -p0 < patches/gnmi_xpath.patch
+patching file ./github.com/google/gnxi/utils/xpath/xpath.go
+touch vendor/.done
+Checking Go file formatting...
+./show_client/clock_cli.go ./show_client/show_common.go ./show_client/show_paths.go ./show_client/chassis_module_cli.go ./show_client/show_opts.go ./show_client/reboot_cause_cli.go ./show_client/interface_cli.go ./show_client/interface_transceiver_cli.go ./show_client/system_health_cli.go ./show_client/watermark_telemetry_interval.go ./show_client/ipv6_cli.go ./transl_utils/transl_utils.go ./transl_utils/ygot_diff.go ./transl_utils/ygot_diff_test.go ./transl_utils/ygot_diff_bench_test.go ./transl_utils/transl_utils_test.go ./sonic_db_config/db_config.go ./sonic_db_config/db_config_test.go ./testdata/tls/tls_test.go ./testdata/tls/tls.go ./sonic_data_client/virtual_db.go ./sonic_data_client/transl_subscriber_test.go ./sonic_data_client/dummy_client_test.go ./sonic_data_client/client_test.go ./sonic_data_client/events_client.go ./sonic_data_client/mixed_db_client.go ./sonic_data_client/json_client.go ./sonic_data_client/non_db_client.go ./sonic_data_client/transl_data_client.go ./sonic_data_client/transl_data_client_test.go ./sonic_data_client/show_client.go ./sonic_data_client/transl_subscriber.go ./sonic_data_client/trie.go ./sonic_data_client/show_client_helpers.go ./sonic_data_client/db_client.go ./sonic_data_client/super_subscription.go ./sonic_data_client/virtual_db_test.go ./sonic_data_client/show_client_types.go ./sonic_data_client/super_subscription_test.go ./common_utils/shareMem.go ./common_utils/notification_producer_test.go ./common_utils/notification_producer.go ./common_utils/context.go ./common_utils/constants.go ./gnmi_server/connection_manager.go ./gnmi_server/gnoi_containerz_test.go ./gnmi_server/interface_transceiver_cli_test.go ./gnmi_server/cli_helpers_test.go ./gnmi_server/virtual_db_test.go ./gnmi_server/gnsi_credentialz.go ./gnmi_server/gnoi.go ./gnmi_server/clock_cli_test.go ./gnmi_server/transl_sub_test.go ./gnmi_server/ipv6_cli_test.go ./gnmi_server/db_journal_test.go ./gnmi_server/gnsi_authz.go ./gnmi_server/gnoi_reset_test.go ./gnmi_server/constants_native_write.go ./gnmi_server/multi_request_tcp_conn_test.go ./gnmi_server/client_subscribe.go ./gnmi_server/interface_errors_cli_test.go ./gnmi_server/watermark_telemetry_interval_cli_test.go ./gnmi_server/gnsi_pathz.go ./gnmi_server/interface_fec_status_cli_test.go ./gnmi_server/interface_cli_test.go ./gnmi_server/gnoi_healthz.go ./gnmi_server/gnsi_certz.go ./gnmi_server/clear_neighbor_dummy_test.go ./gnmi_server/constants_translib.go ./gnmi_server/system_health_cli_test.go ./gnmi_server/poll_mode_test.go ./gnmi_server/db_journal.go ./gnmi_server/pamAuth.go ./gnmi_server/gnoi_os.go ./gnmi_server/constants_translib_write.go ./gnmi_server/jwtAuth.go ./gnmi_server/basicAuth.go ./gnmi_server/debug.go ./gnmi_server/gnsi_pathz_test.go ./gnmi_server/gnoi_file_test.go ./gnmi_server/server_test.go ./gnmi_server/reboot_cause_cli_test.go ./gnmi_server/swss_util.go ./gnmi_server/gnoi_os_test.go ./gnmi_server/clientCertAuth.go ./gnmi_server/cli_options_test.go ./gnmi_server/server.go ./gnmi_server/gnsi_certz_test.go ./gnmi_server/gnoi_healthz_test.go ./gnmi_server/mocks/mock_system_setpackage_server.go ./gnmi_server/mocks/mock_system_server.go ./gnmi_server/gnsi_util_test.go ./gnmi_server/chassis_module_test.go ./gnmi_server/gnoi_system.go ./gnmi_server/crl_test.go ./gnmi_server/gnsi_util.go ./gnmi_server/constants_native.go ./gnmi_server/gnoi_debug.go ./gnmi_server/gnoi_file.go ./gnmi_server/chassis_state_db_test.go ./gnmi_server/gnoi_reset.go ./gnmi_server/gnoi_containerz.go ./gnmi_server/jwtAuth_test.go ./gnmi_server/gnsi_authz_test.go ./gnmi_server/gnsi_credentialz_test.go ./gnmi_server/gnoi_system_test.go ./internal/diskspace/diskspace.go ./internal/diskspace/diskspace_test.go ./internal/hash/hash_test.go ./internal/hash/hash.go ./internal/download/download.go ./internal/download/download_test.go ./internal/firmware/firmware_test.go ./internal/firmware/firmware.go ./internal/exec/command_test.go ./internal/exec/command.go ./sonic_service_client/dbus_client.go ./sonic_service_client/dbus_client_test.go ./sonic_service_client/dbus_fake_client.go ./sonic_service_client/dbus_fake_client_test.go ./test_utils/memcheck_disable.go ./test_utils/memcheck_enable.go ./test_utils/test_utils.go ./gnmi_dump/gnmi_dump.go ./pathz_authorizer/pathz_authorizer.go ./pathz_authorizer/pathz_authorizer_test.go ./gnoi_client/healthz/healthz.go ./gnoi_client/factory_reset/factory_reset.go ./gnoi_client/sonic/jwt.go ./gnoi_client/sonic/sonic.go ./gnoi_client/gnoi_client.go ./gnoi_client/system/time.go ./gnoi_client/system/kill_process.go ./gnoi_client/system/system_mock_test.go ./gnoi_client/system/system_test.go ./gnoi_client/system/reboot.go ./gnoi_client/system/set_package.go ./gnoi_client/os/os.go ./gnoi_client/config/flag.go ./gnoi_client/utils/utils_log.go ./gnoi_client/utils/creds.go ./gnoi_client/containerz/deploy.go ./gnoi_client/file/file.go ./pkg/server/operational-handler/disk_space_test.go ./pkg/server/operational-handler/operational_handler.go ./pkg/server/operational-handler/doc.go ./pkg/server/operational-handler/firmware_handler.go ./pkg/server/operational-handler/operational_handler_test.go ./pkg/server/operational-handler/disk_space.go ./pkg/server/operational-handler/firmware_handler_test.go ./pkg/gnoi/file/file.go ./pkg/gnoi/file/dpu_monkey_test.go ./pkg/gnoi/file/remove_test.go ./pkg/gnoi/file/coverage_boost_test.go ./pkg/gnoi/file/file_test.go ./pkg/gnoi/os/os.go ./pkg/gnoi/os/os_monkey_test.go ./pkg/gnoi/os/os_test.go ./pkg/gnoi/debug/debug_test.go ./pkg/gnoi/debug/validate.go ./pkg/gnoi/debug/debug.go ./pkg/gnoi/debug/whitelist_test.go ./pkg/gnoi/debug/whitelist.go ./pkg/gnoi/debug/validate_test.go ./pkg/gnoi/system/system_monkey_test.go ./pkg/gnoi/system/system_test.go ./pkg/gnoi/system/system.go ./pkg/bypass/bypass.go ./pkg/bypass/bypass_test.go ./pkg/interceptors/dpuproxy/proxy.go ./pkg/interceptors/dpuproxy/resolver.go ./pkg/interceptors/dpuproxy/singleton_test.go ./pkg/interceptors/dpuproxy/resolver_integration_test.go ./pkg/interceptors/dpuproxy/metadata.go ./pkg/interceptors/dpuproxy/resolver_test.go ./pkg/interceptors/dpuproxy/proxy_monkey_test.go ./pkg/interceptors/dpuproxy/proxy_test.go ./pkg/interceptors/dpuproxy/redis.go ./pkg/interceptors/setup_test.go ./pkg/interceptors/interceptor.go ./pkg/interceptors/setup.go ./pkg/interceptors/interceptor_test.go ./pkg/exec/example_test.go ./pkg/exec/doc.go ./pkg/exec/command.go ./pkg/exec/command_test.go ./dialout/dialout_server_cli/dialout_server_cli.go ./dialout/dialout_client_cli/dialout_client_cli.go ./dialout/dialout_client/dialout_client_test.go ./dialout/dialout_client/dialout_client.go ./dialout/dialout_server/dialout_server.go ./telemetry/telemetry_test.go ./telemetry/telemetry.go
+mkdir -p build/bin
+All files are properly formatted.
+touch build/bin/.formatcheck
+patch -d vendor -p0 < patches/0002-Fix-advance-tls-build-with-go-119.patch
+patching file ./google.golang.org/grpc/security/advancedtls/advancedtls.go
+patching file ./google.golang.org/grpc/security/advancedtls/crl.go
+patch -d vendor -p0 < patches/0004-CloseWrite-event-support.patch
+patching file ./github.com/fsnotify/fsnotify/fsnotify.go
+patching file ./github.com/fsnotify/fsnotify/inotify.go
+/usr/local/go/bin/go install -mod=vendor  github.com/sonic-net/sonic-gnmi/telemetry
+# github.com/Azure/sonic-mgmt-common/cvl/internal/util
+In file included from /opt/libyang-include/libyang/context.h:23,
+                 from /opt/libyang-include/libyang/libyang.h:25,
+                 from vendor/github.com/Azure/sonic-mgmt-common/cvl/internal/util/util.go:24:
+/opt/libyang-include/libyang/tree_data.h:32:10: fatal error: pcre2.h: No such file or directory
+   32 | #include <pcre2.h>
+      |          ^~~~~~~~~
+compilation terminated.
+make: *** [Makefile:102: sonic-gnmi] Error 1
+[build4] sonic-gnmi build failed; dumping logs
++ copy github.com/openconfig/gnmi v0.0.0-20200617225440-d2b4e6a45802 .
++ for FILE in "${@:3}"
++ rsync -r --chmod=u+w --exclude=testdata '--exclude=*_test.go' /tmp/go/pkg/mod/github.com/openconfig/gnmi@v0.0.0-20200617225440-d2b4e6a45802/. vendor/github.com/openconfig/gnmi/
++ update_modules_txt
++ local modules_file=vendor/modules.txt
++ grep -q '^github.com/openconfig/gnmi/ctree$' vendor/modules.txt
++ grep -q '^github.com/openconfig/ygot/ygen$' vendor/modules.txt
++ echo ''
++ echo '# github.com/openconfig/ygot v0.7.1'
++ echo '## explicit'
++ echo github.com/openconfig/ygot/genutil
++ echo github.com/openconfig/ygot/generator
++ echo github.com/openconfig/ygot/ygen
++ patch -d vendor/github.com/openconfig/ygot -p1
+patching file generator/generator.go
+patching file genutil/common.go
+patching file util/debug.go
+patching file util/path.go
+patching file util/reflect.go
+patching file ygen/codegen.go
+patching file ygen/genstate.go
+patching file ygen/schemaparse.go
+patching file ygot/render.go
+patching file ygot/struct_validation_map.go
+patching file ytypes/container.go
+patching file ytypes/leaf.go
+patching file ytypes/list.go
+patching file ytypes/node.go
+patching file ytypes/string_type.go
+patching file ytypes/unmarshal.go
+patching file ytypes/util_types.go
+patching file ytypes/validate.go
++ patch -d vendor/github.com/openconfig/goyang -p1
+patching file README.md
+patching file annotate.go
+patching file pkg/yang/ast.go
+patching file pkg/yang/entry.go
+patching file pkg/yang/types.go
+patching file yang.go
++ patch -d vendor/github.com/antchfx/jsonquery -p1
+patching file node.go
+patching file query.go
++ patch -d vendor/github.com/antchfx/xmlquery -p1
+patching file node.go
+patching file query.go
++ patch -d vendor/github.com/antchfx/xpath -p1
+patching file build.go
+patching file func.go
+patching file operator.go
+patching file query.go
+patching file xpath.go
+sed -i 's/#patch -d ${DEST_DIR}\/github.com\/golang\/glog/patch -d ${DEST_DIR}\/github.com\/golang\/glog/g' /src/sonic-gnmi/../sonic-mgmt-common/patches/apply.sh
+chmod -R u+w vendor
+patch -d vendor -p0 < patches/gnmi_path.patch
+(Stripping trailing CRs from patch; use --binary to disable.)
+patching file ./github.com/google/gnxi/utils/xpath/path.go
+patch -d vendor -p0 < patches/gnmi_xpath.patch
+patching file ./github.com/google/gnxi/utils/xpath/xpath.go
+touch vendor/.done
+Checking Go file formatting...
+./show_client/clock_cli.go ./show_client/show_common.go ./show_client/show_paths.go ./show_client/chassis_module_cli.go ./show_client/show_opts.go ./show_client/reboot_cause_cli.go ./show_client/interface_cli.go ./show_client/interface_transceiver_cli.go ./show_client/system_health_cli.go ./show_client/watermark_telemetry_interval.go ./show_client/ipv6_cli.go ./transl_utils/transl_utils.go ./transl_utils/ygot_diff.go ./transl_utils/ygot_diff_test.go ./transl_utils/ygot_diff_bench_test.go ./transl_utils/transl_utils_test.go ./sonic_db_config/db_config.go ./sonic_db_config/db_config_test.go ./testdata/tls/tls_test.go ./testdata/tls/tls.go ./sonic_data_client/virtual_db.go ./sonic_data_client/transl_subscriber_test.go ./sonic_data_client/dummy_client_test.go ./sonic_data_client/client_test.go ./sonic_data_client/events_client.go ./sonic_data_client/mixed_db_client.go ./sonic_data_client/json_client.go ./sonic_data_client/non_db_client.go ./sonic_data_client/transl_data_client.go ./sonic_data_client/transl_data_client_test.go ./sonic_data_client/show_client.go ./sonic_data_client/transl_subscriber.go ./sonic_data_client/trie.go ./sonic_data_client/show_client_helpers.go ./sonic_data_client/db_client.go ./sonic_data_client/super_subscription.go ./sonic_data_client/virtual_db_test.go ./sonic_data_client/show_client_types.go ./sonic_data_client/super_subscription_test.go ./common_utils/shareMem.go ./common_utils/notification_producer_test.go ./common_utils/notification_producer.go ./common_utils/context.go ./common_utils/constants.go ./gnmi_server/connection_manager.go ./gnmi_server/gnoi_containerz_test.go ./gnmi_server/interface_transceiver_cli_test.go ./gnmi_server/cli_helpers_test.go ./gnmi_server/virtual_db_test.go ./gnmi_server/gnsi_credentialz.go ./gnmi_server/gnoi.go ./gnmi_server/clock_cli_test.go ./gnmi_server/transl_sub_test.go ./gnmi_server/ipv6_cli_test.go ./gnmi_server/db_journal_test.go ./gnmi_server/gnsi_authz.go ./gnmi_server/gnoi_reset_test.go ./gnmi_server/constants_native_write.go ./gnmi_server/multi_request_tcp_conn_test.go ./gnmi_server/client_subscribe.go ./gnmi_server/interface_errors_cli_test.go ./gnmi_server/watermark_telemetry_interval_cli_test.go ./gnmi_server/gnsi_pathz.go ./gnmi_server/interface_fec_status_cli_test.go ./gnmi_server/interface_cli_test.go ./gnmi_server/gnoi_healthz.go ./gnmi_server/gnsi_certz.go ./gnmi_server/clear_neighbor_dummy_test.go ./gnmi_server/constants_translib.go ./gnmi_server/system_health_cli_test.go ./gnmi_server/poll_mode_test.go ./gnmi_server/db_journal.go ./gnmi_server/pamAuth.go ./gnmi_server/gnoi_os.go ./gnmi_server/constants_translib_write.go ./gnmi_server/jwtAuth.go ./gnmi_server/basicAuth.go ./gnmi_server/debug.go ./gnmi_server/gnsi_pathz_test.go ./gnmi_server/gnoi_file_test.go ./gnmi_server/server_test.go ./gnmi_server/reboot_cause_cli_test.go ./gnmi_server/swss_util.go ./gnmi_server/gnoi_os_test.go ./gnmi_server/clientCertAuth.go ./gnmi_server/cli_options_test.go ./gnmi_server/server.go ./gnmi_server/gnsi_certz_test.go ./gnmi_server/gnoi_healthz_test.go ./gnmi_server/mocks/mock_system_setpackage_server.go ./gnmi_server/mocks/mock_system_server.go ./gnmi_server/gnsi_util_test.go ./gnmi_server/chassis_module_test.go ./gnmi_server/gnoi_system.go ./gnmi_server/crl_test.go ./gnmi_server/gnsi_util.go ./gnmi_server/constants_native.go ./gnmi_server/gnoi_debug.go ./gnmi_server/gnoi_file.go ./gnmi_server/chassis_state_db_test.go ./gnmi_server/gnoi_reset.go ./gnmi_server/gnoi_containerz.go ./gnmi_server/jwtAuth_test.go ./gnmi_server/gnsi_authz_test.go ./gnmi_server/gnsi_credentialz_test.go ./gnmi_server/gnoi_system_test.go ./internal/diskspace/diskspace.go ./internal/diskspace/diskspace_test.go ./internal/hash/hash_test.go ./internal/hash/hash.go ./internal/download/download.go ./internal/download/download_test.go ./internal/firmware/firmware_test.go ./internal/firmware/firmware.go ./internal/exec/command_test.go ./internal/exec/command.go ./sonic_service_client/dbus_client.go ./sonic_service_client/dbus_client_test.go ./sonic_service_client/dbus_fake_client.go ./sonic_service_client/dbus_fake_client_test.go ./test_utils/memcheck_disable.go ./test_utils/memcheck_enable.go ./test_utils/test_utils.go ./gnmi_dump/gnmi_dump.go ./pathz_authorizer/pathz_authorizer.go ./pathz_authorizer/pathz_authorizer_test.go ./gnoi_client/healthz/healthz.go ./gnoi_client/factory_reset/factory_reset.go ./gnoi_client/sonic/jwt.go ./gnoi_client/sonic/sonic.go ./gnoi_client/gnoi_client.go ./gnoi_client/system/time.go ./gnoi_client/system/kill_process.go ./gnoi_client/system/system_mock_test.go ./gnoi_client/system/system_test.go ./gnoi_client/system/reboot.go ./gnoi_client/system/set_package.go ./gnoi_client/os/os.go ./gnoi_client/config/flag.go ./gnoi_client/utils/utils_log.go ./gnoi_client/utils/creds.go ./gnoi_client/containerz/deploy.go ./gnoi_client/file/file.go ./pkg/server/operational-handler/disk_space_test.go ./pkg/server/operational-handler/operational_handler.go ./pkg/server/operational-handler/doc.go ./pkg/server/operational-handler/firmware_handler.go ./pkg/server/operational-handler/operational_handler_test.go ./pkg/server/operational-handler/disk_space.go ./pkg/server/operational-handler/firmware_handler_test.go ./pkg/gnoi/file/file.go ./pkg/gnoi/file/dpu_monkey_test.go ./pkg/gnoi/file/remove_test.go ./pkg/gnoi/file/coverage_boost_test.go ./pkg/gnoi/file/file_test.go ./pkg/gnoi/os/os.go ./pkg/gnoi/os/os_monkey_test.go ./pkg/gnoi/os/os_test.go ./pkg/gnoi/debug/debug_test.go ./pkg/gnoi/debug/validate.go ./pkg/gnoi/debug/debug.go ./pkg/gnoi/debug/whitelist_test.go ./pkg/gnoi/debug/whitelist.go ./pkg/gnoi/debug/validate_test.go ./pkg/gnoi/system/system_monkey_test.go ./pkg/gnoi/system/system_test.go ./pkg/gnoi/system/system.go ./pkg/bypass/bypass.go ./pkg/bypass/bypass_test.go ./pkg/interceptors/dpuproxy/proxy.go ./pkg/interceptors/dpuproxy/resolver.go ./pkg/interceptors/dpuproxy/singleton_test.go ./pkg/interceptors/dpuproxy/resolver_integration_test.go ./pkg/interceptors/dpuproxy/metadata.go ./pkg/interceptors/dpuproxy/resolver_test.go ./pkg/interceptors/dpuproxy/proxy_monkey_test.go ./pkg/interceptors/dpuproxy/proxy_test.go ./pkg/interceptors/dpuproxy/redis.go ./pkg/interceptors/setup_test.go ./pkg/interceptors/interceptor.go ./pkg/interceptors/setup.go ./pkg/interceptors/interceptor_test.go ./pkg/exec/example_test.go ./pkg/exec/doc.go ./pkg/exec/command.go ./pkg/exec/command_test.go ./dialout/dialout_server_cli/dialout_server_cli.go ./dialout/dialout_client_cli/dialout_client_cli.go ./dialout/dialout_client/dialout_client_test.go ./dialout/dialout_client/dialout_client.go ./dialout/dialout_server/dialout_server.go ./telemetry/telemetry_test.go ./telemetry/telemetry.go
+mkdir -p build/bin
+All files are properly formatted.
+touch build/bin/.formatcheck
+patch -d vendor -p0 < patches/0002-Fix-advance-tls-build-with-go-119.patch
+patching file ./google.golang.org/grpc/security/advancedtls/advancedtls.go
+patching file ./google.golang.org/grpc/security/advancedtls/crl.go
+patch -d vendor -p0 < patches/0004-CloseWrite-event-support.patch
+patching file ./github.com/fsnotify/fsnotify/fsnotify.go
+patching file ./github.com/fsnotify/fsnotify/inotify.go
+/usr/local/go/bin/go install -mod=vendor  github.com/sonic-net/sonic-gnmi/telemetry
+# github.com/Azure/sonic-mgmt-common/cvl/internal/util
+In file included from /opt/libyang-include/libyang/context.h:23,
+                 from /opt/libyang-include/libyang/libyang.h:25,
+                 from vendor/github.com/Azure/sonic-mgmt-common/cvl/internal/util/util.go:24:
+/opt/libyang-include/libyang/tree_data.h:32:10: fatal error: pcre2.h: No such file or directory
+   32 | #include <pcre2.h>
+      |          ^~~~~~~~~
+compilation terminated.
+make: *** [Makefile:102: sonic-gnmi] Error 1
+bin
+gnoi_yang
+[build4] FAILED: sonic-gnmi
+[build4] reusing live build container ainetops-gnmi-build
+[build4] copying libyang headers into build container
+/opt/libyang-include/libyang/libyang.h
+/opt/libyang-include/libyang/log.h
+[build4] installing build tools (+ libpam0g-dev (f), boost/hiredis/uuid/zmq/lua for swsscommon wrap)
+debconf: delaying package configuration, since apt-utils is not installed
+TOOLS_OK
+gcc (Debian 12.2.0-14+deb12u1) 12.2.0
+SWIG Version 4.1.0
+libprotoc 3.21.12
+/usr/include/boost/serialization/vector.hpp
+/usr/include/hiredis/hiredis.h
+/usr/include/security/pam_appl.h
+/usr/include/uuid/uuid.h
+/usr/include/zmq.h
+[build4] installing Go 1.25.9
+go version go1.25.9 linux/amd64
+[build4] installing pyang
+pyang 2.7.1
+[build4] staging swss-common headers + swig interface (pinned 240a31a)
+141
+[build4] generating cfg_schema.h inside pinned image (gen_cfg_schema.py @ 240a31a)
+[build4] cfg_schema.h: 246 table macros
+[build4] building sonic-mgmt-common yang tree
+annotations
+common
+extensions
+gnsi-authz.yang
+gnsi-certz.yang
+CVL_SCHEMA_OK-CACHED
+[build4] reusing existing CVL schema (/tmp/cvl-schema)
+[build4] generating ocbinds/ocbinds.go (ygot) in sonic-mgmt-common
+MGMT_GO_DEPS_OK
+29387 translib/ocbinds/ocbinds.go
+[build4] patching sonic-gnmi Makefiles for build container layout
+33:export CGO_LDFLAGS := -L/libs -lswsscommon -lhiredis -lzmq -Wl,-rpath,/lib/x86_64-linux-gnu
+34:export CGO_CXXFLAGS := -I/opt/swss-include -w -Wall -fpermissive
+35:export MEMCHECK_CGO_LDFLAGS := $(CGO_LDFLAGS) -fsanitize=address
+36:export MEMCHECK_CGO_CXXFLAGS := $(CGO_CXXFLAGS) -fsanitize=leak
+[build4] clean rebuild of sonic-gnmi (fresh vendor so ocbinds.go is re-vendored)
+patching file ygen/codegen.go
+patching file ygen/genstate.go
+patching file ygen/schemaparse.go
+patching file ygot/render.go
+patching file ygot/struct_validation_map.go
+patching file ytypes/container.go
+patching file ytypes/leaf.go
+patching file ytypes/list.go
+patching file ytypes/node.go
+patching file ytypes/string_type.go
+patching file ytypes/unmarshal.go
+patching file ytypes/util_types.go
+patching file ytypes/validate.go
++ patch -d vendor/github.com/openconfig/goyang -p1
+patching file README.md
+patching file annotate.go
+patching file pkg/yang/ast.go
+patching file pkg/yang/entry.go
+patching file pkg/yang/types.go
+patching file yang.go
++ patch -d vendor/github.com/antchfx/jsonquery -p1
+patching file node.go
+patching file query.go
++ patch -d vendor/github.com/antchfx/xmlquery -p1
+patching file node.go
+patching file query.go
++ patch -d vendor/github.com/antchfx/xpath -p1
+patching file build.go
+patching file func.go
+patching file operator.go
+patching file query.go
+patching file xpath.go
+sed -i 's/#patch -d ${DEST_DIR}\/github.com\/golang\/glog/patch -d ${DEST_DIR}\/github.com\/golang\/glog/g' /src/sonic-gnmi/../sonic-mgmt-common/patches/apply.sh
+chmod -R u+w vendor
+patch -d vendor -p0 < patches/gnmi_path.patch
+(Stripping trailing CRs from patch; use --binary to disable.)
+patching file ./github.com/google/gnxi/utils/xpath/path.go
+patch -d vendor -p0 < patches/gnmi_xpath.patch
+patching file ./github.com/google/gnxi/utils/xpath/xpath.go
+touch vendor/.done
+Checking Go file formatting...
+./show_client/clock_cli.go ./show_client/show_common.go ./show_client/show_paths.go ./show_client/chassis_module_cli.go ./show_client/show_opts.go ./show_client/reboot_cause_cli.go ./show_client/interface_cli.go ./show_client/interface_transceiver_cli.go ./show_client/system_health_cli.go ./show_client/watermark_telemetry_interval.go ./show_client/ipv6_cli.go ./transl_utils/transl_utils.go ./transl_utils/ygot_diff.go ./transl_utils/ygot_diff_test.go ./transl_utils/ygot_diff_bench_test.go ./transl_utils/transl_utils_test.go ./sonic_db_config/db_config.go ./sonic_db_config/db_config_test.go ./testdata/tls/tls_test.go ./testdata/tls/tls.go ./sonic_data_client/virtual_db.go ./sonic_data_client/transl_subscriber_test.go ./sonic_data_client/dummy_client_test.go ./sonic_data_client/client_test.go ./sonic_data_client/events_client.go ./sonic_data_client/mixed_db_client.go ./sonic_data_client/json_client.go ./sonic_data_client/non_db_client.go ./sonic_data_client/transl_data_client.go ./sonic_data_client/transl_data_client_test.go ./sonic_data_client/show_client.go ./sonic_data_client/transl_subscriber.go ./sonic_data_client/trie.go ./sonic_data_client/show_client_helpers.go ./sonic_data_client/db_client.go ./sonic_data_client/super_subscription.go ./sonic_data_client/virtual_db_test.go ./sonic_data_client/show_client_types.go ./sonic_data_client/super_subscription_test.go ./common_utils/shareMem.go ./common_utils/notification_producer_test.go ./common_utils/notification_producer.go ./common_utils/context.go ./common_utils/constants.go ./gnmi_server/connection_manager.go ./gnmi_server/gnoi_containerz_test.go ./gnmi_server/interface_transceiver_cli_test.go ./gnmi_server/cli_helpers_test.go ./gnmi_server/virtual_db_test.go ./gnmi_server/gnsi_credentialz.go ./gnmi_server/gnoi.go ./gnmi_server/clock_cli_test.go ./gnmi_server/transl_sub_test.go ./gnmi_server/ipv6_cli_test.go ./gnmi_server/db_journal_test.go ./gnmi_server/gnsi_authz.go ./gnmi_server/gnoi_reset_test.go ./gnmi_server/constants_native_write.go ./gnmi_server/multi_request_tcp_conn_test.go ./gnmi_server/client_subscribe.go ./gnmi_server/interface_errors_cli_test.go ./gnmi_server/watermark_telemetry_interval_cli_test.go ./gnmi_server/gnsi_pathz.go ./gnmi_server/interface_fec_status_cli_test.go ./gnmi_server/interface_cli_test.go ./gnmi_server/gnoi_healthz.go ./gnmi_server/gnsi_certz.go ./gnmi_server/clear_neighbor_dummy_test.go ./gnmi_server/constants_translib.go ./gnmi_server/system_health_cli_test.go ./gnmi_server/poll_mode_test.go ./gnmi_server/db_journal.go ./gnmi_server/pamAuth.go ./gnmi_server/gnoi_os.go ./gnmi_server/constants_translib_write.go ./gnmi_server/jwtAuth.go ./gnmi_server/basicAuth.go ./gnmi_server/debug.go ./gnmi_server/gnsi_pathz_test.go ./gnmi_server/gnoi_file_test.go ./gnmi_server/server_test.go ./gnmi_server/reboot_cause_cli_test.go ./gnmi_server/swss_util.go ./gnmi_server/gnoi_os_test.go ./gnmi_server/clientCertAuth.go ./gnmi_server/cli_options_test.go ./gnmi_server/server.go ./gnmi_server/gnsi_certz_test.go ./gnmi_server/gnoi_healthz_test.go ./gnmi_server/mocks/mock_system_setpackage_server.go ./gnmi_server/mocks/mock_system_server.go ./gnmi_server/gnsi_util_test.go ./gnmi_server/chassis_module_test.go ./gnmi_server/gnoi_system.go ./gnmi_server/crl_test.go ./gnmi_server/gnsi_util.go ./gnmi_server/constants_native.go ./gnmi_server/gnoi_debug.go ./gnmi_server/gnoi_file.go ./gnmi_server/chassis_state_db_test.go ./gnmi_server/gnoi_reset.go ./gnmi_server/gnoi_containerz.go ./gnmi_server/jwtAuth_test.go ./gnmi_server/gnsi_authz_test.go ./gnmi_server/gnsi_credentialz_test.go ./gnmi_server/gnoi_system_test.go ./internal/diskspace/diskspace.go ./internal/diskspace/diskspace_test.go ./internal/hash/hash_test.go ./internal/hash/hash.go ./internal/download/download.go ./internal/download/download_test.go ./internal/firmware/firmware_test.go ./internal/firmware/firmware.go ./internal/exec/command_test.go ./internal/exec/command.go ./sonic_service_client/dbus_client.go ./sonic_service_client/dbus_client_test.go ./sonic_service_client/dbus_fake_client.go ./sonic_service_client/dbus_fake_client_test.go ./test_utils/memcheck_disable.go ./test_utils/memcheck_enable.go ./test_utils/test_utils.go ./gnmi_dump/gnmi_dump.go ./pathz_authorizer/pathz_authorizer.go ./pathz_authorizer/pathz_authorizer_test.go ./gnoi_client/healthz/healthz.go ./gnoi_client/factory_reset/factory_reset.go ./gnoi_client/sonic/jwt.go ./gnoi_client/sonic/sonic.go ./gnoi_client/gnoi_client.go ./gnoi_client/system/time.go ./gnoi_client/system/kill_process.go ./gnoi_client/system/system_mock_test.go ./gnoi_client/system/system_test.go ./gnoi_client/system/reboot.go ./gnoi_client/system/set_package.go ./gnoi_client/os/os.go ./gnoi_client/config/flag.go ./gnoi_client/utils/utils_log.go ./gnoi_client/utils/creds.go ./gnoi_client/containerz/deploy.go ./gnoi_client/file/file.go ./pkg/server/operational-handler/disk_space_test.go ./pkg/server/operational-handler/operational_handler.go ./pkg/server/operational-handler/doc.go ./pkg/server/operational-handler/firmware_handler.go ./pkg/server/operational-handler/operational_handler_test.go ./pkg/server/operational-handler/disk_space.go ./pkg/server/operational-handler/firmware_handler_test.go ./pkg/gnoi/file/file.go ./pkg/gnoi/file/dpu_monkey_test.go ./pkg/gnoi/file/remove_test.go ./pkg/gnoi/file/coverage_boost_test.go ./pkg/gnoi/file/file_test.go ./pkg/gnoi/os/os.go ./pkg/gnoi/os/os_monkey_test.go ./pkg/gnoi/os/os_test.go ./pkg/gnoi/debug/debug_test.go ./pkg/gnoi/debug/validate.go ./pkg/gnoi/debug/debug.go ./pkg/gnoi/debug/whitelist_test.go ./pkg/gnoi/debug/whitelist.go ./pkg/gnoi/debug/validate_test.go ./pkg/gnoi/system/system_monkey_test.go ./pkg/gnoi/system/system_test.go ./pkg/gnoi/system/system.go ./pkg/bypass/bypass.go ./pkg/bypass/bypass_test.go ./pkg/interceptors/dpuproxy/proxy.go ./pkg/interceptors/dpuproxy/resolver.go ./pkg/interceptors/dpuproxy/singleton_test.go ./pkg/interceptors/dpuproxy/resolver_integration_test.go ./pkg/interceptors/dpuproxy/metadata.go ./pkg/interceptors/dpuproxy/resolver_test.go ./pkg/interceptors/dpuproxy/proxy_monkey_test.go ./pkg/interceptors/dpuproxy/proxy_test.go ./pkg/interceptors/dpuproxy/redis.go ./pkg/interceptors/setup_test.go ./pkg/interceptors/interceptor.go ./pkg/interceptors/setup.go ./pkg/interceptors/interceptor_test.go ./pkg/exec/example_test.go ./pkg/exec/doc.go ./pkg/exec/command.go ./pkg/exec/command_test.go ./dialout/dialout_server_cli/dialout_server_cli.go ./dialout/dialout_client_cli/dialout_client_cli.go ./dialout/dialout_client/dialout_client_test.go ./dialout/dialout_client/dialout_client.go ./dialout/dialout_server/dialout_server.go ./telemetry/telemetry_test.go ./telemetry/telemetry.go
+mkdir -p build/bin
+All files are properly formatted.
+touch build/bin/.formatcheck
+patch -d vendor -p0 < patches/0002-Fix-advance-tls-build-with-go-119.patch
+patching file ./google.golang.org/grpc/security/advancedtls/advancedtls.go
+patching file ./google.golang.org/grpc/security/advancedtls/crl.go
+patch -d vendor -p0 < patches/0004-CloseWrite-event-support.patch
+patching file ./github.com/fsnotify/fsnotify/fsnotify.go
+patching file ./github.com/fsnotify/fsnotify/inotify.go
+/usr/local/go/bin/go install -mod=vendor  github.com/sonic-net/sonic-gnmi/telemetry
+# github.com/Azure/sonic-mgmt-common/cvl/internal/yparser
+vendor/github.com/Azure/sonic-mgmt-common/cvl/internal/yparser/yparser.go: In function 'yp_lyd_validate_edit':
+vendor/github.com/Azure/sonic-mgmt-common/cvl/internal/yparser/yparser.go:1014:64: error: 'LYD_VALIDATE_NOEXTDEPS' undeclared (first use in this function); did you mean 'LYD_VALIDATE_NO_STATE'?
+ 1014 |                 LYD_VALIDATE_PRESENT | LYD_VALIDATE_NO_STATE | LYD_VALIDATE_NOEXTDEPS,
+      |                                                                ^~~~~~~~~~~~~~~~~~~~~~
+      |                                                                LYD_VALIDATE_NO_STATE
+vendor/github.com/Azure/sonic-mgmt-common/cvl/internal/yparser/yparser.go:1014:64: note: each undeclared identifier is reported only once for each function it appears in
+make: *** [Makefile:102: sonic-gnmi] Error 1
+[build4] sonic-gnmi build failed; dumping logs
++ rsync -r --chmod=u+w --exclude=testdata '--exclude=*_test.go' /tmp/go/pkg/mod/github.com/openconfig/goyang@v0.0.0-20200309174518-a00bece872fc/. vendor/github.com/openconfig/goyang/
++ copy github.com/openconfig/gnmi v0.0.0-20200617225440-d2b4e6a45802 .
++ for FILE in "${@:3}"
++ rsync -r --chmod=u+w --exclude=testdata '--exclude=*_test.go' /tmp/go/pkg/mod/github.com/openconfig/gnmi@v0.0.0-20200617225440-d2b4e6a45802/. vendor/github.com/openconfig/gnmi/
++ update_modules_txt
++ local modules_file=vendor/modules.txt
++ grep -q '^github.com/openconfig/gnmi/ctree$' vendor/modules.txt
++ grep -q '^github.com/openconfig/ygot/ygen$' vendor/modules.txt
++ echo ''
++ echo '# github.com/openconfig/ygot v0.7.1'
++ echo '## explicit'
++ echo github.com/openconfig/ygot/genutil
++ echo github.com/openconfig/ygot/generator
++ echo github.com/openconfig/ygot/ygen
++ patch -d vendor/github.com/openconfig/ygot -p1
+patching file generator/generator.go
+patching file genutil/common.go
+patching file util/debug.go
+patching file util/path.go
+patching file util/reflect.go
+patching file ygen/codegen.go
+patching file ygen/genstate.go
+patching file ygen/schemaparse.go
+patching file ygot/render.go
+patching file ygot/struct_validation_map.go
+patching file ytypes/container.go
+patching file ytypes/leaf.go
+patching file ytypes/list.go
+patching file ytypes/node.go
+patching file ytypes/string_type.go
+patching file ytypes/unmarshal.go
+patching file ytypes/util_types.go
+patching file ytypes/validate.go
++ patch -d vendor/github.com/openconfig/goyang -p1
+patching file README.md
+patching file annotate.go
+patching file pkg/yang/ast.go
+patching file pkg/yang/entry.go
+patching file pkg/yang/types.go
+patching file yang.go
++ patch -d vendor/github.com/antchfx/jsonquery -p1
+patching file node.go
+patching file query.go
++ patch -d vendor/github.com/antchfx/xmlquery -p1
+patching file node.go
+patching file query.go
++ patch -d vendor/github.com/antchfx/xpath -p1
+patching file build.go
+patching file func.go
+patching file operator.go
+patching file query.go
+patching file xpath.go
+sed -i 's/#patch -d ${DEST_DIR}\/github.com\/golang\/glog/patch -d ${DEST_DIR}\/github.com\/golang\/glog/g' /src/sonic-gnmi/../sonic-mgmt-common/patches/apply.sh
+chmod -R u+w vendor
+patch -d vendor -p0 < patches/gnmi_path.patch
+(Stripping trailing CRs from patch; use --binary to disable.)
+patching file ./github.com/google/gnxi/utils/xpath/path.go
+patch -d vendor -p0 < patches/gnmi_xpath.patch
+patching file ./github.com/google/gnxi/utils/xpath/xpath.go
+touch vendor/.done
+Checking Go file formatting...
+./show_client/clock_cli.go ./show_client/show_common.go ./show_client/show_paths.go ./show_client/chassis_module_cli.go ./show_client/show_opts.go ./show_client/reboot_cause_cli.go ./show_client/interface_cli.go ./show_client/interface_transceiver_cli.go ./show_client/system_health_cli.go ./show_client/watermark_telemetry_interval.go ./show_client/ipv6_cli.go ./transl_utils/transl_utils.go ./transl_utils/ygot_diff.go ./transl_utils/ygot_diff_test.go ./transl_utils/ygot_diff_bench_test.go ./transl_utils/transl_utils_test.go ./sonic_db_config/db_config.go ./sonic_db_config/db_config_test.go ./testdata/tls/tls_test.go ./testdata/tls/tls.go ./sonic_data_client/virtual_db.go ./sonic_data_client/transl_subscriber_test.go ./sonic_data_client/dummy_client_test.go ./sonic_data_client/client_test.go ./sonic_data_client/events_client.go ./sonic_data_client/mixed_db_client.go ./sonic_data_client/json_client.go ./sonic_data_client/non_db_client.go ./sonic_data_client/transl_data_client.go ./sonic_data_client/transl_data_client_test.go ./sonic_data_client/show_client.go ./sonic_data_client/transl_subscriber.go ./sonic_data_client/trie.go ./sonic_data_client/show_client_helpers.go ./sonic_data_client/db_client.go ./sonic_data_client/super_subscription.go ./sonic_data_client/virtual_db_test.go ./sonic_data_client/show_client_types.go ./sonic_data_client/super_subscription_test.go ./common_utils/shareMem.go ./common_utils/notification_producer_test.go ./common_utils/notification_producer.go ./common_utils/context.go ./common_utils/constants.go ./gnmi_server/connection_manager.go ./gnmi_server/gnoi_containerz_test.go ./gnmi_server/interface_transceiver_cli_test.go ./gnmi_server/cli_helpers_test.go ./gnmi_server/virtual_db_test.go ./gnmi_server/gnsi_credentialz.go ./gnmi_server/gnoi.go ./gnmi_server/clock_cli_test.go ./gnmi_server/transl_sub_test.go ./gnmi_server/ipv6_cli_test.go ./gnmi_server/db_journal_test.go ./gnmi_server/gnsi_authz.go ./gnmi_server/gnoi_reset_test.go ./gnmi_server/constants_native_write.go ./gnmi_server/multi_request_tcp_conn_test.go ./gnmi_server/client_subscribe.go ./gnmi_server/interface_errors_cli_test.go ./gnmi_server/watermark_telemetry_interval_cli_test.go ./gnmi_server/gnsi_pathz.go ./gnmi_server/interface_fec_status_cli_test.go ./gnmi_server/interface_cli_test.go ./gnmi_server/gnoi_healthz.go ./gnmi_server/gnsi_certz.go ./gnmi_server/clear_neighbor_dummy_test.go ./gnmi_server/constants_translib.go ./gnmi_server/system_health_cli_test.go ./gnmi_server/poll_mode_test.go ./gnmi_server/db_journal.go ./gnmi_server/pamAuth.go ./gnmi_server/gnoi_os.go ./gnmi_server/constants_translib_write.go ./gnmi_server/jwtAuth.go ./gnmi_server/basicAuth.go ./gnmi_server/debug.go ./gnmi_server/gnsi_pathz_test.go ./gnmi_server/gnoi_file_test.go ./gnmi_server/server_test.go ./gnmi_server/reboot_cause_cli_test.go ./gnmi_server/swss_util.go ./gnmi_server/gnoi_os_test.go ./gnmi_server/clientCertAuth.go ./gnmi_server/cli_options_test.go ./gnmi_server/server.go ./gnmi_server/gnsi_certz_test.go ./gnmi_server/gnoi_healthz_test.go ./gnmi_server/mocks/mock_system_setpackage_server.go ./gnmi_server/mocks/mock_system_server.go ./gnmi_server/gnsi_util_test.go ./gnmi_server/chassis_module_test.go ./gnmi_server/gnoi_system.go ./gnmi_server/crl_test.go ./gnmi_server/gnsi_util.go ./gnmi_server/constants_native.go ./gnmi_server/gnoi_debug.go ./gnmi_server/gnoi_file.go ./gnmi_server/chassis_state_db_test.go ./gnmi_server/gnoi_reset.go ./gnmi_server/gnoi_containerz.go ./gnmi_server/jwtAuth_test.go ./gnmi_server/gnsi_authz_test.go ./gnmi_server/gnsi_credentialz_test.go ./gnmi_server/gnoi_system_test.go ./internal/diskspace/diskspace.go ./internal/diskspace/diskspace_test.go ./internal/hash/hash_test.go ./internal/hash/hash.go ./internal/download/download.go ./internal/download/download_test.go ./internal/firmware/firmware_test.go ./internal/firmware/firmware.go ./internal/exec/command_test.go ./internal/exec/command.go ./sonic_service_client/dbus_client.go ./sonic_service_client/dbus_client_test.go ./sonic_service_client/dbus_fake_client.go ./sonic_service_client/dbus_fake_client_test.go ./test_utils/memcheck_disable.go ./test_utils/memcheck_enable.go ./test_utils/test_utils.go ./gnmi_dump/gnmi_dump.go ./pathz_authorizer/pathz_authorizer.go ./pathz_authorizer/pathz_authorizer_test.go ./gnoi_client/healthz/healthz.go ./gnoi_client/factory_reset/factory_reset.go ./gnoi_client/sonic/jwt.go ./gnoi_client/sonic/sonic.go ./gnoi_client/gnoi_client.go ./gnoi_client/system/time.go ./gnoi_client/system/kill_process.go ./gnoi_client/system/system_mock_test.go ./gnoi_client/system/system_test.go ./gnoi_client/system/reboot.go ./gnoi_client/system/set_package.go ./gnoi_client/os/os.go ./gnoi_client/config/flag.go ./gnoi_client/utils/utils_log.go ./gnoi_client/utils/creds.go ./gnoi_client/containerz/deploy.go ./gnoi_client/file/file.go ./pkg/server/operational-handler/disk_space_test.go ./pkg/server/operational-handler/operational_handler.go ./pkg/server/operational-handler/doc.go ./pkg/server/operational-handler/firmware_handler.go ./pkg/server/operational-handler/operational_handler_test.go ./pkg/server/operational-handler/disk_space.go ./pkg/server/operational-handler/firmware_handler_test.go ./pkg/gnoi/file/file.go ./pkg/gnoi/file/dpu_monkey_test.go ./pkg/gnoi/file/remove_test.go ./pkg/gnoi/file/coverage_boost_test.go ./pkg/gnoi/file/file_test.go ./pkg/gnoi/os/os.go ./pkg/gnoi/os/os_monkey_test.go ./pkg/gnoi/os/os_test.go ./pkg/gnoi/debug/debug_test.go ./pkg/gnoi/debug/validate.go ./pkg/gnoi/debug/debug.go ./pkg/gnoi/debug/whitelist_test.go ./pkg/gnoi/debug/whitelist.go ./pkg/gnoi/debug/validate_test.go ./pkg/gnoi/system/system_monkey_test.go ./pkg/gnoi/system/system_test.go ./pkg/gnoi/system/system.go ./pkg/bypass/bypass.go ./pkg/bypass/bypass_test.go ./pkg/interceptors/dpuproxy/proxy.go ./pkg/interceptors/dpuproxy/resolver.go ./pkg/interceptors/dpuproxy/singleton_test.go ./pkg/interceptors/dpuproxy/resolver_integration_test.go ./pkg/interceptors/dpuproxy/metadata.go ./pkg/interceptors/dpuproxy/resolver_test.go ./pkg/interceptors/dpuproxy/proxy_monkey_test.go ./pkg/interceptors/dpuproxy/proxy_test.go ./pkg/interceptors/dpuproxy/redis.go ./pkg/interceptors/setup_test.go ./pkg/interceptors/interceptor.go ./pkg/interceptors/setup.go ./pkg/interceptors/interceptor_test.go ./pkg/exec/example_test.go ./pkg/exec/doc.go ./pkg/exec/command.go ./pkg/exec/command_test.go ./dialout/dialout_server_cli/dialout_server_cli.go ./dialout/dialout_client_cli/dialout_client_cli.go ./dialout/dialout_client/dialout_client_test.go ./dialout/dialout_client/dialout_client.go ./dialout/dialout_server/dialout_server.go ./telemetry/telemetry_test.go ./telemetry/telemetry.go
+mkdir -p build/bin
+All files are properly formatted.
+touch build/bin/.formatcheck
+patch -d vendor -p0 < patches/0002-Fix-advance-tls-build-with-go-119.patch
+patching file ./google.golang.org/grpc/security/advancedtls/advancedtls.go
+patching file ./google.golang.org/grpc/security/advancedtls/crl.go
+patch -d vendor -p0 < patches/0004-CloseWrite-event-support.patch
+patching file ./github.com/fsnotify/fsnotify/fsnotify.go
+patching file ./github.com/fsnotify/fsnotify/inotify.go
+/usr/local/go/bin/go install -mod=vendor  github.com/sonic-net/sonic-gnmi/telemetry
+# github.com/Azure/sonic-mgmt-common/cvl/internal/yparser
+vendor/github.com/Azure/sonic-mgmt-common/cvl/internal/yparser/yparser.go: In function 'yp_lyd_validate_edit':
+vendor/github.com/Azure/sonic-mgmt-common/cvl/internal/yparser/yparser.go:1014:64: error: 'LYD_VALIDATE_NOEXTDEPS' undeclared (first use in this function); did you mean 'LYD_VALIDATE_NO_STATE'?
+ 1014 |                 LYD_VALIDATE_PRESENT | LYD_VALIDATE_NO_STATE | LYD_VALIDATE_NOEXTDEPS,
+      |                                                                ^~~~~~~~~~~~~~~~~~~~~~
+      |                                                                LYD_VALIDATE_NO_STATE
+vendor/github.com/Azure/sonic-mgmt-common/cvl/internal/yparser/yparser.go:1014:64: note: each undeclared identifier is reported only once for each function it appears in
+make: *** [Makefile:102: sonic-gnmi] Error 1
+bin
+gnoi_yang
+[build4] FAILED: sonic-gnmi

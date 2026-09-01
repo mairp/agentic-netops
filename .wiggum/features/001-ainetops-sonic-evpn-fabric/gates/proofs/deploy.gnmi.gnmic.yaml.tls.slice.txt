@@ -1,0 +1,7 @@
+     1	      username: ${GNMIC_USERNAME}
+     2	      password: ${GNMIC_PASSWORD}
+     3	      skip-verify: false
+     4	      tls-ca: /etc/gnmic/tls/ca.crt
+     5	      tls-cert: /etc/gnmic/tls/tls.crt
+     6	      tls-key: /etc/gnmic/tls/tls.key
+     7	      encoding: json_ietf

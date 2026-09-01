@@ -1,0 +1,8 @@
+[fabric-verify] fetching lab credentials/TLS from cluster secrets into ./secrets
+[fabric-verify] WARN: secret gnmi-lab-creds not found
+[fabric-verify] WARN: secret gnmi-lab-tls not found
+[fabric-verify] attempting to create lab Secrets via deploy/rbac manifests and generator Job
+error: context "kind-ainetops" does not exist
+error: context "kind-ainetops" does not exist
+error: context "kind-ainetops" does not exist
+FABRIC_VERIFY_SKIPPED

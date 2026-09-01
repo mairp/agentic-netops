@@ -1,0 +1,61 @@
+   120	
+   121	  local kind_pin kubectl_pin helm_pin clab_pin
+   122	  kind_pin=$(preflight::yaml_value kind binary)
+   123	  # Prefer host_tools.kubectl if present, else fall back to kubernetes.kubernetes
+   124	  kubectl_pin=$(preflight::yaml_value host_tools kubectl)
+   125	  if [[ -z "${kubectl_pin}" ]]; then kubectl_pin=$(preflight::yaml_value kubernetes kubernetes); fi
+   126	  helm_pin=$(preflight::yaml_value host_tools helm)
+   127	  clab_pin=$(preflight::yaml_value containerlab version)
+   128	
+   129	  [[ -n "$kind_pin" ]] || preflight::die "missing kind.binary pin in versions.lock.yaml"
+   130	  [[ -n "$kubectl_pin" ]] || preflight::die "missing host_tools.kubectl or kubernetes.kubernetes pin in versions.lock.yaml"
+   131	  [[ -n "$helm_pin" ]] || preflight::die "missing host_tools.helm pin in versions.lock.yaml"
+   132	  [[ -n "$clab_pin" ]] || preflight::die "missing containerlab.version pin in versions.lock.yaml"
+   133	
+   134	  # kind
+   135	  if command -v kind >/dev/null 2>&1; then
+   136	    local kind_ver; kind_ver=$(kind version 2>/dev/null | awk '{print $2}') || true
+   137	    if [[ "$kind_ver" != "$kind_pin" ]]; then
+   138	      if [[ "$soft" == "true" ]]; then preflight::warn "kind version $kind_ver != pinned $kind_pin (soft mode)"; else preflight::die "kind version $kind_ver != pinned $kind_pin"; fi
+   139	    fi
+   140	  fi
+   141	
+   142	  # kubectl
+   143	  if command -v kubectl >/dev/null 2>&1; then
+   144	    local kubectl_ver; kubectl_ver=$(kubectl version --client -o json 2>/dev/null | jq -r '.clientVersion.gitVersion' || true)
+   145	    if [[ "$kubectl_ver" != "$kubectl_pin" ]]; then
+   146	      if [[ "$soft" == "true" ]]; then preflight::warn "kubectl version $kubectl_ver != pinned $kubectl_pin (soft mode)"; else preflight::die "kubectl version $kubectl_ver != pinned $kubectl_pin"; fi
+   147	    fi
+   148	  fi
+   149	
+   150	  # helm
+   151	  if command -v helm >/dev/null 2>&1; then
+   152	    local helm_ver; helm_ver=$(helm version --short --client 2>/dev/null | sed 's/+.*//' || true)
+   153	    if [[ "$helm_ver" != "$helm_pin" ]]; then
+   154	      if [[ "$soft" == "true" ]]; then preflight::warn "helm version $helm_ver != pinned $helm_pin (soft mode)"; else preflight::die "helm version $helm_ver != pinned $helm_pin"; fi
+   155	    fi
+   156	  fi
+   157	
+   158	  # containerlab (parse the 'version:' line)
+   159	  if command -v containerlab >/dev/null 2>&1; then
+   160	    local clab_ver
+   161	    # containerlab prints a header like "version: X.Y.Z"; be robust to capitalization/format changes
+   162	    clab_ver=$(containerlab version 2>/dev/null | awk -F': *' '{hdr=tolower($1); if (hdr ~ /^version$/) {print $2; exit}}')
+   163	    if [[ -z "$clab_ver" ]]; then
+   164	      # Fallback: extract first semantic version on the first line
+   165	      clab_ver=$(containerlab version 2>/dev/null | sed -n '1p' | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
+   166	    fi
+   167	    if [[ "$clab_ver" != "$clab_pin" ]]; then
+   168	      if [[ "$soft" == "true" ]]; then preflight::warn "containerlab version $clab_ver != pinned $clab_pin (soft mode)"; else preflight::die "containerlab version $clab_ver != pinned $clab_pin"; fi
+   169	    fi
+   170	  else
+   171	    if [[ "$soft" == "true" ]]; then preflight::warn "containerlab not installed (soft mode)"; else preflight::die "missing required command: containerlab"; fi
+   172	  fi
+   173	}
+   174	
+   175	preflight::run() {
+   176	  preflight::check_versions_lock
+   177	  preflight::host_resources
+   178	  preflight::runtime_privileges
+   179	  preflight::address_conflicts
+   180	  preflight::mtu

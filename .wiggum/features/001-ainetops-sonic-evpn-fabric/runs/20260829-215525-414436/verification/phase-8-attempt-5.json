@@ -1,0 +1,26 @@
+{
+  "buildArtifacts": [],
+  "commands": [
+    {
+      "args": [
+        "test",
+        "./..."
+      ],
+      "commandId": "CMD-7b0518e1174ca872060e",
+      "cwd": "/root/ainetops-demo",
+      "durationMs": 1950,
+      "executable": "/usr/lib/go-1.24/bin/go",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "stderr": "",
+      "stdout": "?   \tgithub.com/mairp/ainetops/api/v1alpha1\t[no test files]\n?   \tgithub.com/mairp/ainetops/cmd/migration-translator\t[no test files]\n?   \tgithub.com/mairp/ainetops/controllers/sonicprovider\t[no test files]\n?   \tgithub.com/mairp/ainetops/controllers/srv6service\t[no test files]\nok  \tgithub.com/mairp/ainetops/internal/lockfile\t0.156s\n?   \tgithub.com/mairp/ainetops/pkg/compat\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/kubenet\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/migration\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/model\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/reasons\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/render\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/sdc\t[no test files]\n?   \tgithub.com/mairp/ainetops/pkg/version\t[no test files]\nok  \tgithub.com/mairp/ainetops/tests/envtest\t(cached)\nok  \tgithub.com/mairp/ainetops/tests/unit\t0.428s\n"
+    }
+  ],
+  "gateId": "GATE-phase-8",
+  "passed": true,
+  "phase": 8,
+  "planHash": "7945037a1699da067636b84b6d773a3afa1801994b89672f8b4be583e04e6531",
+  "planId": "verification-414756f43ac96fab9bbe",
+  "summary": "Verification gate GATE-phase-8 passed 1 command(s)"
+}

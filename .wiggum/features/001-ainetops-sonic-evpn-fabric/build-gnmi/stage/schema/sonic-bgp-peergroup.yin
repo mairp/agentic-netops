@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-bgp-peergroup"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:pg="http://github.com/sonic-net/sonic-bgp-peergroup"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:bgpcmn="http://github.com/sonic-net/sonic-bgp-common"
+        xmlns:bgpg="http://github.com/sonic-net/sonic-bgp-global">
+  <namespace uri="http://github.com/sonic-net/sonic-bgp-peergroup"/>
+  <prefix value="pg"/>
+  <yang-version value="1.1"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-bgp-common">
+    <prefix value="bgpcmn"/>
+  </import>
+  <import module="sonic-bgp-global">
+    <prefix value="bgpg"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONIC BGP Peer Group YANG</text>
+  </description>
+  <revision date="2021-02-26">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-bgp-peergroup">
+    <container name="BGP_PEER_GROUP">
+      <list name="BGP_PEER_GROUP_LIST">
+        <key value="vrf_name peer_group_name"/>
+        <leaf name="vrf_name">
+          <type name="leafref">
+            <path value="/bgpg:sonic-bgp-global/bgpg:BGP_GLOBALS/bgpg:BGP_GLOBALS_LIST/bgpg:vrf_name"/>
+          </type>
+          <description>
+            <text>Network-instance/VRF name</text>
+          </description>
+        </leaf>
+        <leaf name="peer_group_name">
+          <type name="string"/>
+          <description>
+            <text>Peer group name</text>
+          </description>
+        </leaf>
+        <uses name="bgpcmn:sonic-bgp-cmn"/>
+      </list>
+    </container>
+    <container name="BGP_PEER_GROUP_AF">
+      <list name="BGP_PEER_GROUP_AF_LIST">
+        <key value="vrf_name peer_group_name afi_safi"/>
+        <leaf name="vrf_name">
+          <type name="leafref">
+            <path value="/bgpg:sonic-bgp-global/bgpg:BGP_GLOBALS/bgpg:BGP_GLOBALS_LIST/bgpg:vrf_name"/>
+          </type>
+          <description>
+            <text>Network-instance/VRF name</text>
+          </description>
+        </leaf>
+        <leaf name="peer_group_name">
+          <type name="leafref">
+            <path value="../../../BGP_PEER_GROUP/BGP_PEER_GROUP_LIST[vrf_name=current()/../vrf_name]/peer_group_name"/>
+          </type>
+          <description>
+            <text>Peer group name</text>
+          </description>
+        </leaf>
+        <uses name="bgpcmn:sonic-bgp-cmn-af"/>
+      </list>
+    </container>
+    <container name="BGP_GLOBALS_LISTEN_PREFIX">
+      <list name="BGP_GLOBALS_LISTEN_PREFIX_LIST">
+        <key value="vrf_name ip_prefix"/>
+        <leaf name="vrf_name">
+          <type name="leafref">
+            <path value="/bgpg:sonic-bgp-global/bgpg:BGP_GLOBALS/bgpg:BGP_GLOBALS_LIST/bgpg:vrf_name"/>
+          </type>
+          <description>
+            <text>Network-instance/VRF name</text>
+          </description>
+        </leaf>
+        <leaf name="ip_prefix">
+          <type name="inet:ip-prefix"/>
+          <description>
+            <text>Configure BGP dynamic neighbors listen range</text>
+          </description>
+        </leaf>
+        <leaf name="peer_group">
+          <type name="leafref">
+            <path value="../../../BGP_PEER_GROUP/BGP_PEER_GROUP_LIST[vrf_name=current()/../vrf_name]/peer_group_name"/>
+          </type>
+          <description>
+            <text>Peer group name</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-dhcp-server-ipv4"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:dhcp-server-ipv4="http://github.com/sonic-net/sonic-dhcp-server-ipv4"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head"
+        xmlns:port="http://github.com/sonic-net/sonic-port"
+        xmlns:lag="http://github.com/sonic-net/sonic-portchannel"
+        xmlns:smartswitch="http://github.com/sonic-net/sonic-smart-switch">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-dhcp-server-ipv4"/>
+  <prefix value="dhcp-server-ipv4"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <import module="sonic-port">
+    <prefix value="port"/>
+  </import>
+  <import module="sonic-portchannel">
+    <prefix value="lag"/>
+  </import>
+  <import module="sonic-smart-switch">
+    <prefix value="smartswitch"/>
+  </import>
+  <description>
+    <text>DHCP_SERVER_IPV4 YANG module for SONiC OS</text>
+  </description>
+  <revision date="2023-07-19">
+    <description>
+      <text>Initial version</text>
+    </description>
+  </revision>
+  <container name="sonic-dhcp-server-ipv4">
+    <container name="DHCP_SERVER_IPV4">
+      <description>
+        <text>DHCPv4 server configuration per interface</text>
+      </description>
+      <list name="DHCP_SERVER_IPV4_LIST">
+        <description>
+          <text>DHCPv4 server instance for a specific interface</text>
+        </description>
+        <key value="name"/>
+        <leaf name="name">
+          <description>
+            <text>Interface name for DHCP server</text>
+          </description>
+          <type name="union">
+            <type name="string">
+              <pattern value="Vlan([0-9]{1,3}|[1-3][0-9]{3}|[4][0][0-8][0-9]|[4][0][9][0-4])"/>
+            </type>
+            <type name="leafref">
+              <path value="/smartswitch:sonic-smart-switch/smartswitch:MID_PLANE_BRIDGE/smartswitch:GLOBAL/smartswitch:bridge"/>
+            </type>
+          </type>
+        </leaf>
+        <leaf name="gateway">
+          <description>
+            <text>Gateway IP for DHCP server</text>
+          </description>
+          <type name="inet:ipv4-address"/>
+        </leaf>
+        <leaf name="lease_time">
+          <description>
+            <text>Lease time of DHCP IP in second</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="uint32">
+            <range value="1..4294967295"/>
+          </type>
+        </leaf>
+        <leaf name="mode">
+          <description>
+            <text>Mode of assigning IP</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="enumeration">
+            <enum name="PORT"/>
+          </type>
+        </leaf>
+        <leaf name="netmask">
+          <description>
+            <text>Subnet mask value for DHCP server</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="inet:ipv4-address-no-zone"/>
+        </leaf>
+        <leaf-list name="customized_options">
+          <description>
+            <text>Customized options list</text>
+          </description>
+          <type name="leafref">
+            <path value="/dhcp-server-ipv4:sonic-dhcp-server-ipv4/dhcp-server-ipv4:DHCP_SERVER_IPV4_CUSTOMIZED_OPTIONS/dhcp-server-ipv4:DHCP_SERVER_IPV4_CUSTOMIZED_OPTIONS_LIST/dhcp-server-ipv4:name"/>
+          </type>
+          <ordered-by value="user"/>
+        </leaf-list>
+        <leaf name="state">
+          <description>
+            <text>State of DHCP server</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="stypes:admin_mode"/>
+        </leaf>
+      </list>
+    </container>
+    <container name="DHCP_SERVER_IPV4_CUSTOMIZED_OPTIONS">
+      <description>
+        <text>Customized DHCP option definitions for DHCPv4 server</text>
+      </description>
+      <list name="DHCP_SERVER_IPV4_CUSTOMIZED_OPTIONS_LIST">
+        <description>
+          <text>A customized DHCP option with ID, type, and value</text>
+        </description>
+        <key value="name"/>
+        <leaf name="name">
+          <description>
+            <text>Name of customized option</text>
+          </description>
+          <type name="string">
+            <length value="1..255">
+              <error-message>
+                <value>Invalid length for the customized options name</value>
+              </error-message>
+            </length>
+          </type>
+        </leaf>
+        <leaf name="id">
+          <description>
+            <text>DHCP option ID number</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="uint8">
+            <range value="1..254"/>
+          </type>
+        </leaf>
+        <leaf name="type">
+          <description>
+            <text>Type of customized option, for standard DHCP option, this field is invalid</text>
+          </description>
+          <type name="enumeration">
+            <enum name="string"/>
+            <enum name="ipv4-address"/>
+            <enum name="uint8"/>
+            <enum name="uint16"/>
+            <enum name="uint32"/>
+          </type>
+        </leaf>
+        <leaf name="value">
+          <description>
+            <text>Value of customized option</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="union">
+            <type name="string">
+              <length value="0..255"/>
+            </type>
+            <type name="inet:ipv4-address"/>
+            <type name="uint8"/>
+            <type name="uint16"/>
+            <type name="uint32"/>
+          </type>
+        </leaf>
+        <leaf name="always_send">
+          <description>
+            <text>Always send option or not</text>
+          </description>
+          <type name="boolean"/>
+          <default value="true"/>
+        </leaf>
+      </list>
+    </container>
+    <container name="DHCP_SERVER_IPV4_RANGE">
+      <description>
+        <text>Named IPv4 address ranges for DHCP IP allocation</text>
+      </description>
+      <list name="DHCP_SERVER_IPV4_RANGE_LIST">
+        <description>
+          <text>An IPv4 address range defined by one or two IP addresses</text>
+        </description>
+        <key value="name"/>
+        <leaf name="name">
+          <description>
+            <text>Name of IP range</text>
+          </description>
+          <type name="string">
+            <length value="1..255">
+              <error-message>
+                <value>Invalid length for the IP range name</value>
+              </error-message>
+            </length>
+          </type>
+        </leaf>
+        <leaf-list name="range">
+          <description>
+            <text>Range of IPs</text>
+          </description>
+          <type name="inet:ipv4-address"/>
+          <ordered-by value="user"/>
+        </leaf-list>
+        <must condition="((count(range) &lt;= 2) and (count(range) &gt;= 1))"/>
+      </list>
+    </container>
+    <container name="DHCP_SERVER_IPV4_PORT">
+      <description>
+        <text>Port-based DHCP IP assignment binding ports to addresses or ranges</text>
+      </description>
+      <list name="DHCP_SERVER_IPV4_PORT_LIST">
+        <description>
+          <text>A port-to-IP assignment for a DHCP server interface</text>
+        </description>
+        <key value="name port"/>
+        <leaf name="name">
+          <description>
+            <text>Name of DHCP interface</text>
+          </description>
+          <type name="leafref">
+            <path value="/dhcp-server-ipv4:sonic-dhcp-server-ipv4/dhcp-server-ipv4:DHCP_SERVER_IPV4/dhcp-server-ipv4:DHCP_SERVER_IPV4_LIST/dhcp-server-ipv4:name"/>
+          </type>
+        </leaf>
+        <leaf name="port">
+          <description>
+            <text>Interface under DHCP interface</text>
+          </description>
+          <type name="union">
+            <type name="leafref">
+              <path value="/port:sonic-port/port:PORT/port:PORT_LIST/port:name"/>
+            </type>
+            <type name="leafref">
+              <path value="/lag:sonic-portchannel/lag:PORTCHANNEL/lag:PORTCHANNEL_LIST/lag:name"/>
+            </type>
+            <type name="leafref">
+              <path value="/smartswitch:sonic-smart-switch/smartswitch:DPUS/smartswitch:DPUS_LIST/smartswitch:midplane_interface"/>
+            </type>
+          </type>
+        </leaf>
+        <leaf-list name="ips">
+          <description>
+            <text>Assigned IPs</text>
+          </description>
+          <must condition="(not(boolean(../ranges)))">
+            <error-message>
+              <value>Statement of 'ips' and 'ranges' cannot both exist</value>
+            </error-message>
+          </must>
+          <type name="inet:ipv4-address"/>
+          <ordered-by value="user"/>
+        </leaf-list>
+        <leaf-list name="ranges">
+          <description>
+            <text>IP ranges</text>
+          </description>
+          <must condition="(not(boolean(../ips)))">
+            <error-message>
+              <value>Statement of 'ips' and 'ranges' cannot both exist</value>
+            </error-message>
+          </must>
+          <type name="leafref">
+            <path value="/dhcp-server-ipv4:sonic-dhcp-server-ipv4/dhcp-server-ipv4:DHCP_SERVER_IPV4_RANGE/dhcp-server-ipv4:DHCP_SERVER_IPV4_RANGE_LIST/dhcp-server-ipv4:name"/>
+          </type>
+          <ordered-by value="user"/>
+        </leaf-list>
+      </list>
+    </container>
+  </container>
+</module>

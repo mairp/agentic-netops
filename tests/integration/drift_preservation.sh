@@ -13,7 +13,7 @@ LEAF1=${LEAF1:-172.31.0.21:8080}
 PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
 mkdir -p "$PROOF_DIR"
 
-_args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --tls --skip-verify --encoding "$GNMI_ENCODING" --cacert "$GNMI_CACERT" --cert "$GNMI_CERT" --key "$GNMI_KEY")
+_args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --insecure --encoding "$GNMI_ENCODING" --cacert "$GNMI_CACERT" --cert "$GNMI_CERT" --key "$GNMI_KEY")
 
 _read_json() {
   "$GNMIC_BIN" --address "$LEAF1" "${_args_common[@]}" get --path "$1" -o json 2>/dev/null

@@ -1,0 +1,146 @@
+[
+  {
+    "name": "schema-arista-4.31.1f.yaml",
+    "path": "example/schemas/schema-arista-4.31.1f.yaml",
+    "sha": "a39bc1cfbe3d2ef5def9c8262d56ef389f23133f",
+    "size": 2164,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-arista-4.31.1f.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-arista-4.31.1f.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/a39bc1cfbe3d2ef5def9c8262d56ef389f23133f",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/schemas/schema-arista-4.31.1f.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-arista-4.31.1f.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/a39bc1cfbe3d2ef5def9c8262d56ef389f23133f",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-arista-4.31.1f.yaml"
+    }
+  },
+  {
+    "name": "schema-arista-4.33.0f.yaml",
+    "path": "example/schemas/schema-arista-4.33.0f.yaml",
+    "sha": "d5b88602a2b90a1c9978ebe839aa0d881e064fae",
+    "size": 2265,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-arista-4.33.0f.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-arista-4.33.0f.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/d5b88602a2b90a1c9978ebe839aa0d881e064fae",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/schemas/schema-arista-4.33.0f.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-arista-4.33.0f.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/d5b88602a2b90a1c9978ebe839aa0d881e064fae",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-arista-4.33.0f.yaml"
+    }
+  },
+  {
+    "name": "schema-ipinfusion-ocnos-sp-7.0.0.yaml",
+    "path": "example/schemas/schema-ipinfusion-ocnos-sp-7.0.0.yaml",
+    "sha": "51aefc419a08501572addc4952b404b94decf0d3",
+    "size": 696,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-ipinfusion-ocnos-sp-7.0.0.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-ipinfusion-ocnos-sp-7.0.0.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/51aefc419a08501572addc4952b404b94decf0d3",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/schemas/schema-ipinfusion-ocnos-sp-7.0.0.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-ipinfusion-ocnos-sp-7.0.0.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/51aefc419a08501572addc4952b404b94decf0d3",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-ipinfusion-ocnos-sp-7.0.0.yaml"
+    }
+  },
+  {
+    "name": "schema-juniper-ex-23.2R1.yaml",
+    "path": "example/schemas/schema-juniper-ex-23.2R1.yaml",
+    "sha": "1d59095451b2524c777b0a765520b7471bdde21c",
+    "size": 650,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-juniper-ex-23.2R1.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-juniper-ex-23.2R1.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/1d59095451b2524c777b0a765520b7471bdde21c",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/schemas/schema-juniper-ex-23.2R1.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-juniper-ex-23.2R1.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/1d59095451b2524c777b0a765520b7471bdde21c",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-juniper-ex-23.2R1.yaml"
+    }
+  },
+  {
+    "name": "schema-juniper-mx-23.2R1.yaml",
+    "path": "example/schemas/schema-juniper-mx-23.2R1.yaml",
+    "sha": "aaca4a9f42a1e0ca9abb6cb439e4472022f045c7",
+    "size": 678,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-juniper-mx-23.2R1.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-juniper-mx-23.2R1.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/aaca4a9f42a1e0ca9abb6cb439e4472022f045c7",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/schemas/schema-juniper-mx-23.2R1.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-juniper-mx-23.2R1.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/aaca4a9f42a1e0ca9abb6cb439e4472022f045c7",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-juniper-mx-23.2R1.yaml"
+    }
+  },
+  {
+    "name": "schema-juniper-nfx-23.2R1.yaml",
+    "path": "example/schemas/schema-juniper-nfx-23.2R1.yaml",
+    "sha": "3b9125e5b73d657ff8ccfaf6a0c56a9e0866beb0",
+    "size": 650,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-juniper-nfx-23.2R1.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-juniper-nfx-23.2R1.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/3b9125e5b73d657ff8ccfaf6a0c56a9e0866beb0",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/schemas/schema-juniper-nfx-23.2R1.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-juniper-nfx-23.2R1.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/3b9125e5b73d657ff8ccfaf6a0c56a9e0866beb0",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-juniper-nfx-23.2R1.yaml"
+    }
+  },
+  {
+    "name": "schema-juniper-qfx-23.2R1.yaml",
+    "path": "example/schemas/schema-juniper-qfx-23.2R1.yaml",
+    "sha": "92297153e400cf1ad9549c1f567ba7e48d23433e",
+    "size": 650,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-juniper-qfx-23.2R1.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-juniper-qfx-23.2R1.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/92297153e400cf1ad9549c1f567ba7e48d23433e",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/schemas/schema-juniper-qfx-23.2R1.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-juniper-qfx-23.2R1.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/92297153e400cf1ad9549c1f567ba7e48d23433e",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-juniper-qfx-23.2R1.yaml"
+    }
+  },
+  {
+    "name": "schema-nokia-srl-24.10.1.yaml",
+    "path": "example/schemas/schema-nokia-srl-24.10.1.yaml",
+    "sha": "9dd1344b18db6220a00eca6ec00b62f9cb1921ac",
+    "size": 702,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-nokia-srl-24.10.1.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-nokia-srl-24.10.1.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/9dd1344b18db6220a00eca6ec00b62f9cb1921ac",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/schemas/schema-nokia-srl-24.10.1.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-nokia-srl-24.10.1.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/9dd1344b18db6220a00eca6ec00b62f9cb1921ac",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-nokia-srl-24.10.1.yaml"
+    }
+  },
+  {
+    "name": "schema-nokia-sros-24.10.yaml",
+    "path": "example/schemas/schema-nokia-sros-24.10.yaml",
+    "sha": "3e62c418721cbc6f6a34f4c3de2353c95cba4752",
+    "size": 666,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-nokia-sros-24.10.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-nokia-sros-24.10.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/3e62c418721cbc6f6a34f4c3de2353c95cba4752",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/schemas/schema-nokia-sros-24.10.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/schemas/schema-nokia-sros-24.10.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/3e62c418721cbc6f6a34f4c3de2353c95cba4752",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/schemas/schema-nokia-sros-24.10.yaml"
+    }
+  }
+]

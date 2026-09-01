@@ -1,0 +1,137 @@
+[EVPN-Type2] PASSED
+Test EVPN-Type2 completed successfully
+[evpn-srv6-suite] FAIL: EVPN-Type2 (MAC/IP advertisement AF): L2VPN EVPN session to 172.31.0.22 not Established (output: {
+  "routerId":"0.0.0.0",
+  "as":65101,
+  "vrfId":0,
+  "vrfName":"default",
+  "tableVersion":0,
+  "ribCount":0,
+  "ribMemory":0,
+  "peerCount":1,
+  "peerMemory":24072,
+  "peers":{
+    "172.31.0.22":{
+      "softwareVersion":"n/a",
+      "remoteAs":65102,
+      "localAs":65101,
+      "version":4,
+      "msgRcvd":0,
+      "msgSent":0,
+      "tableVersion":0,
+      "outq":0,
+      "inq":0,
+      "peerUptime":"never",
+      "peerUptimeMsec":0,
+      "pfxRcd":0,
+      "pfxSnt":0,
+      "state":"Active",
+      "peerState":"OK",
+      "connectionsEstablished":0,
+      "connectionsDropped":0,
+      "idType":"ipv4"
+    }
+  },
+  "failedPeers":1,
+  "displayedPeers":1,
+  "totalPeers":1,
+  "dynamicPeers":0,
+  "bestPath":{
+    "multiPathRelax":"false"
+  }
+})
+[evpn-srv6-suite] FAIL: EVPN-Type2 (MAC/IP advertisement AF): L2VPN EVPN session to 172.31.0.22 not Established (output: {
+  "routerId":"172.31.0.21",
+  "as":65101,
+  "vrfId":0,
+  "vrfName":"default",
+  "tableVersion":0,
+  "ribCount":0,
+  "ribMemory":0,
+  "peerCount":1,
+  "peerMemory":24072,
+  "peers":{
+    "172.31.0.22":{
+      "softwareVersion":"n/a",
+      "remoteAs":65102,
+      "localAs":65101,
+      "version":4,
+      "msgRcvd":0,
+      "msgSent":0,
+      "tableVersion":0,
+      "outq":0,
+      "inq":0,
+      "peerUptime":"never",
+      "peerUptimeMsec":0,
+      "pfxRcd":0,
+      "pfxSnt":0,
+      "state":"Active",
+      "peerState":"OK",
+      "connectionsEstablished":0,
+      "connectionsDropped":0,
+      "idType":"ipv4"
+    }
+  },
+  "failedPeers":1,
+  "displayedPeers":1,
+  "totalPeers":1,
+  "dynamicPeers":0,
+  "bestPath":{
+    "multiPathRelax":"false"
+  }
+})
+[evpn-srv6-suite] FAIL: EVPN: bgpd did not come up on clab-ainetops-fabric-leaf01/clab-ainetops-fabric-leaf02
+[evpn-srv6-suite] FAIL: EVPN: bgpd did not come up on clab-ainetops-fabric-leaf01/clab-ainetops-fabric-leaf02
+[evpn-srv6-suite] FAIL: EVPN: bgpd did not come up on clab-ainetops-fabric-leaf01/clab-ainetops-fabric-leaf02
+[evpn-srv6-suite] FAIL: EVPN-Type2 (MAC/IP advertisement AF): L2VPN EVPN session to 172.31.0.22 not Established (output: {
+  "routerId":"0.0.0.0",
+  "as":65101,
+  "vrfId":0,
+  "vrfName":"default",
+  "tableVersion":0,
+  "ribCount":0,
+  "ribMemory":0,
+  "peerCount":1,
+  "peerMemory":24072,
+  "peers":{
+    "172.31.0.22":{
+      "softwareVersion":"n/a",
+      "remoteAs":65102,
+      "localAs":65101,
+      "version":4,
+      "msgRcvd":0,
+      "msgSent":0,
+      "tableVersion":0,
+      "outq":0,
+      "inq":0,
+      "peerUptime":"never",
+      "peerUptimeMsec":0,
+      "pfxRcd":0,
+      "pfxSnt":0,
+      "state":"Active",
+      "peerState":"OK",
+      "connectionsEstablished":0,
+      "connectionsDropped":0,
+      "idType":"ipv4"
+    }
+  },
+  "failedPeers":1,
+  "displayedPeers":1,
+  "totalPeers":1,
+  "dynamicPeers":0,
+  "bestPath":{
+    "multiPathRelax":"false"
+  }
+})
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)

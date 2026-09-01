@@ -8,6 +8,9 @@ mkdir -p "$PROOF_DIR"
 
 SRC=${SRC:-clab-ainetops-fabric-srv6-client01}
 DST=${DST:-clab-ainetops-fabric-srv6-client02}
+# Precondition: skip gracefully if clients are absent
+if ! docker ps --format '{{.Names}}' | grep -q "$SRC"; then echo "[srv6-capture] SKIP: $SRC not present"; exit 0; fi
+if ! docker ps --format '{{.Names}}' | grep -q "$DST"; then echo "[srv6-capture] SKIP: $DST not present"; exit 0; fi
 SRC_IP6=${SRC_IP6:-2001:db8:3::31}
 DST_IP6=${DST_IP6:-2001:db8:4::41}
 LEAF_SRC=${LEAF_SRC:-172.31.0.21:8080}
@@ -22,7 +25,7 @@ GNMI_CERT=${GNMI_CERT:-./secrets/gnmi.crt}
 GNMI_KEY=${GNMI_KEY:-./secrets/gnmi.key}
 GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
 
-_args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --tls --skip-verify --encoding "$GNMI_ENCODING" --cacert "$GNMI_CACERT" --cert "$GNMI_CERT" --key "$GNMI_KEY")
+_args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --encoding "$GNMI_ENCODING" --tls-ca "$GNMI_CACERT" --tls-cert "$GNMI_CERT" --tls-key "$GNMI_KEY")
 
 _capture_file_container=/tmp/srv6.pcap
 _capture_file_host="$PROOF_DIR/srv6_outer_srh.pcap"

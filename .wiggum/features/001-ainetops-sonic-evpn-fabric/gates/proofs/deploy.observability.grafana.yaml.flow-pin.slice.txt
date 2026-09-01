@@ -1,0 +1,27 @@
+140	spec:
+141	  replicas: 1
+142	  selector:
+143	    matchLabels:
+144	      app.kubernetes.io/name: grafana
+145	  template:
+146	    metadata:
+147	      labels:
+148	        app.kubernetes.io/name: grafana
+149	    spec:
+150	      containers:
+151	        - name: grafana
+152	          image: grafana/grafana@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+153	          env:
+154	            - name: GF_INSTALL_PLUGINS
+155	              value: grafana-flow-panel@sha256:5c9d6b4d6b899be4a3f3c728b3acb0a8f8c3e6a46c9f5b07d705e8ca3c1a2c44
+156	            - name: GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS
+157	              value: grafana-flow-panel
+158	            - name: GF_AUTH_ANONYMOUS_ENABLED
+159	              value: "false"
+160	            - name: GF_SECURITY_ADMIN_USER
+161	              valueFrom:
+162	                secretKeyRef: { name: grafana-admin, key: admin-user }
+163	            - name: GF_SECURITY_ADMIN_PASSWORD
+164	              valueFrom:
+165	                secretKeyRef: { name: grafana-admin, key: admin-password }
+166	          ports:

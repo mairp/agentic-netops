@@ -1,0 +1,7 @@
+[fabric-verify] underlay BGP neighbors/ESTABLISHED (IPv4/IPv6) on spines and leaves
+[fabric-verify] verify EVPN AF activation on BGP neighbors (L2VPN_EVPN)
+[fabric-verify] EVPN overlay route-table presence (Type2/Type3/Type5) on leaves
+[fabric-verify] loopback reachability
+[fabric-verify] IPv6 waypoint reachability
+[fabric-verify] Assert absence of tenant VTEP/VRF state on spines (FR-004)
+absence of tenant VTEP/VRF state on spines (FR-004)

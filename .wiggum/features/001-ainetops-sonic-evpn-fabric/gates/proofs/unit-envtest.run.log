@@ -1,0 +1,25 @@
+[go-test] Running unit tests (table/golden/translation/render)
+=== RUN   TestVPLSTranslation
+--- PASS: TestVPLSTranslation (0.00s)
+=== RUN   TestL3VPNTranslation
+--- PASS: TestL3VPNTranslation (0.00s)
+=== RUN   TestVPWSLimitedEquivalenceRequired
+--- PASS: TestVPWSLimitedEquivalenceRequired (0.00s)
+=== RUN   TestIRBTranslation
+--- PASS: TestIRBTranslation (0.00s)
+=== RUN   TestDeterministicHash
+--- PASS: TestDeterministicHash (0.00s)
+=== RUN   TestRendererPathsCoveredByRegister
+--- PASS: TestRendererPathsCoveredByRegister (0.00s)
+PASS
+ok   	tests/unit	(cached)
+
+[go-test] Running envtest (CRD schema/server dry-run)
+=== RUN   TestSRv6ServiceCRD_Envtest
+--- PASS: TestSRv6ServiceCRD_Envtest (0.00s)
+=== RUN   TestCompat_ReasonFor
+--- PASS: TestCompat_ReasonFor (0.00s)
+=== RUN   TestProviderFinalization_Envtest
+--- PASS: TestProviderFinalization_Envtest (0.00s)
+PASS
+ok   	tests/envtest	(cached)

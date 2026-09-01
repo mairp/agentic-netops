@@ -1,0 +1,12 @@
+tests.api.log
+tests.unit.log
+tests.golden.log
+tests.sdc-validation.log
+tests.integration.log
+tests.failure.log
+tests.traffic.log
+tests.srv6-capture.log
+tests.srv6-failover.log
+tests.topology-parity.log
+tests.observability.log
+tests.teardown.log

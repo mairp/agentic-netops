@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-lldp"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:slldp="http://github.com/sonic-net/sonic-lldp"
+        xmlns:prt="http://github.com/sonic-net/sonic-port">
+  <namespace uri="http://github.com/sonic-net/sonic-lldp"/>
+  <prefix value="slldp"/>
+  <yang-version value="1.1"/>
+  <import module="sonic-port">
+    <prefix value="prt"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONiC LLDP yang model</text>
+  </description>
+  <revision date="2021-07-08">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <grouping name="lldp_mode_config">
+    <leaf name="enabled">
+      <type name="boolean"/>
+      <default value="true"/>
+      <description>
+        <text>Enable/Disable LLDP</text>
+      </description>
+    </leaf>
+    <leaf name="mode">
+      <type name="enumeration">
+        <enum name="RECEIVE"/>
+        <enum name="TRANSMIT"/>
+      </type>
+      <description>
+        <text>RX/TX mode for LLDP frames</text>
+      </description>
+    </leaf>
+  </grouping>
+  <container name="sonic-lldp">
+    <container name="LLDP">
+      <container name="GLOBAL">
+        <leaf name="hello_time">
+          <type name="uint8">
+            <range value="5..254">
+              <error-message>
+                <value>Invalid hello timer value.</value>
+              </error-message>
+            </range>
+          </type>
+          <default value="30"/>
+          <units name="seconds"/>
+          <description>
+            <text>It is the time interval at which periodic hellos are
+exchanged. Default is 30 seconds</text>
+          </description>
+        </leaf>
+        <leaf name="multiplier">
+          <type name="uint8">
+            <range value="1..10">
+              <error-message>
+                <value>Invalid LLDP multiplier value.</value>
+              </error-message>
+            </range>
+          </type>
+          <default value="4"/>
+          <description>
+            <text>This multiplier value is used to determine the timeout
+interval (i.e. hello-time x multiplier value) after
+which LLDP neighbor entry is deleted.</text>
+          </description>
+        </leaf>
+        <leaf name="system_name">
+          <type name="string"/>
+          <description>
+            <text>System administratively assigned name</text>
+          </description>
+        </leaf>
+        <leaf name="system_description">
+          <type name="string"/>
+          <description>
+            <text>System description</text>
+          </description>
+        </leaf>
+        <leaf name="supp_mgmt_address_tlv">
+          <type name="boolean"/>
+          <default value="false"/>
+          <description>
+            <text>Suppress sending of Management Address TLV in LLDP frames</text>
+          </description>
+        </leaf>
+        <leaf name="supp_system_capabilities_tlv">
+          <type name="boolean"/>
+          <default value="false"/>
+          <description>
+            <text>Suppress sending of System Capabilities TLV in LLDP frames</text>
+          </description>
+        </leaf>
+        <uses name="lldp_mode_config"/>
+      </container>
+    </container>
+    <container name="LLDP_PORT">
+      <list name="LLDP_PORT_LIST">
+        <key value="ifname"/>
+        <leaf name="ifname">
+          <type name="leafref">
+            <path value="/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:name"/>
+          </type>
+          <description>
+            <text>Reference of port on which LLDP to be configured.</text>
+          </description>
+        </leaf>
+        <uses name="lldp_mode_config"/>
+      </list>
+    </container>
+  </container>
+</module>

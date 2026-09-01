@@ -7,8 +7,45 @@ KIND_CLUSTER_NAME=${AINETOPS_CLUSTER_NAME:-ainetops}
 KIND_CONTEXT="kind-${KIND_CLUSTER_NAME}"
 KIND_CONFIG="${ROOT_DIR}/config/kind/cluster.yaml"
 MGMT_NET=${AINETOPS_MGMT_NET:-ainetops-mgmt}
+# The management subnet MUST be user-configured: containerlab assigns explicit
+# per-node mgmt IPs (172.31.0.x) and Docker rejects user-specified endpoint IPs
+# on auto-assigned subnets ("user specified IP address is supported only when
+# connecting to networks with user configured subnets"). It must also match the
+# mgmt.ipv4-subnet in lab/topology.clab.yml and the AINETOPS_MGMT_CIDR used by
+# the preflight overlap check (172.31.0.0/16).
+MGMT_SUBNET=${AINETOPS_MGMT_SUBNET:-172.31.0.0/16}
 LABEL_OWNER=${AINETOPS_OWNER_LABEL:-ainetops}
-NODE_IMAGE_PIN=$(awk '/^kind:/,/^[^[:space:]]/ {print}' "${ROOT_DIR}/versions.lock.yaml" | awk -F': *' '/node_image:/ {print $2; exit}')
+
+# Idempotent, subnet-correct ownership of the shared AINETOPS management network.
+# Safe to call from every lifecycle phase; heals a pre-existing network that has
+# the wrong (auto-assigned) subnet as long as nothing is attached to it.
+kind::ensure_mgmt_network() {
+  require docker
+  if docker network inspect "${MGMT_NET}" >/dev/null 2>&1; then
+    local cur attached
+    cur=$(docker network inspect "${MGMT_NET}" -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null || true)
+    if [[ "${cur}" == "${MGMT_SUBNET}" ]]; then
+      return 0
+    fi
+    attached=$(docker network inspect "${MGMT_NET}" -f '{{len .Containers}}' 2>/dev/null || echo 1)
+    if [[ "${attached}" == "0" ]]; then
+      echo "[net] ${MGMT_NET} has subnet '${cur}' (need ${MGMT_SUBNET}); recreating (no attached containers)" >&2
+      docker network rm "${MGMT_NET}" >/dev/null
+    else
+      echo "[net] ERROR: ${MGMT_NET} subnet '${cur}' != ${MGMT_SUBNET} and ${attached} container(s) attached; detach them or remove the network manually" >&2
+      return 1
+    fi
+  fi
+  docker network create --label ainetops.owner="${LABEL_OWNER}" --subnet "${MGMT_SUBNET}" "${MGMT_NET}" >/dev/null
+}
+# Extract the pinned Kind node image from the `kind:` block. The value itself
+# contains a colon (registry/image@sha256:digest), so we must strip only the
+# leading `node_image:` key, not split on every colon.
+NODE_IMAGE_PIN=$(awk '
+  /^kind:/ {insec=1; next}
+  insec && /^[^[:space:]]/ {exit}
+  insec && /node_image:/ {sub(/^[^:]*:[ ]*/,""); print; exit}
+' "${ROOT_DIR}/versions.lock.yaml")
 
 require() { command -v "$1" >/dev/null 2>&1 || { echo "[kind] missing command: $1" >&2; exit 1; }; }
 
@@ -35,11 +72,19 @@ kind::recover_partial() {
 kind::ensure() {
   require kind
   require docker
-  # Ensure mgmt network exists and is labeled (shared with containerlab)
-  if ! docker network inspect "${MGMT_NET}" >/dev/null 2>&1; then
-    docker network create --label ainetops.owner="${LABEL_OWNER}" "${MGMT_NET}"
-  fi
+  # Ensure mgmt network exists, labeled, and subnet-correct (shared with containerlab)
+  kind::ensure_mgmt_network
   kind::recover_partial
+  # A cluster that is listed but has no resolvable kube context is a stale or
+  # partially-deleted state (kind delete removes the context; node containers can
+  # linger briefly so `kind get clusters` may still list it). Trust the kube
+  # context as the liveness signal: remove the stale state and recreate.
+  if kind::cluster_exists && ! kubectl cluster-info --context "${KIND_CONTEXT}" >/dev/null 2>&1; then
+    echo "[kind] cluster '${KIND_CLUSTER_NAME}' listed but kube context unavailable; removing stale state for recovery" >&2
+    kind delete cluster --name "${KIND_CLUSTER_NAME}" || true
+    local i=0
+    while kind::cluster_exists && (( i < 30 )); do sleep 2; i=$((i+1)); done
+  fi
   if ! kind::cluster_exists; then
     echo "[kind] creating cluster '${KIND_CLUSTER_NAME}' using ${KIND_CONFIG}"
     [[ -f "${KIND_CONFIG}" ]] || { echo "[kind] missing config ${KIND_CONFIG}" >&2; exit 1; }
@@ -73,12 +118,12 @@ kind::verify_node_image() {
 kind::kube_context() {
   require kubectl
   # Ensure kube context resolves and points at our cluster
-  kubectl cluster-info --context "${KIND_CONTEXT}" >/dev/null 2>&1 || {
-    echo "[kind] setting current kubectl context to ${KIND_CONTEXT}" >&2
-    kubectl config use-context "${KIND_CONTEXT}"
-  }
-  kubectl cluster-info --context "${KIND_CONTEXT}" >/dev/null 2>&1 || {
-    echo "[kind] ERROR: kube-context ${KIND_CONTEXT} not available" >&2; exit 1; }
+  if kubectl cluster-info --context "${KIND_CONTEXT}" >/dev/null 2>&1; then
+    kubectl config use-context "${KIND_CONTEXT}" >/dev/null 2>&1 || true
+    return 0
+  fi
+  echo "[kind] ERROR: kube-context ${KIND_CONTEXT} not available (cluster '${KIND_CLUSTER_NAME}' has no resolvable control plane)" >&2
+  return 1
 }
 
 kind::attach_mgmt() {
@@ -86,8 +131,8 @@ kind::attach_mgmt() {
   require docker
   local nodes; nodes=$(kind::nodes)
   [[ -n "${nodes}" ]] || { echo "[kind] no nodes found to attach" >&2; return 0; }
-  # Ensure mgmt network labeled
-  docker network inspect "${MGMT_NET}" >/dev/null 2>&1 || docker network create --label ainetops.owner="${LABEL_OWNER}" "${MGMT_NET}"
+  # Ensure mgmt network labeled and subnet-correct
+  kind::ensure_mgmt_network
   while read -r n; do
     [[ -z "${n}" ]] && continue
     if ! docker network inspect "${MGMT_NET}" -f '{{json .Containers}}' | grep -q "${n}"; then
@@ -112,7 +157,8 @@ kind::delete() {
 case "${1:-}" in
   ensure) shift; kind::ensure "$@" ;;
   attach-mgmt) shift; kind::attach_mgmt "$@" ;;
+  ensure-mgmt) shift; kind::ensure_mgmt_network "$@" ;;
   delete) shift; kind::delete "$@" ;;
   verify-context) shift; kind::kube_context "$@" ;;
-  *) echo "usage: $0 {ensure|attach-mgmt|delete|verify-context}" >&2; exit 2 ;;
+  *) echo "usage: $0 {ensure|attach-mgmt|ensure-mgmt|delete|verify-context}" >&2; exit 2 ;;
  esac

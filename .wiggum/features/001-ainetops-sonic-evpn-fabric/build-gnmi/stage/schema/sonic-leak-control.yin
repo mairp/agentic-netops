@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-leak-control"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:leak_ctrl="http://github.com/sonic-net/sonic-leak-control">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-leak-control"/>
+  <prefix value="leak_ctrl"/>
+  <description>
+    <text>YANG model for BMC liquid-cooling leak control policy and leak sensor profiles</text>
+  </description>
+  <revision date="2026-04-16">
+    <description>
+      <text>Initial version</text>
+    </description>
+  </revision>
+  <typedef name="leak-action">
+    <type name="enumeration">
+      <enum name="syslog_only">
+        <description>
+          <text>Log the event; no Switch-Host power action taken</text>
+        </description>
+      </enum>
+      <enum name="graceful_shutdown">
+        <description>
+          <text>Issue a graceful shutdown to Switch-Host; force power-off after timeout if unresponsive</text>
+        </description>
+      </enum>
+      <enum name="power_off">
+        <description>
+          <text>Immediately power off Switch-Host via platform API</text>
+        </description>
+      </enum>
+    </type>
+    <description>
+      <text>Action to take on a leak event</text>
+    </description>
+  </typedef>
+  <typedef name="policy-state">
+    <type name="enumeration">
+      <enum name="enabled">
+        <description>
+          <text>Leak policy enforcement is enabled</text>
+        </description>
+      </enum>
+      <enum name="disabled">
+        <description>
+          <text>Leak policy enforcement is disabled</text>
+        </description>
+      </enum>
+    </type>
+    <description>
+      <text>Enable/disable state for a leak policy</text>
+    </description>
+  </typedef>
+  <container name="sonic-leak-control">
+    <container name="LEAK_CONTROL_POLICY">
+      <description>
+        <text>Leak control policy configuration for BMC on liquid-cooled platforms</text>
+      </description>
+      <container name="policy">
+        <description>
+          <text>Singleton leak control policy record</text>
+        </description>
+        <leaf name="system_leak_policy">
+          <type name="policy-state"/>
+          <default value="enabled"/>
+          <description>
+            <text>Enable or disable system leak policy enforcement in BMC</text>
+          </description>
+        </leaf>
+        <leaf name="system_critical_leak_action">
+          <type name="leak-action"/>
+          <default value="power_off"/>
+          <description>
+            <text>Action taken when a critical system leak is detected</text>
+          </description>
+        </leaf>
+        <leaf name="system_minor_leak_action">
+          <type name="leak-action"/>
+          <default value="syslog_only"/>
+          <description>
+            <text>Action taken when a minor system leak is detected</text>
+          </description>
+        </leaf>
+        <leaf name="rack_mgr_leak_policy">
+          <type name="policy-state"/>
+          <default value="enabled"/>
+          <description>
+            <text>Enable or disable rack manager leak policy enforcement in BMC</text>
+          </description>
+        </leaf>
+        <leaf name="rack_mgr_critical_alert_action">
+          <type name="leak-action"/>
+          <default value="syslog_only"/>
+          <description>
+            <text>Action taken when a critical rack manager alert is received</text>
+          </description>
+        </leaf>
+        <leaf name="rack_mgr_minor_alert_action">
+          <type name="leak-action"/>
+          <default value="syslog_only"/>
+          <description>
+            <text>Action taken when a minor rack manager alert is received</text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+    <container name="LEAK_PROFILE">
+      <description>
+        <text>Leak sensor profile configuration per sensor type</text>
+      </description>
+      <list name="LEAK_PROFILE_LIST">
+        <key value="sensor_type"/>
+        <description>
+          <text>Tunable parameters per leak sensor type (e.g., rope, flex_pcb, spot)</text>
+        </description>
+        <leaf name="sensor_type">
+          <type name="string">
+            <length value="1..64"/>
+          </type>
+          <description>
+            <text>Leak sensor type identifier (e.g., rope, flex_pcb, spot)</text>
+          </description>
+        </leaf>
+        <leaf name="leak_type">
+          <type name="string">
+            <length value="1..64"/>
+          </type>
+          <description>
+            <text>Descriptive name of the leak sensor type</text>
+          </description>
+        </leaf>
+        <leaf name="max_minor_duration_sec">
+          <type name="uint32"/>
+          <description>
+            <text>Maximum time in seconds a minor leak may persist before being escalated to critical. Set to 0 if the platform does not support this escalation.</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

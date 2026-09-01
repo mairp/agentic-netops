@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-smart-switch"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:smart-switch="http://github.com/sonic-net/sonic-smart-switch"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head"
+        xmlns:sonic-vnet="http://github.com/sonic-net/sonic-vnet">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-smart-switch"/>
+  <prefix value="smart-switch"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <import module="sonic-vnet">
+    <prefix value="sonic-vnet"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>Smart Switch yang Module for SONiC OS</text>
+  </description>
+  <revision date="2023-10-17">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <revision date="2025-01-11">
+    <description>
+      <text>Add new container DPU_PORT</text>
+    </description>
+  </revision>
+  <revision date="2025-03-19">
+    <description>
+      <text>Modify DPU_PORT to DPU and add new fields</text>
+    </description>
+  </revision>
+  <revision date="2025-03-31">
+    <description>
+      <text>Add REMOTE_DPU, VDPU, and DASH_HA_GLOBAL_CONFIG containers</text>
+    </description>
+  </revision>
+  <revision date="2025-07-20">
+    <description>
+      <text>Add vnet_name to DASH_HA_GLOBAL_CONFIG</text>
+    </description>
+  </revision>
+  <revision date="2025-08-18">
+    <description>
+      <text>Add midplane_ipv4 to DPU</text>
+    </description>
+  </revision>
+  <revision date="2026-03-25">
+    <description>
+      <text>Add dpu_vnet, dpu_vlan (string). Allow underscore in dpu name.</text>
+    </description>
+  </revision>
+  <container name="sonic-smart-switch">
+    <container name="MID_PLANE_BRIDGE">
+      <description>
+        <text>Midplane bridge connecting switch NPU to DPUs</text>
+      </description>
+      <container name="GLOBAL">
+        <leaf name="bridge">
+          <type name="string">
+            <pattern value="bridge-midplane"/>
+          </type>
+          <description>
+            <text>Name of the midplane bridge</text>
+          </description>
+          <must condition="(current()/../ip_prefix)"/>
+        </leaf>
+        <leaf name="ip_prefix">
+          <type name="stypes:sonic-ip4-prefix"/>
+          <description>
+            <text>IP prefix of the midplane bridge</text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+    <container name="DPUS">
+      <description>
+        <text>DPU name-to-midplane-interface mapping</text>
+      </description>
+      <list name="DPUS_LIST">
+        <key value="dpu_name"/>
+        <leaf name="dpu_name">
+          <description>
+            <text>Name of the DPU</text>
+          </description>
+          <type name="string">
+            <pattern value="dpu[0-9]+"/>
+          </type>
+        </leaf>
+        <leaf name="midplane_interface">
+          <description>
+            <text>Name of the interface that represents DPU</text>
+          </description>
+          <type name="string">
+            <pattern value="dpu[0-9]+"/>
+          </type>
+          <must condition="(current() = current()/../dpu_name)"/>
+        </leaf>
+      </list>
+    </container>
+    <container name="DPU">
+      <description>
+        <text>DPU device configuration including addresses and service ports</text>
+      </description>
+      <list name="DPU_LIST">
+        <key value="dpu_name"/>
+        <leaf name="dpu_name">
+          <description>
+            <text>Name of the DPU</text>
+          </description>
+          <type name="string">
+            <pattern value="[a-zA-Z0-9_-]+[0-9]"/>
+            <length value="1..255"/>
+          </type>
+        </leaf>
+        <leaf name="state">
+          <description>
+            <text>Admin state of DPU device</text>
+          </description>
+          <type name="stypes:admin_status"/>
+        </leaf>
+        <leaf name="local_port">
+          <description>
+            <text>DPU Physical port name on the switch</text>
+          </description>
+          <type name="stypes:interface_name"/>
+        </leaf>
+        <leaf name="vip_ipv4">
+          <description>
+            <text>VIP IPv4 address from minigraph</text>
+          </description>
+          <type name="inet:ipv4-address"/>
+        </leaf>
+        <leaf name="vip_ipv6">
+          <description>
+            <text>VIP IPv6 address from minigraph</text>
+          </description>
+          <type name="inet:ipv6-address"/>
+        </leaf>
+        <leaf name="pa_ipv4">
+          <description>
+            <text>PA IPv4 address from minigraph</text>
+          </description>
+          <type name="inet:ipv4-address"/>
+        </leaf>
+        <leaf name="pa_ipv6">
+          <description>
+            <text>PA IPv6 address from minigraph</text>
+          </description>
+          <type name="inet:ipv6-address"/>
+        </leaf>
+        <leaf name="midplane_ipv4">
+          <description>
+            <text>IPv4 IP on midplane from minigraph</text>
+          </description>
+          <type name="inet:ipv4-address"/>
+        </leaf>
+        <leaf name="dpu_id">
+          <description>
+            <text>ID of the DPU from minigraph</text>
+          </description>
+          <type name="string">
+            <pattern value="[0-7]"/>
+          </type>
+        </leaf>
+        <leaf name="vdpu_id">
+          <description>
+            <text>guid of VDPU from minigraph</text>
+          </description>
+          <type name="string">
+            <length value="1..255"/>
+          </type>
+        </leaf>
+        <leaf name="gnmi_port">
+          <description>
+            <text>TCP listening port for gnmi service on DPU</text>
+          </description>
+          <type name="inet:port-number"/>
+        </leaf>
+        <leaf name="orchagent_zmq_port">
+          <description>
+            <text>TCP listening port for ZMQ service on DPU orchagent</text>
+          </description>
+          <type name="inet:port-number"/>
+        </leaf>
+        <leaf name="swbus_port">
+          <description>
+            <text>TCP listening port for swbus service for this DPU.</text>
+          </description>
+          <type name="inet:port-number"/>
+        </leaf>
+      </list>
+    </container>
+    <container name="REMOTE_DPU">
+      <description>
+        <text>Remote DPU devices on peer smart switches</text>
+      </description>
+      <list name="REMOTE_DPU_LIST">
+        <key value="dpu_name"/>
+        <leaf name="dpu_name">
+          <description>
+            <text>Name of the dpu</text>
+          </description>
+          <type name="string">
+            <pattern value="[a-zA-Z0-9_-]+[0-9]+"/>
+            <length value="1..255"/>
+          </type>
+        </leaf>
+        <leaf name="type">
+          <description>
+            <text>Type of dpu</text>
+          </description>
+          <type name="string">
+            <length value="1..255"/>
+          </type>
+        </leaf>
+        <leaf name="pa_ipv4">
+          <description>
+            <text>DPU ipv4 physical address</text>
+          </description>
+          <type name="inet:ipv4-address"/>
+        </leaf>
+        <leaf name="pa_ipv6">
+          <description>
+            <text>DPU ipv6 physical address</text>
+          </description>
+          <type name="inet:ipv6-address"/>
+        </leaf>
+        <leaf name="npu_ipv4">
+          <description>
+            <text>Loopback ipv4 of remote NPU</text>
+          </description>
+          <type name="inet:ipv4-address"/>
+        </leaf>
+        <leaf name="npu_ipv6">
+          <description>
+            <text>Loopback ipv6 of remote NPU</text>
+          </description>
+          <type name="inet:ipv6-address"/>
+        </leaf>
+        <leaf name="dpu_id">
+          <description>
+            <text>ID of the DPU from minigraph</text>
+          </description>
+          <type name="string">
+            <pattern value="[0-7]"/>
+          </type>
+        </leaf>
+        <leaf name="swbus_port">
+          <description>
+            <text>TCP listening port for swbus service for this DPU.</text>
+          </description>
+          <type name="inet:port-number"/>
+        </leaf>
+      </list>
+    </container>
+    <container name="VDPU">
+      <description>
+        <text>Virtual DPU definitions grouping physical DPUs</text>
+      </description>
+      <list name="VDPU_LIST">
+        <key value="vdpu_id"/>
+        <leaf name="vdpu_id">
+          <description>
+            <text>guid of the VDPU</text>
+          </description>
+          <type name="string">
+            <length value="1..255"/>
+          </type>
+        </leaf>
+        <leaf name="profile">
+          <description>
+            <text>VDPU profile. Currently unused, reserved for future use.</text>
+          </description>
+          <type name="string">
+            <length value="1..255"/>
+          </type>
+        </leaf>
+        <leaf name="tier">
+          <description>
+            <text>VDPU tier. Currently unused, reserved for future use.</text>
+          </description>
+          <type name="string">
+            <length value="1..255"/>
+          </type>
+        </leaf>
+        <leaf name="main_dpu_ids">
+          <description>
+            <text>Main DPUs involved in this VDPU</text>
+          </description>
+          <type name="string">
+            <pattern value="[a-zA-Z0-9_-]+[0-9]+(,[a-zA-Z0-9_-]+[0-9]+)*"/>
+            <length value="1..255"/>
+          </type>
+        </leaf>
+      </list>
+    </container>
+    <container name="DASH_HA_GLOBAL_CONFIG">
+      <container name="global">
+        <description>
+          <text>DASH high-availability global settings for DPU-to-DPU communication</text>
+        </description>
+        <leaf name="vnet_name">
+          <status value="deprecated"/>
+          <description>
+            <text>Deprecated. Use dpu_vnet instead. Name of the vnet used for VNET tunnel route.</text>
+          </description>
+          <type name="leafref">
+            <path value="/sonic-vnet:sonic-vnet/sonic-vnet:VNET/sonic-vnet:VNET_LIST/sonic-vnet:name"/>
+          </type>
+          <must condition="string-length(.) &gt;= 1 and string-length(.) &lt;= 255">
+            <error-message>
+              <value>vnet_name length must be between 1 and 255 characters</value>
+            </error-message>
+          </must>
+        </leaf>
+        <leaf name="dpu_vnet">
+          <description>
+            <text>Name of the vnet used for VNET tunnel route.</text>
+          </description>
+          <type name="leafref">
+            <path value="/sonic-vnet:sonic-vnet/sonic-vnet:VNET/sonic-vnet:VNET_LIST/sonic-vnet:name"/>
+          </type>
+          <must condition="string-length(.) &gt;= 1 and string-length(.) &lt;= 255">
+            <error-message>
+              <value>dpu_vnet length must be between 1 and 255 characters</value>
+            </error-message>
+          </must>
+        </leaf>
+        <leaf name="dpu_vlan">
+          <description>
+            <text>DPU VLAN identifier, name of the VLAN</text>
+          </description>
+          <type name="string">
+            <length value="1..255"/>
+          </type>
+        </leaf>
+        <leaf name="cp_data_channel_port">
+          <description>
+            <text>Control plane data channel port, used for bulk sync</text>
+          </description>
+          <type name="inet:port-number"/>
+        </leaf>
+        <leaf name="dp_channel_dst_port">
+          <description>
+            <text>Destination port when tunneling packets via DPU-to-DPU data plane channel</text>
+          </description>
+          <type name="inet:port-number"/>
+        </leaf>
+        <leaf name="dp_channel_src_port_min">
+          <description>
+            <text>Minimum source port used when tunneling packets via DPU-to-DPU data plane channel</text>
+          </description>
+          <type name="inet:port-number"/>
+        </leaf>
+        <leaf name="dp_channel_src_port_max">
+          <description>
+            <text>Maximum source port used when tunneling packets via DPU-to-DPU data plane channel</text>
+          </description>
+          <type name="inet:port-number"/>
+        </leaf>
+        <leaf name="dp_channel_probe_interval_ms">
+          <description>
+            <text>Interval in milliseconds for sending each DPU-to-DPU data path probe</text>
+          </description>
+          <type name="uint32"/>
+        </leaf>
+        <leaf name="dp_channel_probe_fail_threshold">
+          <description>
+            <text>Number of probe failures needed to consider data plane channel as dead</text>
+          </description>
+          <type name="uint32"/>
+        </leaf>
+        <leaf name="dpu_bfd_probe_interval_in_ms">
+          <description>
+            <text>Interval in milliseconds for DPU BFD probe</text>
+          </description>
+          <type name="uint32"/>
+        </leaf>
+        <leaf name="dpu_bfd_probe_multiplier">
+          <description>
+            <text>Number of DPU BFD probe failures before considering the probe as down</text>
+          </description>
+          <type name="uint32"/>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

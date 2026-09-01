@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-mux-linkmgr"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:mux_linkmgr="http://github.com/sonic-net/sonic-mux-linkmgr">
+  <namespace uri="http://github.com/sonic-net/sonic-mux-linkmgr"/>
+  <prefix value="mux_linkmgr"/>
+  <yang-version value="1.1"/>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONiC DualToR Linkmgrd configuration data</text>
+  </description>
+  <revision date="2023-06-07">
+    <description>
+      <text>Initial revision</text>
+    </description>
+  </revision>
+  <container name="sonic-mux-linkmgr">
+    <container name="MUX_LINKMGR">
+      <container name="LINK_PROBER">
+        <leaf name="interval_v4">
+          <type name="uint32"/>
+          <default value="100"/>
+          <units name="milliseconds"/>
+          <description>
+            <text>IPv4 ICMP heartbeat interval. </text>
+          </description>
+        </leaf>
+        <leaf name="interval_v6">
+          <type name="uint32"/>
+          <default value="1000"/>
+          <units name="milliseconds"/>
+          <description>
+            <text>IPv6 ICMP heartbeat interval. </text>
+          </description>
+        </leaf>
+        <leaf name="positive_signal_count">
+          <type name="uint32"/>
+          <default value="1"/>
+          <description>
+            <text>Linkmgrd positive signal count. </text>
+          </description>
+        </leaf>
+        <leaf name="negative_signal_count">
+          <type name="uint32"/>
+          <default value="3"/>
+          <description>
+            <text>Linkmgrd negative signal count. </text>
+          </description>
+        </leaf>
+        <leaf name="suspend_timer">
+          <type name="uint32"/>
+          <description>
+            <text>ICMP heartbeat suspending timer, currently not in use. </text>
+          </description>
+        </leaf>
+        <leaf name="use_well_known_mac">
+          <type name="enumeration">
+            <enum name="enabled"/>
+            <enum name="disabled"/>
+          </type>
+          <description>
+            <text>ICMP heartbeat use well known mac as dst mac or not. </text>
+          </description>
+        </leaf>
+        <leaf name="src_mac">
+          <type name="enumeration">
+            <enum name="ToRMac"/>
+            <enum name="VlanMac"/>
+          </type>
+          <description>
+            <text>ICMP heartbeat use what mac as src mac. </text>
+          </description>
+        </leaf>
+        <leaf name="interval_pck_loss_count_update">
+          <type name="uint32"/>
+          <description>
+            <text>The frequency of streaming ICMP heartbeat loss data to telemetry. </text>
+          </description>
+        </leaf>
+      </container>
+      <container name="TIMED_OSCILLATION">
+        <leaf name="oscillation_enabled">
+          <type name="boolean"/>
+          <default value="true"/>
+          <description>
+            <text>Flag to enable/disable timed oscillation. </text>
+          </description>
+        </leaf>
+        <leaf name="interval_sec">
+          <type name="uint32"/>
+          <default value="300"/>
+          <units name="seconds"/>
+          <description>
+            <text>Interval between MUX oscillations. </text>
+          </description>
+        </leaf>
+      </container>
+      <container name="MUXLOGGER">
+        <leaf name="log_verbosity">
+          <type name="enumeration">
+            <enum name="trace"/>
+            <enum name="debug"/>
+            <enum name="info"/>
+            <enum name="error"/>
+            <enum name="fatal"/>
+          </type>
+          <description>
+            <text>Linkmgrd log verbosity level. </text>
+          </description>
+        </leaf>
+      </container>
+      <container name="SERVICE_MGMT">
+        <leaf name="kill_radv">
+          <type name="enumeration">
+            <enum name="True"/>
+            <enum name="False"/>
+          </type>
+          <default value="True"/>
+          <description>
+            <text>Kill radv service instead of gracefully stopping it. </text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

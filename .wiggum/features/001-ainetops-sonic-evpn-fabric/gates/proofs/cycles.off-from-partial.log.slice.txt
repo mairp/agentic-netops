@@ -1,0 +1,23 @@
+     1	[clab] destroying /root/ainetops-demo/lab/topology.clab.yml
+     2	09:56:18 INFO Parsing & checking topology file=topology.clab.yml
+     3	09:56:19 INFO Parsing & checking topology file=topology.clab.yml
+     4	09:56:19 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
+     5	
+     6	09:56:19 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
+     7	
+     8	09:56:19 INFO Destroying lab name=ainetops-fabric
+     9	09:56:19 INFO Removed container name=clab-ainetops-fabric-srv6-client01
+    10	09:56:19 INFO Removed container name=clab-ainetops-fabric-client01
+    11	09:56:19 INFO Removed container name=clab-ainetops-fabric-client02
+    12	09:56:19 INFO Removed container name=clab-ainetops-fabric-srv6-client02
+    13	09:56:19 INFO Removed container name=clab-ainetops-fabric-spine01
+    14	09:56:20 INFO Removed container name=clab-ainetops-fabric-leaf01
+    15	09:56:20 INFO Removed container name=clab-ainetops-fabric-spine02
+    16	09:56:20 INFO Removed container name=clab-ainetops-fabric-leaf02
+    17	09:56:20 INFO Removing host entries path=/etc/hosts
+    18	09:56:20 INFO Removing SSH config path=/etc/ssh/ssh_config.d/clab-ainetops-fabric.conf
+    19	[clab] destroy complete
+    20	[kind] deleting cluster 'ainetops'
+    21	Deleting cluster "ainetops" ...
+    22	Deleted nodes: ["ainetops-control-plane" "ainetops-worker"]
+    23	[off] Teardown complete (idempotent).

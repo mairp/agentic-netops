@@ -1,0 +1,50 @@
+[
+  {
+    "name": "target-conn-profile-gnmi.yaml",
+    "path": "example/connection-profiles/target-conn-profile-gnmi.yaml",
+    "sha": "18759e8a4f461b2467b257614f131494200af59e",
+    "size": 424,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/connection-profiles/target-conn-profile-gnmi.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/connection-profiles/target-conn-profile-gnmi.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/18759e8a4f461b2467b257614f131494200af59e",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/connection-profiles/target-conn-profile-gnmi.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/connection-profiles/target-conn-profile-gnmi.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/18759e8a4f461b2467b257614f131494200af59e",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/connection-profiles/target-conn-profile-gnmi.yaml"
+    }
+  },
+  {
+    "name": "target-conn-profile-netconf.yaml",
+    "path": "example/connection-profiles/target-conn-profile-netconf.yaml",
+    "sha": "45ef7b7b1abceb5823ac0528d9c7329d3aa7c4f6",
+    "size": 445,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/connection-profiles/target-conn-profile-netconf.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/connection-profiles/target-conn-profile-netconf.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/45ef7b7b1abceb5823ac0528d9c7329d3aa7c4f6",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/connection-profiles/target-conn-profile-netconf.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/connection-profiles/target-conn-profile-netconf.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/45ef7b7b1abceb5823ac0528d9c7329d3aa7c4f6",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/connection-profiles/target-conn-profile-netconf.yaml"
+    }
+  },
+  {
+    "name": "target-conn-profile-noop.yaml",
+    "path": "example/connection-profiles/target-conn-profile-noop.yaml",
+    "sha": "2f5848bea385a7d91c6ac5d1e668c51a1cc06fc2",
+    "size": 395,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/connection-profiles/target-conn-profile-noop.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/connection-profiles/target-conn-profile-noop.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/2f5848bea385a7d91c6ac5d1e668c51a1cc06fc2",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/connection-profiles/target-conn-profile-noop.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/connection-profiles/target-conn-profile-noop.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/2f5848bea385a7d91c6ac5d1e668c51a1cc06fc2",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/connection-profiles/target-conn-profile-noop.yaml"
+    }
+  }
+]

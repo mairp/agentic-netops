@@ -1,0 +1,13 @@
+This folder contains proof slices cited by GATE8-EVIDENCE.md. Files include:
+- config.rbac.cluster_role.yaml.slice.txt
+- config.rbac.role.yaml.slice.txt
+- deploy.gnmi.gnmic.yaml.slice.txt
+- deploy.observability.grafana.yaml.slice.txt
+- github.workflows.denylist.yml.slice.txt
+- scripts.lib.qualify.sh.proof.txt
+- Makefile
+- scripts/ci/supply_chain.sh
+- scripts/ci/run_suites.sh
+- tests/integration/cycles_runner.sh
+- gates/proofs/cycles/*.log
+- gates/proofs/evidence-index/SC-001..SC-016.txt

@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-sflow"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:sflow="http://github.com/sonic-net/sonic-sflow"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head"
+        xmlns:port="http://github.com/sonic-net/sonic-port"
+        xmlns:lag="http://github.com/sonic-net/sonic-portchannel"
+        xmlns:mgmt-port="http://github.com/sonic-net/sonic-mgmt_port"
+        xmlns:mvrf="http://github.com/sonic-net/sonic-mgmt_vrf">
+  <namespace uri="http://github.com/sonic-net/sonic-sflow"/>
+  <prefix value="sflow"/>
+  <yang-version value="1.1"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <import module="sonic-port">
+    <prefix value="port"/>
+  </import>
+  <import module="sonic-portchannel">
+    <prefix value="lag"/>
+  </import>
+  <import module="sonic-mgmt_port">
+    <prefix value="mgmt-port"/>
+  </import>
+  <import module="sonic-mgmt_vrf">
+    <prefix value="mvrf"/>
+  </import>
+  <description>
+    <text>SFLOW yang Module for SONiC OS</text>
+  </description>
+  <revision date="2023-04-11">
+    <description>
+      <text>Add direction command to support egress sflow</text>
+    </description>
+  </revision>
+  <revision date="2021-04-26">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <typedef name="sample_direction">
+    <type name="enumeration">
+      <enum name="rx">
+        <description>
+          <text>rx direction</text>
+        </description>
+      </enum>
+      <enum name="tx">
+        <description>
+          <text>tx direction</text>
+        </description>
+      </enum>
+      <enum name="both">
+        <description>
+          <text>Both tx and rx direction</text>
+        </description>
+      </enum>
+    </type>
+  </typedef>
+  <container name="sonic-sflow">
+    <container name="SFLOW_COLLECTOR">
+      <description>
+        <text>sFlow collector destination configuration.</text>
+      </description>
+      <list name="SFLOW_COLLECTOR_LIST">
+        <max-elements value="2"/>
+        <key value="name"/>
+        <leaf name="name">
+          <type name="string">
+            <length value="1..64"/>
+          </type>
+          <description>
+            <text>Name of the Sflow collector</text>
+          </description>
+        </leaf>
+        <leaf name="collector_ip">
+          <mandatory value="true"/>
+          <type name="inet:ip-address"/>
+          <description>
+            <text>IPv4/IPv6 address of the Sflow collector</text>
+          </description>
+        </leaf>
+        <leaf name="collector_port">
+          <type name="inet:port-number"/>
+          <default value="6343"/>
+          <description>
+            <text>Destination L4 port of the Sflow collector</text>
+          </description>
+        </leaf>
+        <leaf name="collector_vrf">
+          <must condition="(current() != 'mgmt') or (/mvrf:sonic-mgmt_vrf/mvrf:MGMT_VRF_CONFIG/mvrf:vrf_global/mvrf:mgmtVrfEnabled = 'true')">
+            <error-message>
+              <value>Must condition not satisfied. Try enable Management VRF.</value>
+            </error-message>
+          </must>
+          <type name="string">
+            <pattern value="mgmt|default"/>
+          </type>
+          <description>
+            <text>Specify the Collector VRF. In this revision, it is either
+default VRF or Management VRF.</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+    <container name="SFLOW_SESSION">
+      <description>
+        <text>Per-interface sFlow sampling session configuration.</text>
+      </description>
+      <list name="SFLOW_SESSION_LIST">
+        <key value="port"/>
+        <leaf name="port">
+          <type name="union">
+            <type name="leafref">
+              <path value="/port:sonic-port/port:PORT/port:PORT_LIST/port:name"/>
+            </type>
+            <type name="string">
+              <pattern value="all"/>
+            </type>
+          </type>
+          <description>
+            <text>Sets sflow session table attributes for either all interfaces or a specific Ethernet interface.</text>
+          </description>
+        </leaf>
+        <leaf name="admin_state">
+          <type name="stypes:admin_status"/>
+          <default value="up"/>
+          <description>
+            <text>Per port sflow admin state</text>
+          </description>
+        </leaf>
+        <leaf name="sample_rate">
+          <must condition="../port != 'all'"/>
+          <type name="uint32">
+            <range value="256..8388608">
+              <error-message>
+                <value>sFlow sample rate must be [256-8388608]</value>
+              </error-message>
+            </range>
+          </type>
+          <description>
+            <text>Sets the packet sampling rate.  The rate is expressed as an integer N, where the intended sampling rate is 1/N packets.</text>
+          </description>
+        </leaf>
+        <leaf name="sample_direction">
+          <type name="sample_direction"/>
+          <default value="rx"/>
+          <description>
+            <text>sflow sample direction</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+    <container name="SFLOW">
+      <description>
+        <text>Global sFlow configuration.</text>
+      </description>
+      <container name="global">
+        <description>
+          <text>Global sFlow parameters including admin state, polling interval, and agent ID.</text>
+        </description>
+        <leaf name="admin_state">
+          <type name="stypes:admin_status"/>
+          <default value="down"/>
+          <description>
+            <text>Global sflow admin state</text>
+          </description>
+        </leaf>
+        <leaf name="polling_interval">
+          <type name="uint16">
+            <range value="0|5..300">
+              <error-message>
+                <value>sFlow polling interval must be [0, 5-300]</value>
+              </error-message>
+            </range>
+          </type>
+          <description>
+            <text>The interval within which sFlow data is collected and sent to the configured collectors</text>
+          </description>
+          <default value="20"/>
+        </leaf>
+        <leaf name="agent_id">
+          <type name="union">
+            <type name="leafref">
+              <path value="/port:sonic-port/port:PORT/port:PORT_LIST/port:name"/>
+            </type>
+            <type name="leafref">
+              <path value="/lag:sonic-portchannel/lag:PORTCHANNEL/lag:PORTCHANNEL_LIST/lag:name"/>
+            </type>
+            <type name="leafref">
+              <path value="/mgmt-port:sonic-mgmt_port/mgmt-port:MGMT_PORT/mgmt-port:MGMT_PORT_LIST/mgmt-port:name"/>
+            </type>
+            <type name="string">
+              <pattern value="Vlan([0-9]{1,3}|[1-3][0-9]{3}|[4][0][0-8][0-9]|[4][0][9][0-4])"/>
+            </type>
+          </type>
+          <description>
+            <text>Interface whose IP address is used as the sFlow agent ID.</text>
+          </description>
+        </leaf>
+        <leaf name="sample_direction">
+          <type name="sample_direction"/>
+          <default value="rx"/>
+          <description>
+            <text>sflow sample direction</text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

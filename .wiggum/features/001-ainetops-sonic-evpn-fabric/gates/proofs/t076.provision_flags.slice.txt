@@ -1,0 +1,16 @@
+7:# → generated topology assets → SRv6 service → readiness
+18:usage() {
+20:Usage: $0 [--profile sonic-vs|sonic-vm] [--cluster-name NAME] [--timeout DURATION]
+23:  --profile       SONiC lab profile (sonic-vs fast, sonic-vm conformance)
+24:  --cluster-name  Kind cluster name (default: ainetops)
+25:  --timeout       Rollout wait timeout (default: 180s)
+32:    --profile) shift; AINETOPS_PROFILE=${1:-$AINETOPS_PROFILE} ;;
+33:    --cluster-name) shift; AINETOPS_CLUSTER_NAME=${1:-$AINETOPS_CLUSTER_NAME} ;;
+34:    --timeout) shift; AINETOPS_TIMEOUT=${1:-$AINETOPS_TIMEOUT} ;;
+35:    -h|--help) usage; exit 0 ;;
+36:    *) echo "[provision] unknown flag: $1" >&2; usage; exit 2 ;;
+119:  echo "[provision] waiting for controller pods ready (timeout=${AINETOPS_TIMEOUT})"
+120:  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system rollout status deploy/ainetops-sonic-provider --timeout="${AINETOPS_TIMEOUT}"
+121:  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system rollout status deploy/ainetops-srv6-controller --timeout="${AINETOPS_TIMEOUT}"
+128:# Apply SRv6 CRD, default Kubenet Network, tenant examples, and sample SRv6 service
+131:  echo "[provision] applying SRv6Service CRD and Kubenet default/tenant networks"

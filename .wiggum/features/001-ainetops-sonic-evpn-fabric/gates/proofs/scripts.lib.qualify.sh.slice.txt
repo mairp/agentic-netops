@@ -1,0 +1,41 @@
+    55	      record_result "$t" "pass"
+    56	    else
+    57	      record_result "$t" "fail"
+    58	      core_failed=1
+    59	    fi
+    60	  done
+    61	  if (( core_failed != 0 )); then
+    62	    bail "core capability failure; not running EVPN/SRv6 or YANG path suites"
+    63	  fi
+    64	
+    65	  # Persistence test: program a value, restart, verify value persists
+    66	  echo "[qualify] Running persistence pre-set (Set)"
+    67	  if run_test Set && "${ROOT_DIR}/scripts/lib/persistence.sh" --run; then
+    68	    record_result "persistent" "pass"
+    69	  else
+    70	    record_result "persistent" "fail"
+    71	    bail "persistence check failed; not running EVPN/SRv6 or YANG path suites"
+    72	  fi
+    73	
+    74	  # EVPN/SRv6 capability coverage (short-circuit on first failure)
+    75	  for t in EVPN-Type2 EVPN-Type3 EVPN-Type5 SRv6-Underlay H.Encaps.Red End End.DT46 SID-list Decapsulation Counters; do
+    76	    echo "[qualify] Running $t"
+    77	    if "${ROOT_DIR}/tests/integration/evpn_srv6_suite.sh" --run "$t" 2>&1 | tee -a "$REPORT_DIR/qualify.$t.out.log"; then
+    78	      record_result "$t" "pass"
+    79	    else
+    80	      record_result "$t" "fail"
+    81	      bail "EVPN/SRv6 capability '$t' failed; gating remaining tests"
+    82	    fi
+    83	  done
+    84	
+    85	  # Required OpenConfig/SONiC YANG path qualification
+    86	  if "${ROOT_DIR}/tests/integration/yang_paths_suite.sh" --run YANG-Paths 2>&1 | tee -a "$REPORT_DIR/qualify.YANG-Paths.out.log"; then
+    87	    record_result "YANG-Paths" "pass"
+    88	  else
+    89	    record_result "YANG-Paths" "fail"
+    90	    bail "YANG path qualification failed"
+    91	  fi
+    92	
+    93	  # Write machine-readable report and success log
+    94	  emit_report
+    95	  echo "[qualify] OK" | tee -a "$REPORT_DIR/qualify.run.log"

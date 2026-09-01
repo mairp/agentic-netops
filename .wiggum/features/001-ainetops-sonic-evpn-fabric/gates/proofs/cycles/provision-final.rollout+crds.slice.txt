@@ -1,0 +1,3 @@
+     1	343:deployment "ainetops-sonic-provider" successfully rolled out
+     2	344:deployment "ainetops-srv6-controller" successfully rolled out
+     3	347:[assert-crds] OK: AINETOPS-owned CRDs = srv6services.ainetops.io and no duplicate/conflicting fabric/device-config CRDs detected

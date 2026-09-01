@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-mgmt_vrf"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:mvrf="http://github.com/sonic-net/sonic-mgmt_vrf">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-mgmt_vrf"/>
+  <prefix value="mvrf"/>
+  <description>
+    <text>Management VRF configuration to isolate management traffic from data-plane traffic</text>
+  </description>
+  <revision date="2021-04-07">
+    <description>
+      <text>First revision</text>
+    </description>
+  </revision>
+  <container name="sonic-mgmt_vrf">
+    <container name="MGMT_VRF_CONFIG">
+      <description>
+        <text>Global management VRF configuration</text>
+      </description>
+      <container name="vrf_global">
+        <description>
+          <text>Global settings for management VRF</text>
+        </description>
+        <leaf name="mgmtVrfEnabled">
+          <description>
+            <text>Enable or disable the management VRF for out-of-band management traffic isolation</text>
+          </description>
+          <type name="boolean"/>
+          <default value="false"/>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

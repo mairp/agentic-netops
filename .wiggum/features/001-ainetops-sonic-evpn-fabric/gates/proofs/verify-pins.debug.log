@@ -1,0 +1,141 @@
++ set -euo pipefail
++++ dirname -- scripts/lib/verify_pins.sh
+++ cd -- scripts/lib/../..
+++ pwd
++ ROOT_DIR=/root/ainetops-demo
++ LOCK_FILE=/root/ainetops-demo/versions.lock.yaml
++ [[ -f /root/ainetops-demo/versions.lock.yaml ]]
++ grep -En '\blatest\b|\bmain\b|\bmaster\b|\bHEAD\b' /root/ainetops-demo/versions.lock.yaml
++ get_block kind
++ awk -v sec=kind '
+    $0 ~ "^" sec ":\\s*$" {inside=1; print; next}
+    inside && /^[^[:space:]]/ {exit}
+    inside {print}
+  ' /root/ainetops-demo/versions.lock.yaml
++ grep -E '^\s*node_image:\s*[^@]+@sha256:[0-9a-f]{64}\s*$'
++ get_block kubernetes
++ awk -v sec=kubernetes '
+    $0 ~ "^" sec ":\\s*$" {inside=1; print; next}
+    inside && /^[^[:space:]]/ {exit}
+    inside {print}
+  ' /root/ainetops-demo/versions.lock.yaml
++ grep -E '^\s*controller_runtime:\s*v[0-9]+\.[0-9]+\.[0-9]+'
++ get_block kubernetes
++ awk -v sec=kubernetes '
+    $0 ~ "^" sec ":\\s*$" {inside=1; print; next}
+    inside && /^[^[:space:]]/ {exit}
+    inside {print}
+  ' /root/ainetops-demo/versions.lock.yaml
++ grep -E '^\s*go:\s*['\''"]?1\.[0-9]+(\.[0-9]+)?['\''"]?\s*$'
++ for sec in kubenet kuid sdc
+++ get_block kubenet
+++ awk -v sec=kubenet '
+    $0 ~ "^" sec ":\\s*$" {inside=1; print; next}
+    inside && /^[^[:space:]]/ {exit}
+    inside {print}
+  ' /root/ainetops-demo/versions.lock.yaml
++ block='kubenet:
+  repo: https://github.com/kubenet-dev/kubenet
+  release: v0.0.1
+  commit: bae1c4878257194b64b8435208663a9e286547ed
+  release_bundle: artifacts/kubenet-release.yaml
+  api_shape: NetworkConfig   # confirm against the bundle before use (T008)'
++ grep -E '^\s*release:\s*v?[0-9]+\.[0-9]+\.[0-9]+'
++ grep -E '^\s*commit:\s*[0-9a-f]{40}\s*$'
++ [[ kubenet == \k\u\b\e\n\e\t ]]
++ grep -E '^\s*api_shape:\s*(NetworkConfig|NetworkDesign)(\s+#.*)?$'
++ for sec in kubenet kuid sdc
+++ get_block kuid
+++ awk -v sec=kuid '
+    $0 ~ "^" sec ":\\s*$" {inside=1; print; next}
+    inside && /^[^[:space:]]/ {exit}
+    inside {print}
+  ' /root/ainetops-demo/versions.lock.yaml
++ block='kuid:
+  repo: https://github.com/kuidio/kuid
+  release: v0.0.13
+  commit: 7528e81528c2e9f586b6fe657907424ad93c7ead
+  artifacts_dir: artifacts'
++ grep -E '^\s*release:\s*v?[0-9]+\.[0-9]+\.[0-9]+'
++ grep -E '^\s*commit:\s*[0-9a-f]{40}\s*$'
++ [[ kuid == \k\u\b\e\n\e\t ]]
++ for sec in kubenet kuid sdc
+++ get_block sdc
+++ awk -v sec=sdc '
+    $0 ~ "^" sec ":\\s*$" {inside=1; print; next}
+    inside && /^[^[:space:]]/ {exit}
+    inside {print}
+  ' /root/ainetops-demo/versions.lock.yaml
++ block='sdc:
+  core:
+    repo: https://github.com/sdcio/sdc
+    release: v0.31.0
+  config_server:
+    repo: https://github.com/sdcio/config-server
+    release: v0.0.58
+    commit: bcc56b045a689032c5123a9f50bcf56ed8c630dc
+  schema_server:
+    repo: https://github.com/sdcio/schema-server
+    release: v0.0.34
+    commit: c57e9d699c981251081988fd39bd81149dd3d9b3'
++ grep -E '^\s*release:\s*v?[0-9]+\.[0-9]+\.[0-9]+'
++ grep -E '^\s*commit:\s*[0-9a-f]{40}\s*$'
++ [[ sdc == \k\u\b\e\n\e\t ]]
++ get_block tooling
++ awk -v sec=tooling '
+    $0 ~ "^" sec ":\\s*$" {inside=1; print; next}
+    inside && /^[^[:space:]]/ {exit}
+    inside {print}
+  ' /root/ainetops-demo/versions.lock.yaml
++ grep -E '@sha256:[0-9a-f]{64}'
++ get_block containerlab
++ grep -E '^\s*version:\s*[0-9]+\.[0-9]+\.[0-9]+'
++ awk -v sec=containerlab '
+    $0 ~ "^" sec ":\\s*$" {inside=1; print; next}
+    inside && /^[^[:space:]]/ {exit}
+    inside {print}
+  ' /root/ainetops-demo/versions.lock.yaml
+++ awk '
+  $1=="sonic_images:" {sec=1; next}
+  sec && /^[^[:space:]]/ {exit}
+  sec && $1=="sonic_vs:" {vs=1; next}
+  sec && vs && /^[^[:space:]]/ {vs=0}
+  sec && vs && $1=="image:" {print $2; exit}
+' /root/ainetops-demo/versions.lock.yaml
++ svs_img=localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
+++ awk '
+  $1=="sonic_images:" {sec=1; next}
+  sec && /^[^[:space:]]/ {exit}
+  sec && $1=="sonic_vs:" {vs=1; next}
+  sec && vs && /^[^[:space:]]/ {vs=0}
+  sec && vs && $1=="digest:" {print $2; exit}
+' /root/ainetops-demo/versions.lock.yaml
++ svs_dig=sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
+++ awk '
+  $1=="sonic_images:" {sec=1; next}
+  sec && /^[^[:space:]]/ {exit}
+  sec && $1=="sonic_vm:" {vm=1; next}
+  sec && vm && /^[^[:space:]]/ {vm=0}
+  sec && vm && $1=="image:" {print $2; exit}
+' /root/ainetops-demo/versions.lock.yaml
++ svm_img=local/sonic-vm
+++ awk '
+  $1=="sonic_images:" {sec=1; next}
+  sec && /^[^[:space:]]/ {exit}
+  sec && $1=="sonic_vm:" {vm=1; next}
+  sec && vm && /^[^[:space:]]/ {vm=0}
+  sec && vm && $1=="digest:" {print $2; exit}
+' /root/ainetops-demo/versions.lock.yaml
++ svm_dig=sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5
++ [[ -n localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b ]]
++ [[ -n sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b ]]
++ [[ -n local/sonic-vm ]]
++ [[ -n sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5 ]]
++ [[ sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b =~ ^sha256:[0-9a-f]{64}$ ]]
++ [[ sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5 =~ ^sha256:[0-9a-f]{64}$ ]]
++ svs_full=localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
++ svm_full=local/sonic-vm@sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5
+++ awk '/^sonic_yang:/,/^[^[:space:]]/ {print}' /root/ainetops-demo/versions.lock.yaml
+++ grep -E '^\s*openconfig_commit:'
+++ sed 's/.*openconfig_commit:\s*//'
++ oc_commit=

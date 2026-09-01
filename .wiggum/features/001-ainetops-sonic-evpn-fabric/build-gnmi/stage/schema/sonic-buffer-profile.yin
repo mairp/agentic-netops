@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-buffer-profile"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:bpf="http://github.com/sonic-net/sonic-buffer-profile"
+        xmlns:bpl="http://github.com/sonic-net/sonic-buffer-pool">
+  <namespace uri="http://github.com/sonic-net/sonic-buffer-profile"/>
+  <prefix value="bpf"/>
+  <import module="sonic-buffer-pool">
+    <prefix value="bpl"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>Named buffer configuration profiles with pool reference, size, and thresholds.</text>
+  </description>
+  <revision date="2021-07-01">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-buffer-profile">
+    <container name="BUFFER_PROFILE">
+      <description>
+        <text>Configures named buffer profiles that define pool binding, reserved size, and admission thresholds.</text>
+      </description>
+      <list name="BUFFER_PROFILE_LIST">
+        <description>
+          <text>A named buffer profile entry.</text>
+        </description>
+        <key value="name"/>
+        <leaf name="name">
+          <type name="string"/>
+          <description>
+            <text>Buffer Profile name</text>
+          </description>
+        </leaf>
+        <leaf name="static_th">
+          <type name="uint64"/>
+          <description>
+            <text>Static threshold in bytes for the maximum buffer pool occupancy.</text>
+          </description>
+        </leaf>
+        <leaf name="dynamic_th">
+          <type name="int32">
+            <range value="-8..7"/>
+          </type>
+          <description>
+            <text>Dynamic threshold alpha value controlling the maximum proportion of free buffer pool space.</text>
+          </description>
+        </leaf>
+        <leaf name="size">
+          <mandatory value="true"/>
+          <type name="uint64"/>
+          <description>
+            <text>Reserved buffer size in bytes for this profile.</text>
+          </description>
+        </leaf>
+        <leaf name="pool">
+          <mandatory value="true"/>
+          <type name="leafref">
+            <path value="/bpl:sonic-buffer-pool/bpl:BUFFER_POOL/bpl:BUFFER_POOL_LIST/bpl:name"/>
+          </type>
+          <description>
+            <text>Reference to the buffer pool this profile draws from.</text>
+          </description>
+        </leaf>
+        <leaf name="xon_offset">
+          <type name="uint64"/>
+          <default value="0"/>
+          <description>
+            <text>Xon offset threshold in bytes; PFC resume is triggered when buffer usage falls to max(xon, buffer_limit - xon_offset).</text>
+          </description>
+        </leaf>
+        <leaf name="xon">
+          <type name="uint64"/>
+          <default value="0"/>
+          <description>
+            <text>Xon threshold in bytes for PFC resume on the ingress priority group.</text>
+          </description>
+        </leaf>
+        <leaf name="xoff">
+          <type name="uint64"/>
+          <default value="0"/>
+          <description>
+            <text>Xoff threshold in bytes for PFC pause generation on the ingress priority group.</text>
+          </description>
+        </leaf>
+        <leaf name="headroom_type">
+          <default value="static"/>
+          <type name="enumeration">
+            <enum name="static"/>
+            <enum name="dynamic"/>
+          </type>
+          <description>
+            <text>Whether the headroom is dynamically calculated or statically configured by the user.</text>
+          </description>
+        </leaf>
+        <leaf name="packet_discard_action">
+          <type name="enumeration">
+            <enum name="drop"/>
+            <enum name="trim"/>
+          </type>
+          <description>
+            <text>Action taken when a packet cannot be admitted to the shared buffer (drop or trim for congestion telemetry).</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

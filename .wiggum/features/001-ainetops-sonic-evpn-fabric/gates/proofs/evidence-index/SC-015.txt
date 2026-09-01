@@ -1,0 +1,3 @@
+SC-015 — SRv6 conformance profile available and gated by KVM
+- Evidence: lab/profiles/sonic-vm/README.md; scripts/lib/preflight.sh (kvm_check)
+- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.preflight.kvm_check.slice.txt

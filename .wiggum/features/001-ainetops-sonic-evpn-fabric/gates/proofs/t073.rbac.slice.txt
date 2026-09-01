@@ -1,0 +1,28 @@
+3:This document records the Phase 8 security audit of RBAC verbs/scopes, Secret use, TLS validation, image privileges, Docker/KVM trust boundaries, Grafana plugin provenance, anonymous access/default credentials, and log/status redaction.
+7:## RBAC verbs and scopes
+9:- Base namespaces/RBAC/NetworkPolicies and controller RBAC are applied by scripts/lib/rbac.sh.
+12:  - config/rbac/service_account.yaml — service accounts for provider and SRv6 controller (proof: gates/proofs/config.rbac.service_account.yaml.slice.txt)
+13:  - config/rbac/role.yaml and role_binding.yaml — namespace-scoped permissions (proof: gates/proofs/config.rbac.role.yaml.slice.txt, gates/proofs/config.rbac.role_binding.yaml.slice.txt)
+14:  - config/rbac/cluster_role.yaml and cluster_role_binding.yaml — cluster-scoped reads for CRDs only as needed (proof: gates/proofs/config.rbac.cluster_role.yaml.slice.txt, gates/proofs/config.rbac.cluster_role_binding.yaml.slice.txt)
+15:  - deploy/rbac/srv6-crd-rbac.yaml — binds SRv6 CRD access to the controller SA (proof: gates/proofs/config.rbac.cluster_role.srv6.slice.txt)
+20:  - deploy/rbac/secret-generator-job.yaml — creates gnmi-lab-creds and gnmi-lab-tls (proof: gates/proofs/deploy.rbac.secret-generator-job.yaml.slice.txt)
+config/rbac/cluster_role.yaml:5:rules:
+config/rbac/cluster_role.yaml-6-- apiGroups: [""]
+config/rbac/cluster_role.yaml-7-  resources: ["events"]
+config/rbac/cluster_role.yaml-8-  verbs: ["create", "patch"]
+config/rbac/cluster_role.yaml-9-- apiGroups: ["network.kubenet.dev"]
+config/rbac/cluster_role.yaml-10-  resources: ["networkdevices", "networkdevices/status"]
+config/rbac/cluster_role.yaml-11-  verbs: ["get", "list", "watch", "patch", "update"]
+--
+config/rbac/cluster_role.yaml:24:rules:
+config/rbac/cluster_role.yaml-25-- apiGroups: [""]
+config/rbac/cluster_role.yaml-26-  resources: ["events"]
+config/rbac/cluster_role.yaml-27-  verbs: ["create", "patch"]
+config/rbac/cluster_role.yaml-28-- apiGroups: ["ainetops.io"]
+config/rbac/cluster_role.yaml-29-  resources: ["srv6services", "srv6services/status"]
+config/rbac/cluster_role.yaml-30-  verbs: ["get", "list", "watch", "patch", "update"]
+--
+config/rbac/role.yaml:6:rules:
+config/rbac/role.yaml-7-- apiGroups: [""]
+config/rbac/role.yaml-8-  resources: ["events"]
+config/rbac/role.yaml-9-  verbs: ["create", "patch"]

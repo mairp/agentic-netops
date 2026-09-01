@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-policer"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:policer="http://github.com/sonic-net/sonic-policer"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-policer"/>
+  <prefix value="policer"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <description>
+    <text>Policer YANG Module for SONiC OS</text>
+  </description>
+  <revision date="2022-02-03">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-policer">
+    <container name="POLICER">
+      <description>
+        <text>Configures traffic policers with committed/peak rates and burst sizes.</text>
+      </description>
+      <list name="POLICER_LIST">
+        <description>
+          <text>A named policer entry with metering and per-color actions.</text>
+        </description>
+        <key value="name"/>
+        <leaf name="name">
+          <type name="string"/>
+          <description>
+            <text>Policer name</text>
+          </description>
+        </leaf>
+        <leaf name="meter_type">
+          <mandatory value="true"/>
+          <type name="stypes:meter_type"/>
+          <description>
+            <text>Metering unit (packets or bytes).</text>
+          </description>
+        </leaf>
+        <leaf name="mode">
+          <mandatory value="true"/>
+          <type name="stypes:policer_mode"/>
+          <description>
+            <text>Policer mode: single-rate TCM, two-rate TCM, or storm control.</text>
+          </description>
+        </leaf>
+        <leaf name="color">
+          <type name="stypes:policer_color_source"/>
+          <description>
+            <text>Policer color awareness mode (aware or blind).</text>
+          </description>
+        </leaf>
+        <leaf name="cir">
+          <type name="uint64"/>
+          <description>
+            <text>Committed information rate for the dual-rate token
+ 					bucket policer.  This value represents the rate at which
+ 					tokens are added to the primary bucket. Unit is bytes/sec
+ 					or packets/sec based on meter_type</text>
+          </description>
+        </leaf>
+        <leaf name="cbs">
+          <must condition="((current()/../cir) and (current()/../cir &gt; 0))">
+            <error-message>
+              <value>cbs can't be configured without cir.</value>
+            </error-message>
+          </must>
+          <must condition="(current() &gt;= current()/../cir)">
+            <error-message>
+              <value>cbs must be greater than or equal to cir</value>
+            </error-message>
+          </must>
+          <type name="uint64"/>
+          <description>
+            <text>Committed burst size for the dual-rate token bucket
+ 					policer.  This value represents the depth of the token
+ 					bucket. Unit is bytes or packets based on meter_type</text>
+          </description>
+        </leaf>
+        <leaf name="pir">
+          <when condition="current()/../mode = 'tr_tcm'"/>
+          <must condition="((current()/../cir) and (current()/../cir &gt; 0))">
+            <error-message>
+              <value>pir can't be configured without cir.</value>
+            </error-message>
+          </must>
+          <must condition="(current() &gt;= current()/../cir)">
+            <error-message>
+              <value>pir must be greater than or equal to cir</value>
+            </error-message>
+          </must>
+          <type name="uint64"/>
+          <description>
+            <text>Peak information rate for the dual-rate token bucket
+ 					policer.  This value represents the rate at which tokens
+ 					are added to the secondary bucket. Unit is bytes/sec or
+ 					packets/sec based on meter_type</text>
+          </description>
+        </leaf>
+        <leaf name="pbs">
+          <when condition="((current()/../mode = 'sr_tcm') or (current()/../mode = 'tr_tcm'))"/>
+          <must condition="((not(current()/../cbs)) or (current() &gt;= current()/../cbs))">
+            <error-message>
+              <value>pbs must be greater than or equal to cbs</value>
+            </error-message>
+          </must>
+          <type name="uint64"/>
+          <description>
+            <text>Excess burst size for the dual-rate token bucket policer.
+ 					This value represents the depth of the secondary bucket. Unit
+ 					is bytes or packets based on meter_type</text>
+          </description>
+        </leaf>
+        <leaf name="green_packet_action">
+          <type name="stypes:policer_packet_action"/>
+          <default value="forward"/>
+          <description>
+            <text>Action for packets classified as green by the policer.</text>
+          </description>
+        </leaf>
+        <leaf name="yellow_packet_action">
+          <when condition="((current()/../mode = 'sr_tcm') or (current()/../mode = 'tr_tcm'))"/>
+          <type name="stypes:policer_packet_action"/>
+          <default value="forward"/>
+          <description>
+            <text>Action for packets classified as yellow by the policer.</text>
+          </description>
+        </leaf>
+        <leaf name="red_packet_action">
+          <type name="stypes:policer_packet_action"/>
+          <default value="forward"/>
+          <description>
+            <text>Action for packets classified as red by the policer.</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-routing-policy-sets"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:rpolsets="http://github.com/sonic-net/sonic-routing-policy-lists"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:ext="http://github.com/sonic-net/sonic-extension">
+  <namespace uri="http://github.com/sonic-net/sonic-routing-policy-lists"/>
+  <prefix value="rpolsets"/>
+  <yang-version value="1.1"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-extension">
+    <prefix value="ext"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONiC ROUTING POLICY SETS</text>
+  </description>
+  <revision date="2021-02-26">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <typedef name="routing-policy-action-type">
+    <type name="enumeration">
+      <enum name="permit">
+        <description>
+          <text>Permit action.</text>
+        </description>
+      </enum>
+      <enum name="deny">
+        <description>
+          <text>Deny action.</text>
+        </description>
+      </enum>
+    </type>
+    <description>
+      <text>Routing policy action type permit or deny</text>
+    </description>
+  </typedef>
+  <grouping name="prefix-common-fields">
+    <leaf name="name">
+      <type name="leafref">
+        <path value="../../../PREFIX_SET/PREFIX_SET_LIST/name"/>
+      </type>
+      <description>
+        <text>Prefix name</text>
+      </description>
+    </leaf>
+    <leaf name="ip_prefix">
+      <type name="inet:ip-prefix"/>
+      <description>
+        <text>The prefix member in CIDR notation -- while the
+prefix may be either IPv4 or IPv6, most
+implementations require all members of the prefix set
+to be the same address family.  Mixing address types in
+the same prefix set is likely to cause an error.</text>
+      </description>
+    </leaf>
+    <leaf name="masklength_range">
+      <type name="string"/>
+      <description>
+        <text>Defines a range for the masklength, or 'exact' if
+the prefix has an exact length.
+
+Example: 10.3.192.0/21 through 10.3.192.0/24 would be
+expressed as prefix: 10.3.192.0/21,
+         masklength_range: 21..24.
+
+             Example: 10.3.192.0/21 would be expressed as
+             prefix: 10.3.192.0/21,
+         masklength_range: exact</text>
+      </description>
+    </leaf>
+    <leaf name="action">
+      <type name="routing-policy-action-type"/>
+      <description>
+        <text>Permit/Deny action for the prefix list.</text>
+      </description>
+    </leaf>
+  </grouping>
+  <container name="sonic-routing-policy-sets">
+    <container name="PREFIX_SET">
+      <list name="PREFIX_SET_LIST">
+        <key value="name"/>
+        <leaf name="name">
+          <type name="string"/>
+          <description>
+            <text>Prefix name</text>
+          </description>
+        </leaf>
+        <leaf name="mode">
+          <type name="enumeration">
+            <enum name="IPv4"/>
+            <enum name="IPv6"/>
+          </type>
+          <description>
+            <text>Address family of the prefix</text>
+          </description>
+          <default value="IPv4"/>
+        </leaf>
+      </list>
+    </container>
+    <container name="PREFIX">
+      <list name="PREFIX_LIST">
+        <key value="name sequence_number ip_prefix masklength_range"/>
+        <uses name="prefix-common-fields"/>
+        <leaf name="sequence_number">
+          <type name="uint32">
+            <range value="1..4294967295"/>
+          </type>
+          <description>
+            <text>The sequence number determines the order in which prefix-list entries are applied. It must
+be unique for each prefix in a prefix-list. Target devices should apply the prefixes in
+ascending order determined by sequence no (low to high), rather than relying only on order
+in the list.</text>
+          </description>
+          <must condition="count(../../PREFIX_LIST[name=current()/../name and sequence_number=current()]) &lt;= 1">
+            <error-message>
+              <value>sequence_number required to be unique for each prefix-list</value>
+            </error-message>
+          </must>
+        </leaf>
+      </list>
+      <list name="PREFIX_NOSEQ_LIST">
+        <key value="name ip_prefix masklength_range"/>
+        <uses name="prefix-common-fields"/>
+      </list>
+    </container>
+    <container name="COMMUNITY_SET">
+      <list name="COMMUNITY_SET_LIST">
+        <key value="name"/>
+        <leaf name="name">
+          <type name="string"/>
+          <description>
+            <text>Community name</text>
+          </description>
+        </leaf>
+        <leaf name="set_type">
+          <type name="enumeration">
+            <enum name="STANDARD"/>
+            <enum name="EXPANDED"/>
+          </type>
+          <description>
+            <text>Community type</text>
+          </description>
+        </leaf>
+        <leaf name="match_action">
+          <type name="enumeration">
+            <enum name="ANY"/>
+            <enum name="ALL"/>
+          </type>
+          <description>
+            <text>Match action any/all</text>
+          </description>
+        </leaf>
+        <leaf name="action">
+          <type name="routing-policy-action-type"/>
+          <description>
+            <text>Permit/Deny action for the community</text>
+          </description>
+        </leaf>
+        <leaf-list name="community_member">
+          <type name="string"/>
+          <ordered-by value="user"/>
+          <description>
+            <text>members of the community set.</text>
+          </description>
+        </leaf-list>
+      </list>
+    </container>
+    <container name="EXTENDED_COMMUNITY_SET">
+      <list name="EXTENDED_COMMUNITY_SET_LIST">
+        <key value="name"/>
+        <leaf name="name">
+          <type name="string"/>
+          <description>
+            <text>Extended community name</text>
+          </description>
+        </leaf>
+        <leaf name="set_type">
+          <type name="enumeration">
+            <enum name="STANDARD"/>
+            <enum name="EXPANDED"/>
+          </type>
+          <description>
+            <text>Extended community type</text>
+          </description>
+        </leaf>
+        <leaf name="match_action">
+          <type name="enumeration">
+            <enum name="ANY"/>
+            <enum name="ALL"/>
+          </type>
+          <description>
+            <text>Match action any/all</text>
+          </description>
+        </leaf>
+        <leaf name="action">
+          <type name="routing-policy-action-type"/>
+          <description>
+            <text>Permit/Deny action for the ext-community</text>
+          </description>
+        </leaf>
+        <leaf-list name="community_member">
+          <type name="string"/>
+          <ordered-by value="user"/>
+          <description>
+            <text>members of the community set.</text>
+          </description>
+        </leaf-list>
+      </list>
+    </container>
+    <container name="AS_PATH_SET">
+      <list name="AS_PATH_SET_LIST">
+        <key value="name"/>
+        <leaf name="name">
+          <type name="string"/>
+          <description>
+            <text>AS PATH name</text>
+          </description>
+        </leaf>
+        <leaf name="action">
+          <type name="routing-policy-action-type"/>
+          <description>
+            <text>Permit/Deny action for the as-path-list.</text>
+          </description>
+        </leaf>
+        <leaf-list name="as_path_set_member">
+          <type name="string"/>
+          <ordered-by value="user"/>
+          <description>
+            <text>AS path expression -- list of ASes in the set</text>
+          </description>
+        </leaf-list>
+      </list>
+    </container>
+  </container>
+</module>

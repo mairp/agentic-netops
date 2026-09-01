@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-nvgre-tunnel"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:nvgre="http://github.com/sonic-net/sonic-nvgre-tunnel"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-nvgre-tunnel"/>
+  <prefix value="nvgre"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>NVGRE Tunnel YANG Module for SONiC OS</text>
+  </description>
+  <revision date="2021-10-31">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-nvgre-tunnel">
+    <container name="NVGRE_TUNNEL">
+      <description>
+        <text>NVGRE tunnel endpoint definitions.</text>
+      </description>
+      <list name="NVGRE_TUNNEL_LIST">
+        <key value="tunnel_name"/>
+        <leaf name="tunnel_name">
+          <description>
+            <text>NVGRE Tunnel name</text>
+          </description>
+          <type name="string">
+            <length value="1..255"/>
+          </type>
+        </leaf>
+        <leaf name="src_ip">
+          <description>
+            <text>Source IP address</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="inet:ip-address"/>
+        </leaf>
+      </list>
+    </container>
+    <container name="NVGRE_TUNNEL_MAP">
+      <description>
+        <text>Mappings between VLAN and VSID for an NVGRE tunnel.</text>
+      </description>
+      <list name="NVGRE_TUNNEL_MAP_LIST">
+        <key value="tunnel_name tunnel_map_name"/>
+        <leaf name="tunnel_name">
+          <description>
+            <text>NVGRE Tunnel name</text>
+          </description>
+          <type name="leafref">
+            <path value="/nvgre:sonic-nvgre-tunnel/nvgre:NVGRE_TUNNEL/nvgre:NVGRE_TUNNEL_LIST/nvgre:tunnel_name"/>
+          </type>
+        </leaf>
+        <leaf name="tunnel_map_name">
+          <description>
+            <text>NVGRE Tunnel map name</text>
+          </description>
+          <type name="string">
+            <length value="1..255"/>
+          </type>
+        </leaf>
+        <leaf name="vlan_id">
+          <description>
+            <text>VLAN identifier</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="uint16">
+            <range value="1..4094"/>
+          </type>
+        </leaf>
+        <leaf name="vsid">
+          <description>
+            <text>Virtual Subnet Identifier</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="uint32">
+            <range value="0..16777214"/>
+          </type>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

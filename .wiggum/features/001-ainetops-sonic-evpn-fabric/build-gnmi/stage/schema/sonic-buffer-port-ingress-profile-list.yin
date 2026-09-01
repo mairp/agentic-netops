@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-buffer-port-ingress-profile-list"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:bpg="http://github.com/sonic-net/sonic-buffer-port-ingress-profile-list"
+        xmlns:prt="http://github.com/sonic-net/sonic-port"
+        xmlns:bpf="http://github.com/sonic-net/sonic-buffer-profile">
+  <namespace uri="http://github.com/sonic-net/sonic-buffer-port-ingress-profile-list"/>
+  <prefix value="bpg"/>
+  <import module="sonic-port">
+    <prefix value="prt"/>
+  </import>
+  <import module="sonic-buffer-profile">
+    <prefix value="bpf"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>Assigns ingress buffer profiles to ports.</text>
+  </description>
+  <revision date="2021-07-01">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-buffer-port-ingress-profile-list">
+    <container name="BUFFER_PORT_INGRESS_PROFILE_LIST">
+      <description>
+        <text>Binds ingress buffer profiles to ports.</text>
+      </description>
+      <list name="BUFFER_PORT_INGRESS_PROFILE_LIST_LIST">
+        <key value="port"/>
+        <description>
+          <text>Ingress buffer profile binding for a port.</text>
+        </description>
+        <leaf name="port">
+          <type name="leafref">
+            <path value="/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:name"/>
+          </type>
+          <description>
+            <text>Port to which ingress buffer profiles are assigned.</text>
+          </description>
+        </leaf>
+        <leaf-list name="profile_list">
+          <type name="leafref">
+            <path value="/bpf:sonic-buffer-profile/bpf:BUFFER_PROFILE/bpf:BUFFER_PROFILE_LIST/bpf:name"/>
+          </type>
+          <ordered-by value="user"/>
+          <description>
+            <text>Ordered list of ingress buffer profile names applied to this port.</text>
+          </description>
+        </leaf-list>
+      </list>
+    </container>
+  </container>
+</module>

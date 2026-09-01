@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-gnmi"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:gnmi="http://github.com/sonic-net/sonic-gnmi"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-gnmi"/>
+  <prefix value="gnmi"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>GNMI YANG Module for SONiC OS</text>
+  </description>
+  <revision date="2023-02-10">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-gnmi">
+    <container name="GNMI">
+      <description>
+        <text>gRPC Network Management Interface server configuration.</text>
+      </description>
+      <container name="certs">
+        <description>
+          <text>TLS certificate paths for the gNMI server.</text>
+        </description>
+        <leaf name="ca_crt">
+          <type name="string">
+            <pattern value="(/[a-zA-Z0-9_-]+)*/([a-zA-Z0-9_-]+).cer"/>
+          </type>
+          <description>
+            <text>Local path for ca_crt.</text>
+          </description>
+        </leaf>
+        <leaf name="server_crt">
+          <type name="string">
+            <pattern value="(/[a-zA-Z0-9_-]+)*/([a-zA-Z0-9_-]+).cer"/>
+          </type>
+          <description>
+            <text>Local path for server_crt.</text>
+          </description>
+        </leaf>
+        <leaf name="server_key">
+          <type name="string">
+            <pattern value="(/[a-zA-Z0-9_-]+)*/([a-zA-Z0-9_-]+).key"/>
+          </type>
+          <description>
+            <text>Local path for server_key.</text>
+          </description>
+        </leaf>
+      </container>
+      <container name="gnmi">
+        <description>
+          <text>gNMI server operational settings.</text>
+        </description>
+        <leaf name="client_auth">
+          <type name="boolean"/>
+          <description>
+            <text>Flag for requiring client auth.</text>
+          </description>
+        </leaf>
+        <leaf name="log_level">
+          <type name="uint8">
+            <range value="0..100"/>
+          </type>
+          <description>
+            <text>Log level for gnmi.</text>
+          </description>
+        </leaf>
+        <leaf name="port">
+          <type name="inet:port-number"/>
+          <description>
+            <text>Port gnmi runs on.</text>
+          </description>
+        </leaf>
+        <leaf name="save_on_set">
+          <type name="boolean"/>
+          <description>
+            <text>Flag for enabling save on set.</text>
+          </description>
+        </leaf>
+        <leaf name="enable_crl">
+          <type name="boolean"/>
+          <description>
+            <text>Flag for enable certificate revocation list.</text>
+          </description>
+        </leaf>
+        <leaf name="crl_expire_duration">
+          <type name="uint32"/>
+          <description>
+            <text>Certificate revocation list cache expire duration.</text>
+          </description>
+        </leaf>
+        <leaf name="user_auth">
+          <type name="string">
+            <pattern value="password|jwt|cert|none"/>
+          </type>
+          <description>
+            <text>GNMI service user authorization type.</text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+    <container name="GNMI_CLIENT_CERT">
+      <description>
+        <text>GNMI client cert list</text>
+      </description>
+      <list name="GNMI_CLIENT_CERT_LIST">
+        <key value="cert_cname"/>
+        <leaf name="cert_cname">
+          <type name="string"/>
+          <description>
+            <text>client cert common name</text>
+          </description>
+        </leaf>
+        <leaf-list name="role">
+          <type name="string"/>
+          <min-elements value="1"/>
+          <description>
+            <text>role of client cert common name</text>
+          </description>
+        </leaf-list>
+      </list>
+    </container>
+  </container>
+</module>

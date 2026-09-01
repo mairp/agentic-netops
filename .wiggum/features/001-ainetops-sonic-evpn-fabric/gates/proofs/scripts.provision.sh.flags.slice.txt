@@ -1,0 +1,31 @@
+    15	AINETOPS_PROFILE=${AINETOPS_PROFILE:-sonic-vs}
+    16	AINETOPS_TIMEOUT=${AINETOPS_TIMEOUT:-180s}
+    17	
+    18	usage() {
+    19	  cat <<EOF
+    20	Usage: $0 [--profile sonic-vs|sonic-vm] [--cluster-name NAME] [--timeout DURATION]
+    21	
+    22	Flags:
+    23	  --profile       SONiC lab profile (sonic-vs fast, sonic-vm conformance)
+    24	  --cluster-name  Kind cluster name (default: ainetops)
+    25	  --timeout       Rollout wait timeout (default: 180s)
+    26	EOF
+    27	}
+    28	
+    29	# Parse flags
+    30	while [[ $# -gt 0 ]]; do
+    31	  case "$1" in
+    32	    --profile) shift; AINETOPS_PROFILE=${1:-$AINETOPS_PROFILE} ;;
+    33	    --cluster-name) shift; AINETOPS_CLUSTER_NAME=${1:-$AINETOPS_CLUSTER_NAME} ;;
+    34	    --timeout) shift; AINETOPS_TIMEOUT=${1:-$AINETOPS_TIMEOUT} ;;
+    35	    -h|--help) usage; exit 0 ;;
+    36	    *) echo "[provision] unknown flag: $1" >&2; usage; exit 2 ;;
+    37	  esac
+    38	  shift || true
+    39	done
+    40	export AINETOPS_CLUSTER_NAME AINETOPS_PROFILE AINETOPS_TIMEOUT
+    41	
+    42	# shellcheck source=./lib/preflight.sh
+    43	if [[ -f "${LIB_DIR}/preflight.sh" ]]; then
+    44	  # Preflight validates versions.lock.yaml, host resources, privileges, MTU, address overlaps, KVM (when sonic-vm)
+    45	  source "${LIB_DIR}/preflight.sh"

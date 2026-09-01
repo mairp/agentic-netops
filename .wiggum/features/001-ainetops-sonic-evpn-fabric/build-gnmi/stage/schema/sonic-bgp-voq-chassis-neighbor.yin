@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-bgp-voq-chassis-neighbor"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:bgpintnbr="http://github.com/sonic-net/sonic-bgp-voq-chassis-neighbor"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:dm="http://github.com/sonic-net/sonic-device_metadata"
+        xmlns:bgpcmn="http://github.com/sonic-net/sonic-bgp-common">
+  <namespace uri="http://github.com/sonic-net/sonic-bgp-voq-chassis-neighbor"/>
+  <prefix value="bgpintnbr"/>
+  <yang-version value="1.1"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-device_metadata">
+    <prefix value="dm"/>
+  </import>
+  <import module="sonic-bgp-common">
+    <prefix value="bgpcmn"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONIC BGP Internal Neighbor for voq chassis platforms</text>
+  </description>
+  <revision date="2021-04-10">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-bgp-voq-chassis-neighbor">
+    <container name="BGP_VOQ_CHASSIS_NEIGHBOR">
+      <list name="BGP_VOQ_CHASSIS_NEIGHBOR_LIST">
+        <description>
+          <text>List for internal neighbors in voq chassis platforms</text>
+        </description>
+        <key value="neighbor"/>
+        <leaf name="neighbor">
+          <type name="inet:ip-address"/>
+          <description>
+            <text>BGP Neighbor address</text>
+          </description>
+        </leaf>
+        <uses name="bgpcmn:sonic-bgp-cmn-neigh">
+          <refine target-node="asn">
+            <must condition="(current() = /dm:sonic-device_metadata/dm:DEVICE_METADATA/dm:localhost/dm:bgp_asn)">
+              <error-message>
+                <value>Voq chassis BGP neighbors should have same ASN as defined in device metadata</value>
+              </error-message>
+            </must>
+            <must condition=". &gt;= 1">
+              <error-message>
+                <value>ASN must be greater than 0</value>
+              </error-message>
+            </must>
+          </refine>
+          <refine target-node="local_addr">
+            <mandatory value="true"/>
+            <must condition="((contains(../neighbor, '.') and contains(current(), '.')) or&#10;  (contains(../neighbor, ':') and contains(current(), ':')))">
+              <error-message>
+                <value>local address and neighbor address family doesnt match</value>
+              </error-message>
+            </must>
+          </refine>
+        </uses>
+      </list>
+    </container>
+  </container>
+</module>

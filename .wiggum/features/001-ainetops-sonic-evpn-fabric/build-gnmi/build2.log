@@ -1,0 +1,135 @@
+[build2] extracting runtime libs from pinned image (via temp container)
+[build2] creating build container (debian:bookworm)
+[build2] installing build tools
+debconf: delaying package configuration, since apt-utils is not installed
+TOOLS_OK
+gcc (Debian 12.2.0-14+deb12u1) 12.2.0
+SWIG Version 4.1.0
+libprotoc 3.21.12
+git version 2.39.5
+GNU patch 2.7.6
+[build2] installing Go 1.25.9
+go version go1.25.9 linux/amd64
+[build2] installing pyang
+pyang 2.7.1
+[build2] staging swss-common headers + swig interface (pinned 240a31a)
+141
+[build2] building sonic-mgmt-common yang tree + CVL schema
+YANG_TREE:
+annotations
+common
+extensions
+gnsi-authz.yang
+gnsi-certz.yang
+gnsi-credentialz.yang
+gnsi-pathz.yang
+ietf-yang-library.yang
+oc_lint_issues.log
+openconfig-acl.yang
+openconfig-if-ethernet.yang
+openconfig-if-ip.yang
+openconfig-interfaces.yang
+openconfig-lldp.yang
+openconfig-platform.yang
+openconfig-sampling-sflow.yang
+openconfig-system.yang
+sonic
+SONIC_COUNT: 0
+SCHEMA_COUNT: 0
+sonic-acl.yin
+sonic-common.yin
+sonic-interface.yin
+sonic-port.yin
+YANG_CVL_OK
+[build2] patching sonic-gnmi Makefile CGO paths for build container layout
+33:export CGO_LDFLAGS := -L/libs -lswsscommon -lhiredis -Wl,-rpath,/lib/x86_64-linux-gnu
+34:export CGO_CXXFLAGS := -I/opt/swss-include -w -Wall -fpermissive
+35:export MEMCHECK_CGO_LDFLAGS := $(CGO_LDFLAGS) -fsanitize=address
+36:export MEMCHECK_CGO_CXXFLAGS := $(CGO_CXXFLAGS) -fsanitize=leak
+[build2] building sonic-gnmi telemetry binary (go mod vendor + swig + cgo)
+make -C swsscommon
+make[1]: Entering directory '/src/sonic-gnmi/swsscommon'
+cp -f /usr/share/swss/swsscommon.i .
+/usr/bin/swig -go -cgo -c++ -intgosize 64 -I/usr/include/swss/ swsscommon.i
+swsscommon.i:270: Error: Unable to find 'schema.h'
+swsscommon.i:271: Error: Unable to find 'dbconnector.h'
+swsscommon.i:283: Error: Unable to find 'sonicv2connector.h'
+swsscommon.i:284: Error: Unable to find 'pubsub.h'
+swsscommon.i:285: Error: Unable to find 'profileprovider.h'
+swsscommon.i:286: Error: Unable to find 'selectable.h'
+swsscommon.i:287: Error: Unable to find 'select.h'
+swsscommon.i:288: Error: Unable to find 'rediscommand.h'
+swsscommon.i:289: Error: Unable to find 'redispipeline.h'
+swsscommon.i:290: Error: Unable to find 'redisreply.h'
+swsscommon.i:291: Error: Unable to find 'redisselect.h'
+swsscommon.i:292: Error: Unable to find 'redistran.h'
+swsscommon.i:293: Error: Unable to find 'configdb.h'
+swsscommon.i:294: Error: Unable to find 'zmqserver.h'
+swsscommon.i:295: Error: Unable to find 'zmqclient.h'
+swsscommon.i:296: Error: Unable to find 'zmqconsumerstatetable.h'
+swsscommon.i:297: Error: Unable to find 'interface.h'
+swsscommon.i:327: Error: Unable to find 'table.h'
+swsscommon.i:340: Error: Unable to find 'luatable.h'
+swsscommon.i:341: Error: Unable to find 'countertable.h'
+swsscommon.i:348: Error: Unable to find 'producertable.h'
+swsscommon.i:356: Error: Unable to find 'producerstatetable.h'
+swsscommon.i:357: Error: Unable to find 'zmqproducerstatetable.h'
+swsscommon.i:414: Error: Unable to find 'consumertablebase.h'
+swsscommon.i:419: Error: Unable to find 'consumertable.h'
+swsscommon.i:420: Error: Unable to find 'consumerstatetable.h'
+swsscommon.i:421: Error: Unable to find 'subscriberstatetable.h'
+swsscommon.i:429: Error: Unable to find 'notificationconsumer.h'
+swsscommon.i:434: Error: Unable to find 'notificationproducer.h'
+swsscommon.i:435: Error: Unable to find 'warm_restart.h'
+swsscommon.i:436: Error: Unable to find 'dbinterface.h'
+swsscommon.i:437: Error: Unable to find 'logger.h'
+swsscommon.i:438: Error: Unable to find 'events.h'
+swsscommon.i:440: Error: Unable to find 'status_code_util.h'
+swsscommon.i:442: Error: Unable to find 'restart_waiter.h'
+make[1]: *** [Makefile:18: all] Error 1
+make[1]: Leaving directory '/src/sonic-gnmi/swsscommon'
+make: *** [Makefile:164: swsscommon_wrap] Error 2
+[build2] sonic-gnmi build failed; dumping logs
+make -C swsscommon
+make[1]: Entering directory '/src/sonic-gnmi/swsscommon'
+cp -f /usr/share/swss/swsscommon.i .
+/usr/bin/swig -go -cgo -c++ -intgosize 64 -I/usr/include/swss/ swsscommon.i
+swsscommon.i:270: Error: Unable to find 'schema.h'
+swsscommon.i:271: Error: Unable to find 'dbconnector.h'
+swsscommon.i:283: Error: Unable to find 'sonicv2connector.h'
+swsscommon.i:284: Error: Unable to find 'pubsub.h'
+swsscommon.i:285: Error: Unable to find 'profileprovider.h'
+swsscommon.i:286: Error: Unable to find 'selectable.h'
+swsscommon.i:287: Error: Unable to find 'select.h'
+swsscommon.i:288: Error: Unable to find 'rediscommand.h'
+swsscommon.i:289: Error: Unable to find 'redispipeline.h'
+swsscommon.i:290: Error: Unable to find 'redisreply.h'
+swsscommon.i:291: Error: Unable to find 'redisselect.h'
+swsscommon.i:292: Error: Unable to find 'redistran.h'
+swsscommon.i:293: Error: Unable to find 'configdb.h'
+swsscommon.i:294: Error: Unable to find 'zmqserver.h'
+swsscommon.i:295: Error: Unable to find 'zmqclient.h'
+swsscommon.i:296: Error: Unable to find 'zmqconsumerstatetable.h'
+swsscommon.i:297: Error: Unable to find 'interface.h'
+swsscommon.i:327: Error: Unable to find 'table.h'
+swsscommon.i:340: Error: Unable to find 'luatable.h'
+swsscommon.i:341: Error: Unable to find 'countertable.h'
+swsscommon.i:348: Error: Unable to find 'producertable.h'
+swsscommon.i:356: Error: Unable to find 'producerstatetable.h'
+swsscommon.i:357: Error: Unable to find 'zmqproducerstatetable.h'
+swsscommon.i:414: Error: Unable to find 'consumertablebase.h'
+swsscommon.i:419: Error: Unable to find 'consumertable.h'
+swsscommon.i:420: Error: Unable to find 'consumerstatetable.h'
+swsscommon.i:421: Error: Unable to find 'subscriberstatetable.h'
+swsscommon.i:429: Error: Unable to find 'notificationconsumer.h'
+swsscommon.i:434: Error: Unable to find 'notificationproducer.h'
+swsscommon.i:435: Error: Unable to find 'warm_restart.h'
+swsscommon.i:436: Error: Unable to find 'dbinterface.h'
+swsscommon.i:437: Error: Unable to find 'logger.h'
+swsscommon.i:438: Error: Unable to find 'events.h'
+swsscommon.i:440: Error: Unable to find 'status_code_util.h'
+swsscommon.i:442: Error: Unable to find 'restart_waiter.h'
+make[1]: *** [Makefile:18: all] Error 1
+make[1]: Leaving directory '/src/sonic-gnmi/swsscommon'
+make: *** [Makefile:164: swsscommon_wrap] Error 2
+[build2] FAILED: sonic-gnmi

@@ -1,0 +1,70 @@
+     1	#!/usr/bin/env bash
+     2	# Supply-chain advisory checks for the fully open-source distribution (T074)
+     3	# - Dependency licenses: best-effort collection (advisory)
+     4	# - Vulnerabilities: run govulncheck when available (advisory)
+     5	# - Image provenance: require pinned digests for platform images (enforced)
+     6	# - SBOM: run syft when available to generate repository SBOM (advisory)
+     7	# - Enforce SR Linux absence from dependency graph/runtime manifests per FR-020 (enforced)
+     8	set -euo pipefail
+     9	
+    10	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+    11	REPORT_DIR="${ROOT_DIR}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+    12	mkdir -p "$REPORT_DIR"
+    13	
+    14	fail=0
+    15	
+    16	log() { echo "[supply-chain] $*" >&2; }
+    17	
+    18	# 1) Enforce SR Linux absence in go dependency graph and manifests (FR-020)
+    19	log "Checking SR Linux absence in go.mod/go.sum, Dockerfiles, and Kubernetes manifests"
+    20	SR_PAT='\bsr[ -]?linux\b|ghcr\.io/nokia/srlinux|nokia_srlinux'
+    21	SR_MATCHES=$(rg -i -n --hidden \
+    22	  -g '!**/.git/**' \
+    23	  -g '!**/vendor/**' \
+    24	  -e "$SR_PAT" \
+    25	  go.mod go.sum cmd config deploy scripts || true)
+    26	if [[ -n "$SR_MATCHES" ]]; then
+    27	  echo "::error title=SR Linux mention(s) in dependency graph/manifests::${SR_MATCHES}" | tee "$REPORT_DIR/supply-chain.srlinux.matches.txt"
+    28	  fail=1
+    29	else
+    30	  echo "No SR Linux artifacts detected in dependency graph/manifests" | tee "$REPORT_DIR/supply-chain.srlinux.ok.txt"
+    31	fi
+    32	
+    33	# 2) Image provenance: require pinned digests for platform images in deploy/**.yaml
+    34	log "Verifying platform images are pinned by immutable digests"
+    35	IMG_LINES=$(rg -n '^\s*image:\s*[^#]+' deploy || true)
+    36	MISSING_DIGEST=$(printf "%s" "$IMG_LINES" | awk -F: 'BEGIN{ok=1} {line=$0; if ($0 !~ /@sha256:[0-9a-f]{64}/) {print line; ok=0}} END{exit ok==1 ? 0 : 1}') || {
+    37	  echo "::error title=Unpinned images found::The following image lines are not pinned by digest:" | tee "$REPORT_DIR/supply-chain.unpinned-images.txt"
+    38	  printf "%s\n" "$IMG_LINES" | awk '$0 !~ /@sha256:[0-9a-f]{64}/' | tee -a "$REPORT_DIR/supply-chain.unpinned-images.txt"
+    39	  fail=1
+    40	}
+    41	
+    42	# 3) Vulnerabilities: govulncheck (advisory)
+    43	if command -v govulncheck >/dev/null 2>&1; then
+    44	  log "Running govulncheck (advisory)"
+    45	  (cd "$ROOT_DIR" && govulncheck ./... || true) | tee "$REPORT_DIR/supply-chain.govulncheck.txt"
+    46	else
+    47	  log "govulncheck not installed; skipping (advisory)"
+    48	fi
+    49	
+    50	# 4) SBOM: syft (advisory)
+    51	if command -v syft >/dev/null 2>&1; then
+    52	  log "Generating SBOM with syft (advisory)"
+    53	  syft packages dir:"$ROOT_DIR" -o json > "$REPORT_DIR/syft.sbom.json" || true
+    54	else
+    55	  log "syft not installed; skipping SBOM generation (advisory)"
+    56	fi
+    57	
+    58	# 5) Licenses: go-licenses (advisory)
+    59	if command -v go-licenses >/dev/null 2>&1; then
+    60	  log "Collecting dependency licenses with go-licenses (advisory)"
+    61	  (cd "$ROOT_DIR" && go-licenses report ./... || true) | tee "$REPORT_DIR/supply-chain.licenses.txt"
+    62	else
+    63	  log "go-licenses not installed; skipping license report (advisory)"
+    64	fi
+    65	
+    66	if [[ "$fail" -ne 0 ]]; then
+    67	  log "Supply-chain checks failed"
+    68	  exit 1
+    69	fi
+    70	log "Supply-chain checks passed (enforced: SR Linux absence, image digests; advisory: others)"

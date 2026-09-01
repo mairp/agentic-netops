@@ -1,0 +1,709 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-flex_counter"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:flex_counter="http://github.com/sonic-net/sonic-flex_counter"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-flex_counter"/>
+  <prefix value="flex_counter"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <description>
+    <text>FLEX COUNTER YANG Module for SONiC OS</text>
+  </description>
+  <revision date="2020-04-10">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-flex_counter">
+    <container name="FLEX_COUNTER_TABLE">
+      <typedef name="flex_status">
+        <description>
+          <text>Enable or disable status for flex counter polling</text>
+        </description>
+        <type name="enumeration">
+          <enum name="enable"/>
+          <enum name="disable"/>
+        </type>
+      </typedef>
+      <typedef name="flex_delay_status">
+        <description>
+          <text>Whether to delay counter polling until system is ready, used during fast-reboot</text>
+        </description>
+        <type name="stypes:boolean_type"/>
+      </typedef>
+      <typedef name="poll_interval">
+        <description>
+          <text>Counter polling interval in milliseconds</text>
+        </description>
+        <type name="uint32">
+          <range value="100..4294967295"/>
+        </type>
+      </typedef>
+      <typedef name="bulk_chunk_size">
+        <description>
+          <text>Number of counter entries processed per SAI bulk counter API call</text>
+        </description>
+        <type name="uint32">
+          <range value="1..4294967295"/>
+        </type>
+      </typedef>
+      <typedef name="bulk_chunk_size_per_prefix">
+        <type name="string"/>
+        <description>
+          <text>Bulk chunk size per counter name prefix</text>
+        </description>
+      </typedef>
+      <description>
+        <text>Flexible counter polling configuration for hardware ASIC counters</text>
+      </description>
+      <container name="BUFFER_POOL_WATERMARK">
+        <description>
+          <text>Polling configuration for buffer pool watermark counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable buffer pool watermark counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay buffer pool watermark counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Buffer pool watermark counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+      <container name="DEBUG_COUNTER">
+        <description>
+          <text>Polling configuration for debug counters such as drop reasons</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable debug counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay debug counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+      </container>
+      <container name="ENI">
+        <description>
+          <text>Polling configuration for DASH Elastic Network Interface counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable ENI counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay ENI counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>ENI counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+      <container name="DASH_METER">
+        <description>
+          <text>Polling configuration for DASH metering counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable DASH meter counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay DASH meter counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>DASH meter counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+      <container name="HA_SET">
+        <leaf name="FLEX_COUNTER_STATUS">
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+      <container name="PFCWD">
+        <description>
+          <text>Polling configuration for Priority Flow Control Watchdog counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable PFC watchdog counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay PFC watchdog counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+      </container>
+      <container name="PG_DROP">
+        <description>
+          <text>Polling configuration for priority group drop counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable priority group drop counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay priority group drop counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Priority group drop counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+        <leaf name="BULK_CHUNK_SIZE">
+          <description>
+            <text>Number of priority group drop counter entries per bulk API call</text>
+          </description>
+          <type name="bulk_chunk_size"/>
+        </leaf>
+        <leaf name="BULK_CHUNK_SIZE_PER_PREFIX">
+          <description>
+            <text>Bulk chunk size per counter name prefix for priority group drop counters</text>
+          </description>
+          <type name="bulk_chunk_size_per_prefix"/>
+        </leaf>
+      </container>
+      <container name="PG_WATERMARK">
+        <description>
+          <text>Polling configuration for priority group watermark counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable priority group watermark counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay priority group watermark counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Priority group watermark counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+        <leaf name="BULK_CHUNK_SIZE">
+          <description>
+            <text>Number of priority group watermark counter entries per bulk API call</text>
+          </description>
+          <type name="bulk_chunk_size"/>
+        </leaf>
+        <leaf name="BULK_CHUNK_SIZE_PER_PREFIX">
+          <description>
+            <text>Bulk chunk size per counter name prefix for priority group watermark counters</text>
+          </description>
+          <type name="bulk_chunk_size_per_prefix"/>
+        </leaf>
+      </container>
+      <container name="PORT">
+        <description>
+          <text>Polling configuration for port-level traffic counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable port counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay port counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Port counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+        <leaf name="BULK_CHUNK_SIZE">
+          <description>
+            <text>Number of port counter entries per bulk API call</text>
+          </description>
+          <type name="bulk_chunk_size"/>
+        </leaf>
+        <leaf name="BULK_CHUNK_SIZE_PER_PREFIX">
+          <description>
+            <text>Bulk chunk size per counter name prefix for port counters</text>
+          </description>
+          <type name="bulk_chunk_size_per_prefix"/>
+        </leaf>
+      </container>
+      <container name="PORT_RATES">
+        <description>
+          <text>Polling configuration for port rate counters such as bits per second</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable port rate counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay port rate counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+      </container>
+      <container name="PORT_BUFFER_DROP">
+        <description>
+          <text>Polling configuration for per-port buffer drop counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable port buffer drop counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay port buffer drop counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Port buffer drop counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+        <leaf name="BULK_CHUNK_SIZE">
+          <description>
+            <text>Number of port buffer drop counter entries per bulk API call</text>
+          </description>
+          <type name="bulk_chunk_size"/>
+        </leaf>
+        <leaf name="BULK_CHUNK_SIZE_PER_PREFIX">
+          <description>
+            <text>Bulk chunk size per counter name prefix for port buffer drop counters</text>
+          </description>
+          <type name="bulk_chunk_size_per_prefix"/>
+        </leaf>
+      </container>
+      <container name="PORT_PHY_ATTR">
+        <description>
+          <text>Polling configuration for port physical layer attributes such as link status</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable port physical attribute polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay port physical attribute polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Port physical attribute polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+      <container name="QUEUE">
+        <description>
+          <text>Polling configuration for queue traffic counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable queue counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay queue counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Queue counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+        <leaf name="BULK_CHUNK_SIZE">
+          <description>
+            <text>Number of queue counter entries per bulk API call</text>
+          </description>
+          <type name="bulk_chunk_size"/>
+        </leaf>
+        <leaf name="BULK_CHUNK_SIZE_PER_PREFIX">
+          <description>
+            <text>Bulk chunk size per counter name prefix for queue counters</text>
+          </description>
+          <type name="bulk_chunk_size_per_prefix"/>
+        </leaf>
+      </container>
+      <container name="QUEUE_WATERMARK">
+        <description>
+          <text>Polling configuration for queue watermark counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable queue watermark counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay queue watermark counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Queue watermark counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+        <leaf name="BULK_CHUNK_SIZE">
+          <description>
+            <text>Number of queue watermark counter entries per bulk API call</text>
+          </description>
+          <type name="bulk_chunk_size"/>
+        </leaf>
+        <leaf name="BULK_CHUNK_SIZE_PER_PREFIX">
+          <description>
+            <text>Bulk chunk size per counter name prefix for queue watermark counters</text>
+          </description>
+          <type name="bulk_chunk_size_per_prefix"/>
+        </leaf>
+      </container>
+      <container name="RIF">
+        <description>
+          <text>Polling configuration for router interface traffic counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable router interface counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay router interface counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Router interface counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+      <container name="RIF_RATES">
+        <description>
+          <text>Polling configuration for router interface rate counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable router interface rate counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay router interface rate counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+      </container>
+      <container name="ACL">
+        <description>
+          <text>Polling configuration for ACL rule hit counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable ACL counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay ACL counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>ACL counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+      <container name="FLOW_CNT_TRAP">
+        <description>
+          <text>Polling configuration for host interface trap flow counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable trap flow counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay trap flow counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Trap flow counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+      <container name="FLOW_CNT_ROUTE">
+        <description>
+          <text>Polling configuration for route flow counters matching configured prefix patterns</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable route flow counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay route flow counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Route flow counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+      <container name="TUNNEL">
+        <description>
+          <text>Polling configuration for tunnel interface traffic counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable tunnel counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay tunnel counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Tunnel counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+      <container name="WRED_ECN_QUEUE">
+        <description>
+          <text>Polling configuration for per-queue WRED and ECN marking counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable per-queue WRED/ECN counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay per-queue WRED/ECN counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Per-queue WRED/ECN counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+      <container name="WRED_ECN_PORT">
+        <description>
+          <text>Polling configuration for per-port WRED and ECN marking counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable per-port WRED/ECN counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay per-port WRED/ECN counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Per-port WRED/ECN counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+      <container name="SRV6">
+        <description>
+          <text>Polling configuration for SRv6 segment routing counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable SRv6 counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay SRv6 counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>SRv6 counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+      <container name="SWITCH">
+        <description>
+          <text>Polling configuration for switch-level global counters</text>
+        </description>
+        <leaf name="FLEX_COUNTER_STATUS">
+          <description>
+            <text>Enable or disable switch-level counter polling</text>
+          </description>
+          <type name="flex_status"/>
+        </leaf>
+        <leaf name="FLEX_COUNTER_DELAY_STATUS">
+          <description>
+            <text>Delay switch-level counter polling until system is ready</text>
+          </description>
+          <type name="flex_delay_status"/>
+        </leaf>
+        <leaf name="POLL_INTERVAL">
+          <description>
+            <text>Switch-level counter polling interval in milliseconds</text>
+          </description>
+          <type name="poll_interval"/>
+        </leaf>
+      </container>
+    </container>
+    <container name="FLOW_COUNTER_ROUTE_PATTERN">
+      <description>
+        <text>IP prefix patterns that select routes for flow counter tracking</text>
+      </description>
+      <list name="FLOW_COUNTER_ROUTE_PATTERN_LIST">
+        <description>
+          <text>Route flow counter pattern for the default VRF</text>
+        </description>
+        <key value="ip_prefix"/>
+        <leaf name="ip_prefix">
+          <description>
+            <text>IP prefix pattern to match routes against for flow counting</text>
+          </description>
+          <type name="inet:ip-prefix"/>
+        </leaf>
+        <leaf name="max_match_count">
+          <description>
+            <text>Maximum number of matching routes to bind flow counters to</text>
+          </description>
+          <type name="uint32">
+            <range value="1..50"/>
+          </type>
+        </leaf>
+      </list>
+      <list name="FLOW_COUNTER_ROUTE_PATTERN_VRF_LIST">
+        <description>
+          <text>Route flow counter pattern for a specific VRF or VNET</text>
+        </description>
+        <key value="vrf_name ip_prefix"/>
+        <leaf name="vrf_name">
+          <description>
+            <text>VRF or VNET name to scope the route pattern match</text>
+          </description>
+          <type name="string">
+            <length value="0..16"/>
+          </type>
+        </leaf>
+        <leaf name="ip_prefix">
+          <description>
+            <text>IP prefix pattern to match routes against for flow counting</text>
+          </description>
+          <type name="inet:ip-prefix"/>
+        </leaf>
+        <leaf name="max_match_count">
+          <description>
+            <text>Maximum number of matching routes to bind flow counters to</text>
+          </description>
+          <type name="uint32">
+            <range value="1..50"/>
+          </type>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

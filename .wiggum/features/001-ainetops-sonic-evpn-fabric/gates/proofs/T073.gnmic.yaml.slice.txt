@@ -1,0 +1,16 @@
+    27	    ainetops.dev/role: "device-metrics"
+    28	  data:
+    29	    gnmic.yaml: |
+    30	      username: ${GNMIC_USERNAME}
+    31	      password: ${GNMIC_PASSWORD}
+    32	      skip-verify: false
+    33	      tls-ca: /etc/gnmic/tls/ca.crt
+    34	      tls-cert: /etc/gnmic/tls/tls.crt
+    35	      tls-key: /etc/gnmic/tls/tls.key
+    36	      encoding: json_ietf
+    37	      targets:
+    38	        spine01: { address: 172.31.0.11:9339 }
+    39	        spine02: { address: 172.31.0.12:9339 }
+    40	        leaf01:  { address: 172.31.0.21:9339 }
+    41	        leaf02:  { address: 172.31.0.22:9339 }
+    42	      subscriptions:

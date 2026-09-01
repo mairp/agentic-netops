@@ -1,0 +1,40 @@
+     1	[preflight] basic host checks passed
+     2	make: Entering directory '/root/ainetops-demo'
+     3	[verify-pins] validating versions.lock.yaml
+     4	[verify-pins] versions.lock.yaml pins and compatibility are consistent
+     5	[validate-crds] server-side validating CRDs and examples
+     6	[validate-crds] server-side dry-run: Kubenet CRDs (1 files)
+     7	customresourcedefinition.apiextensions.k8s.io/networkconfigs.network.kubenet.dev unchanged (server dry run)
+     8	customresourcedefinition.apiextensions.k8s.io/networkdevices.network.kubenet.dev unchanged (server dry run)
+     9	customresourcedefinition.apiextensions.k8s.io/topologies.network.kubenet.dev unchanged (server dry run)
+    10	customresourcedefinition.apiextensions.k8s.io/networks.network.kubenet.dev unchanged (server dry run)
+    11	[validate-crds] server-side dry-run: KUID CRDs (1 files)
+    12	customresourcedefinition.apiextensions.k8s.io/ipindices.id.kuid.dev unchanged (server dry run)
+    13	customresourcedefinition.apiextensions.k8s.io/asnindices.id.kuid.dev unchanged (server dry run)
+    14	customresourcedefinition.apiextensions.k8s.io/vniindices.id.kuid.dev unchanged (server dry run)
+    15	customresourcedefinition.apiextensions.k8s.io/claims.id.kuid.dev unchanged (server dry run)
+    16	[validate-crds] server-side dry-run: SDC CRDs (1 files)
+    17	customresourcedefinition.apiextensions.k8s.io/schemas.sdc.sdcio.dev unchanged (server dry run)
+    18	customresourcedefinition.apiextensions.k8s.io/configs.sdc.sdcio.dev unchanged (server dry run)
+    19	customresourcedefinition.apiextensions.k8s.io/targets.sdc.sdcio.dev unchanged (server dry run)
+    20	customresourcedefinition.apiextensions.k8s.io/discoveryrules.sdc.sdcio.dev unchanged (server dry run)
+    21	[validate-crds] server-side dry-run: Kubenet examples (1 files)
+    22	topology.network.kubenet.dev/ainetops-topology unchanged (server dry run)
+    23	[validate-crds] OK
+    24	[verify-register] checking renderer paths against register
+    25	=== RUN   TestRendererPathsCoveredByRegister
+    26	--- PASS: TestRendererPathsCoveredByRegister (0.00s)
+    27	PASS
+    28	ok  	github.com/mairp/ainetops/tests/unit	(cached)
+    29	[verify-compat] pins, CRD, and register validations passed
+    30	make: Leaving directory '/root/ainetops-demo'
+    31	[kind] cluster 'ainetops' already exists (idempotent)
+    32	[kind] ainetops-control-plane already attached to ainetops-mgmt (idempotent)
+    33	[kind] ainetops-worker already attached to ainetops-mgmt (idempotent)
+    34	[clab] ensuring external Docker network ainetops-mgmt exists (subnet-correct)
+    35	[clab] deploying /root/ainetops-demo/lab/topology.clab.yml
+    36	09:29:25 INFO Containerlab started version=0.79.0
+    37	09:29:25 INFO Parsing & checking topology file=topology.clab.yml
+    38	09:29:25 INFO Destroying lab name=ainetops-fabric
+    39	09:29:26 INFO Removed container name=clab-ainetops-fabric-srv6-client02
+    40	09:29:26 INFO Removed container name=clab-ainetops-fabric-client01

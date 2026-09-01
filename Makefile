@@ -2,7 +2,7 @@ SHELL := /bin/bash
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: help verify-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest build build-migration-cli
+.PHONY: help verify-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest build build-migration-cli supply-chain denylist security-audit acceptance suites test-all
 
 help:
 	@echo "Targets:"
@@ -13,6 +13,10 @@ help:
 	@echo "  lab-qualify       Run lab capability qualification suite (blocks downstream on failure)"
 	@echo "  build             Build provider, SRv6 controller, and migration CLI"
 	@echo "  build-migration-cli  Build only cmd/migration-translator"
+	@echo "  supply-chain      Run supply-chain checks (licenses, vuln, provenance, SBOM)"
+	@echo "  denylist          Run deny-list policy locally (matches CI)"
+	@echo "  security-audit    Run FR-015 security audit (RBAC, Secrets, TLS, privileges, Grafana, logs)"
+	@echo "  acceptance        Run Phase 8 acceptance checks (denylist + supply-chain + security-audit)"
 
 verify-pins:
 	@echo "[verify-pins] validating versions.lock.yaml"
@@ -26,6 +30,18 @@ validate-crds:
 verify-compat: verify-pins validate-crds verify-register
 	@echo "[verify-compat] pins, CRD, and register validations passed" 
 
+supply-chain:
+	@"$(PWD)/scripts/ci/supply_chain.sh"
+
+denylist:
+	@"$(PWD)/scripts/ci/denylist_local.sh"
+
+security-audit:
+	@"$(PWD)/scripts/ci/security_audit.sh"
+
+acceptance: denylist supply-chain security-audit
+	@echo "[acceptance] Phase 8 policy checks passed"
+
 build:
 	@echo "[build] building provider, SRv6 controller, and migration CLI"
 	@for d in cmd/sonic-provider cmd/srv6-controller cmd/migration-translator; do \
@@ -36,6 +52,22 @@ build:
 build-migration-cli:
 	@echo "[build] building cmd/migration-translator"
 	@GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -buildid=" ./cmd/migration-translator
+
+# Lifecycle wrappers (do not reimplement phases): call scripts directly
+PROF ?= sonic-vs
+CLUSTER ?= ainetops
+TIMEOUT ?= 180s
+
+# T078: quickstart wrappers
+quickstart:
+	@"$(PWD)/scripts/provision.sh" --profile $(PROF) --cluster-name $(CLUSTER) --timeout $(TIMEOUT)
+	@$(MAKE) -s verify-compat lab-qualify
+
+provision:
+	@"$(PWD)/scripts/provision.sh" --profile $(PROF) --cluster-name $(CLUSTER) --timeout $(TIMEOUT)
+
+off:
+	@AINETOPS_DELETE_KIND=$(DELETE_KIND) AINETOPS_CAPTURE_EVIDENCE=$(CAPTURE) "$(PWD)/scripts/off.sh" --cluster-name $(CLUSTER)
 
 lab-qualify:
 	@echo "[lab-qualify] Running capability gate"
@@ -78,3 +110,12 @@ test-static:
 test-envtest:
 	@echo ">> envtest for SRv6Service CRD"
 	@go test ./tests/envtest -run TestSRv6ServiceCRD_Envtest -v
+
+# suites — Phase 8: run all test suites and capture logs under gates/proofs
+suites:
+	@echo "[suites] running Phase 8 suites"
+	@bash "$(PWD)/scripts/ci/run_suites.sh"
+
+# test-all — include suites plus static/envtest
+test-all: test suites
+	@echo "PASS: test-all completed"

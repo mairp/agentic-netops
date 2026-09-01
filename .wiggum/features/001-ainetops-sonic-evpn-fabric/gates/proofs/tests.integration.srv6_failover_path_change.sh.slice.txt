@@ -1,5 +1,83 @@
-     1  # T047c Failover and operator-directed path-change tests
-     2  echo "force primary failure"
-     3  echo "assert the corresponding alert"
-     4  echo "update spec.pathPolicy.selectedPath=alternate"
-     5  echo "verify recovery and resulting path without telemetry-driven mutation"
+     1	#!/usr/bin/env bash
+     2	# T047c [US5] Failover and operator-directed path-change tests
+     3	set -euo pipefail
+     4	
+     5	TOPO=${TOPO:-lab/topology.clab.yml}
+     6	SERVICE_NS=${SERVICE_NS:-default}
+     7	SERVICE_NAME=${SERVICE_NAME:-example-srv6}
+     8	LEAF_HEADEND=${LEAF_HEADEND:-172.31.0.21:8080}
+     9	GNMIC_BIN=${GNMIC_BIN:-gnmic}
+    10	GNMI_USER=${GNMI_USER:-admin}
+    11	GNMI_PASS=${GNMI_PASS:-admin}
+    12	GNMI_CACERT=${GNMI_CACERT:-./secrets/ca.crt}
+    13	GNMI_CERT=${GNMI_CERT:-./secrets/gnmi.crt}
+    14	GNMI_KEY=${GNMI_KEY:-./secrets/gnmi.key}
+    15	GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
+    16	_args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --tls --skip-verify --encoding "$GNMI_ENCODING" --cacert "$GNMI_CACERT" --cert "$GNMI_CERT" --key "$GNMI_KEY")
+    17	PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+    18	mkdir -p "$PROOF_DIR"
+    19	
+    20	fail_link() {
+    21	  echo "[srv6-failover] force primary failure"
+    22	  containerlab -t "$TOPO" link down spine01:eth1 leaf01:eth1 || true
+    23	}
+    24	
+    25	assert_alert() {
+    26	  echo "[srv6-failover] assert the corresponding alert"
+    27	  # Require SRv6PathDown alert to exist
+    28	  if ! kubectl -n monitoring get alerts --no-headers 2>/dev/null | grep -q "SRv6PathDown"; then
+    29	    echo "[srv6-failover] ERROR: SRv6PathDown alert not observed" >&2
+    30	    exit 1
+    31	  fi
+    32	}
+    33	
+    34	policy_state() {
+    35	  "$GNMIC_BIN" --address "$LEAF_HEADEND" "${_args_common[@]}" get --path "/sonic-srv6:sonic-srv6/POLICY" -o json
+    36	}
+    37	
+    38	operator_path_change() {
+    39	  echo "[srv6-failover] update spec.pathPolicy.selectedPath=alternate"
+    40	  kubectl -n "$SERVICE_NS" patch srv6service "$SERVICE_NAME" --type merge -p '{"spec":{"pathPolicy":{"selectedPath":"alternate"}}}'
+    41	  # Assert the spec reflects the operator directive
+    42	  local sel
+    43	  sel=$(kubectl -n "$SERVICE_NS" get srv6service "$SERVICE_NAME" -o jsonpath='{.spec.pathPolicy.selectedPath}')
+    44	  if [[ "$sel" != "alternate" ]]; then
+    45	    echo "[srv6-failover] ERROR: selectedPath not set to alternate in spec (got '$sel')" >&2
+    46	    exit 1
+    47	  fi
+    48	}
+    49	
+    50	verify_recovery() {
+    51	  echo "[srv6-failover] verify recovery and resulting path without telemetry-driven mutation"
+    52	  # Capture policy state before and after to verify alternate path selection took effect
+    53	  local before after
+    54	  before=$(policy_state | tee "$PROOF_DIR/srv6_policy_state.before.json" >/dev/null)
+    55	  # give controller time to react
+    56	  sleep 3
+    57	  after=$(policy_state | tee "$PROOF_DIR/srv6_policy_state.after.json" >/dev/null)
+    58	  # Assert the active policy now references the alternate path (name or sid-list containing 'alternate')
+    59	  if ! jq -e '..|scalars|select(type=="string")|contains("alternate")' <<<"$after" >/dev/null; then
+    60	    echo "[srv6-failover] ERROR: SRv6 POLICY does not reflect alternate path after operator change" >&2
+    61	    exit 1
+    62	  fi
+    63	  # And previously it did not (best-effort)
+    64	  if jq -e '..|scalars|select(type=="string")|contains("alternate")' <<<"$before" >/dev/null; then
+    65	    echo "[srv6-failover] WARN: POLICY already contained 'alternate' before change (environment may already be on alternate)" >&2
+    66	  fi
+    67	}
+    68	
+    69	repair_link() {
+    70	  echo "[srv6-failover] restore primary link"
+    71	  containerlab -t "$TOPO" link up spine01:eth1 leaf01:eth1 || true
+    72	}
+    73	
+    74	case "${1:-run}" in
+    75	  run)
+    76	    fail_link
+    77	    assert_alert
+    78	    operator_path_change
+    79	    verify_recovery
+    80	    repair_link
+    81	    ;;
+    82	  *) echo "usage: $0 run" >&2; exit 2 ;;
+    83	esac

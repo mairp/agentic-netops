@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-interface"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:intf="http://github.com/sonic-net/sonic-interface"
+        xmlns:yang="urn:ietf:params:xml:ns:yang:ietf-yang-types"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head"
+        xmlns:port="http://github.com/sonic-net/sonic-port"
+        xmlns:vrf="http://github.com/sonic-net/sonic-vrf"
+        xmlns:svnet="http://github.com/sonic-net/sonic-vnet">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-interface"/>
+  <prefix value="intf"/>
+  <import module="ietf-yang-types">
+    <prefix value="yang"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <import module="sonic-port">
+    <prefix value="port"/>
+    <revision-date date="2019-07-01"/>
+  </import>
+  <import module="sonic-vrf">
+    <prefix value="vrf"/>
+  </import>
+  <import module="sonic-vnet">
+    <prefix value="svnet"/>
+  </import>
+  <description>
+    <text>Physical Ethernet interface L3 configuration including IP addressing, VRF binding, and NAT zones</text>
+  </description>
+  <revision date="2025-03-06">
+    <description>
+      <text>Add leaf vnet_name</text>
+    </description>
+  </revision>
+  <revision date="2021-03-30">
+    <description>
+      <text>Modify the type of vrf name</text>
+    </description>
+  </revision>
+  <revision date="2019-07-01">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-interface">
+    <container name="INTERFACE">
+      <description>
+        <text>Physical Ethernet interface L3 configuration table</text>
+      </description>
+      <list name="INTERFACE_LIST">
+        <description>
+          <text>Configuration entry for a physical Ethernet interface including VRF binding and interface properties</text>
+        </description>
+        <key value="name"/>
+        <leaf name="name">
+          <description>
+            <text>Reference to a physical Ethernet port</text>
+          </description>
+          <type name="leafref">
+            <path value="/port:sonic-port/port:PORT/port:PORT_LIST/port:name"/>
+          </type>
+        </leaf>
+        <leaf name="vrf_name">
+          <description>
+            <text>VRF instance to which this interface is bound</text>
+          </description>
+          <type name="leafref">
+            <path value="/vrf:sonic-vrf/vrf:VRF/vrf:VRF_LIST/vrf:name"/>
+          </type>
+        </leaf>
+        <leaf name="vnet_name">
+          <description>
+            <text>Reference to the name of a VNET in sonic-vnet model</text>
+          </description>
+          <type name="leafref">
+            <path value="/svnet:sonic-vnet/svnet:VNET/svnet:VNET_LIST/svnet:name"/>
+          </type>
+        </leaf>
+        <leaf name="nat_zone">
+          <description>
+            <text>NAT Zone for the interface</text>
+          </description>
+          <type name="uint8">
+            <range value="0..3">
+              <error-message>
+                <value>Invalid nat zone for the interface.</value>
+              </error-message>
+              <error-app-tag value="nat-zone-invalid"/>
+            </range>
+          </type>
+          <default value="0"/>
+        </leaf>
+        <leaf name="mpls">
+          <description>
+            <text>Enable/disable MPLS routing for the interface</text>
+          </description>
+          <type name="enumeration">
+            <enum name="enable"/>
+            <enum name="disable"/>
+          </type>
+        </leaf>
+        <leaf name="ipv6_use_link_local_only">
+          <description>
+            <text>Enable/Disable IPv6 link local address on interface</text>
+          </description>
+          <type name="stypes:mode-status"/>
+          <default value="disable"/>
+        </leaf>
+        <leaf name="mac_addr">
+          <description>
+            <text>Assign administrator-provided MAC address to Interface</text>
+          </description>
+          <type name="yang:mac-address"/>
+        </leaf>
+        <leaf name="loopback_action">
+          <description>
+            <text>Packet action when a packet ingress and gets routed on the same IP interface</text>
+          </description>
+          <type name="stypes:loopback_action"/>
+        </leaf>
+      </list>
+      <list name="INTERFACE_IPPREFIX_LIST">
+        <description>
+          <text>IP address prefix assignment for a physical Ethernet interface</text>
+        </description>
+        <key value="name ip-prefix"/>
+        <leaf name="name">
+          <description>
+            <text>Reference to a physical Ethernet port that must also exist in INTERFACE_LIST</text>
+          </description>
+          <must condition="(current() = ../../INTERFACE_LIST[name=current()]/name)">
+            <error-message>
+              <value>Must condition not satisfied, Try adding PORT: {}, Example: 'Ethernet0': {}</value>
+            </error-message>
+          </must>
+          <type name="leafref">
+            <path value="/port:sonic-port/port:PORT/port:PORT_LIST/port:name"/>
+          </type>
+        </leaf>
+        <leaf name="ip-prefix">
+          <description>
+            <text>IPv4 or IPv6 address with prefix length assigned to the interface</text>
+          </description>
+          <type name="union">
+            <type name="stypes:sonic-ip4-prefix"/>
+            <type name="stypes:sonic-ip6-prefix"/>
+          </type>
+        </leaf>
+        <leaf name="scope">
+          <description>
+            <text>Address scope indicating global or link-local reachability</text>
+          </description>
+          <type name="enumeration">
+            <enum name="global"/>
+            <enum name="local"/>
+          </type>
+        </leaf>
+        <leaf name="family">
+          <description>
+            <text>IP address family, must match the format of ip-prefix</text>
+          </description>
+          <must condition="(contains(../ip-prefix, ':') and current()='IPv6') or&#10;     &#9;&#9;&#9;&#9;(contains(../ip-prefix, '.') and current()='IPv4')"/>
+          <type name="stypes:ip-family"/>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

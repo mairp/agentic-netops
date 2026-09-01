@@ -1,3 +1,55 @@
-     1  # T048 repeat-apply proof
-     2  echo "unchanged intent produces zero SDC spec writes"
-     3  echo "unchanged intent produces zero gNMI Sets"
+     1	#!/usr/bin/env bash
+     2	# T048 [US2] Repeat-apply proof: unchanged intent produces zero SDC spec writes and zero gNMI Sets
+     3	set -euo pipefail
+     4	
+     5	CTX=${CTX:-kind-ainetops}
+     6	PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+     7	mkdir -p "$PROOF_DIR"
+     8	
+     9	get_config_hashes() {
+    10	  kubectl --context "$CTX" get config -A -o json 2>/dev/null \
+    11	    | jq -r '.items[]|select(.metadata.annotations["ainetops.dev/config-hash"])|[.metadata.namespace,.metadata.name,.metadata.annotations["ainetops.dev/config-hash"]]|@tsv' \
+    12	    | sort -u
+    13	}
+    14	
+    15	get_gnmi_set_events() {
+    16	  # Capture SDC events that indicate device Set operations (approximate but complete for window)
+    17	  kubectl --context "$CTX" -n sdc get events --sort-by=.metadata.creationTimestamp -o json 2>/dev/null \
+    18	    | jq -r '.items[]|select(.reason|test("Set|Apply|Transaction"))|[.metadata.creationTimestamp,.reason,.message]|@tsv'
+    19	}
+    20	
+    21	noop_apply() {
+    22	  echo "[idempotence] re-applying current manifests as no-op (fabric, tenants, and SRv6)"
+    23	  kubectl --context "$CTX" apply -f deploy/kubenet/networks/default.yaml >/dev/null 2>&1 || true
+    24	  kubectl --context "$CTX" apply -f deploy/kubenet/networks/tenants/l2-bridged.yaml >/dev/null 2>&1 || true
+    25	  kubectl --context "$CTX" apply -f deploy/kubenet/networks/tenants/l3-routed.yaml >/dev/null 2>&1 || true
+    26	  kubectl --context "$CTX" apply -f deploy/kubenet/networks/tenants/irb-symmetric.yaml >/dev/null 2>&1 || true
+    27	  kubectl --context "$CTX" apply -f config/samples/ainetops_v1alpha1_srv6service.yaml >/dev/null 2>&1 || true
+    28	}
+    29	
+    30	assert_no_new_sets() {
+    31	  # Compare full ordered event logs in a short time window around the apply
+    32	  if ! diff -u "$PROOF_DIR/idempotence.gnmi-events.before.txt" "$PROOF_DIR/idempotence.gnmi-events.after.txt" >/dev/null; then
+    33	    echo "[idempotence] ERROR: gNMI Set-related events changed on no-op apply" >&2; exit 1
+    34	  fi
+    35	}
+    36	
+    37	case "${1:-run}" in
+    38	  run)
+    39	    echo "[idempotence] snapshot before"
+    40	    get_config_hashes | tee "$PROOF_DIR/idempotence.config-hashes.before.txt" >/dev/null
+    41	    get_gnmi_set_events | tee "$PROOF_DIR/idempotence.gnmi-events.before.txt" >/dev/null
+    42	    noop_apply
+    43	    echo "[idempotence] snapshot after"
+    44	    get_config_hashes | tee "$PROOF_DIR/idempotence.config-hashes.after.txt" >/dev/null
+    45	    get_gnmi_set_events | tee "$PROOF_DIR/idempotence.gnmi-events.after.txt" >/dev/null
+    46	    # Assert byte-equivalent hashes and no new gNMI Set events
+    47	    if ! diff -u "$PROOF_DIR/idempotence.config-hashes.before.txt" "$PROOF_DIR/idempotence.config-hashes.after.txt" >/dev/null; then
+    48	      echo "[idempotence] ERROR: Config spec hashes changed on no-op apply" >&2; exit 1
+    49	    fi
+    50	    assert_no_new_sets
+    51	    echo "unchanged intent produces zero SDC spec writes" # proof keyword
+    52	    echo "unchanged intent produces zero gNMI Sets" # proof keyword
+    53	    ;;
+    54	  *) echo "usage: $0 run" >&2; exit 2 ;;
+    55	esac

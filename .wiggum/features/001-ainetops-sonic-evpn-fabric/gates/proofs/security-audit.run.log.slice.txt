@@ -1,0 +1,20 @@
+     1	
+     2	=== RBAC minimal verbs/scopes ===
+     3	grep: character class syntax is [[:space:]], not [:space:]
+     4	[32mOK[0m: No wildcard verbs in RBAC
+     5	[32mOK[0m: No cluster-admin bindings in AINETOPS manifests
+     6	
+     7	=== Secret use ===
+     8	[33mWARN[0m: Potential static Secret content present (should be generated):
+     9	deploy/rbac/base.yaml:63:stringData:
+    10	[32mOK[0m: Secret generator job present: deploy/rbac/secret-generator-job.yaml
+    11	
+    12	=== TLS validation for gNMIc ===
+    13	[32mOK[0m: gNMIc TLS skip-verify=false
+    14	[32mOK[0m: gNMIc references tls-ca/tls-cert/tls-key via Secret
+    15	
+    16	=== Image privileges (Dockerfiles/manifests) ===
+    17	[32mOK[0m: Controller Dockerfiles do not run as root
+    18	[32mOK[0m: Distroless base images in use
+    19	grep: character class syntax is [[:space:]], not [:space:]
+    20	[33mWARN[0m: runAsNonRoot not explicitly set in manifests

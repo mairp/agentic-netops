@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-vxlan"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:svxlan="http://github.com/sonic-net/sonic-vxlan"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-vxlan"/>
+  <prefix value="svxlan"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>VXLAN tunnel and EVPN NVO configuration for SONiC.</text>
+  </description>
+  <revision date="2021-04-12">
+    <description>
+      <text>First revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-vxlan">
+    <container name="VXLAN_TUNNEL">
+      <description>
+        <text>VXLAN tunnel endpoint (VTEP) definitions including source and destination IP addresses.</text>
+      </description>
+      <list name="VXLAN_TUNNEL_LIST">
+        <key value="name"/>
+        <max-elements value="2"/>
+        <leaf name="name">
+          <description>
+            <text>VXLAN tunnel name.</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+        <leaf name="src_ip">
+          <description>
+            <text>Source VTEP IP address for tunnel origination.</text>
+          </description>
+          <type name="inet:ip-address"/>
+        </leaf>
+        <leaf name="dst_ip">
+          <description>
+            <text>Destination VTEP IP address for point-to-point tunnels.</text>
+          </description>
+          <type name="inet:ip-address"/>
+        </leaf>
+        <leaf name="ttl_mode">
+          <description>
+            <text>Decap TTL mode</text>
+          </description>
+          <type name="string">
+            <pattern value="uniform|pipe"/>
+          </type>
+        </leaf>
+      </list>
+    </container>
+    <container name="VXLAN_TUNNEL_MAP">
+      <description>
+        <text>Mappings between VLAN and VNI for a VXLAN tunnel.</text>
+      </description>
+      <list name="VXLAN_TUNNEL_MAP_LIST">
+        <key value="name mapname"/>
+        <leaf name="name">
+          <description>
+            <text>Reference to the parent VXLAN tunnel.</text>
+          </description>
+          <type name="leafref">
+            <path value="/svxlan:sonic-vxlan/svxlan:VXLAN_TUNNEL/svxlan:VXLAN_TUNNEL_LIST/svxlan:name"/>
+          </type>
+        </leaf>
+        <leaf name="mapname">
+          <description>
+            <text>Name of the VLAN-to-VNI mapping entry.</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+        <leaf name="vlan">
+          <description>
+            <text>VLAN associated with this mapping.</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="string">
+            <pattern value="Vlan([0-9]{1,3}|[1-3][0-9]{3}|[4][0][0-8][0-9]|[4][0][9][0-4])"/>
+          </type>
+        </leaf>
+        <leaf name="vni">
+          <description>
+            <text>VXLAN Network Identifier mapped to the VLAN.</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="stypes:vnid_type"/>
+        </leaf>
+      </list>
+    </container>
+    <container name="VXLAN_EVPN_NVO">
+      <description>
+        <text>EVPN Network Virtualization Overlay instance binding a source VTEP.</text>
+      </description>
+      <list name="VXLAN_EVPN_NVO_LIST">
+        <key value="name"/>
+        <max-elements value="1"/>
+        <leaf name="name">
+          <description>
+            <text>EVPN NVO instance name.</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+        <leaf name="source_vtep">
+          <description>
+            <text>Reference to the VXLAN tunnel used as the source VTEP.</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="leafref">
+            <path value="/svxlan:sonic-vxlan/svxlan:VXLAN_TUNNEL/svxlan:VXLAN_TUNNEL_LIST/svxlan:name"/>
+          </type>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

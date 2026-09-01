@@ -9,9 +9,13 @@ rules:
 - apiGroups: ["network.kubenet.dev"]
   resources: ["networkdevices", "networkdevices/status"]
   verbs: ["get", "list", "watch", "patch", "update"]
+# Provider manages SDC Config specs but must not create/delete SDC Targets.
 - apiGroups: ["sdc.sdcio.dev"]
-  resources: ["configs", "configs/status", "targets", "targets/status"]
+  resources: ["configs", "configs/status"]
   verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+- apiGroups: ["sdc.sdcio.dev"]
+  resources: ["targets", "targets/status"]
+  verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

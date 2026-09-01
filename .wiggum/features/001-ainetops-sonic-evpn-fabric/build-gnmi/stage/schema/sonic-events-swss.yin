@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-events-swss"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:events-swss="http://github.com/sonic-net/sonic-events-swss"
+        xmlns:evtcmn="http://github.com/sonic-net/sonic-events-common"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <namespace uri="http://github.com/sonic-net/sonic-events-swss"/>
+  <yang-version value="1.1"/>
+  <prefix value="events-swss"/>
+  <import module="sonic-events-common">
+    <prefix value="evtcmn"/>
+    <revision-date date="2022-12-01"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONIC SWSS events</text>
+  </description>
+  <revision date="2022-12-01">
+    <description>
+      <text>SWSS alert events.</text>
+    </description>
+  </revision>
+  <container name="sonic-events-swss">
+    <container name="if-state">
+      <evtcmn:ALARM_SEVERITY_MINOR/>
+      <description>
+        <text>
+Declares an event for i/f flap.
+The name of the flapping i/f and status are the only params.</text>
+      </description>
+      <leaf name="ifname">
+        <type name="string">
+          <pattern value="Ethernet[0-9]{1,3}"/>
+        </type>
+        <description>
+          <text>Interface name</text>
+        </description>
+      </leaf>
+      <leaf name="status">
+        <type name="stypes:admin_status"/>
+        <description>
+          <text>Provides the status as up (true) or down (false)</text>
+        </description>
+      </leaf>
+      <uses name="evtcmn:sonic-events-cmn"/>
+    </container>
+    <container name="pfc-storm">
+      <evtcmn:ALARM_SEVERITY_MAJOR/>
+      <description>
+        <text>
+Declares an event for PFC storm.
+The name of the i/f facing the storm is the only param.</text>
+      </description>
+      <leaf name="ifname">
+        <type name="string">
+          <pattern value="Ethernet[0-9]{1,2}"/>
+        </type>
+        <description>
+          <text>Interface name</text>
+        </description>
+      </leaf>
+      <leaf name="queue_index">
+        <type name="uint8"/>
+        <description>
+          <text>Queue index experiencing the PFC storm.</text>
+        </description>
+      </leaf>
+      <leaf name="queue_id">
+        <type name="uint64"/>
+        <description>
+          <text>SAI object ID of the affected queue.</text>
+        </description>
+      </leaf>
+      <leaf name="port_id">
+        <type name="uint64"/>
+        <description>
+          <text>SAI object ID of the affected port.</text>
+        </description>
+      </leaf>
+      <leaf name="additional_info">
+        <type name="string">
+          <pattern value="[-a-zA-Z0-9_]+:[-+a-zA-Z0-9_.]+(\|{1}[-a-zA-Z0-9_]+:[-+a-zA-Z0-9_.]+)*"/>
+        </type>
+        <description>
+          <text>Additional information to investigate PFC storm</text>
+        </description>
+      </leaf>
+      <uses name="evtcmn:sonic-events-cmn"/>
+    </container>
+    <container name="chk_crm_threshold">
+      <evtcmn:ALARM_SEVERITY_MAJOR/>
+      <description>
+        <text>
+Declares an event for CRM threshold.</text>
+      </description>
+      <leaf name="percent">
+        <type name="uint8">
+          <range value="0..100"/>
+        </type>
+        <description>
+          <text>percentage used</text>
+        </description>
+      </leaf>
+      <leaf name="used_cnt">
+        <type name="uint32"/>
+        <description>
+          <text>Number of CRM entries currently in use.</text>
+        </description>
+      </leaf>
+      <leaf name="free_cnt">
+        <type name="uint32"/>
+        <description>
+          <text>Number of CRM entries currently free.</text>
+        </description>
+      </leaf>
+      <uses name="evtcmn:sonic-events-cmn"/>
+    </container>
+    <container name="select-operation-failure">
+      <evtcmn:ALARM_SEVERITY_MAJOR/>
+      <description>
+        <text>
+Describes select operation fails due to timeout or other reason.</text>
+      </description>
+      <leaf name="operation_result">
+        <type name="string">
+          <pattern value="[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,31})">
+            <error-message>
+              <value>Invalid select operation failure operation_result.</value>
+            </error-message>
+            <error-app-tag value="select-operation-failure-invalid-operation-result"/>
+          </pattern>
+          <length value="1..32">
+            <error-message>
+              <value>Invalid length for select operation failure operation_result.</value>
+            </error-message>
+            <error-app-tag value="select-operation-failure-invalid-operation-result-length"/>
+          </length>
+        </type>
+        <description>
+          <text>Select operation result</text>
+        </description>
+      </leaf>
+      <leaf name="command">
+        <type name="string">
+          <pattern value="[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,31})">
+            <error-message>
+              <value>Invalid select operation failure command.</value>
+            </error-message>
+            <error-app-tag value="select-operation-failure-invalid-command"/>
+          </pattern>
+          <length value="1..32">
+            <error-message>
+              <value>Invalid length for select operation failure command.</value>
+            </error-message>
+            <error-app-tag value="select-operation-failure-invalid-command-length"/>
+          </length>
+        </type>
+        <description>
+          <text>Operation command.</text>
+        </description>
+      </leaf>
+      <uses name="evtcmn:sonic-events-cmn"/>
+    </container>
+    <container name="asic-sdk-health-event">
+      <evtcmn:ALARM_SEVERITY_MAJOR/>
+      <description>
+        <text>Declares an event for ASIC/SDK health event.</text>
+      </description>
+      <leaf name="asic_name">
+        <type name="string">
+          <pattern value="asic[0-9]{1,2}"/>
+        </type>
+        <description>
+          <text>Name of the ASIC reporting the health event.</text>
+        </description>
+      </leaf>
+      <leaf name="severity">
+        <type name="enumeration">
+          <enum name="fatal"/>
+          <enum name="warning"/>
+          <enum name="notice"/>
+        </type>
+        <description>
+          <text>Severity level of the ASIC/SDK health event.</text>
+        </description>
+      </leaf>
+      <leaf name="category">
+        <type name="enumeration">
+          <enum name="software"/>
+          <enum name="firmware"/>
+          <enum name="cpu_hw"/>
+          <enum name="asic_hw"/>
+        </type>
+        <description>
+          <text>Category of the health event source.</text>
+        </description>
+      </leaf>
+      <leaf name="description">
+        <type name="string"/>
+        <description>
+          <text>Human-readable description of the health event.</text>
+        </description>
+      </leaf>
+      <leaf name="sai_timestamp">
+        <type name="string">
+          <pattern value="[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"/>
+        </type>
+        <description>
+          <text>Timestamp reported by the SAI layer for this event.</text>
+        </description>
+      </leaf>
+      <uses name="evtcmn:sonic-events-cmn"/>
+    </container>
+  </container>
+</module>

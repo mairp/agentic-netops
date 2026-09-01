@@ -1,0 +1,9 @@
+[run] failure: /root/ainetops-demo/tests/integration/failure_recovery_invalid_yang.sh run
+[failure] partial target failure/recovery
+14:24:53 INFO Parsing & checking topology file=topology.clab.yml
+          
+   ERROR  
+          
+  Node "srv6-client02" container "clab-ainetops-fabric-srv6-client02" not found.                                      
+
+error: context "kind-ainetops" does not exist

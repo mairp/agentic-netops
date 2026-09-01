@@ -1,0 +1,9 @@
+   440	Error: one or more requests failed
+   441	[qualify] Running sonic-srv6
+   442	target "172.31.0.21:8080" Get request failed: "172.31.0.21:8080" GetRequest failed: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 172.31.0.21:8080: connect: connection refused"
+   443	Error: one or more requests failed
+   444	target "172.31.0.22:8080" Get request failed: "172.31.0.22:8080" GetRequest failed: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 172.31.0.22:8080: connect: connection refused"
+   445	Error: one or more requests failed
+   446	[qualify] FAILED: core capability failure; not running EVPN/SRv6 or YANG path suites
+   447	[provision] capability gate failed for profile sonic-vs
+   448	[provision] sonic-vs failed gate; this profile is not SRv6-qualified. Use --profile sonic-vm for conformance.

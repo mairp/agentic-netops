@@ -1,0 +1,9 @@
+::error title=SR Linux mention(s) in dependency graph/manifests::scripts/ci/supply_chain.sh:7:# - Enforce SR Linux absence from dependency graph/runtime manifests per FR-020 (enforced)
+scripts/ci/supply_chain.sh:18:# 1) Enforce SR Linux absence in go dependency graph and manifests (FR-020)
+scripts/ci/supply_chain.sh:19:log "Checking SR Linux absence in go.mod/go.sum, Dockerfiles, and Kubernetes manifests"
+scripts/ci/supply_chain.sh:20:SR_PAT='\bsr[ -]?linux\b|ghcr\.io/nokia/srlinux|nokia_srlinux'
+scripts/ci/supply_chain.sh:36:  echo "::error title=SR Linux mention(s) in dependency graph/manifests::${SR_MATCHES}" | tee "$REPORT_DIR/supply-chain.srlinux.matches.txt"
+scripts/ci/supply_chain.sh:39:  echo "No SR Linux artifacts detected in dependency graph/manifests" | tee "$REPORT_DIR/supply-chain.srlinux.ok.txt"
+scripts/ci/supply_chain.sh:87:log "Supply-chain checks passed (enforced: SR Linux absence, image digests; advisory: others)"
+scripts/ci/denylist_policy.sh:108:  VIS_PATTERN='\\b(sr[ -]?linux|nokia_srlinux)\\b|ghcr\\.io/nokia/srlinux'
+scripts/ci/denylist_policy.sh:112:    echo "::error title=SR Linux mention(s) found outside allowed contexts::${VIS_VIOLATIONS}"

@@ -1,0 +1,2 @@
+116:             - --web.enable-lifecycle
+117:             - --web.enable-remote-write-receiver=false

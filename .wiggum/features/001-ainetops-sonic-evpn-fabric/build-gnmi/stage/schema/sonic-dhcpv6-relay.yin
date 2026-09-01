@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-dhcpv6-relay"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:sdhcpv6relay="http://github.com/sonic-net/sonic-dhcpv6-relay"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types">
+  <namespace uri="http://github.com/sonic-net/sonic-dhcpv6-relay"/>
+  <prefix value="sdhcpv6relay"/>
+  <yang-version value="1.1"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>DHCPv6 Relay yang Module for SONiC OS</text>
+  </description>
+  <revision date="2021-10-30">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-dhcpv6-relay">
+    <container name="DHCP_RELAY">
+      <description>
+        <text>DHCPv6 relay agent configuration per VLAN interface</text>
+      </description>
+      <list name="DHCP_RELAY_LIST">
+        <key value="name"/>
+        <leaf name="name">
+          <description>
+            <text>VLAN interface name for DHCPv6 relay</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+        <leaf-list name="dhcpv6_servers">
+          <description>
+            <text>Configure the dhcp v6 servers</text>
+          </description>
+          <type name="inet:ipv6-address"/>
+          <ordered-by value="user"/>
+        </leaf-list>
+        <leaf name="rfc6939_support">
+          <description>
+            <text>Set rfc6939 for the relay</text>
+          </description>
+          <type name="string">
+            <pattern value="false|true"/>
+          </type>
+        </leaf>
+        <leaf name="interface_id">
+          <description>
+            <text>Enable interface ID insertion in relayed messages</text>
+          </description>
+          <type name="string">
+            <pattern value="false|true"/>
+          </type>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

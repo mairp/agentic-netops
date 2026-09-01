@@ -1,0 +1,118 @@
+1
+[build5i] 2026-08-31T11:37:16Z staging image libnl/libnftnl into /libs
+lrwxrwxrwx 1 root root      14 Aug 31 11:37 libnftnl.so -> libnftnl.so.11
+lrwxrwxrwx 1 root root      18 Aug 31 11:37 libnftnl.so.11 -> libnftnl.so.11.6.0
+-rw-r--r-- 1 root root  207448 Nov 16  2022 libnftnl.so.11.6.0
+lrwxrwxrwx 1 root root      14 Aug 31 11:37 libnl-3.so -> libnl-3.so.200
+lrwxrwxrwx 1 root root      19 Aug 31 11:37 libnl-3.so.200 -> libnl-3.so.200.26.0
+-rw-r--r-- 1 root root  139144 Aug 28 14:16 libnl-3.so.200.26.0
+lrwxrwxrwx 1 root root      18 Aug 31 11:37 libnl-cli-3.so -> libnl-cli-3.so.200
+lrwxrwxrwx 1 root root      23 Aug 31 11:37 libnl-cli-3.so.200 -> libnl-cli-3.so.200.26.0
+-rw-r--r-- 1 root root   48608 Aug 28 14:16 libnl-cli-3.so.200.26.0
+lrwxrwxrwx 1 root root      17 Aug 31 11:37 libnl-nf-3.so -> libnl-nf-3.so.200
+lrwxrwxrwx 1 root root      22 Aug 31 11:37 libnl-nf-3.so.200 -> libnl-nf-3.so.200.26.0
+-rw-r--r-- 1 root root  109928 Aug 28 14:16 libnl-nf-3.so.200.26.0
+lrwxrwxrwx 1 root root      20 Aug 31 11:37 libnl-route-3.so -> libnl-route-3.so.200
+lrwxrwxrwx 1 root root      25 Aug 31 11:37 libnl-route-3.so.200 -> libnl-route-3.so.200.26.0
+-rw-r--r-- 1 root root  577368 Aug 28 14:16 libnl-route-3.so.200.26.0
+[build5i] 2026-08-31T11:37:19Z running make with extended CGO_LDFLAGS
+MAKE_OK
+echo "github.com/google/gnxi v0.0.0-20181220173256-89f51f0ce1e2" >> vendor/modules.txt
+echo "github.com/google/gnxi/gnmi_get" >> vendor/modules.txt
+echo "github.com/google/gnxi/gnmi_set" >> vendor/modules.txt
+echo "github.com/openconfig/gnmi/cli" >> vendor/modules.txt
+echo "github.com/openconfig/gnmi/client/flags" >> vendor/modules.txt
+echo "golang.org/x/crypto/ssh/terminal" >> vendor/modules.txt
+echo "github.com/openconfig/gnmi/cmd/gnmi_cli" >> vendor/modules.txt
+/usr/local/go/bin/go install -mod=vendor github.com/google/gnxi/gnmi_get
+/usr/local/go/bin/go install -mod=vendor github.com/google/gnxi/gnmi_set
+/usr/local/go/bin/go install -mod=vendor github.com/openconfig/gnmi/cmd/gnmi_cli
+rm -rf vendor/golang.org/x/crypto/
+mv backup_crypto/ vendor/golang.org/x/crypto/
+-rwxr-xr-x 1 root root 53939648 Aug 31 11:37 build/bin/telemetry
+	libswsscommon.so.0 => /libs/libswsscommon.so.0 (0x0000737d68685000)
+	libhiredis.so.0.14 => /libs/libhiredis.so.0.14 (0x0000737d68673000)
+	libpython3.11.so.1.0 => /libs/libpython3.11.so.1.0 (0x0000737d67ece000)
+	libyang.so.3 => /libs/libyang.so.3 (0x0000737d67d71000)
+	libboost_serialization.so.1.83.0 => /libs/libboost_serialization.so.1.83.0 (0x0000737d6784d000)
+	libnl-nf-3.so.200 => /libs/libnl-nf-3.so.200 (0x0000737d67826000)
+	libnl-route-3.so.200 => /libs/libnl-route-3.so.200 (0x0000737d67796000)
+	libnl-3.so.200 => /libs/libnl-3.so.200 (0x0000737d67773000)
+LDD_CLEAN
+schema_files=145
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            BuildKit is currently disabled; enable it by removing the DOCKER_BUILDKIT=0
+            environment-variable.
+
+Sending build context to Docker daemon  54.58MB
+Step 1/8 : FROM localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
+ ---> 6d0a4d81a849
+Step 2/8 : COPY telemetry /usr/sbin/telemetry
+ ---> d146948dc363
+Step 3/8 : COPY schema /usr/sbin/schema
+ ---> f9c4311db3cb
+Step 4/8 : COPY boost-libs/libboost_thread.so.1.74.0 /usr/lib/x86_64-linux-gnu/libboost_thread.so.1.74.0
+ ---> 6b64f5ae829d
+Step 5/8 : COPY boost-libs/libboost_system.so.1.74.0 /usr/lib/x86_64-linux-gnu/libboost_system.so.1.74.0
+ ---> 9c07e53c770f
+Step 6/8 : COPY telemetry.sh /usr/bin/telemetry.sh
+ ---> 9ef56ade0d1d
+Step 7/8 : COPY telemetry.conf /etc/supervisor/conf.d/telemetry.conf
+ ---> 63f480ce3f9b
+Step 8/8 : RUN chmod +x /usr/sbin/telemetry /usr/bin/telemetry.sh &&     ldd /usr/sbin/telemetry | grep -E 'swsscommon|hiredis|yang|boost|nl|nftnl|python|not found' || true
+ ---> Running in 31aadb5ce247
+	libswsscommon.so.0 => /lib/x86_64-linux-gnu/libswsscommon.so.0 (0x00007f49d3483000)
+	libhiredis.so.0.14 => /lib/x86_64-linux-gnu/libhiredis.so.0.14 (0x00007f49d3471000)
+	libpython3.11.so.1.0 => /lib/x86_64-linux-gnu/libpython3.11.so.1.0 (0x00007f49d2ccc000)
+	libyang.so.3 => /lib/x86_64-linux-gnu/libyang.so.3 (0x00007f49d2b6f000)
+	libboost_serialization.so.1.83.0 => /lib/x86_64-linux-gnu/libboost_serialization.so.1.83.0 (0x00007f49d264b000)
+	libnl-nf-3.so.200 => /lib/x86_64-linux-gnu/libnl-nf-3.so.200 (0x00007f49d2624000)
+	libnl-route-3.so.200 => /lib/x86_64-linux-gnu/libnl-route-3.so.200 (0x00007f49d2594000)
+	libnl-3.so.200 => /lib/x86_64-linux-gnu/libnl-3.so.200 (0x00007f49d2571000)
+ ---> Removed intermediate container 31aadb5ce247
+ ---> b7851cf304c2
+Successfully built b7851cf304c2
+Successfully tagged localhost:5000/sonic-vs-gnmi:202605
+The push refers to repository [localhost:5000/sonic-vs-gnmi]
+e79912e81ea1: Preparing
+bd3376cb44a8: Preparing
+addb889100b0: Preparing
+52239780f4cc: Preparing
+ca4d1c23c3c9: Preparing
+5fe0d350b9c7: Preparing
+e584e521fe72: Preparing
+5b26280c96f8: Preparing
+d695f8e9ecd6: Preparing
+34d85bbd2415: Preparing
+1b42118b88ba: Preparing
+7b2eb3e38412: Preparing
+8a969c1b5759: Preparing
+4e3f93d0c8fb: Preparing
+0da21fb3cfbb: Preparing
+5fe0d350b9c7: Waiting
+e584e521fe72: Waiting
+5b26280c96f8: Waiting
+d695f8e9ecd6: Waiting
+34d85bbd2415: Waiting
+1b42118b88ba: Waiting
+7b2eb3e38412: Waiting
+8a969c1b5759: Waiting
+4e3f93d0c8fb: Waiting
+0da21fb3cfbb: Waiting
+ca4d1c23c3c9: Pushed
+52239780f4cc: Pushed
+addb889100b0: Pushed
+bd3376cb44a8: Pushed
+d695f8e9ecd6: Mounted from sonic-vs
+5b26280c96f8: Mounted from sonic-vs
+34d85bbd2415: Mounted from sonic-vs
+1b42118b88ba: Mounted from sonic-vs
+7b2eb3e38412: Mounted from sonic-vs
+8a969c1b5759: Mounted from sonic-vs
+4e3f93d0c8fb: Mounted from sonic-vs
+5fe0d350b9c7: Pushed
+0da21fb3cfbb: Mounted from sonic-vs
+e584e521fe72: Pushed
+e79912e81ea1: Pushed
+202605: digest: sha256:1195aef56a9f1137c0d3fd41f823d8c6767965f10dd8bcd42436a563b2edc241 size: 3455
+[build5i] 2026-08-31T11:38:39Z FAILED: no RepoDigest after push

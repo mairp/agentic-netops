@@ -1,0 +1,81 @@
+     1			return ctrl.Result{}, err
+     2		}
+     3	
+     4		// Observe existing SDC status EARLY to emit events regardless of gating (T038)
+     5		{
+     6			name := ownedConfigName(nd.Name)
+     7			cfg := &sdc.Config{}
+     8			if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: nd.Namespace}, cfg); err == nil {
+     9				if len(cfg.Status.Deviation) > 0 {
+    10					// Emit an event even if later gates will block downstream changes.
+    11					if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", name) }
+    12				}
+    13			}
+    14		}
+    15	
+    16		// Compatibility-set validation gates downstream mutations
+    17		set := compat.FromAnnotations(nd.Annotations)
+    18		discovered := map[string]bool{"sai.srv6": nd.Labels["ainetops.dev/cap.sai.srv6"] == "true"}
+    19		if err := compat.FullValidate(set, nd.Labels, discovered); err != nil {
+    20			// Set SchemaMismatch/CapabilityMissing and requeue with terminal backoff, no downstream change
+    21			reason := compat.ReasonFor(err)
+    22			cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reason, Message: err.Error()}
+    23			patched := nd
+    24			patched.Status = upsertConditionGeneric(nd.Status, cond)
+    25			_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
+    26			span.SetAttributes(attribute.String("compat.reason", reason))
+    27			return resultWithBackoff(false), nil
+    28		}
+    29	
+    30		// Observe existing SDC status to propagate Degraded/Ready (T038)
+    31		{
+    32			name := ownedConfigName(nd.Name)
+    33			cfg := &sdc.Config{}
+    34			if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: nd.Namespace}, cfg); err == nil {
+    35				if len(cfg.Status.Deviation) > 0 {
+    36					cond := metav1.Condition{Type: "Degraded", Status: metav1.ConditionTrue, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: "DeviationObserved", Message: fmt.Sprintf("%d deviations", len(cfg.Status.Deviation))}
+    37					patched := nd
+    38					patched.Status = upsertConditionGeneric(nd.Status, cond)
+    39					_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
+    40					if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", name) }
+    41					return resultWithBackoff(false), nil
+    42				}
+    43				if cfg.Status.Ready {
+    44					condOK := metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplySucceeded, Message: "rendered and applied"}
+    45					patched := nd
+    46					patched.Status = upsertConditionGeneric(nd.Status, condOK)
+    47					_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
+    48					return ctrl.Result{}, nil
+    49				}
+    50			}
+    51		}
+    52	
+    53		// Compose minimal rendered spec (placeholders; full renderers in later tasks)
+    54		spec := map[string]any{}
+    55		spec["/interfaces/interface"] = []map[string]any{{"name": "Ethernet1"}}
+    56	
+    57		// Offline schema/path validation and register enforcement prior to SSA
+    58		if err := sdc.OfflineValidate(spec); err != nil {
+    59			cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplyFailed, Message: fmt.Sprintf("offline schema validation failed: %v", err)}
+    60			patched := nd
+    61			patched.Status = upsertConditionGeneric(nd.Status, cond)
+    62			_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
+    63			return resultWithBackoff(true), nil
+    64		}
+    65		if err := sdc.ValidateSpecAgainstRegister(spec, nil); err != nil {
+    66			cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reasons.ReasonApplyFailed, Message: fmt.Sprintf("register validation failed: %v", err)}
+    67			patched := nd
+    68			patched.Status = upsertConditionGeneric(nd.Status, cond)
+    69			_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
+    70			return resultWithBackoff(true), nil
+    71		}
+    72	
+    73		// Compute canonical hash and apply via SSA with dedicated field manager and minimal policy fields
+    74		hash, _ := render.CanonicalHash(spec)
+    75		obj := &sdc.Config{ObjectMeta: metav1.ObjectMeta{Name: ownedConfigName(nd.Name), Namespace: nd.Namespace, Labels: map[string]string{"ainetops.dev/ownerKind": ownerKind}}, Spec: map[string]any{}}
+    76		// seed spec with policy block and rendered fragments (T037)
+    77		obj.Spec["$policy"] = sdc.BuildPolicy(100, "replace", true, "retain")
+    78		for k, v := range spec { obj.Spec[k] = v }
+    79		if obj.Annotations == nil { obj.Annotations = map[string]string{} }
+    80		obj.Annotations[annotationHash] = hash
+    81		// propagate compatibility annotations (T035)

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-auto_techsupport"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:auto_techsupport="http://github.com/sonic-net/sonic-auto_techsupport"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-auto_techsupport"/>
+  <prefix value="auto_techsupport"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <description>
+    <text>Event Driven Techsupport &amp; CoreDump Mgmt Capability in SONiC OS</text>
+  </description>
+  <revision date="2021-08-09">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <typedef name="decimal-repr">
+    <type name="decimal64">
+      <fraction-digits value="2"/>
+      <range value="0.0..99.99"/>
+    </type>
+  </typedef>
+  <container name="sonic-auto_techsupport">
+    <container name="AUTO_TECHSUPPORT">
+      <description>
+        <text>Global auto-techsupport settings for event-driven dump generation</text>
+      </description>
+      <container name="GLOBAL">
+        <leaf name="state">
+          <description>
+            <text>Knob to make techsupport invocation event-driven based on core-dump generation</text>
+          </description>
+          <type name="stypes:admin_mode"/>
+        </leaf>
+        <leaf name="rate_limit_interval">
+          <description>
+            <text>Minimum time in seconds between two successive techsupport invocations. Configure 0 to explicitly disable</text>
+          </description>
+          <type name="uint16"/>
+        </leaf>
+        <leaf name="max_techsupport_limit">
+          <description>
+            <text>Max Limit in percentage for the cummulative size of ts dumps. No cleanup is performed if the value isn't configured or is 0.0</text>
+          </description>
+          <type name="decimal-repr"/>
+        </leaf>
+        <leaf name="max_core_limit">
+          <description>
+            <text>Max Limit in percentage for the cummulative size of core dumps. No cleanup is performed if the value isn't congiured or is 0.0</text>
+          </description>
+          <type name="decimal-repr"/>
+        </leaf>
+        <leaf name="available_mem_threshold">
+          <description>
+            <text>Memory threshold; 0 to disable techsupport invocation on memory usage threshold crossing</text>
+          </description>
+          <type name="decimal-repr"/>
+          <default value="10.0"/>
+        </leaf>
+        <leaf name="min_available_mem">
+          <description>
+            <text>Minimum Free memory (in MB) that should be available for the techsupport execution to start</text>
+          </description>
+          <type name="uint32"/>
+          <default value="200"/>
+        </leaf>
+        <leaf name="since">
+          <description>
+            <text>Only collect the logs &amp; core-dumps generated since the time provided. A default value of '2 days ago' is used if this value is not set explicitly or a non-valid string is provided</text>
+          </description>
+          <type name="string">
+            <length value="1..255"/>
+          </type>
+        </leaf>
+      </container>
+    </container>
+    <container name="AUTO_TECHSUPPORT_FEATURE">
+      <description>
+        <text>Per-feature auto-techsupport configuration overrides</text>
+      </description>
+      <list name="AUTO_TECHSUPPORT_FEATURE_LIST">
+        <key value="feature_name"/>
+        <leaf name="feature_name">
+          <description>
+            <text>The name of this feature</text>
+          </description>
+          <type name="string">
+            <length value="1..255"/>
+          </type>
+        </leaf>
+        <leaf name="state">
+          <description>
+            <text>Enable auto techsupport invocation on the processes running inside this feature</text>
+          </description>
+          <type name="stypes:admin_mode"/>
+        </leaf>
+        <leaf name="available_mem_threshold">
+          <description>
+            <text>Memory threshold; 0 to disable techsupport invocation on memory usage threshold crossing</text>
+          </description>
+          <type name="decimal-repr"/>
+          <default value="10.0"/>
+        </leaf>
+        <leaf name="rate_limit_interval">
+          <description>
+            <text>Rate limit interval for the corresponding feature. Configure 0 to explicitly disable</text>
+          </description>
+          <type name="uint16"/>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

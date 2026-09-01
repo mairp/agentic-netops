@@ -1,0 +1,10 @@
+     1	preflight::yaml_value() {
+     2	  local section=$1 key=$2 file; file=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/versions.lock.yaml
+     3	  awk -v sec="$section" -v key="$key" '
+     4	    $0 ~ "^"sec":\s*$" {inside=1; next}
+     5	    inside && $0 ~ "^[^[:space:]]" {inside=0}
+     6	    inside && $0 ~ "^[[:space:]]+"key":" {
+     7	      val=$0; sub(/^[^:]*:[[:space:]]*/, "", val); gsub(/\"/, "", val); print val; exit
+     8	    }
+     9	  ' "$file"
+    10	}

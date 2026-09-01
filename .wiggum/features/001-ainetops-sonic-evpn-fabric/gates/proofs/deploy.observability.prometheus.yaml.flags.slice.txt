@@ -1,0 +1,14 @@
+   108	      containers:
+   109	        - name: prometheus
+   110	          image: prom/prometheus@sha256:f20d3127bf2876f4a1df76246fca576b41ddf1125ed1c546fbd8b16ea55117e6
+   111	          args:
+   112	            - --config.file=/etc/prometheus/prometheus.yml
+   113	            - --storage.tsdb.path=/prometheus
+   114	            - --storage.tsdb.retention.time=24h
+   115	            - --storage.tsdb.retention.size=4GB
+   116	            - --web.enable-lifecycle
+   117	            - --web.enable-remote-write-receiver=false
+   118	          ports:
+   119	            - name: http
+   120	              containerPort: 9090
+   121	          volumeMounts:

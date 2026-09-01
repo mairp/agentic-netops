@@ -1,0 +1,32 @@
+    69	#   sonic_vs  — pinned by digest to the containerlab-supported community build.
+    70	#   sonic_vm  — built via vrnetlab from a SONiC .img by the operator; pin the
+    71	#               resulting local image digest here. Required only for the SRv6/EVPN
+    72	#               conformance profile when sonic_vs fails the capability gate.
+    73	# ---------------------------------------------------------------------------
+    74	sonic_images:
+    75	  sonic_vs:
+    76	    image: localhost:5000/sonic-vs-gnmi:202605@sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb45d7a68710ba9d64ac27b1870768
+    77	    digest: sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb45d7a68710ba9d64ac27b1870768
+    78	    tag: 202605
+    79	    notes: >
+    80	      Fast profile; no KVM required; containerlab kind sonic-vs. SRv6/gNMI-qualified:
+    81	      carries /usr/sbin/telemetry (gNMI server, supervisord program:telemetry) and
+    82	      sonic-srv6.yang, so the capability gate in scripts/lib/qualify.sh can run
+    83	      Capabilities/Get/Set/Subscribe/sonic-srv6 against a live endpoint. Verified
+    84	      2026-08-31: gNMI 0.7.0 answers Capabilities on :8080 over TLS.
+    85	      Build recipe and provenance: lab/images/sonic-vs-gnmi/.
+    86	  sonic_vs_base:
+    87	    image: localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
+    88	    digest: sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
+    89	    tag: 20220111
+    90	    notes: >
+    91	      The community sonic-vs build that sonic_vs is layered on
+    92	      (netreplica/docker-sonic-vs:20220111). Kept pinned for provenance and rebuilds.
+    93	      NOT SRv6-qualified on its own: it ships no gNMI server at all, which is why the
+    94	      capability gate failed closed against it (2026-08-30/31).
+    95	  sonic_vm:
+    96	    image: local/sonic-vm
+    97	    digest: sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5
+    98	    notes: Conformance profile; build via vrnetlab; requires KVM; digest is operator-built
+    99	
+   100	# ---------------------------------------------------------------------------

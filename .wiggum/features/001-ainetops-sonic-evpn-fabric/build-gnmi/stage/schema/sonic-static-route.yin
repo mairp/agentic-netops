@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-static-route"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:sroute="http://github.com/sonic-net/sonic-static-route"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-static-route"/>
+  <prefix value="sroute"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>STATIC ROUTE yang Module for SONiC OS</text>
+  </description>
+  <revision date="2022-03-17">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-static-route">
+    <container name="STATIC_ROUTE">
+      <description>
+        <text>Static route entries for deterministic IP forwarding.</text>
+      </description>
+      <list name="STATIC_ROUTE_TEMPLATE_LIST">
+        <key value="prefix"/>
+        <leaf name="prefix">
+          <type name="inet:ip-prefix"/>
+          <description>
+            <text>prefix is the destination IP address, as key</text>
+          </description>
+        </leaf>
+        <leaf name="nexthop">
+          <type name="string"/>
+          <description>
+            <text>The next-hop that is to be used for the
+static route as IP address. When interface needs to be
+specified, use 0.0.0.0 as leaf value</text>
+          </description>
+        </leaf>
+        <leaf name="ifname">
+          <type name="string"/>
+          <description>
+            <text>When interface is specified, forwarding happens through it</text>
+          </description>
+        </leaf>
+        <leaf name="advertise">
+          <type name="string">
+            <pattern value="((true|false),)*(true|false)"/>
+          </type>
+          <default value="false"/>
+          <description>
+            <text>Advertise this static route to BGP, comma-separated per nexthop.</text>
+          </description>
+        </leaf>
+        <leaf name="bfd">
+          <type name="string">
+            <pattern value="((true|false),)*(true|false)"/>
+          </type>
+          <default value="false"/>
+          <description>
+            <text>Enable BFD monitoring for each nexthop, comma-separated per nexthop.</text>
+          </description>
+        </leaf>
+      </list>
+      <list name="STATIC_ROUTE_LIST">
+        <key value="vrf_name prefix"/>
+        <leaf name="vrf_name">
+          <type name="union">
+            <type name="string">
+              <pattern value="default"/>
+            </type>
+            <type name="string">
+              <pattern value="mgmt"/>
+            </type>
+            <type name="string">
+              <pattern value="Vrf[a-zA-Z0-9_-]+"/>
+            </type>
+          </type>
+          <description>
+            <text>Virtual Routing Instance name as key</text>
+          </description>
+        </leaf>
+        <leaf name="prefix">
+          <type name="inet:ip-prefix"/>
+          <description>
+            <text>prefix is the destination IP address, as key</text>
+          </description>
+        </leaf>
+        <leaf name="nexthop">
+          <type name="string"/>
+          <description>
+            <text>The next-hop that is to be used for the
+static route as IP address. When interface needs to be
+specified, use 0.0.0.0 as leaf value</text>
+          </description>
+        </leaf>
+        <leaf name="ifname">
+          <type name="string"/>
+          <description>
+            <text>When interface is specified, forwarding happens through it</text>
+          </description>
+        </leaf>
+        <leaf name="advertise">
+          <type name="string">
+            <pattern value="((true|false),)*(true|false)"/>
+          </type>
+          <default value="false"/>
+          <description>
+            <text>Advertise this static route to BGP, comma-separated per nexthop.</text>
+          </description>
+        </leaf>
+        <leaf name="distance">
+          <type name="string">
+            <pattern value="((25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?),)*(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)"/>
+          </type>
+          <default value="0"/>
+          <description>
+            <text>Administrative Distance (preference) of the entry.  The
+preference defines the order of selection when multiple
+sources (protocols, static, etc.) contribute to the same
+prefix entry.  The lower the preference, the more preferable the
+prefix is.  When this value is not specified, the preference is
+inherited from the default preference of the implementation for
+static routes.</text>
+          </description>
+        </leaf>
+        <leaf name="nexthop-vrf">
+          <type name="string">
+            <pattern value="((((Vrf[a-zA-Z0-9_-]+)|(default)|(mgmt)),)*((Vrf[a-zA-Z0-9_-]+)|(default)|(mgmt)))?"/>
+          </type>
+          <description>
+            <text>VRF name of the nexthop. This is for vrf leaking</text>
+          </description>
+        </leaf>
+        <leaf name="blackhole">
+          <type name="string">
+            <pattern value="((true|false),)*(true|false)"/>
+          </type>
+          <default value="false"/>
+          <description>
+            <text>blackhole refers to a route that, if matched, discards the message silently.</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

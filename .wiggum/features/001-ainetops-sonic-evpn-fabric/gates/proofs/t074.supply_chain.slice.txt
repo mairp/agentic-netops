@@ -1,0 +1,12 @@
+3:# - Dependency licenses: best-effort collection (advisory)
+4:# - Vulnerabilities: run govulncheck when available (advisory)
+5:# - Image provenance: require pinned digests for platform images (enforced)
+6:# - SBOM: run syft when available to generate repository SBOM (advisory)
+7:# - Enforce SR Linux absence from dependency graph/runtime manifests per FR-020 (enforced)
+18:# 1) Enforce SR Linux absence in go dependency graph and manifests (FR-020)
+19:log "Checking SR Linux absence in go.mod/go.sum, Dockerfiles, and Kubernetes manifests"
+20:SR_PAT='\bsr[ -]?linux\b|ghcr\.io/nokia/srlinux|nokia_srlinux'
+36:  echo "::error title=SR Linux mention(s) in dependency graph/manifests::${SR_MATCHES}" | tee "$REPORT_DIR/supply-chain.srlinux.matches.txt"
+39:  echo "No SR Linux artifacts detected in dependency graph/manifests" | tee "$REPORT_DIR/supply-chain.srlinux.ok.txt"
+42:# 2) Image provenance: require pinned digests for platform images in deploy/**.yaml
+43:log "Verifying platform images are pinned by immutable digests"

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-asic-sensors"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:asic-sensors="http://github.com/sonic-net/sonic-asic-sensors"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-asic-sensors"/>
+  <prefix value="asic-sensors"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <description>
+    <text>ASIC SENSORs config yang Module for SONiC OS</text>
+  </description>
+  <revision date="2024-11-19">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-asic-sensors">
+    <container name="ASIC_SENSORS">
+      <description>
+        <text>ASIC internal thermal sensor poller configuration.</text>
+      </description>
+      <container name="ASIC_SENSORS_POLLER_INTERVAL">
+        <description>
+          <text>Polling interval configuration for ASIC thermal sensors.</text>
+        </description>
+        <leaf name="interval">
+          <description>
+            <text>ASIC SENSORS polling interval</text>
+          </description>
+          <type name="uint32">
+            <range value="1..999"/>
+          </type>
+          <units name="seconds"/>
+          <default value="10 "/>
+        </leaf>
+      </container>
+      <container name="ASIC_SENSORS_POLLER_STATUS">
+        <description>
+          <text>Administrative status of the ASIC thermal sensor poller.</text>
+        </description>
+        <leaf name="admin_status">
+          <description>
+            <text>ASIC SENSORS polling administrative status</text>
+          </description>
+          <type name="stypes:mode-status"/>
+          <default value="enable"/>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

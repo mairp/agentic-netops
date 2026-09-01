@@ -1,0 +1,159 @@
+     1	#!/usr/bin/env bash
+     2	set -euo pipefail
+     3	
+     4	# AINETOPS SONiC EVPN/VXLAN Fabric — provision script (Phase 8)
+     5	# Sole implementation of environment creation/convergence per contracts/crd-api.md
+     6	# Ordered workflow: preflight → network → Kind → containerlab → in-cluster apps → SDC/fabric intent
+     7	# → generated topology assets → SRv6 service → readiness
+     8	
+     9	SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+    10	REPO_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
+    11	LIB_DIR="${SCRIPT_DIR}/lib"
+    12	
+    13	# Defaults (overridable by flags)
+    14	AINETOPS_CLUSTER_NAME=${AINETOPS_CLUSTER_NAME:-ainetops}
+    15	AINETOPS_PROFILE=${AINETOPS_PROFILE:-sonic-vs}
+    16	AINETOPS_TIMEOUT=${AINETOPS_TIMEOUT:-180s}
+    17	
+    18	usage() {
+    19	  cat <<EOF
+    20	Usage: $0 [--profile sonic-vs|sonic-vm] [--cluster-name NAME] [--timeout DURATION]
+    21	
+    22	Flags:
+    23	  --profile       SONiC lab profile (sonic-vs fast, sonic-vm conformance)
+    24	  --cluster-name  Kind cluster name (default: ainetops)
+    25	  --timeout       Rollout wait timeout (default: 180s)
+    26	EOF
+    27	}
+    28	
+    29	# Parse flags
+    30	while [[ $# -gt 0 ]]; do
+    31	  case "$1" in
+    32	    --profile) shift; AINETOPS_PROFILE=${1:-$AINETOPS_PROFILE} ;;
+    33	    --cluster-name) shift; AINETOPS_CLUSTER_NAME=${1:-$AINETOPS_CLUSTER_NAME} ;;
+    34	    --timeout) shift; AINETOPS_TIMEOUT=${1:-$AINETOPS_TIMEOUT} ;;
+    35	    -h|--help) usage; exit 0 ;;
+    36	    *) echo "[provision] unknown flag: $1" >&2; usage; exit 2 ;;
+    37	  esac
+    38	  shift || true
+    39	done
+    40	export AINETOPS_CLUSTER_NAME AINETOPS_PROFILE AINETOPS_TIMEOUT
+    41	
+    42	# shellcheck source=./lib/preflight.sh
+    43	if [[ -f "${LIB_DIR}/preflight.sh" ]]; then
+    44	  # Preflight validates versions.lock.yaml, host resources, privileges, MTU, address overlaps, KVM (when sonic-vm)
+    45	  source "${LIB_DIR}/preflight.sh"
+    46	  preflight::run
+    47	fi
+    48	
+    49	# Ordered phases: verify pins and CRDs/register
+    50	if [[ -f "${REPO_ROOT}/Makefile" ]]; then
+    51	  make -C "${REPO_ROOT}" verify-compat
+    52	fi
+    53	
+    54	# Ensure external management network exists (idempotent)
+    55	if command -v docker >/dev/null 2>&1; then
+    56	  docker network inspect ainetops-mgmt >/dev/null 2>&1 || docker network create --label ainetops.owner=ainetops ainetops-mgmt
+    57	fi
+    58	
+    59	# Ensure Kind cluster exists and is using pinned image; attach nodes to mgmt network
+    60	if [[ -x "${LIB_DIR}/kind.sh" ]]; then
+    61	  "${LIB_DIR}/kind.sh" ensure
+    62	  "${LIB_DIR}/kind.sh" attach-mgmt
+    63	  "${LIB_DIR}/kind.sh" verify-context
+    64	else
+    65	  echo "[provision] WARN: kind helper not found; skipping Kind cluster ensure" >&2
+    66	fi
+    67	
+    68	# Deploy lab topology with containerlab
+    69	if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
+    70	  "${LIB_DIR}/containerlab.sh" deploy || { echo "[provision] containerlab deploy failed" >&2; exit 1; }
+    71	  "${LIB_DIR}/containerlab.sh" inspect || true
+    72	else
+    73	  echo "[provision] WARN: containerlab helper not found; skipping lab deploy" >&2
+    74	fi
+    75	
+    76	# Install least-privilege RBAC base
+    77	if [[ -x "${LIB_DIR}/rbac.sh" ]]; then
+    78	  "${LIB_DIR}/rbac.sh"
+    79	fi
+    80	# Install pinned Kubenet/KUID and SDC into Kind and wait basic readiness
+    81	if [[ -x "${REPO_ROOT}/deploy/kubenet/install.sh" ]]; then
+    82	  "${REPO_ROOT}/deploy/kubenet/install.sh"
+    83	fi
+    84	if [[ -x "${REPO_ROOT}/deploy/sdc/install.sh" ]]; then
+    85	  "${REPO_ROOT}/deploy/sdc/install.sh"
+    86	fi
+    87	# Install observability stack (OTel Collector, gNMIc, Prometheus, Grafana)
+    88	if [[ -x "${LIB_DIR}/observability.sh" ]]; then
+    89	  "${LIB_DIR}/observability.sh" install || true
+    90	fi
+    91	
+    92	# Build, load, and deploy provider and srv6-controller images into Kind (T041)
+    93	if command -v docker >/dev/null 2>&1 && command -v kind >/dev/null 2>&1 && command -v kubectl >/dev/null 2>&1; then
+    94	  echo "[provision] building controller images"
+    95	  docker build -t ainetops-sonic-provider:dev -f "${REPO_ROOT}/cmd/sonic-provider/Dockerfile" "${REPO_ROOT}"
+    96	  docker build -t ainetops-srv6-controller:dev -f "${REPO_ROOT}/cmd/srv6-controller/Dockerfile" "${REPO_ROOT}"
+    97	  echo "[provision] loading images into Kind"
+    98	  kind load docker-image ainetops-sonic-provider:dev --name "${AINETOPS_CLUSTER_NAME}" || true
+    99	  kind load docker-image ainetops-srv6-controller:dev --name "${AINETOPS_CLUSTER_NAME}" || true
+   100	  echo "[provision] deploying controllers"
+   101	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system apply -f "${REPO_ROOT}/deploy/ainetops/manifests/provider.yaml"
+   102	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system apply -f "${REPO_ROOT}/deploy/ainetops/manifests/srv6-controller.yaml"
+   103	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system set image deploy/ainetops-sonic-provider provider=ainetops-sonic-provider:dev || true
+   104	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system set image deploy/ainetops-srv6-controller srv6-controller=ainetops-srv6-controller:dev || true
+   105	  echo "[provision] waiting for controller pods ready (timeout=${AINETOPS_TIMEOUT})"
+   106	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system rollout status deploy/ainetops-sonic-provider --timeout="${AINETOPS_TIMEOUT}"
+   107	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system rollout status deploy/ainetops-srv6-controller --timeout="${AINETOPS_TIMEOUT}"
+   108	  # Capture independent observation proof
+   109	  mkdir -p "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+   110	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system get deploy,po,svc -o wide \
+   111	    | nl -ba > "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-ainetops-system.txt"
+   112	fi
+   113	
+   114	# Apply SRv6 CRD, default Kubenet Network, tenant examples, and sample SRv6 service
+   115	if command -v kubectl >/dev/null 2>&1; then
+   116	  CTX="kind-${AINETOPS_CLUSTER_NAME}"
+   117	  echo "[provision] applying SRv6Service CRD and Kubenet default/tenant networks"
+   118	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/config/crd/bases/ainetops.io_srv6services.yaml"
+   119	  # Assert CRD set per FR-006 (T079a)
+   120	  if [[ -x "${LIB_DIR}/assert_crds.sh" ]]; then "${LIB_DIR}/assert_crds.sh" || { echo "[provision] CRD assertion failed" >&2; exit 1; }; fi
+   121	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/topology.yaml"
+   122	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/topology-and-indices.yaml"
+   123	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/claims.yaml"
+   124	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/srv6-pools.yaml"
+   125	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/default.yaml"
+   126	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/l2-bridged.yaml"
+   127	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/l3-routed.yaml"
+   128	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/irb-symmetric.yaml"
+   129	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/config/samples/ainetops_v1alpha1_srv6service.yaml"
+   130	  # Wait for SRv6Service readiness (best-effort; controller enforces compatibility gates)
+   131	  kubectl --context "$CTX" -n default wait --for=condition=Ready --timeout="${AINETOPS_TIMEOUT}" srv6service/example-srv6 || true
+   132	  # Capture independent observation of applied Network resources
+   133	  kubectl --context "$CTX" -n kubenet-system get networkconfigs,networks 2>/dev/null | nl -ba > "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-kubenet-networks.txt" || true
+   134	fi
+   135	# Seed SDC schema/profile/discovery
+   136	if command -v kubectl >/dev/null 2>&1; then
+   137	  CTX="kind-${AINETOPS_CLUSTER_NAME}"
+   138	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/sonic-schema.yaml"
+   139	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/discovery-rule.yaml"
+   140	fi
+   141	
+   142	# Run lab capability qualification; select conformance fallback when sonic-vs fails
+   143	if [[ -x "${LIB_DIR}/qualify.sh" ]]; then
+   144	  if ! "${LIB_DIR}/qualify.sh"; then
+   145	    echo "[provision] capability gate failed for profile ${AINETOPS_PROFILE}" >&2
+   146	    if [[ "${AINETOPS_PROFILE}" == "sonic-vs" ]]; then
+   147	      echo "[provision] sonic-vs failed gate; this profile is not SRv6-qualified. Use --profile sonic-vm for conformance." >&2
+   148	    fi
+   149	    exit 1
+   150	  fi
+   151	fi
+   152	
+   153	# Topology asset generation: ensure the ConfigMap is applied now for Grafana Flow
+   154	if command -v kubectl >/dev/null 2>&1; then
+   155	  CTX="kind-${AINETOPS_CLUSTER_NAME}"
+   156	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/observability/topology-configmap.yaml"
+   157	fi
+   158	
+   159	echo "[provision] complete: pins verified, CRDs validated/asserted, Kind ensured/attached, lab deployed, apps installed, seed applied, capability gate executed."

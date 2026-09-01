@@ -1,0 +1,13 @@
+[fabric-verify] underlay BGP neighbors/ESTABLISHED (IPv4/IPv6) on spines and leaves
+[172.31.0.21:8080] get /openconfig-network-instance:network-instances/network-instance/protocols/protocol[identifier=BGP][name=BGP]/neighbors/neighbor/state/session-state
+[172.31.0.21:8080] ASSERTION FAILED: expected to find pattern 'ESTABLISHED' in gNMI get /openconfig-network-instance:network-instances/network-instance/protocols/protocol[identifier=BGP][name=BGP]/neighbors/neighbor/state/session-state output
+----- BEGIN [172.31.0.21:8080] OUTPUT -----
+target "172.31.0.21:8080" Get request failed: "172.31.0.21:8080" GetRequest failed: rpc error: code = NotFound desc = Node openconfig-network-instance:network-instances not found in the given gnmi path elem:{name:"openconfig-network-instance:network-instances"}  elem:{name:"network-instance"}  elem:{name:"protocols"}  elem:{name:"protocol"  key:{key:"identifier"  value:"BGP"}  key:{key:"name"  value:"BGP"}}  elem:{name:"neighbors"}  elem:{name:"neighbor"}  elem:{name:"state"}  elem:{name:"session-state"}: 
+Error: one or more requests failed
+----- END [172.31.0.21:8080] OUTPUT -----
+[172.31.0.22:8080] get /openconfig-network-instance:network-instances/network-instance/protocols/protocol[identifier=BGP][name=BGP]/neighbors/neighbor/state/session-state
+[172.31.0.22:8080] ASSERTION FAILED: expected to find pattern 'ESTABLISHED' in gNMI get /openconfig-network-instance:network-instances/network-instance/protocols/protocol[identifier=BGP][name=BGP]/neighbors/neighbor/state/session-state output
+----- BEGIN [172.31.0.22:8080] OUTPUT -----
+target "172.31.0.22:8080" Get request failed: "172.31.0.22:8080" GetRequest failed: rpc error: code = NotFound desc = Node openconfig-network-instance:network-instances not found in the given gnmi path elem:{name:"openconfig-network-instance:network-instances"}  elem:{name:"network-instance"}  elem:{name:"protocols"}  elem:{name:"protocol"  key:{key:"identifier"  value:"BGP"}  key:{key:"name"  value:"BGP"}}  elem:{name:"neighbors"}  elem:{name:"neighbor"}  elem:{name:"state"}  elem:{name:"session-state"}: 
+Error: one or more requests failed
+----- END [172.31.0.22:8080] OUTPUT -----

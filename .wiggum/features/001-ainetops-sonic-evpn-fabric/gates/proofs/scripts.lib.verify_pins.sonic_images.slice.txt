@@ -1,0 +1,25 @@
+    52	get_block containerlab | grep -E '^\s*version:\s*[0-9]+\.[0-9]+\.[0-9]+' >/dev/null || fail "containerlab.version must be semver"
+    53	
+    54	# SONiC images pinned: allow image+separate digest, but require digest present
+    55	# Robust YAML scan without relying on regex ranges sensitive to comments
+    56	svs_img=$(awk '
+    57	  $1=="sonic_images:" {sec=1; next}
+    58	  sec && /^[^[:space:]]/ {exit}
+    59	  sec && $1=="sonic_vs:" {vs=1; next}
+    60	  sec && vs && /^[^[:space:]]/ {vs=0}
+    61	  sec && vs && $1=="image:" {print $2; exit}
+    62	' "$LOCK_FILE")
+    63	svs_dig=$(awk '
+    64	  $1=="sonic_images:" {sec=1; next}
+    65	  sec && /^[^[:space:]]/ {exit}
+    66	  sec && $1=="sonic_vs:" {vs=1; next}
+    67	  sec && vs && /^[^[:space:]]/ {vs=0}
+    68	  sec && vs && $1=="digest:" {print $2; exit}
+    69	' "$LOCK_FILE")
+    70	svm_img=$(awk '
+    71	  $1=="sonic_images:" {sec=1; next}
+    72	  sec && /^[^[:space:]]/ {exit}
+    73	  sec && $1=="sonic_vm:" {vm=1; next}
+    74	  sec && vm && /^[^[:space:]]/ {vm=0}
+    75	  sec && vm && $1=="image:" {print $2; exit}
+    76	' "$LOCK_FILE")

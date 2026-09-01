@@ -1,0 +1,28 @@
+grep_rc=1 (1 = field absent, fixed)
+   104	  ( cd "${REPO_ROOT}" && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+   105	      go build -mod=vendor -tags ainetops_k8s -trimpath -ldflags='-s -w' \
+   106	      -o /tmp/ainetops-srv6-controller-bin ./cmd/srv6-controller )
+   107	  ( cd /tmp && tar -cf ainetops-sonic-provider-bin.tar ainetops-sonic-provider-bin \
+   108	      && docker import --change 'USER 65532:65532' --change 'ENTRYPOINT ["/ainetops-sonic-provider-bin"]' ainetops-sonic-provider-bin.tar ainetops-sonic-provider:dev )
+   109	  ( cd /tmp && tar -cf ainetops-srv6-controller-bin.tar ainetops-srv6-controller-bin \
+   110	      && docker import --change 'USER 65532:65532' --change 'ENTRYPOINT ["/ainetops-srv6-controller-bin"]' ainetops-srv6-controller-bin.tar ainetops-srv6-controller:dev )
+   111	  echo "[provision] loading images into Kind"
+   112	  kind load docker-image ainetops-sonic-provider:dev --name "${AINETOPS_CLUSTER_NAME}" || true
+   113	  kind load docker-image ainetops-srv6-controller:dev --name "${AINETOPS_CLUSTER_NAME}" || true
+   114	  echo "[provision] deploying controllers"
+   115	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system apply -f "${REPO_ROOT}/deploy/ainetops/manifests/provider.yaml"
+   116	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system apply -f "${REPO_ROOT}/deploy/ainetops/manifests/srv6-controller.yaml"
+   117	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system set image deploy/ainetops-sonic-provider provider=ainetops-sonic-provider:dev || true
+   118	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system set image deploy/ainetops-srv6-controller srv6-controller=ainetops-srv6-controller:dev || true
+   119	  echo "[provision] waiting for controller pods ready (timeout=${AINETOPS_TIMEOUT})"
+   120	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system rollout status deploy/ainetops-sonic-provider --timeout="${AINETOPS_TIMEOUT}"
+   121	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system rollout status deploy/ainetops-srv6-controller --timeout="${AINETOPS_TIMEOUT}"
+   122	  # Capture independent observation proof
+   123	  mkdir -p "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+   124	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system get deploy,po,svc -o wide \
+   125	    | nl -ba > "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-ainetops-system.txt"
+   126	fi
+   127	
+   128	# Apply SRv6 CRD, default Kubenet Network, tenant examples, and sample SRv6 service
+   129	if command -v kubectl >/dev/null 2>&1; then
+   130	  CTX="kind-${AINETOPS_CLUSTER_NAME}"

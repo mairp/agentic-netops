@@ -1,0 +1,3 @@
+SC-001 — Immutable pins enforced
+- Evidence: versions.lock.yaml; Makefile target verify-pins; scripts/lib/verify_pins.sh
+- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/versions.lock.T004.proof.txt

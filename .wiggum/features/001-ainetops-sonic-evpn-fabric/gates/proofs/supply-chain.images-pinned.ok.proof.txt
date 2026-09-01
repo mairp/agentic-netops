@@ -1,0 +1,1 @@
+$(sed -n '1,200p' .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/supply-chain.images-pinned.ok.txt 2>/dev/null || echo 'run make supply-chain to generate this artifact; script path: scripts/ci/supply_chain.sh')

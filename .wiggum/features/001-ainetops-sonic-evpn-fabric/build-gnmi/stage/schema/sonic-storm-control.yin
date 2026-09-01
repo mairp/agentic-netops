@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-storm-control"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:ssc="http://github.com/sonic-net/sonic-storm-control"
+        xmlns:prt="http://github.com/sonic-net/sonic-port">
+  <namespace uri="http://github.com/sonic-net/sonic-storm-control"/>
+  <yang-version value="1"/>
+  <prefix value="ssc"/>
+  <import module="sonic-port">
+    <prefix value="prt"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>This module defines configuration and operational state
+data for broadcast, unknown-unicast and unknown-multicast (BUM) storm-control.
+storm-control can be enabled on ethernet interfaces.
+Rate is defined in bits-per-second. All three types of storm-control can be
+enabled on an interface.</text>
+  </description>
+  <revision date="2021-12-13">
+    <description>
+      <text>Initial revision</text>
+    </description>
+  </revision>
+  <container name="sonic-storm-control">
+    <container name="PORT_STORM_CONTROL">
+      <description>
+        <text>Configures BUM storm control rate limits per port.</text>
+      </description>
+      <list name="PORT_STORM_CONTROL_LIST">
+        <key value="ifname storm_type"/>
+        <description>
+          <text>Storm control entry for a specific port and traffic type.</text>
+        </description>
+        <leaf name="ifname">
+          <type name="leafref">
+            <path value="/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:name"/>
+          </type>
+          <description>
+            <text>Physical port on which storm control is applied.</text>
+          </description>
+        </leaf>
+        <leaf name="storm_type">
+          <type name="enumeration">
+            <enum name="broadcast"/>
+            <enum name="unknown-unicast"/>
+            <enum name="unknown-multicast"/>
+          </type>
+          <description>
+            <text>Type of BUM traffic to rate-limit.</text>
+          </description>
+        </leaf>
+        <leaf name="kbps">
+          <type name="uint64">
+            <range value="0..100000000">
+              <error-message>
+                <value>kbps value out of range</value>
+              </error-message>
+            </range>
+          </type>
+          <description>
+            <text>Rate limit in kilobits per second (0-100000000 Kbps).</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

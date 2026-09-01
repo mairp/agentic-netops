@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-system-aaa"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:ssys="http://github.com/sonic-net/sonic-system-aaa"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head"
+        xmlns:tacacs="http://github.com/sonic-net/sonic-system-tacacs">
+  <namespace uri="http://github.com/sonic-net/sonic-system-aaa"/>
+  <prefix value="ssys"/>
+  <yang-version value="1.1"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <import module="sonic-system-tacacs">
+    <prefix value="tacacs"/>
+  </import>
+  <description>
+    <text>Authentication, Authorization, and Accounting (AAA) YANG module for SONiC OS.</text>
+  </description>
+  <revision date="2021-10-12">
+    <description>
+      <text>Add AAA authorization/accounting support.</text>
+    </description>
+  </revision>
+  <revision date="2021-04-15">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-system-aaa">
+    <container name="AAA">
+      <description>
+        <text>AAA configuration for local and remote user authentication methods.</text>
+      </description>
+      <list name="AAA_LIST">
+        <key value="type"/>
+        <description>
+          <text>AAA method configuration entry keyed by function type.</text>
+        </description>
+        <leaf name="type">
+          <type name="enumeration">
+            <enum name="authentication"/>
+            <enum name="authorization"/>
+            <enum name="accounting"/>
+          </type>
+          <description>
+            <text>AAA function type: authentication, authorization, or accounting.</text>
+          </description>
+        </leaf>
+        <leaf name="login">
+          <type name="string">
+            <pattern value="((ldap|tacacs\+|local|radius|default),)*(ldap|tacacs\+|local|radius|default)">
+              <error-message>
+                <value>Invalid login choice</value>
+              </error-message>
+            </pattern>
+          </type>
+          <description>
+            <text>Ordered list of authentication methods to attempt (radius, tacacs+, ldap, local, or default).</text>
+          </description>
+          <default value="local"/>
+        </leaf>
+        <must condition='not(./type = "authentication" and contains(./login, "tacacs+") and not(/tacacs:sonic-system-tacacs/tacacs:TACPLUS/tacacs:global/tacacs:passkey))'>
+          <error-message>
+            <value>Authentication with 'tacacs+' is not allowed when passkey not exists.</value>
+          </error-message>
+        </must>
+        <leaf name="failthrough">
+          <type name="stypes:boolean_type"/>
+          <description>
+            <text>When true, authentication continues to the next method in the list upon failure.</text>
+          </description>
+          <default value="False"/>
+        </leaf>
+        <leaf name="fallback">
+          <type name="stypes:boolean_type"/>
+          <description>
+            <text>When true, falls back to local authentication if all remote methods fail.</text>
+          </description>
+          <default value="False"/>
+        </leaf>
+        <leaf name="debug">
+          <type name="stypes:boolean_type"/>
+          <description>
+            <text>Enable or disable verbose AAA debug logging.</text>
+          </description>
+          <default value="False"/>
+        </leaf>
+        <leaf name="trace">
+          <type name="stypes:boolean_type"/>
+          <description>
+            <text>Enable or disable AAA protocol packet tracing.</text>
+          </description>
+          <default value="False"/>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

@@ -1,0 +1,50 @@
+[
+  {
+    "name": "target-sync-profile-gnmi-once-and-onchange.yaml",
+    "path": "example/sync-profiles/target-sync-profile-gnmi-once-and-onchange.yaml",
+    "sha": "23e4c1b206cda2024c3e032fc06a9ec5d1abee34",
+    "size": 594,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/sync-profiles/target-sync-profile-gnmi-once-and-onchange.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/sync-profiles/target-sync-profile-gnmi-once-and-onchange.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/23e4c1b206cda2024c3e032fc06a9ec5d1abee34",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/sync-profiles/target-sync-profile-gnmi-once-and-onchange.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/sync-profiles/target-sync-profile-gnmi-once-and-onchange.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/23e4c1b206cda2024c3e032fc06a9ec5d1abee34",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/sync-profiles/target-sync-profile-gnmi-once-and-onchange.yaml"
+    }
+  },
+  {
+    "name": "target-sync-profile-gnmi.yaml",
+    "path": "example/sync-profiles/target-sync-profile-gnmi.yaml",
+    "sha": "34147621a7bd48771a2ae6b4267129313e5fddc0",
+    "size": 483,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/sync-profiles/target-sync-profile-gnmi.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/sync-profiles/target-sync-profile-gnmi.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/34147621a7bd48771a2ae6b4267129313e5fddc0",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/sync-profiles/target-sync-profile-gnmi.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/sync-profiles/target-sync-profile-gnmi.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/34147621a7bd48771a2ae6b4267129313e5fddc0",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/sync-profiles/target-sync-profile-gnmi.yaml"
+    }
+  },
+  {
+    "name": "target-sync-profile-netconf.yaml",
+    "path": "example/sync-profiles/target-sync-profile-netconf.yaml",
+    "sha": "39473ab39476ef185c866320eb73b23dda84a765",
+    "size": 485,
+    "url": "https://api.github.com/repos/sdcio/config-server/contents/example/sync-profiles/target-sync-profile-netconf.yaml?ref=main",
+    "html_url": "https://github.com/sdcio/config-server/blob/main/example/sync-profiles/target-sync-profile-netconf.yaml",
+    "git_url": "https://api.github.com/repos/sdcio/config-server/git/blobs/39473ab39476ef185c866320eb73b23dda84a765",
+    "download_url": "https://raw.githubusercontent.com/sdcio/config-server/main/example/sync-profiles/target-sync-profile-netconf.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/sdcio/config-server/contents/example/sync-profiles/target-sync-profile-netconf.yaml?ref=main",
+      "git": "https://api.github.com/repos/sdcio/config-server/git/blobs/39473ab39476ef185c866320eb73b23dda84a765",
+      "html": "https://github.com/sdcio/config-server/blob/main/example/sync-profiles/target-sync-profile-netconf.yaml"
+    }
+  }
+]

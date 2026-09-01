@@ -1,0 +1,4 @@
+     1	EXPECTED NODES:  leaf01 leaf02 spine01 spine02 
+     2	EXPECTED LINKS: leaf01-spine01 leaf01-spine02 leaf02-spine01 leaf02-spine02 
+     3	COUNTS: expected nodes=4, configmap nodes=4; expected links=4, configmap links=4
+     4	TOPOLOGY_PARITY_OK: nodes and links match between lab/topology.clab.yml and deploy/observability/topology-configmap.yaml

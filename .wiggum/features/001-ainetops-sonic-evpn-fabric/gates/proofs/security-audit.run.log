@@ -1,0 +1,35 @@
+
+=== RBAC minimal verbs/scopes ===
+grep: character class syntax is [[:space:]], not [:space:]
+[32mOK[0m: No wildcard verbs in RBAC
+[32mOK[0m: No cluster-admin bindings in AINETOPS manifests
+
+=== Secret use ===
+[33mWARN[0m: Potential static Secret content present (should be generated):
+deploy/rbac/base.yaml:63:stringData:
+[32mOK[0m: Secret generator job present: deploy/rbac/secret-generator-job.yaml
+
+=== TLS validation for gNMIc ===
+[32mOK[0m: gNMIc TLS skip-verify=false
+[32mOK[0m: gNMIc references tls-ca/tls-cert/tls-key via Secret
+
+=== Image privileges (Dockerfiles/manifests) ===
+[32mOK[0m: Controller Dockerfiles do not run as root
+[32mOK[0m: Distroless base images in use
+grep: character class syntax is [[:space:]], not [:space:]
+[33mWARN[0m: runAsNonRoot not explicitly set in manifests
+
+=== Docker/KVM trust boundaries ===
+[32mOK[0m: KVM check present in preflight for sonic-vm
+
+=== Grafana plugin provenance and auth ===
+grep: character class syntax is [[:space:]], not [:space:]
+[32mOK[0m: Grafana anonymous disabled
+[32mOK[0m: Grafana plugins pinned by digest
+
+=== Anonymous access/default credentials ===
+[32mOK[0m: Grafana secret generator job present
+
+=== Log/status redaction ===
+[32mOK[0m: No obvious secret value logging patterns found
+SECURITY_AUDIT_OK

@@ -1,0 +1,522 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-device_metadata"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:device_metadata="http://github.com/sonic-net/sonic-device_metadata"
+        xmlns:yang="urn:ietf:params:xml:ns:yang:ietf-yang-types"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-device_metadata"/>
+  <prefix value="device_metadata"/>
+  <import module="ietf-yang-types">
+    <prefix value="yang"/>
+  </import>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <description>
+    <text>DEVICE_METADATA YANG Module for SONiC OS</text>
+  </description>
+  <revision date="2026-06-05">
+    <description>
+      <text>Added dpu_auto_recovery to enable/disable automatic DPU recovery on SmartSwitch.</text>
+    </description>
+  </revision>
+  <revision date="2026-04-11">
+    <description>
+      <text>Adde use_template_render_for_restore to control the method of config restore in FRR.</text>
+    </description>
+  </revision>
+  <revision date="2026-04-11">
+    <description>
+      <text>Added route_state_async_publish to control async route state publishing.</text>
+    </description>
+  </revision>
+  <revision date="2026-04-10">
+    <description>
+      <text>Added async_swss_rec field to control async swss recorder.</text>
+    </description>
+  </revision>
+  <revision date="2021-02-27">
+    <description>
+      <text>Added frr_mgmt_framework_config field to handle BGP
+config DB schema events to configure FRR protocols.</text>
+    </description>
+  </revision>
+  <revision date="2020-04-10">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-device_metadata">
+    <container name="DEVICE_METADATA">
+      <description>
+        <text>Global device configuration including hostname, hardware SKU, platform, MAC address, BGP ASN, and operational settings.</text>
+      </description>
+      <container name="localhost">
+        <leaf name="hwsku">
+          <type name="stypes:hwsku"/>
+          <description>
+            <text>Hardware SKU identifier defining port layout and capabilities.</text>
+          </description>
+        </leaf>
+        <leaf name="asic_id">
+          <type name="string">
+            <length value="1..16"/>
+          </type>
+          <description>
+            <text>asic_id is unique identifier of the asic used by SAI for initialization.</text>
+          </description>
+        </leaf>
+        <leaf name="default_bgp_status">
+          <type name="enumeration">
+            <enum name="up"/>
+            <enum name="down"/>
+          </type>
+          <default value="up"/>
+          <description>
+            <text>Default BGP daemon operational state on startup.</text>
+          </description>
+        </leaf>
+        <leaf name="docker_routing_config_mode">
+          <description>
+            <text>This leaf allows different configuration modes for FRR:
+- separated: FRR config generated from ConfigDB, each FRR daemon has its own config file
+- unified: FRR config generated from ConfigDB, single FRR config file
+- split: FRR config not generated from ConfigDB, each FRR daemon has its own config file
+- split-unified: FRR config not generated from ConfigDB, single FRR config file</text>
+          </description>
+          <type name="string">
+            <pattern value="separated|unified|split|split-unified"/>
+          </type>
+          <default value="unified"/>
+        </leaf>
+        <leaf name="hostname">
+          <type name="stypes:hostname"/>
+          <description>
+            <text>System hostname for the device.</text>
+          </description>
+        </leaf>
+        <leaf name="platform">
+          <type name="string">
+            <length value="1..255"/>
+          </type>
+          <description>
+            <text>Platform identifier (vendor and model).</text>
+          </description>
+        </leaf>
+        <leaf name="mac">
+          <type name="yang:mac-address"/>
+          <description>
+            <text>System base MAC address.</text>
+          </description>
+        </leaf>
+        <leaf name="default_pfcwd_status">
+          <type name="enumeration">
+            <enum name="disable"/>
+            <enum name="enable"/>
+          </type>
+          <default value="disable"/>
+          <description>
+            <text>Default PFC watchdog operational state on startup.</text>
+          </description>
+        </leaf>
+        <leaf name="bgp_asn">
+          <type name="inet:as-number"/>
+          <description>
+            <text>BGP autonomous system number for the device.</text>
+          </description>
+        </leaf>
+        <leaf name="deployment_id">
+          <type name="uint32"/>
+          <description>
+            <text>Deployment identifier for grouping devices in the same network segment.</text>
+          </description>
+        </leaf>
+        <leaf name="type">
+          <type name="string">
+            <length value="1..255"/>
+            <pattern value="ToRRouter|LeafRouter|SpineChassisFrontendRouter|ChassisBackendRouter|ASIC|MgmtToRRouter|MgmtLeafRouter|MgmtSpineRouter|MgmtAccessRouter|LowerMgmtAggregator|UpperMgmtAggregator|SpineRouter|BackEndSpineRouter|UpperSpineRouter|FabricSpineRouter|LowerSpineRouter|BackEndToRRouter|BackEndLeafRouter|EPMS|MgmtTsToR|BmcMgmtToRRouter|MiniTs|LeafTs|SpineTs|CoreTs|ConsoleServer|TerminalServer|SonicHost|SmartSwitchDPU|FilterLeaf|NetworkBmc|MseeRouter|not-provisioned|LowerRegionalHub|FabricRegionalHub|UpperRegionalHub"/>
+          </type>
+          <description>
+            <text>Device role type (e.g., ToRRouter, LeafRouter, SpineRouter).</text>
+          </description>
+        </leaf>
+        <leaf name="buffer_model">
+          <description>
+            <text>This leaf is added for dynamic buffer calculation.
+The dynamic model represents the model in which the buffer configurations,
+like the headroom sizes and buffer pool sizes, are dynamically calculated based
+on the ports' speed, cable length, and MTU. This model is used by Mellanox so far.
+The traditional model represents the model in which all the buffer configurations
+are statically configured in CONFIG_DB tables. This is the default model used by all other vendors</text>
+          </description>
+          <type name="string">
+            <pattern value="dynamic|traditional"/>
+          </type>
+        </leaf>
+        <leaf name="frr_mgmt_framework_config">
+          <type name="boolean"/>
+          <description>
+            <text>FRR configurations are handled by sonic-frr-mgmt-framework module when set to true,
+otherwise, sonic-bgpcfgd handles the FRR configurations based on the predefined templates.</text>
+          </description>
+          <default value="false"/>
+        </leaf>
+        <leaf name="synchronous_mode">
+          <type name="enumeration">
+            <enum name="enable"/>
+            <enum name="disable"/>
+          </type>
+          <default value="enable"/>
+          <description>
+            <text>Enable or disable ASIC synchronous mode for orchagent.</text>
+          </description>
+        </leaf>
+        <leaf name="yang_config_validation">
+          <type name="stypes:mode-status"/>
+          <default value="disable"/>
+          <description>
+            <text>Enable or disable YANG model validation for configuration changes.</text>
+          </description>
+        </leaf>
+        <leaf name="cloudtype">
+          <type name="string"/>
+          <description>
+            <text>Cloud environment type where the device is deployed.</text>
+          </description>
+        </leaf>
+        <leaf name="region">
+          <type name="string"/>
+          <description>
+            <text>Geographic region where the device is deployed.</text>
+          </description>
+        </leaf>
+        <leaf name="sub_role">
+          <type name="string"/>
+          <description>
+            <text>sub_role indicates if ASIC is FrontEnd or BackEnd.</text>
+          </description>
+        </leaf>
+        <leaf name="downstream_subrole">
+          <type name="string"/>
+          <description>
+            <text>Sub-role of the downstream device connected to this device.</text>
+          </description>
+        </leaf>
+        <leaf name="resource_type">
+          <type name="string"/>
+          <description>
+            <text>Resource type classification for the device.</text>
+          </description>
+        </leaf>
+        <leaf name="mgmt_type">
+          <type name="string"/>
+          <description>
+            <text>Indicates the management type of this device.</text>
+          </description>
+        </leaf>
+        <leaf name="cluster">
+          <type name="string"/>
+          <description>
+            <text>The switch is a member of this cluster.</text>
+          </description>
+        </leaf>
+        <leaf name="subtype">
+          <type name="string">
+            <pattern value="DualToR|SmartSwitch|Supervisor|UpstreamLC|DownstreamLC"/>
+          </type>
+          <description>
+            <text>Device subtype for specialized topology roles (e.g., DualToR, SmartSwitch).</text>
+          </description>
+        </leaf>
+        <leaf name="peer_switch">
+          <type name="stypes:hostname"/>
+          <description>
+            <text>Hostname of the peer switch in a dual ToR configuration.</text>
+          </description>
+        </leaf>
+        <leaf name="storage_device">
+          <type name="boolean"/>
+          <description>
+            <text>Indicates whether the device is connected to a storage backend.</text>
+          </description>
+        </leaf>
+        <leaf name="asic_name">
+          <type name="string"/>
+          <description>
+            <text>On a VoQ switch, the ASIC Name is used as a qualifier in global
+database keys to create a system wide unique key.</text>
+          </description>
+        </leaf>
+        <leaf name="switch_id">
+          <type name="uint16"/>
+          <description>
+            <text>Vendor specific switch ID. Identifies switch chip.</text>
+          </description>
+        </leaf>
+        <leaf name="switch_type">
+          <type name="string">
+            <pattern value="chassis-packet|fabric|npu|voq|dpu|dummy-sup"/>
+          </type>
+          <description>
+            <text>Type of switch. Default is NPU, on a VOQ switch voq is used for a regular
+switching device while fabric is used for a fabric device.
+chassis-packet is used for chassis in packet mode.</text>
+          </description>
+        </leaf>
+        <leaf name="max_cores">
+          <type name="uint8"/>
+          <description>
+            <text>Maximum number of cores in a VoQ Switch (chassis).</text>
+          </description>
+        </leaf>
+        <leaf name="dhcp_server">
+          <type name="stypes:admin_mode"/>
+          <description>
+            <text>Indicate whether enable the embedded DHCP server.</text>
+          </description>
+        </leaf>
+        <leaf name="bgp_adv_lo_prefix_as_128">
+          <type name="boolean"/>
+          <description>
+            <text>Advertise Loopback0 interface IPv6 /128 subnet address as it is with set to true.
+By default SONiC advertises /128 subnet prefix in Loopback0 as /64 subnet route</text>
+          </description>
+        </leaf>
+        <leaf name="suppress-fib-pending">
+          <description>
+            <text>Enable BGP suppress FIB pending feature. BGP will wait for route FIB installation before announcing routes</text>
+          </description>
+          <type name="enumeration">
+            <enum name="enabled"/>
+            <enum name="disabled"/>
+          </type>
+          <default value="disabled"/>
+          <must condition="((current() = 'disabled') or (current() = 'enabled' and ../synchronous_mode = 'enable'))">
+            <error-message>
+              <value>ASIC synchronous mode must be enabled in order to enable suppress FIB pending feature</value>
+            </error-message>
+          </must>
+        </leaf>
+        <leaf name="async_swss_rec">
+          <description>
+            <text>Enable asynchronous swss.rec recording in orchagent.</text>
+          </description>
+          <type name="enumeration">
+            <enum name="enabled"/>
+            <enum name="disabled"/>
+          </type>
+          <default value="disabled"/>
+        </leaf>
+        <leaf name="route_state_async_publish">
+          <description>
+            <text>When enabled, routeorch publishes route states asynchronously in state update thread.
+When disabled, route state is published on the orch task path (synchronous).</text>
+          </description>
+          <type name="enumeration">
+            <enum name="enabled"/>
+            <enum name="disabled"/>
+          </type>
+          <default value="enabled"/>
+        </leaf>
+        <leaf name="rack_mgmt_map">
+          <type name="string">
+            <length value="0..128">
+              <error-message>
+                <value>Invalid length for the rack mgmt map.</value>
+              </error-message>
+            </length>
+          </type>
+          <description>
+            <text>Information of rack mgmt map.</text>
+          </description>
+        </leaf>
+        <leaf name="timezone">
+          <type name="stypes:timezone-name-type">
+            <length value="1..255"/>
+          </type>
+          <default value="UTC"/>
+          <description>
+            <text>The TZ database name to use for the system, such as 'Europe/Stockholm'.</text>
+          </description>
+          <reference>
+            <text>IANA Time Zone Database http://www.iana.org/time-zones</text>
+          </reference>
+        </leaf>
+        <leaf name="create_only_config_db_buffers">
+          <type name="boolean"/>
+          <description>
+            <text>If this attribute exists and is equal to true - the buffers will be created
+according to the config_db configuration (for example BUFFER_QUEUE|* table),
+otherwise the maximum available buffers (which are read from SAI) will be
+created, regardless of the CONFIG_DB buffers configuration.</text>
+          </description>
+        </leaf>
+        <leaf-list name="supporting_bulk_counter_groups">
+          <type name="string"/>
+          <ordered-by value="user"/>
+          <description>
+            <text>This field contains a list of counter groups that support bulk operation.</text>
+          </description>
+        </leaf-list>
+        <leaf name="bgp_router_id">
+          <type name="inet:ipv4-address"/>
+          <description>
+            <text>BGP Router identifier</text>
+          </description>
+        </leaf>
+        <leaf name="chassis_hostname">
+          <description>
+            <text>hostname of the chassis to which this linecard or supervisor belongs to</text>
+          </description>
+          <type name="stypes:hostname"/>
+        </leaf>
+        <leaf name="slice_type">
+          <description>
+            <text>Metadata tag for the device.</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+        <leaf name="location_type">
+          <description>
+            <text>Location type for the device.</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+        <leaf name="nexthop_group">
+          <description>
+            <text>Enable or disable Nexthop Group feature. This value only takes effect during boot time.</text>
+          </description>
+          <type name="enumeration">
+            <enum name="enabled"/>
+            <enum name="disabled"/>
+          </type>
+          <default value="disabled"/>
+        </leaf>
+        <leaf name="ring_thread_enabled">
+          <type name="boolean"/>
+          <description>
+            <text>Enable gRingMode of OrchDaemon, which would set up its ring thread to accelerate task execution.</text>
+          </description>
+          <default value="false"/>
+        </leaf>
+        <leaf-list name="t2_group_asns">
+          <type name="inet:as-number"/>
+          <description>
+            <text>ASNs inner same group</text>
+          </description>
+        </leaf-list>
+        <leaf-list name="anchor_route_source">
+          <type name="string"/>
+          <description>
+            <text>Set source of anchor route</text>
+          </description>
+        </leaf-list>
+        <leaf name="orch_northbond_dash_zmq_enabled">
+          <type name="boolean"/>
+          <description>
+            <text>Enable ZMQ feature on APPL_DB DASH tables.</text>
+          </description>
+          <default value="true"/>
+        </leaf>
+        <leaf name="orch_northbond_route_zmq_enabled">
+          <type name="boolean"/>
+          <description>
+            <text>Enable ZMQ feature on APPL_DB ROUTE tables.</text>
+          </description>
+          <default value="false"/>
+        </leaf>
+        <leaf name="orch_southbound_zmq_enabled">
+          <type name="boolean"/>
+          <description>
+            <text>Enable ZMQ feature between orchagent and syncd (southbound).</text>
+          </description>
+          <default value="false"/>
+        </leaf>
+        <leaf name="syslog_with_osversion">
+          <type name="boolean"/>
+          <description>
+            <text>Enable syslog with OS version feature.</text>
+          </description>
+          <default value="false"/>
+        </leaf>
+        <leaf name="syslog_counter">
+          <type name="boolean"/>
+          <description>
+            <text>Enable syslog counter feature.</text>
+          </description>
+          <default value="false"/>
+        </leaf>
+        <leaf name="has_sonic_dhcpv4_relay">
+          <description>
+            <text>This configuration controls the dhcpv4 relay process</text>
+          </description>
+          <type name="stypes:boolean_type"/>
+          <default value="false"/>
+        </leaf>
+        <leaf name="zebra_nexthop">
+          <description>
+            <text>Enable or disable next hop group support. This value only takes effect during boot time</text>
+          </description>
+          <type name="enumeration">
+            <enum name="enabled"/>
+            <enum name="disabled"/>
+          </type>
+          <default value="enabled"/>
+        </leaf>
+        <leaf name="use_template_render_for_restore">
+          <type name="boolean"/>
+          <description>
+            <text>When set to true, use template rendering to generate FRR configurations during startup in unified mode. When set to false, restore FRR configurations from cached DB tables. This field only takes effect in unified mode.</text>
+          </description>
+          <default value="true"/>
+        </leaf>
+        <leaf name="dpu_auto_recovery">
+          <description>
+            <text>Enable or disable automatic DPU recovery on SmartSwitch platforms.</text>
+          </description>
+          <type name="enumeration">
+            <enum name="enable"/>
+            <enum name="disable"/>
+          </type>
+          <default value="disable"/>
+        </leaf>
+      </container>
+      <container name="bmc">
+        <description>
+          <text>BMC configuration information</text>
+        </description>
+        <leaf name="bmc_if_name">
+          <type name="string">
+            <length value="1..64"/>
+          </type>
+          <description>
+            <text>BMC interface name</text>
+          </description>
+        </leaf>
+        <leaf name="bmc_if_addr">
+          <type name="inet:ipv4-address"/>
+          <description>
+            <text>BMC interface IP address</text>
+          </description>
+        </leaf>
+        <leaf name="bmc_addr">
+          <type name="inet:ipv4-address"/>
+          <description>
+            <text>BMC IP address</text>
+          </description>
+        </leaf>
+        <leaf name="bmc_net_mask">
+          <type name="inet:ipv4-address"/>
+          <description>
+            <text>BMC network mask</text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

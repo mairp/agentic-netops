@@ -1,0 +1,3 @@
+    17	## Logging and redaction
+    19	- Do not log secrets, usernames, or passwords
+    20	- Emit events with reason strings from pkg/reasons; use standard Condition types

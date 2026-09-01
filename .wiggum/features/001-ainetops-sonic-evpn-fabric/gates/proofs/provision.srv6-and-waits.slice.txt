@@ -1,0 +1,45 @@
+96:   echo "[provision] deploying controllers"
+97:   kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system apply -f "${REPO_ROOT}/deploy/ainetops/manifests/provider.yaml"
+98:   kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system apply -f "${REPO_ROOT}/deploy/ainetops/manifests/srv6-controller.yaml"
+99:   kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system set image deploy/ainetops-sonic-provider provider=ainetops-sonic-provider:dev || true
+100:   kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system set image deploy/ainetops-srv6-controller srv6-controller=ainetops-srv6-controller:dev || true
+101:   echo "[provision] waiting for controller pods ready (timeout=${AINETOPS_TIMEOUT})"
+102:   kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system rollout status deploy/ainetops-sonic-provider --timeout="${AINETOPS_TIMEOUT}"
+103:   kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system rollout status deploy/ainetops-srv6-controller --timeout="${AINETOPS_TIMEOUT}"
+104:   # Capture independent observation proof
+105:   mkdir -p "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+106:   kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system get deploy,po,svc -o wide \
+107:     | nl -ba > "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-ainetops-system.txt"
+108: fi
+109: 
+110: # Apply SRv6 CRD, default Kubenet Network, tenant examples, and sample SRv6 service
+111: if command -v kubectl >/dev/null 2>&1; then
+112:   CTX="kind-${AINETOPS_CLUSTER_NAME}"
+113:   echo "[provision] applying SRv6Service CRD and Kubenet default/tenant networks"
+114:   kubectl --context "$CTX" apply -f "${REPO_ROOT}/config/crd/bases/ainetops.io_srv6services.yaml"
+115:   # Assert CRD set per FR-006 (T079a)
+116:   if [[ -x "${LIB_DIR}/assert_crds.sh" ]]; then "${LIB_DIR}/assert_crds.sh" || { echo "[provision] CRD assertion failed" >&2; exit 1; }; fi
+117:   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/topology.yaml"
+118:   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/topology-and-indices.yaml"
+119:   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/claims.yaml"
+120:   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/srv6-pools.yaml"
+121:   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/default.yaml"
+122:   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/l2-bridged.yaml"
+123:   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/l3-routed.yaml"
+124:   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/irb-symmetric.yaml"
+125:   kubectl --context "$CTX" apply -f "${REPO_ROOT}/config/samples/ainetops_v1alpha1_srv6service.yaml"
+126:   # Wait for SRv6Service readiness (best-effort; controller enforces compatibility gates)
+127:   kubectl --context "$CTX" -n default wait --for=condition=Ready --timeout="${AINETOPS_TIMEOUT}" srv6service/example-srv6 || true
+128:   # Capture independent observation of applied Network resources
+129:   kubectl --context "$CTX" -n kubenet-system get networkconfigs,networks 2>/dev/null | nl -ba > "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-kubenet-networks.txt" || true
+130: fi
+131: # Seed SDC schema/profile/discovery
+132: if command -v kubectl >/dev/null 2>&1; then
+133:   CTX="kind-${AINETOPS_CLUSTER_NAME}"
+134:   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/sonic-schema.yaml"
+135:   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/discovery-rule.yaml"
+136: fi
+137: 
+138: # Run lab capability qualification; select conformance fallback when sonic-vs fails
+139: if [[ -x "${LIB_DIR}/qualify.sh" ]]; then
+140:   if ! "${LIB_DIR}/qualify.sh"; then

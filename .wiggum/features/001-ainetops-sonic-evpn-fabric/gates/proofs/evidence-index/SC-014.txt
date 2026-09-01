@@ -1,0 +1,3 @@
+SC-014 — CRD set assertion and duplication guard (FR-006)
+- Evidence: scripts/lib/assert_crds.sh (Ainetops-owned exact set; duplicate/conflict detection for Kubenet/KUID/SDC CRDs)
+- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.lib.assert_crds.sh.slice.txt

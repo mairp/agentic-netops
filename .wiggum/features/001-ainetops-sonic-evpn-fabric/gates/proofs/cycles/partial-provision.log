@@ -1,0 +1,557 @@
+[preflight] basic host checks passed
+make: Entering directory '/root/ainetops-demo'
+[verify-pins] validating versions.lock.yaml
+[verify-pins] versions.lock.yaml pins and compatibility are consistent
+[validate-crds] server-side validating CRDs and examples
+[validate-crds] server-side dry-run: Kubenet CRDs (1 files)
+[validate-crds] WARN: no reachable cluster context for Kubenet CRDs; skipping server-side dry-run (validated at install apply time)
+[validate-crds] server-side dry-run: KUID CRDs (1 files)
+[validate-crds] WARN: no reachable cluster context for KUID CRDs; skipping server-side dry-run (validated at install apply time)
+[validate-crds] server-side dry-run: SDC CRDs (1 files)
+[validate-crds] WARN: no reachable cluster context for SDC CRDs; skipping server-side dry-run (validated at install apply time)
+[validate-crds] WARN: Kubenet CRDs not yet installed; skipping example server-side dry-run (validated at install apply time)
+[validate-crds] OK
+[verify-register] checking renderer paths against register
+=== RUN   TestRendererPathsCoveredByRegister
+--- PASS: TestRendererPathsCoveredByRegister (0.00s)
+PASS
+ok  	github.com/mairp/ainetops/tests/unit	(cached)
+[verify-compat] pins, CRD, and register validations passed
+make: Leaving directory '/root/ainetops-demo'
+[kind] creating cluster 'ainetops' using /root/ainetops-demo/config/kind/cluster.yaml
+Creating cluster "ainetops" ...
+ • Ensuring node image (kindest/node) 🖼  ...
+ ✓ Ensuring node image (kindest/node) 🖼
+ • Preparing nodes 📦 📦   ...
+ ✓ Preparing nodes 📦 📦 
+ • Writing configuration 📜  ...
+ ✓ Writing configuration 📜
+ • Starting control-plane 🕹️  ...
+ ✓ Starting control-plane 🕹️
+ • Installing CNI 🔌  ...
+ ✓ Installing CNI 🔌
+ • Installing StorageClass 💾  ...
+ ✓ Installing StorageClass 💾
+ • Joining worker nodes 🚜  ...
+ ✓ Joining worker nodes 🚜
+Set kubectl context to "kind-ainetops"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-ainetops
+
+Have a nice day! 👋
+[kind] attaching ainetops-control-plane to ainetops-mgmt
+[kind] attaching ainetops-worker to ainetops-mgmt
+[clab] ensuring external Docker network ainetops-mgmt exists (subnet-correct)
+[clab] deploying /root/ainetops-demo/lab/topology.clab.yml
+01:58:45 INFO Containerlab started version=0.79.0
+01:58:45 INFO Parsing & checking topology file=topology.clab.yml
+01:58:45 INFO Removing directory path=/root/ainetops-demo/lab/clab-ainetops-fabric
+01:58:45 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
+
+01:58:45 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
+
+01:58:45 INFO Creating lab directory path=/root/ainetops-demo/lab/clab-ainetops-fabric
+01:58:45 INFO Creating container name=leaf01
+01:58:45 INFO Creating container name=client01
+01:58:45 INFO Creating container name=spine02
+01:58:45 INFO Creating container name=srv6-client01
+01:58:45 INFO Creating container name=spine01
+01:58:45 INFO Creating container name=client02
+01:58:45 INFO Creating container name=srv6-client02
+01:58:45 INFO Creating container name=leaf02
+01:58:46 INFO Created link: spine02:eth2 ▪┄┄▪ leaf02:eth2
+01:58:46 INFO Created link: leaf02:eth3 ▪┄┄▪ client02:eth1
+01:58:46 INFO Created link: leaf02:eth4 ▪┄┄▪ srv6-client02:eth1
+01:58:46 INFO Created link: spine01:eth2 ▪┄┄▪ leaf02:eth1
+01:58:47 INFO Created link: spine01:eth1 ▪┄┄▪ leaf01:eth1
+01:58:47 INFO Created link: spine02:eth1 ▪┄┄▪ leaf01:eth2
+01:58:47 INFO Created link: leaf01:eth3 ▪┄┄▪ client01:eth1
+01:58:47 INFO Created link: leaf01:eth4 ▪┄┄▪ srv6-client01:eth1
+01:58:47 INFO Executed command node=srv6-client02 command="ip link set dev eth1 up" stdout=""
+01:58:47 INFO Executed command node=srv6-client01 command="ip link set dev eth1 up" stdout=""
+01:58:47 INFO Executed command node=client01 command="ip link set dev eth1 up" stdout=""
+01:58:47 INFO Executed command node=client02 command="ip link set dev eth1 up" stdout=""
+01:58:47 INFO Executed command node=srv6-client02 command="ip addr add 192.0.2.41/31 dev eth1" stdout=""
+01:58:47 INFO Executed command node=srv6-client01 command="ip addr add 192.0.2.31/31 dev eth1" stdout=""
+01:58:47 INFO Executed command node=client01 command="ip addr add 192.0.2.11/31 dev eth1" stdout=""
+01:58:47 INFO Executed command node=srv6-client02 command="ip -6 addr add 2001:db8:4::41/127 dev eth1" stdout=""
+01:58:47 INFO Executed command node=client02 command="ip addr add 192.0.2.21/31 dev eth1" stdout=""
+01:58:47 INFO Executed command node=srv6-client01 command="ip -6 addr add 2001:db8:3::31/127 dev eth1" stdout=""
+01:58:47 INFO Executed command node=client01 command="ip -6 addr add 2001:db8:1::11/127 dev eth1" stdout=""
+01:58:47 INFO Executed command node=client02 command="ip -6 addr add 2001:db8:2::21/127 dev eth1" stdout=""
+01:58:47 INFO Adding host entries path=/etc/hosts
+01:58:47 INFO Adding SSH config for nodes path=/etc/ssh/ssh_config.d/clab-ainetops-fabric.conf
+[1m╭[0m[1m────────────────────────────────────[0m[1m┬[0m[1m────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m[1m┬[0m[1m─────────[0m[1m┬[0m[1m────────────────[0m[1m╮[0m
+[1m│[0m[1m                Name                [0m[1m│[0m[1m                                                   Kind/Image                                                   [0m[1m│[0m[1m  State  [0m[1m│[0m[1m IPv4/6 Address [0m[1m│[0m
+[1m├[0m[1m────────────────────────────────────[0m[1m┼[0m[1m────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m[1m┼[0m[1m─────────[0m[1m┼[0m[1m────────────────[0m[1m┤[0m
+│ clab-ainetops-fabric-client01      │ linux                                                                                                          │ running │ 172.31.0.101   │
+│                                    │ localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f        │         │ N/A            │
+├────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────┼────────────────┤
+│ clab-ainetops-fabric-client02      │ linux                                                                                                          │ running │ 172.31.0.102   │
+│                                    │ localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f        │         │ N/A            │
+├────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────┼────────────────┤
+│ clab-ainetops-fabric-leaf01        │ sonic-vs                                                                                                       │ running │ 172.31.0.21    │
+│                                    │ localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e │         │ N/A            │
+├────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────┼────────────────┤
+│ clab-ainetops-fabric-leaf02        │ sonic-vs                                                                                                       │ running │ 172.31.0.22    │
+│                                    │ localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e │         │ N/A            │
+├────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────┼────────────────┤
+│ clab-ainetops-fabric-spine01       │ sonic-vs                                                                                                       │ running │ 172.31.0.11    │
+│                                    │ localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e │         │ N/A            │
+├────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────┼────────────────┤
+│ clab-ainetops-fabric-spine02       │ sonic-vs                                                                                                       │ running │ 172.31.0.12    │
+│                                    │ localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e │         │ N/A            │
+├────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────┼────────────────┤
+│ clab-ainetops-fabric-srv6-client01 │ linux                                                                                                          │ running │ 172.31.0.111   │
+│                                    │ localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f       │         │ N/A            │
+├────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────┼────────────────┤
+│ clab-ainetops-fabric-srv6-client02 │ linux                                                                                                          │ running │ 172.31.0.112   │
+│                                    │ localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f       │         │ N/A            │
+╰────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─────────┴────────────────╯
+01:58:47 INFO Parsing & checking topology file=topology.clab.yml
+{
+  "ainetops-fabric": [
+    {
+      "lab_name": "ainetops-fabric",
+      "labPath": "lab/topology.clab.yml",
+      "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
+      "name": "clab-ainetops-fabric-client01",
+      "container_id": "cdc2054a0ab6",
+      "image": "localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f",
+      "kind": "linux",
+      "state": "running",
+      "status": "Up 1 second",
+      "ipv4_address": "172.31.0.101/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "ainetops-fabric",
+      "labPath": "lab/topology.clab.yml",
+      "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
+      "name": "clab-ainetops-fabric-client02",
+      "container_id": "8a91d235bdf0",
+      "image": "localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f",
+      "kind": "linux",
+      "state": "running",
+      "status": "Up 1 second",
+      "ipv4_address": "172.31.0.102/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "ainetops-fabric",
+      "labPath": "lab/topology.clab.yml",
+      "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
+      "name": "clab-ainetops-fabric-leaf01",
+      "container_id": "a902bdc9c853",
+      "image": "localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e",
+      "kind": "sonic-vs",
+      "state": "running",
+      "status": "Up Less than a second",
+      "ipv4_address": "172.31.0.21/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "ainetops-fabric",
+      "labPath": "lab/topology.clab.yml",
+      "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
+      "name": "clab-ainetops-fabric-leaf02",
+      "container_id": "f0d184a41a78",
+      "image": "localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e",
+      "kind": "sonic-vs",
+      "state": "running",
+      "status": "Up 1 second",
+      "ipv4_address": "172.31.0.22/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "ainetops-fabric",
+      "labPath": "lab/topology.clab.yml",
+      "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
+      "name": "clab-ainetops-fabric-spine01",
+      "container_id": "4598f5d6446a",
+      "image": "localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e",
+      "kind": "sonic-vs",
+      "state": "running",
+      "status": "Up Less than a second",
+      "ipv4_address": "172.31.0.11/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "ainetops-fabric",
+      "labPath": "lab/topology.clab.yml",
+      "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
+      "name": "clab-ainetops-fabric-spine02",
+      "container_id": "fd66c0192a18",
+      "image": "localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e",
+      "kind": "sonic-vs",
+      "state": "running",
+      "status": "Up 1 second",
+      "ipv4_address": "172.31.0.12/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "ainetops-fabric",
+      "labPath": "lab/topology.clab.yml",
+      "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
+      "name": "clab-ainetops-fabric-srv6-client01",
+      "container_id": "759da73d6bbd",
+      "image": "localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f",
+      "kind": "linux",
+      "state": "running",
+      "status": "Up 1 second",
+      "ipv4_address": "172.31.0.111/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "ainetops-fabric",
+      "labPath": "lab/topology.clab.yml",
+      "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
+      "name": "clab-ainetops-fabric-srv6-client02",
+      "container_id": "1c81b8efa9a1",
+      "image": "localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f",
+      "kind": "linux",
+      "state": "running",
+      "status": "Up 1 second",
+      "ipv4_address": "172.31.0.112/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    }
+  ]
+}
+namespace/ainetops-system created
+serviceaccount/ainetops-controller created
+role.rbac.authorization.k8s.io/ainetops-controller created
+rolebinding.rbac.authorization.k8s.io/ainetops-controller created
+networkpolicy.networking.k8s.io/deny-all-by-default created
+secret/gnmi-lab-ca created
+serviceaccount/ainetops-srv6-controller created
+serviceaccount/ainetops-sonic-provider created
+serviceaccount/ainetops-sonic-provider unchanged
+serviceaccount/ainetops-srv6-controller unchanged
+clusterrole.rbac.authorization.k8s.io/ainetops-sonic-provider created
+clusterrole.rbac.authorization.k8s.io/ainetops-srv6-controller created
+clusterrolebinding.rbac.authorization.k8s.io/ainetops-sonic-provider created
+clusterrolebinding.rbac.authorization.k8s.io/ainetops-srv6-controller created
+clusterrole.rbac.authorization.k8s.io/ainetops-srv6-controller-crd created
+clusterrolebinding.rbac.authorization.k8s.io/ainetops-srv6-controller-crd created
+secret/gnmi-lab-creds created
+secret/gnmi-lab-tls created
+Image: "kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8" with ID "sha256:1c9ff0e74d3140a4fe4070fb82b8b60a34aee3a3a04a0a057bb7a37167120fb7" not yet present on node "ainetops-control-plane", loading...
+Image: "kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8" with ID "sha256:1c9ff0e74d3140a4fe4070fb82b8b60a34aee3a3a04a0a057bb7a37167120fb7" not yet present on node "ainetops-worker", loading...
+job.batch/ainetops-secret-generator created
+job.batch/ainetops-secret-generator condition met
+[rbac] base namespaces/RBAC/network policies, controller RBAC, and lab Secrets applied
+[kubenet-install] WARN: pinned upstream CRD URLs unreachable; applying repo-pinned CRD bundles (deploy/kubenet/crds, deploy/kuid/crds)
+customresourcedefinition.apiextensions.k8s.io/networkconfigs.network.kubenet.dev created
+customresourcedefinition.apiextensions.k8s.io/networkdevices.network.kubenet.dev created
+customresourcedefinition.apiextensions.k8s.io/topologies.network.kubenet.dev created
+customresourcedefinition.apiextensions.k8s.io/networks.network.kubenet.dev created
+customresourcedefinition.apiextensions.k8s.io/ipindices.id.kuid.dev created
+customresourcedefinition.apiextensions.k8s.io/asnindices.id.kuid.dev created
+customresourcedefinition.apiextensions.k8s.io/vniindices.id.kuid.dev created
+customresourcedefinition.apiextensions.k8s.io/claims.id.kuid.dev created
+namespace/kubenet-system created
+deployment.apps/kubenet-controller created
+serviceaccount/kubenet-controller created
+namespace/kuid-system created
+deployment.apps/kuid-controller created
+serviceaccount/kuid-controller created
+customresourcedefinition.apiextensions.k8s.io/networkconfigs.network.kubenet.dev condition met
+customresourcedefinition.apiextensions.k8s.io/networks.network.kubenet.dev condition met
+customresourcedefinition.apiextensions.k8s.io/networkdevices.network.kubenet.dev condition met
+customresourcedefinition.apiextensions.k8s.io/topologies.network.kubenet.dev condition met
+customresourcedefinition.apiextensions.k8s.io/ipindices.id.kuid.dev condition met
+customresourcedefinition.apiextensions.k8s.io/asnindices.id.kuid.dev condition met
+customresourcedefinition.apiextensions.k8s.io/vniindices.id.kuid.dev condition met
+customresourcedefinition.apiextensions.k8s.io/claims.id.kuid.dev condition met
+[kubenet-install] CRDs applied; controller pods not Ready within window (kubenet=false kuid=false); continuing best-effort
+[sdc-install] WARN: pinned upstream CRD URLs unreachable; applying repo-pinned CRD bundle (deploy/sdc/crds)
+customresourcedefinition.apiextensions.k8s.io/schemas.sdc.sdcio.dev created
+customresourcedefinition.apiextensions.k8s.io/configs.sdc.sdcio.dev created
+customresourcedefinition.apiextensions.k8s.io/targets.sdc.sdcio.dev created
+customresourcedefinition.apiextensions.k8s.io/discoveryrules.sdc.sdcio.dev created
+namespace/sdc-system created
+deployment.apps/sdc-schema created
+deployment.apps/sdc-config created
+deployment.apps/sdc-data created
+deployment.apps/sdc-cache created
+persistentvolumeclaim/sdc-data created
+persistentvolumeclaim/sdc-cache created
+customresourcedefinition.apiextensions.k8s.io/schemas.sdc.sdcio.dev condition met
+customresourcedefinition.apiextensions.k8s.io/configs.sdc.sdcio.dev condition met
+customresourcedefinition.apiextensions.k8s.io/targets.sdc.sdcio.dev condition met
+[sdc-install] CRDs applied; 0/4 SDC component pods Ready within window; continuing best-effort
+[provision] preloading pinned observability images into Kind
+[provision] preloaded ghcr.io/openconfig/gnmic@sha256:fd59f5f1c7a98e14ff5b14f85329e5e0a4d49ef1d5b0dddfd910b6caef03b9fb
+[provision] preloaded otel/opentelemetry-collector-contrib@sha256:e07e325e303e86f4a87a617491e921b579a92da6d404007394757ac910bf9587
+[provision] preloaded prom/prometheus@sha256:f20d3127bf2876f4a1df76246fca576b41ddf1125ed1c546fbd8b16ea55117e6
+[provision] preloaded grafana/grafana@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+[provision] WARN: pinned image not in local cache: grafana/flow-plugin@sha256:5c9d6b4d6b899be4a3f3c728b3acb0a8f8c3e6a46c9f5b07d705e8ca3c1a2c44
+[provision] WARN: pinned image not in local cache: ghcr.io/ainetops/topology-generator@sha256:9a0b2b0d57a4c2b2b5c78a7d34c8a0c1f9a3b7d6e2c4e5f6a7b8c9d0e1f2a3b4
+[obs] applying OTel Collector, gNMIc, Prometheus, Grafana
+namespace/ainetops-system configured
+serviceaccount/otel-collector created
+clusterrole.rbac.authorization.k8s.io/otel-collector created
+clusterrolebinding.rbac.authorization.k8s.io/otel-collector created
+configmap/otel-collector-config created
+deployment.apps/otel-collector created
+service/otel-collector created
+namespace/ainetops-system unchanged
+serviceaccount/gnmic created
+configmap/gnmic-config created
+deployment.apps/gnmic created
+namespace/monitoring created
+persistentvolumeclaim/prometheus created
+configmap/prometheus-config created
+configmap/prometheus-rules created
+deployment.apps/prometheus created
+service/prometheus created
+configmap/ainetops-topology created
+error: resource mapping not found for name: "ainetops-alerts" namespace: "monitoring" from "/root/ainetops-demo/deploy/observability/rules/ainetops.rules.yaml": no matches for kind "PrometheusRule" in version "monitoring.coreos.com/v1"
+ensure CRDs are installed first
+serviceaccount/grafana-secret-generator created
+role.rbac.authorization.k8s.io/grafana-secret-writer created
+rolebinding.rbac.authorization.k8s.io/grafana-secret-writer-binding created
+job.batch/grafana-admin-secret-generator created
+job.batch/grafana-admin-secret-generator condition met
+namespace/monitoring unchanged
+persistentvolumeclaim/grafana created
+configmap/grafana-provisioning created
+configmap/grafana-dashboards created
+deployment.apps/grafana created
+service/grafana created
+deployment "otel-collector" successfully rolled out
+deployment "gnmic" successfully rolled out
+Waiting for deployment "prometheus" rollout to finish: 0 of 1 updated replicas are available...
+deployment "prometheus" successfully rolled out
+Waiting for deployment "grafana" rollout to finish: 0 of 1 updated replicas are available...
+deployment "grafana" successfully rolled out
+[provision] building controller binaries (pinned vendored Go source)
+sha256:0d2e8bb60bf65ebfb5024a462d4a8add9890a069850b5a1f7d974f1709b9e199
+sha256:f0e8a5faffd8c66287efd4235137c608b6e6602f880f8e593efa7d6f574f1d5f
+[provision] loading images into Kind
+Image: "ainetops-sonic-provider:dev" with ID "sha256:0d2e8bb60bf65ebfb5024a462d4a8add9890a069850b5a1f7d974f1709b9e199" not yet present on node "ainetops-control-plane", loading...
+Image: "ainetops-sonic-provider:dev" with ID "sha256:0d2e8bb60bf65ebfb5024a462d4a8add9890a069850b5a1f7d974f1709b9e199" not yet present on node "ainetops-worker", loading...
+Image: "ainetops-srv6-controller:dev" with ID "sha256:f0e8a5faffd8c66287efd4235137c608b6e6602f880f8e593efa7d6f574f1d5f" not yet present on node "ainetops-control-plane", loading...
+Image: "ainetops-srv6-controller:dev" with ID "sha256:f0e8a5faffd8c66287efd4235137c608b6e6602f880f8e593efa7d6f574f1d5f" not yet present on node "ainetops-worker", loading...
+[provision] deploying controllers
+deployment.apps/ainetops-sonic-provider created
+service/ainetops-sonic-provider created
+deployment.apps/ainetops-srv6-controller created
+service/ainetops-srv6-controller created
+deployment.apps/ainetops-sonic-provider image updated
+deployment.apps/ainetops-srv6-controller image updated
+[provision] waiting for controller pods ready (timeout=120s)
+Waiting for deployment "ainetops-sonic-provider" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "ainetops-sonic-provider" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "ainetops-sonic-provider" rollout to finish: 1 old replicas are pending termination...
+deployment "ainetops-sonic-provider" successfully rolled out
+Waiting for deployment "ainetops-srv6-controller" rollout to finish: 1 old replicas are pending termination...
+deployment "ainetops-srv6-controller" successfully rolled out
+[provision] applying SRv6Service CRD and Kubenet default/tenant networks
+customresourcedefinition.apiextensions.k8s.io/srv6services.ainetops.io created
+[assert-crds] OK: AINETOPS-owned CRDs = srv6services.ainetops.io and no duplicate/conflicting fabric/device-config CRDs detected
+topology.network.kubenet.dev/ainetops-topology created
+networkconfig.network.kubenet.dev/ainetops-default created
+ipindex.id.kuid.dev/underlay-v6 created
+asnindex.id.kuid.dev/fabric-asn created
+vniindex.id.kuid.dev/evpn-vni created
+claim.id.kuid.dev/underlay-v6-claim created
+claim.id.kuid.dev/fabric-asn-claim created
+claim.id.kuid.dev/evpn-vni-claim created
+ipindex.id.kuid.dev/srv6-locator-v6 created
+claim.id.kuid.dev/srv6-locator-claim created
+ipindex.id.kuid.dev/srv6-sids-v6 created
+claim.id.kuid.dev/srv6-sid-claim created
+vniindex.id.kuid.dev/srv6-service-ids created
+claim.id.kuid.dev/srv6-service-id-claim created
+network.network.kubenet.dev/default-fabric created
+network.network.kubenet.dev/tenant-a-l2-bridged created
+network.network.kubenet.dev/tenant-a-l3-routed created
+network.network.kubenet.dev/tenant-b-irb created
+srv6service.ainetops.io/example-srv6 created
+error: timed out waiting for the condition on srv6services/example-srv6
+schema.sdc.sdcio.dev/sonic-oc created
+config.sdc.sdcio.dev/sonic-conn-profile created
+config.sdc.sdcio.dev/sonic-sync-profile created
+discoveryrule.sdc.sdcio.dev/sonic-management created
+[clab] bootstrap: spine01
+[bootstrap] starting minimal SONiC bootstrap for gNMI
+[install-gnmi-certs] installed certs to /etc/sonic/telemetry
+[bootstrap] merged gNMI telemetry settings into /etc/sonic/config_db.json
+True
+[bootstrap] reloaded CONFIG_DB
+[bootstrap] created gNMI linux user 92521790
+[bootstrap] set gNMI user password
+[bootstrap] started sshd for gNMI password auth
+telemetry: stopped
+telemetry: started
+[bootstrap] gNMI port 8080 is listening
+[bootstrap] completed
+[clab] bootstrap: spine01 done
+[clab] bootstrap: spine02
+[bootstrap] starting minimal SONiC bootstrap for gNMI
+[install-gnmi-certs] installed certs to /etc/sonic/telemetry
+[bootstrap] merged gNMI telemetry settings into /etc/sonic/config_db.json
+True
+[bootstrap] reloaded CONFIG_DB
+[bootstrap] created gNMI linux user 92521790
+[bootstrap] set gNMI user password
+[bootstrap] started sshd for gNMI password auth
+telemetry: stopped
+telemetry: started
+[bootstrap] gNMI port 8080 is listening
+[bootstrap] completed
+[clab] bootstrap: spine02 done
+[clab] bootstrap: leaf01
+[bootstrap] starting minimal SONiC bootstrap for gNMI
+[install-gnmi-certs] installed certs to /etc/sonic/telemetry
+[bootstrap] merged gNMI telemetry settings into /etc/sonic/config_db.json
+True
+[bootstrap] reloaded CONFIG_DB
+[bootstrap] created gNMI linux user 92521790
+[bootstrap] set gNMI user password
+[bootstrap] started sshd for gNMI password auth
+telemetry: stopped
+telemetry: started
+[bootstrap] gNMI port 8080 is listening
+[bootstrap] completed
+[clab] bootstrap: leaf01 done
+[clab] bootstrap: leaf02
+[bootstrap] starting minimal SONiC bootstrap for gNMI
+[install-gnmi-certs] installed certs to /etc/sonic/telemetry
+[bootstrap] merged gNMI telemetry settings into /etc/sonic/config_db.json
+True
+[bootstrap] reloaded CONFIG_DB
+[bootstrap] created gNMI linux user 92521790
+[bootstrap] set gNMI user password
+[bootstrap] started sshd for gNMI password auth
+telemetry: stopped
+telemetry: started
+[bootstrap] gNMI port 8080 is listening
+[bootstrap] completed
+[clab] bootstrap: leaf02 done
+[clab] bootstrap: configuring underlay BGP + EVPN across the fabric
+[fabric-bgp] spine01 (spine, AS65000): starting daemons
+[fabric-bgp] spine02 (spine, AS65000): starting daemons
+[fabric-bgp] leaf01 (leaf, AS65101): starting daemons
+[fabric-bgp] leaf02 (leaf, AS65102): starting daemons
+[fabric-bgp] spine01: configuring BGP/EVPN
+[fabric-bgp] spine02: configuring BGP/EVPN
+[fabric-bgp] leaf01: configuring BGP/EVPN
+[fabric-bgp] leaf02: configuring BGP/EVPN
+[fabric-bgp] underlay converged (all nodes Established)
+[qualify] Running Capabilities
+[gnmi-suite] 172.31.0.21:8080: capabilities content asserted (sonic-db, openconfig-system, gNMI version)
+[gnmi-suite] 172.31.0.22:8080: capabilities content asserted (sonic-db, openconfig-system, gNMI version)
+[qualify] Running Get
+[gnmi-suite] 172.31.0.21:8080: Get content asserted (DEVICE_METADATA.localhost present)
+[gnmi-suite] 172.31.0.22:8080: Get content asserted (DEVICE_METADATA.localhost present)
+[qualify] Running Set
+[gnmi-suite] 172.31.0.21:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788214205)
+[gnmi-suite] 172.31.0.22:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788214205)
+[qualify] Running Subscribe
+[gnmi-suite] 172.31.0.21:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.22:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[qualify] Running sonic-srv6
+[gnmi-suite] 172.31.0.21:8080: sonic-srv6 locator read-back asserted (prefix fc00:0:71::)
+[gnmi-suite] 172.31.0.22:8080: sonic-srv6 locator read-back asserted (prefix fc00:0:71::)
+[qualify] Running persistence pre-set (Set)
+[qualify] Running Set
+[gnmi-suite] 172.31.0.21:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788214325)
+[gnmi-suite] 172.31.0.22:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788214325)
+/root/ainetops-demo/scripts/lib/persistence.sh: line 12: v: command not found
+[persist] writing SRv6 witness (persist-loc-1788214373) via GCU on all targets
+[persist] pre-restart read-back over gNMI
+[persist] restarting SONiC containers
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+[persist] waiting for gNMI to come back
+[persist] post-restart read-back over gNMI
+[persist] 172.31.0.21:8080 persistence verified
+[persist] 172.31.0.22:8080 persistence verified
+[persist] cleaning up witness
+[persist] cleanup patch failed on clab-ainetops-fabric-leaf01 (leftover persist-loc-1788214373 tolerable)
+[persist] persistence verified
+[qualify] Running EVPN-Type2
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+[qualify] Running EVPN-Type3
+[evpn-srv6-suite] clab-ainetops-fabric-leaf02: EVPN-Type3 (inclusive multicast AF) asserted (L2VPN EVPN session Established with 172.31.0.21)
+[qualify] Running EVPN-Type5
+[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type5 (IP prefix AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+[qualify] Running SRv6-Underlay
+[evpn-srv6-suite] 172.31.0.21:8080: underlay locator asserted (prefix fc00:0:72::)
+[evpn-srv6-suite] 172.31.0.22:8080: underlay locator asserted (prefix fc00:0:72::)
+[qualify] Running H.Encaps.Red
+[evpn-srv6-suite] 172.31.0.21:8080: H.Encaps.Red asserted (seg6 encap.red programmed and read back)
+[evpn-srv6-suite] 172.31.0.22:8080: H.Encaps.Red asserted (seg6 encap.red programmed and read back)
+[qualify] Running End
+[evpn-srv6-suite] 172.31.0.21:8080: End asserted (uN SID present)
+[evpn-srv6-suite] 172.31.0.22:8080: End asserted (uN SID present)
+[qualify] Running End.DT46
+[evpn-srv6-suite] 172.31.0.21:8080: End.DT46 asserted (uDT46 + decap_vrf present)
+[evpn-srv6-suite] 172.31.0.22:8080: End.DT46 asserted (uDT46 + decap_vrf present)
+[qualify] Running SID-list
+[evpn-srv6-suite] 172.31.0.21:8080: SID-list asserted (seg6 encap programmed and read back)
+[evpn-srv6-suite] 172.31.0.22:8080: SID-list asserted (seg6 encap programmed and read back)
+[qualify] Running Decapsulation
+[evpn-srv6-suite] 172.31.0.21:8080: decapsulation asserted (decap_dscp_mode=uniform)
+[evpn-srv6-suite] 172.31.0.22:8080: decapsulation asserted (decap_dscp_mode=uniform)
+[qualify] Running Counters
+[evpn-srv6-suite] 172.31.0.21:8080: counters table asserted (COUNTERS_SRV6_NAME_MAP queryable over gNMI)
+[evpn-srv6-suite] 172.31.0.22:8080: counters table asserted (COUNTERS_SRV6_NAME_MAP queryable over gNMI)
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-interfaces asserted on all targets
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-network-instance asserted on all targets
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-vlan asserted on all targets
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-bgp asserted on all targets
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.21:8080
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.22:8080
+[yang-path-suite] sonic-telemetry asserted on all targets
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-vrf asserted on all targets
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-tunnel asserted on all targets
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-srv6 asserted on all targets
+[qualify] OK
+configmap/ainetops-topology unchanged
+[provision] complete: pins verified, CRDs validated/asserted, Kind ensured/attached, lab deployed, apps installed, seed applied, capability gate executed.

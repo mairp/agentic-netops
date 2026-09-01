@@ -1,0 +1,16 @@
+# AINETOPS SRv6 Linux endpoint image (T012)
+# Deterministic dual-stack client for SRv6 capture/counter/failover tests.
+# iproute2 provides the `ip -6 route` / seg6 tools; the host kernel provides SRv6 (seg6) support.
+FROM alpine:3.19
+
+RUN apk add --no-cache \
+      iproute2 \
+      iputils \
+      curl \
+      tcpdump \
+      bind-tools \
+      tini
+
+# Containerlab linux-kind nodes run this as their long-running process.
+ENTRYPOINT ["/sbin/tini", "-s", "--"]
+CMD ["sleep", "infinity"]

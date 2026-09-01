@@ -2,9 +2,11 @@
 
 **Feature:** `001-ainetops-sonic-evpn-fabric`, phase 8 (SC-013 and related SRv6 conformance)
 **Date:** 2026-08-31
-**Status:** gNMI read path **working and verified**; gNMI write path **blocked at one specific
-layer**; four SRv6 criteria are **untestable as currently written** because the tables they query
-do not exist in SONiC's schema.
+**Status:** gNMI read path **working and verified**; gNMI write path **resolved to the D1-B
+witness** (GCU write → gNMI read-back, with the gNMI→GCU Set bridge recorded as a build
+limitation); the four SRv6 criteria are **re-expressed against witnesses that exist and the
+suites now assert content, not exit codes**. All pending decisions D1–D4 were resolved and
+implemented on 2026-08-31 — see [§7bis](#7bis--resolution-2026-08-31-all-decisions-executed).
 
 Every claim below was executed against a live node running the pinned image. Commands are in
 [Appendix A](#appendix-a--reproduction) so any statement here can be re-checked rather than trusted.
@@ -95,17 +97,24 @@ lab, each verified by the error disappearing:
 
 1. **`dbus-daemon` is installed but never started.** Without it: `dial unix
    /var/run/dbus/system_bus_socket: connect: no such file or directory`. Needs a supervisord program
-   (or a bootstrap step).
+   (or a bootstrap step). — **fixed in image v2** (`[program:dbus]`).
 2. **`sonic-host-server` and `host_modules/` are absent from the base image.** Without them:
    `The name org.SONiC.HostService.gcu was not provided by any .service files`. The upstream 202505
    image carries both, and they drop into our image cleanly — our image is Python 3.11.2 with the
    same `dist-packages` path, and `dbus`, `sonic_py_common` and `swsscommon` all import.
+   — **present in the v1 rebuild and started in image v2** (`[program:host-server]`).
 3. **`DEVICE_METADATA.localhost.switch_type` is `"switch"`, which is not a valid enum value**
    (`chassis-packet|fabric|npu|voq|dpu|dummy-sup`). GCU validates the *entire* CONFIG_DB before
    applying any patch, so while this is wrong **every** write fails with `Data Loading Failed`,
    whatever the patch contains. Setting it to `npu` makes the base config validate.
+   — **fixed in the bootstrap** (`gnmi_config_db.json` sets `switch_type: npu`).
 
-Items 1 and 2 are image changes; item 3 is a bootstrap/config change.
+Item 3 turned out to have a second instance of the same trap, found while implementing D4:
+**`TELEMETRY|certs` paths ending in `.crt` also poison every GCU write.** sonic-telemetry YANG
+validates cert paths against `(/[a-zA-Z0-9_-]+)*/([a-zA-Z0-9_-]+).cer`, so a `.crt` path in
+CONFIG_DB fails whole-config validation exactly like the bad enum. The bootstrap now installs and
+references `gnmi.cer` / `ca.cer`. Both traps fail the *same way* (every patch, `Data Loading
+Failed`), which is what made the original gNMI Set error look unfixable.
 
 ### 4.2 OpenConfig translib surface is advertised but not mapped
 
@@ -177,10 +186,12 @@ Every one of these currently passes vacuously.
 
 ---
 
-## 7. Pending decisions
+## 7. Pending decisions — RESOLVED 2026-08-31
 
-These are choices about what the gate should assert, not debugging tasks. Recommendations are mine;
-the decision is the operator's because two of them touch what FR-003 / SC-013 mean.
+The operator approved the recommended bundle (D1-B, D2 re-express, D3 FRR witness, D4 full build).
+Everything below was implemented the same day; see [§7bis](#7bis--resolution-2026-08-31-all-decisions-executed)
+for the as-built record. The original option tables are kept in git history
+(`5afce7f docs: record what SRv6/gNMI actually does and does not do here`).
 
 ### D1 — What should the gate's `Set` test assert? *(recommend: option B)*
 
@@ -235,17 +246,44 @@ row), `lab/topology.clab.yml`, and `lab/profiles/sonic-vs/profile.yaml`, and re-
 
 ---
 
-## 8. Recommended order of work
+## 7bis — Resolution 2026-08-31 (all decisions executed)
 
-1. **Build image v2** (D4) — unblocks any write-side assertion at all.
-2. **Fix `switch_type` in the profile bootstrap** — one line, and without it every GCU write fails
-   regardless of image.
-3. **Convert the two suites** with content assertions (D1-B, D2, D3), so no test can pass on an
-   empty result.
+Operator sign-off received for D1-B + D2 + D3 + D4. As-built:
+
+| Decision | Outcome |
+|---|---|
+| **D1** | **B.** The gate's `Set` test is a GCU write → gNMI read-back → delete cycle on a schema-valid SRv6 locator+SID with content assertions (`tests/integration/sonic_gnmi_suite.sh`, `set_srv6_witness`). The gNMI→GCU Set bridge error remains documented here as a sonic-gnmi build limitation; it no longer gates the phase. |
+| **D2** | Re-expressed as recommended: End/End.DT46/underlay/decap via `SRV6_MY_SIDS` / `SRV6_MY_LOCATORS` gNMI read-backs; H.Encaps.Red and ordered SID-list via **kernel seg6 dataplane witnesses** (`ip -6 route … encap seg6 mode encap.red|encap segs …`, asserted by reading the programmed route back); counters via `COUNTERS_DB/COUNTERS_SRV6_NAME_MAP` over gNMI (`tests/integration/evpn_srv6_suite.sh`). |
+| **D3** | EVPN Type2/3/5 asserted through a **live eBGP session with the L2VPN EVPN AFI/SAFI negotiated** between both leaf mgmt addresses (`supervisorctl start bgpd` + vtysh config; `show bgp l2vpn evpn summary json` must report `"state":"Established"`), plus a type-5 route-table walk. Honest scope note: at gate time the fabric has no configured overlay, so no Type-2/3 route is originated. **Correction 2026-09-01 — the stated cause was wrong.** This note previously read that Type-2/3 are "not achievable (SONiC zebra takes VNIs from swss, not kernel bridges)". The blocker was not swss: it was the missing `advertise-all-vni` under `address-family l2vpn evpn`, plus `fpmsyncd`. With those, zebra learns the VNI that `vxlanmgrd` creates and a Type-3 route is originated — reproduced on scratch nodes and on the 4-node lab (`docs/FABRIC_BGP_EVPN_DEFERRED.md`). Type-2 additionally needs a MAC learned on the overlay VLAN and Type-5 an L3VNI, so the gate's scope is unchanged, but the limitation is a matter of configuration, not of this image. Route *exchange* content is covered later by the configured-fabric suites; the gate proves bgpd's EVPN capability and session establishment, which cannot pass vacuously. |
+| **D4** | **Image v2 built, pushed and re-pinned**: `localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c29456…` (dbus + host-server supervisord programs layered on the v1 digest; recipe `lab/images/sonic-vs-gnmi/Dockerfile.v2`). Bootstrap now sets `switch_type=npu` and `.cer` cert paths. Pins updated in `versions.lock.yaml` (`sonic_vs` + `sonic_yang.compatibility`), `lab/topology.clab.yml`, `lab/profiles/sonic-vs/profile.yaml`; `scripts/lib/verify_pins.sh` passes. |
+
+Additional as-built changes required by the above:
+
+- `tests/integration/sonic_gnmi_suite.sh` — rewritten with per-target content assertions
+  (Capabilities advertise sonic-db + openconfig-system; Get returns real DEVICE_METADATA
+  content; Subscribe delivers `sonic-db:/CONFIG_DB/DEVICE_METADATA` content; sonic-srv6 locator
+  read-back). No test decides pass/fail on gnmic's exit code alone.
+- `tests/integration/evpn_srv6_suite.sh` — rewritten as above; every test cleans up its witness.
+- `scripts/lib/persistence.sh` — persistence witness moved from the (broken) gNMI Set path to the
+  GCU write → restart → gNMI read-back cycle, still exercising T014's restart semantics.
+- `tests/integration/yang_paths_suite.sh` + `lab/requirements/yang-paths.txt` — required YANG
+  paths re-mapped to their sonic-db CONFIG_DB tables (translib forms are unavailable, §4.2);
+  `DEVICE_METADATA` and `TELEMETRY` are asserted non-empty, the rest assert well-formed replies
+  (their content is covered by the configured-fabric suites).
+
+---
+
+## 8. Order of work — status
+
+1. ~~**Build image v2** (D4)~~ — done (`202605-v2@sha256:30c29456…`).
+2. ~~**Fix `switch_type` in the profile bootstrap**~~ — done, plus the `.cer` cert-path trap.
+3. ~~**Convert the two suites** with content assertions~~ — done (both suites + persistence + yang-paths).
 4. **Re-run the capability gate** (`scripts/lib/qualify.sh`) against the lab and capture
-   `qualify.report.json` as phase-8 evidence.
-5. **Decide FR-003/SC-013 wording** — either accept the re-expressed witnesses, or record the
-   unreachable criteria as ENV-BLOCKED with this document as the justification.
+   `qualify.report.json` as phase-8 evidence. — executed via a full `scripts/provision.sh`
+   validation run on 2026-08-31.
+5. ~~**Decide FR-003/SC-013 wording**~~ — resolved: the re-expressed witnesses are accepted
+   (operator sign-off 2026-08-31); FR-003's "capability gate" is understood as the §7bis
+   witness set, with route-exchange content covered by the configured-fabric suites.
 
 Steps 1–3 are engineering. Step 5 is the only one that genuinely needs a human decision.
 
@@ -253,19 +291,24 @@ Steps 1–3 are engineering. Step 5 is the only one that genuinely needs a human
 
 ## Appendix A — reproduction
 
-Node used below: the running smoke container (`ainetops-smoke-sonic`, `172.17.0.5`). Substitute a
-lab node IP for a fabric run.
+Node used below: any node running the pinned `sonic_vs` image (see `versions.lock.yaml`). Export its
+mgmt IP first — the commands read `$NODE`, so they work against a lab node or a throwaway alike:
+
+```bash
+NODE=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \
+       clab-ainetops-fabric-leaf01)
+```
 
 ```bash
 # capabilities (proves the gNMI server, and the model list)
-gnmic -a 172.17.0.5:8080 --skip-verify -u admin -p admin capabilities
+gnmic -a $NODE:8080 --skip-verify -u admin -p admin capabilities
 
 # read SRv6 config (both accepted path forms)
-gnmic -a 172.17.0.5:8080 --skip-verify -u admin -p admin get --path /SRV6_MY_SIDS --target CONFIG_DB
-gnmic -a 172.17.0.5:8080 --skip-verify -u admin -p admin get --path sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS
+gnmic -a $NODE:8080 --skip-verify -u admin -p admin get --path /SRV6_MY_SIDS --target CONFIG_DB
+gnmic -a $NODE:8080 --skip-verify -u admin -p admin get --path sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS
 
 # the vacuous-pass demonstration: a table that does not exist, rc=0
-gnmic -a 172.17.0.5:8080 --skip-verify -u admin -p admin get --path /TOTALLY_FAKE_TABLE --target CONFIG_DB
+gnmic -a $NODE:8080 --skip-verify -u admin -p admin get --path /TOTALLY_FAKE_TABLE --target CONFIG_DB
 
 # image feature audit
 docker run --rm --entrypoint bash localhost:5000/sonic-vs-gnmi:202605 -c 'ls -l /usr/sbin/telemetry; grep -c "program:telemetry" /etc/supervisor/conf.d/supervisord.conf; ls /usr/local/yang-models/sonic-srv6.yang'
@@ -277,15 +320,19 @@ redis-cli -n 4 hset "DEVICE_METADATA|localhost" switch_type npu # 3. valid enum
 
 # write path that works today (GCU), then read it back over gNMI
 python3 -c 'import jsonpatch; from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat; GenericUpdater().apply_patch(jsonpatch.JsonPatch([{"op":"add","path":"/SRV6_MY_SIDS","value":{"loc1|fc00:0:1:1::/64":{"action":"uN"}}}]), ConfigFormat.CONFIGDB, False, False, False, [])'
-gnmic -a 172.17.0.5:8080 --skip-verify -u admin -p admin get --path /SRV6_MY_SIDS --target CONFIG_DB
+gnmic -a $NODE:8080 --skip-verify -u admin -p admin get --path /SRV6_MY_SIDS --target CONFIG_DB
 
 # write path that is blocked (gNMI Set) — fails on any key, with or without a slash
-gnmic -a 172.17.0.5:8080 --skip-verify -u admin -p admin --encoding JSON_IETF set --update-path 'sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS/loc2' --update-value '{"prefix":"fc00:0:2::"}'
+gnmic -a $NODE:8080 --skip-verify -u admin -p admin --encoding JSON_IETF set --update-path 'sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS/loc2' --update-value '{"prefix":"fc00:0:2::"}'
 ```
 
-**Note on the smoke container:** it was mutated during this investigation (host service installed and
-started, `switch_type` corrected, one locator and one SID written). It is a scratch container; treat
-its CONFIG_DB as dirty and rebuild it from the image for any clean measurement.
+**Note on scratch nodes:** the container these commands were originally run against
+(`ainetops-smoke-sonic`) was mutated during this investigation — host service installed and started,
+`switch_type` corrected, one locator and one SID written — and was **removed on 2026-08-31** as
+dirty scratch. It also still ran the v1 image. Any clean measurement needs a fresh node from the
+pinned image: either a lab node from `./scripts/provision.sh --profile sonic-vs`, or a throwaway
+started directly from the `sonic_vs` digest in `versions.lock.yaml`. Never measure against a node
+whose CONFIG_DB an investigation has already written to.
 
 ---
 

@@ -1,0 +1,1 @@
+     1	47:  run_all subscribe --mode once --path "/openconfig-interfaces:interfaces/interface/state/counters"

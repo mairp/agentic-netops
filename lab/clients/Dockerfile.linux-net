@@ -1,0 +1,16 @@
+# AINETOPS EVPN Linux endpoint image (T012)
+# Deterministic dual-stack client for EVPN traffic tests.
+# Alpine base with the tools the traffic suites require: iproute2, iputils (ping), curl, tcpdump.
+FROM alpine:3.19
+
+RUN apk add --no-cache \
+      iproute2 \
+      iputils \
+      curl \
+      tcpdump \
+      bind-tools \
+      tini
+
+# Containerlab linux-kind nodes run this as their long-running process.
+ENTRYPOINT ["/sbin/tini", "-s", "--"]
+CMD ["sleep", "infinity"]

@@ -1,0 +1,4 @@
+32:      skip-verify: false
+33:      tls-ca: /etc/gnmic/tls/ca.crt
+100:                secretKeyRef: { name: gnmi-lab-creds, key: username }
+103:                secretKeyRef: { name: gnmi-lab-creds, key: password }

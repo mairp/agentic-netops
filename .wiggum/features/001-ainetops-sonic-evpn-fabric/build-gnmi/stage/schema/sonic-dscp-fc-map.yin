@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-dscp-fc-map"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:dtm="http://github.com/sonic-net/sonic-dscp-fc-map">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-dscp-fc-map"/>
+  <prefix value="dtm"/>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>DSCP_TO_FC_MAP yang Module for SONiC OS</text>
+  </description>
+  <revision date="2021-10-29">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-dscp-fc-map">
+    <container name="DSCP_TO_FC_MAP">
+      <description>
+        <text>Maps DSCP values to forwarding class for Class-Based Forwarding.</text>
+      </description>
+      <list name="DSCP_TO_FC_MAP_LIST">
+        <key value="name"/>
+        <description>
+          <text>A named DSCP to forwarding class map.</text>
+        </description>
+        <leaf name="name">
+          <type name="string">
+            <pattern value="[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,31})"/>
+            <length value="1..32">
+              <error-message>
+                <value>Invalid length for map name.</value>
+              </error-message>
+              <error-app-tag value="map-name-invalid-length"/>
+            </length>
+          </type>
+          <description>
+            <text>Name of the DSCP to FC map.</text>
+          </description>
+        </leaf>
+        <list name="DSCP_TO_FC_MAP">
+          <key value="dscp"/>
+          <description>
+            <text>Single mapping entry from a DSCP value to a forwarding class.</text>
+          </description>
+          <leaf name="dscp">
+            <type name="string">
+              <pattern value="6[0-3]|[1-5][0-9]?|[0-9]?">
+                <error-message>
+                  <value>Invalid DSCP</value>
+                </error-message>
+                <error-app-tag value="dscp-invalid"/>
+              </pattern>
+            </type>
+            <description>
+              <text>DSCP value (0-63).</text>
+            </description>
+          </leaf>
+          <leaf name="fc">
+            <type name="string">
+              <pattern value="[0-7]?">
+                <error-message>
+                  <value>Invalid Forwarding Class</value>
+                </error-message>
+                <error-app-tag value="fc-invalid"/>
+              </pattern>
+            </type>
+            <description>
+              <text>Target forwarding class (0-7) for Class-Based Forwarding.</text>
+            </description>
+          </leaf>
+        </list>
+      </list>
+    </container>
+  </container>
+</module>

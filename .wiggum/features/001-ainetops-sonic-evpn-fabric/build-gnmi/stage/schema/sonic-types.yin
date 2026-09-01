@@ -1,0 +1,590 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-types"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:sonic-types="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-head"/>
+  <prefix value="sonic-types"/>
+  <description>
+    <text>SONiC type for yang Models of SONiC OS</text>
+  </description>
+  <revision date="2019-07-01">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <typedef name="ip-family">
+    <description>
+      <text>IP address family</text>
+    </description>
+    <type name="enumeration">
+      <enum name="IPv4"/>
+      <enum name="IPv6"/>
+    </type>
+  </typedef>
+  <typedef name="sonic-ip4-prefix">
+    <description>
+      <text>IPv4 prefix in CIDR notation</text>
+    </description>
+    <type name="string">
+      <pattern value="(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])/(([0-9])|([1-2][0-9])|(3[0-2]))"/>
+    </type>
+  </typedef>
+  <typedef name="sonic-ip6-prefix">
+    <description>
+      <text>IPv6 prefix in CIDR notation</text>
+    </description>
+    <type name="string">
+      <pattern value="((:|[0-9a-fA-F]{0,4}):)([0-9a-fA-F]{0,4}:){0,5}((([0-9a-fA-F]{0,4}:)?(:|[0-9a-fA-F]{0,4}))|(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])))(/(([0-9])|([0-9]{2})|(1[0-1][0-9])|(12[0-8])))"/>
+      <pattern value="(([^:]+:){6}(([^:]+:[^:]+)|(.*\..*)))|((([^:]+:)*[^:]+)?::(([^:]+:)*[^:]+)?)(/.+)"/>
+    </type>
+  </typedef>
+  <typedef name="sonic-ip-prefix">
+    <description>
+      <text>IPv4 or IPv6 prefix in CIDR notation</text>
+    </description>
+    <type name="union">
+      <type name="sonic-ip4-prefix"/>
+      <type name="sonic-ip6-prefix"/>
+    </type>
+  </typedef>
+  <typedef name="ipv4-address-list">
+    <type name="string">
+      <pattern value="(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(%[\p{N}\p{L}]+)?(,(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(%[\p{N}\p{L}]+)?)*"/>
+    </type>
+    <description>
+      <text>Comma-separated IPv4 addresses</text>
+    </description>
+  </typedef>
+  <typedef name="admin_status">
+    <description>
+      <text>Administrative status (up/down)</text>
+    </description>
+    <type name="enumeration">
+      <enum name="up"/>
+      <enum name="down"/>
+    </type>
+  </typedef>
+  <typedef name="packet_action">
+    <description>
+      <text>ACL packet action type</text>
+    </description>
+    <type name="enumeration">
+      <enum name="DROP"/>
+      <enum name="ACCEPT"/>
+      <enum name="FORWARD"/>
+      <enum name="REDIRECT"/>
+      <enum name="DO_NOT_NAT"/>
+      <enum name="DISABLE_TRIM"/>
+    </type>
+  </typedef>
+  <typedef name="ip_type">
+    <description>
+      <text>IP protocol type for ACL matching</text>
+    </description>
+    <type name="enumeration">
+      <enum name="ANY"/>
+      <enum name="IP"/>
+      <enum name="NON_IP"/>
+      <enum name="IPV4"/>
+      <enum name="IPV6"/>
+      <enum name="IPv4ANY"/>
+      <enum name="IPV4ANY"/>
+      <enum name="NON_IP4"/>
+      <enum name="IPv6ANY"/>
+      <enum name="IPV6ANY"/>
+      <enum name="NON_IPv6"/>
+      <enum name="ARP"/>
+    </type>
+  </typedef>
+  <typedef name="acl_table_type">
+    <description>
+      <text>ACL table type determining match criteria</text>
+    </description>
+    <type name="enumeration">
+      <enum name="L2"/>
+      <enum name="L3"/>
+      <enum name="L3V6"/>
+      <enum name="L3V4V6"/>
+      <enum name="MIRROR"/>
+      <enum name="MIRRORV6"/>
+      <enum name="MIRROR_DSCP"/>
+      <enum name="CTRLPLANE"/>
+    </type>
+  </typedef>
+  <typedef name="hwsku">
+    <description>
+      <text>Hardware SKU identifier string</text>
+    </description>
+    <type name="string">
+      <length value="1..255"/>
+    </type>
+  </typedef>
+  <typedef name="vlan_tagging_mode">
+    <description>
+      <text>VLAN tagging mode for a member port</text>
+    </description>
+    <type name="enumeration">
+      <enum name="tagged"/>
+      <enum name="untagged"/>
+      <enum name="priority_tagged"/>
+    </type>
+  </typedef>
+  <typedef name="crm_threshold_type">
+    <description>
+      <text>CRM threshold type: percentage, used, or free</text>
+    </description>
+    <type name="string">
+      <length value="1..64"/>
+      <pattern value="percentage|used|free|PERCENTAGE|USED|FREE"/>
+    </type>
+  </typedef>
+  <typedef name="loopback_action">
+    <description>
+      <text>Action for loopback traffic: drop or forward</text>
+    </description>
+    <type name="string">
+      <pattern value="drop|forward"/>
+    </type>
+  </typedef>
+  <typedef name="admin_mode">
+    <description>
+      <text>Administrative mode (enabled/disabled)</text>
+    </description>
+    <type name="enumeration">
+      <enum name="enabled"/>
+      <enum name="disabled"/>
+    </type>
+  </typedef>
+  <typedef name="ip-protocol-type">
+    <description>
+      <text>IP transport protocol type</text>
+    </description>
+    <type name="enumeration">
+      <enum name="TCP"/>
+      <enum name="UDP"/>
+    </type>
+  </typedef>
+  <typedef name="interface_type">
+    <description>
+      <text>Physical interface type (transceiver/media type)</text>
+    </description>
+    <type name="enumeration">
+      <enum name="CR"/>
+      <enum name="CR2"/>
+      <enum name="CR4"/>
+      <enum name="CR8"/>
+      <enum name="SR"/>
+      <enum name="SR2"/>
+      <enum name="SR4"/>
+      <enum name="SR8"/>
+      <enum name="LR"/>
+      <enum name="LR4"/>
+      <enum name="LR8"/>
+      <enum name="KR"/>
+      <enum name="KR4"/>
+      <enum name="KR8"/>
+      <enum name="CAUI"/>
+      <enum name="GMII"/>
+      <enum name="SFI"/>
+      <enum name="XLAUI"/>
+      <enum name="KR2"/>
+      <enum name="CAUI4"/>
+      <enum name="XAUI"/>
+      <enum name="XFI"/>
+      <enum name="XGMII"/>
+      <enum name="none"/>
+    </type>
+  </typedef>
+  <typedef name="oper-status">
+    <type name="enumeration">
+      <enum name="unknown"/>
+      <enum name="up"/>
+      <enum name="down"/>
+    </type>
+    <description>
+      <text>Operational status of an entity such as Port, MCLAG etc</text>
+    </description>
+  </typedef>
+  <typedef name="mode-status">
+    <type name="enumeration">
+      <enum name="enable"/>
+      <enum name="disable"/>
+    </type>
+    <description>
+      <text>This type can be used where toggle functionality required.
+For ex. IPv6-link-local-only, Dhcp-replay-link-select, SNMP traps etc</text>
+    </description>
+  </typedef>
+  <typedef name="dhcp-relay-policy-action">
+    <type name="enumeration">
+      <enum name="discard"/>
+      <enum name="append"/>
+      <enum name="replace"/>
+    </type>
+    <description>
+      <text>DHCP relay policy action value</text>
+    </description>
+  </typedef>
+  <typedef name="percentage">
+    <type name="uint8">
+      <range value="0..100"/>
+    </type>
+    <description>
+      <text>Integer indicating a percentage value</text>
+    </description>
+  </typedef>
+  <typedef name="tpid_type">
+    <description>
+      <text>VLAN Tag Protocol Identifier (TPID) value</text>
+    </description>
+    <type name="string">
+      <pattern value="0x8100|0x9100|0x9200|0x88a8|0x88A8"/>
+    </type>
+  </typedef>
+  <typedef name="switchport_mode">
+    <type name="string">
+      <pattern value="routed|access|trunk"/>
+    </type>
+    <description>
+      <text>SwitchPort Modes for Port &amp; PortChannel</text>
+    </description>
+  </typedef>
+  <typedef name="meter_type">
+    <description>
+      <text>Policer metering unit: packets or bytes</text>
+    </description>
+    <type name="enumeration">
+      <enum name="packets"/>
+      <enum name="bytes"/>
+    </type>
+  </typedef>
+  <typedef name="policer_mode">
+    <description>
+      <text>Policer operating mode (single-rate TCM, two-rate TCM, or storm control)</text>
+    </description>
+    <type name="enumeration">
+      <enum name="sr_tcm"/>
+      <enum name="tr_tcm"/>
+      <enum name="storm"/>
+    </type>
+  </typedef>
+  <typedef name="policer_color_source">
+    <description>
+      <text>Policer color-awareness mode</text>
+    </description>
+    <type name="enumeration">
+      <enum name="aware"/>
+      <enum name="blind"/>
+    </type>
+  </typedef>
+  <typedef name="policer_packet_action">
+    <description>
+      <text>Action applied by policer to conforming or violating packets</text>
+    </description>
+    <type name="enumeration">
+      <enum name="drop"/>
+      <enum name="forward"/>
+      <enum name="copy"/>
+      <enum name="copy_cancel"/>
+      <enum name="trap"/>
+      <enum name="log"/>
+      <enum name="deny"/>
+      <enum name="transit"/>
+    </type>
+  </typedef>
+  <typedef name="boolean_type">
+    <description>
+      <text>String-encoded boolean value</text>
+    </description>
+    <type name="string">
+      <pattern value="false|true|False|True"/>
+    </type>
+  </typedef>
+  <typedef name="mac-addr-and-mask">
+    <description>
+      <text>MAC address with optional mask (e.g., AA:BB:CC:DD:EE:FF/FF:FF:FF:00:00:00)</text>
+    </description>
+    <type name="string">
+      <pattern value="[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}|[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}/[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}"/>
+    </type>
+  </typedef>
+  <typedef name="mac-address-list">
+    <type name="string">
+      <pattern value="([0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5})(,([0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}))*"/>
+    </type>
+    <description>
+      <text>Comma-separated MAC addresses</text>
+    </description>
+  </typedef>
+  <typedef name="hostname">
+    <description>
+      <text>System hostname string</text>
+    </description>
+    <type name="string">
+      <length value="1..63"/>
+    </type>
+  </typedef>
+  <typedef name="vnid_type">
+    <type name="uint32">
+      <range value="1..16777215"/>
+    </type>
+    <description>
+      <text>VXLAN Network Identifier</text>
+    </description>
+  </typedef>
+  <typedef name="vnid-list">
+    <type name="string">
+      <pattern value="([1-9][0-9]{0,6}|1[0-5][0-9]{6}|16[0-6][0-9]{5}|167[0-6][0-9]{4}|1677[0-6][0-9]{3}|16777[01][0-9]{2}|1677720[0-9]|1677721[0-5])(,([1-9][0-9]{0,6}|1[0-5][0-9]{6}|16[0-6][0-9]{5}|167[0-6][0-9]{4}|1677[0-6][0-9]{3}|16777[01][0-9]{2}|1677720[0-9]|1677721[0-5]))*"/>
+    </type>
+    <description>
+      <text>Comma-separated VNIs</text>
+    </description>
+  </typedef>
+  <typedef name="tc_type">
+    <description>
+      <text>Traffic class identifier (0-15)</text>
+    </description>
+    <type name="uint8">
+      <range value="0..15">
+        <error-message>
+          <value>Invalid Traffic Class</value>
+        </error-message>
+        <error-app-tag value="tc-invalid"/>
+      </range>
+    </type>
+  </typedef>
+  <typedef name="process_name">
+    <description>
+      <text>SONiC process name identifier</text>
+    </description>
+    <type name="string">
+      <pattern value="[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,31})">
+        <error-message>
+          <value>Invalid process_name.</value>
+        </error-message>
+        <error-app-tag value="invalid-process-name"/>
+      </pattern>
+      <length value="1..32">
+        <error-message>
+          <value>Invalid length for process_name.</value>
+        </error-message>
+        <error-app-tag value="invalid-process-name-length"/>
+      </length>
+    </type>
+  </typedef>
+  <typedef name="ctr_name">
+    <description>
+      <text>Container name identifier</text>
+    </description>
+    <type name="string">
+      <pattern value="[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,31})">
+        <error-message>
+          <value>Invalid ctr_name.</value>
+        </error-message>
+        <error-app-tag value="invalid-ctr-name"/>
+      </pattern>
+      <length value="1..32">
+        <error-message>
+          <value>Invalid length for ctr_name.</value>
+        </error-message>
+        <error-app-tag value="invalid-ctr-name-length"/>
+      </length>
+    </type>
+  </typedef>
+  <typedef name="interface_name">
+    <description>
+      <text>Represents IFNAMSIZ defined in &lt;net/if.h&gt;</text>
+    </description>
+    <type name="string">
+      <length value="1..15">
+        <error-message>
+          <value>Invalid interface name length, it must not exceed 16 characters.</value>
+        </error-message>
+        <error-app-tag value="invalid-interface-name-length"/>
+      </length>
+    </type>
+  </typedef>
+  <typedef name="hash-field">
+    <description>
+      <text>Represents native hash field</text>
+    </description>
+    <type name="enumeration">
+      <enum name="IN_PORT"/>
+      <enum name="DST_MAC"/>
+      <enum name="SRC_MAC"/>
+      <enum name="ETHERTYPE"/>
+      <enum name="VLAN_ID"/>
+      <enum name="IP_PROTOCOL"/>
+      <enum name="DST_IP"/>
+      <enum name="SRC_IP"/>
+      <enum name="L4_DST_PORT"/>
+      <enum name="L4_SRC_PORT"/>
+      <enum name="INNER_DST_MAC"/>
+      <enum name="INNER_SRC_MAC"/>
+      <enum name="INNER_ETHERTYPE"/>
+      <enum name="INNER_IP_PROTOCOL"/>
+      <enum name="INNER_DST_IP"/>
+      <enum name="INNER_DST_IPV4"/>
+      <enum name="INNER_DST_IPV6"/>
+      <enum name="INNER_SRC_IP"/>
+      <enum name="INNER_SRC_IPV4"/>
+      <enum name="INNER_SRC_IPV6"/>
+      <enum name="INNER_L4_DST_PORT"/>
+      <enum name="INNER_L4_SRC_PORT"/>
+      <enum name="IPV6_FLOW_LABEL"/>
+    </type>
+  </typedef>
+  <typedef name="hash-algorithm">
+    <description>
+      <text>Represents hash algorithm</text>
+    </description>
+    <type name="enumeration">
+      <enum name="CRC"/>
+      <enum name="XOR"/>
+      <enum name="RANDOM"/>
+      <enum name="CRC_32LO"/>
+      <enum name="CRC_32HI"/>
+      <enum name="CRC_CCITT"/>
+      <enum name="CRC_XOR"/>
+    </type>
+  </typedef>
+  <typedef name="timezone-name-type">
+    <type name="string"/>
+    <description>
+      <text>A time zone name as used by the Time Zone Database,
+sometimes referred to as the 'Olson Database'.
+
+The exact set of valid values is an implementation-specific
+matter.  Client discovery of the exact set of time zone names
+for a particular server is out of scope.</text>
+    </description>
+    <reference>
+      <text>BCP 175: Procedures for Maintaining the Time Zone Database</text>
+    </reference>
+  </typedef>
+  <typedef name="yes-no">
+    <description>
+      <text>Yes/No configuration</text>
+    </description>
+    <type name="enumeration">
+      <enum name="yes"/>
+      <enum name="no"/>
+    </type>
+  </typedef>
+  <typedef name="on-off">
+    <description>
+      <text>On/Off configuration</text>
+    </description>
+    <type name="enumeration">
+      <enum name="on"/>
+      <enum name="off"/>
+    </type>
+  </typedef>
+  <typedef name="asic_name">
+    <description>
+      <text>ASIC instance name (e.g., asic0)</text>
+    </description>
+    <type name="string">
+      <pattern value="[Aa][Ss][Ii][Cc][0-9]{1,2}"/>
+    </type>
+  </typedef>
+  <typedef name="debug_counter_type">
+    <description>
+      <text>Debug counter scope and direction</text>
+    </description>
+    <type name="enumeration">
+      <enum name="PORT_INGRESS_DROPS"/>
+      <enum name="PORT_EGRESS_DROPS"/>
+      <enum name="SWITCH_INGRESS_DROPS"/>
+      <enum name="SWITCH_EGRESS_DROPS"/>
+    </type>
+  </typedef>
+  <typedef name="counter_drop_reason">
+    <description>
+      <text>Packet drop reason for debug counters</text>
+    </description>
+    <type name="enumeration">
+      <enum name="L2_ANY"/>
+      <enum name="SMAC_MULTICAST"/>
+      <enum name="SMAC_EQUALS_DMAC"/>
+      <enum name="DMAC_RESERVED"/>
+      <enum name="VLAN_TAG_NOT_ALLOWED"/>
+      <enum name="INGRESS_VLAN_FILTER"/>
+      <enum name="INGRESS_STP_FILTER"/>
+      <enum name="FDB_UC_DISCARD"/>
+      <enum name="FDB_MC_DISCARD"/>
+      <enum name="L2_LOOPBACK_FILTER"/>
+      <enum name="EXCEEDS_L2_MTU"/>
+      <enum name="L3_ANY"/>
+      <enum name="EXCEEDS_L3_MTU"/>
+      <enum name="TTL"/>
+      <enum name="L3_LOOPBACK_FILTER"/>
+      <enum name="NON_ROUTABLE"/>
+      <enum name="NO_L3_HEADER"/>
+      <enum name="IP_HEADER_ERROR"/>
+      <enum name="UC_DIP_MC_DMAC"/>
+      <enum name="DIP_LOOPBACK"/>
+      <enum name="SIP_LOOPBACK"/>
+      <enum name="SIP_MC"/>
+      <enum name="SIP_CLASS_E"/>
+      <enum name="SIP_UNSPECIFIED"/>
+      <enum name="MC_DMAC_MISMATCH"/>
+      <enum name="SIP_EQUALS_DIP"/>
+      <enum name="SIP_BC"/>
+      <enum name="DIP_LOCAL"/>
+      <enum name="DIP_LINK_LOCAL"/>
+      <enum name="SIP_LINK_LOCAL"/>
+      <enum name="IPV6_MC_SCOPE0"/>
+      <enum name="IPV6_MC_SCOPE1"/>
+      <enum name="IRIF_DISABLED"/>
+      <enum name="ERIF_DISABLED"/>
+      <enum name="LPM4_MISS"/>
+      <enum name="LPM6_MISS"/>
+      <enum name="BLACKHOLE_ROUTE"/>
+      <enum name="BLACKHOLE_ARP"/>
+      <enum name="UNRESOLVED_NEXT_HOP"/>
+      <enum name="L3_EGRESS_LINK_DOWN"/>
+      <enum name="DECAP_ERROR"/>
+      <enum name="ACL_ANY"/>
+      <enum name="ACL_INGRESS_PORT"/>
+      <enum name="ACL_INGRESS_LAG"/>
+      <enum name="ACL_INGRESS_VLAN"/>
+      <enum name="ACL_INGRESS_RIF"/>
+      <enum name="ACL_INGRESS_SWITCH"/>
+      <enum name="ACL_EGRESS_PORT"/>
+      <enum name="ACL_EGRESS_LAG"/>
+      <enum name="ACL_EGRESS_VLAN"/>
+      <enum name="ACL_EGRESS_RIF"/>
+      <enum name="ACL_EGRESS_SWITCH"/>
+      <enum name="EGRESS_VLAN_FILTER"/>
+    </type>
+  </typedef>
+  <typedef name="relay-agent-mode">
+    <type name="enumeration">
+      <enum name="append">
+        <description>
+          <text>Forward and append our own Option 82</text>
+        </description>
+      </enum>
+      <enum name="replace">
+        <description>
+          <text>Strip existing Option 82, add ours, and forward</text>
+        </description>
+      </enum>
+      <enum name="forward">
+        <description>
+          <text>Forward unchanged without modifying Option 82</text>
+        </description>
+      </enum>
+      <enum name="discard">
+        <description>
+          <text>Discard the packet</text>
+        </description>
+      </enum>
+    </type>
+    <description>
+      <text>This enumeration type defines what to do about a dhcp packet that already has a relay option.</text>
+    </description>
+  </typedef>
+</module>

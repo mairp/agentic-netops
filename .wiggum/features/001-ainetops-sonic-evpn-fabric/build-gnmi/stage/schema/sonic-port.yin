@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-port"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:port="http://github.com/sonic-net/sonic-port"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head"
+        xmlns:sdm="http://github.com/sonic-net/sonic-device_metadata"
+        xmlns:macsec="http://github.com/sonic-net/sonic-macsec">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-port"/>
+  <prefix value="port"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <import module="sonic-device_metadata">
+    <prefix value="sdm"/>
+  </import>
+  <import module="sonic-macsec">
+    <prefix value="macsec"/>
+  </import>
+  <description>
+    <text>PORT yang Module for SONiC OS</text>
+  </description>
+  <revision date="2019-07-01">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-port">
+    <container name="PORT">
+      <description>
+        <text>Configures physical switch port attributes such as speed, lanes, MTU, FEC, and auto-negotiation.</text>
+      </description>
+      <list name="PORT_LIST">
+        <key value="name"/>
+        <leaf name="name">
+          <description>
+            <text>Physical port name (e.g., Ethernet0).</text>
+          </description>
+          <type name="string">
+            <length value="1..128"/>
+          </type>
+        </leaf>
+        <leaf name="core_id">
+          <description>
+            <text>The ASIC core where the port belongs to.</text>
+          </description>
+          <type name="string">
+            <length value="1..16"/>
+          </type>
+        </leaf>
+        <leaf name="core_port_id">
+          <description>
+            <text>The ASIC core port for this port.</text>
+          </description>
+          <type name="string">
+            <length value="1..16"/>
+          </type>
+        </leaf>
+        <leaf name="num_voq">
+          <description>
+            <text>The number of virtual output queue supportted on this port.</text>
+          </description>
+          <type name="string">
+            <length value="1..16"/>
+          </type>
+        </leaf>
+        <leaf name="alias">
+          <description>
+            <text>Vendor-specific port alias or front-panel label.</text>
+          </description>
+          <type name="string">
+            <length value="1..128"/>
+          </type>
+        </leaf>
+        <leaf name="lanes">
+          <when condition="not(not(/sdm:sonic-device_metadata/sdm:DEVICE_METADATA/sdm:localhost/sdm:asic_name) and&#10;     &#9;&#9;&#9;((/sdm:sonic-device_metadata/sdm:DEVICE_METADATA/sdm:localhost/sdm:switch_type='voq') or&#10;     &#9;&#9;&#9;(/sdm:sonic-device_metadata/sdm:DEVICE_METADATA/sdm:localhost/sdm:switch_type='chassis-packet') or&#10;     &#9;&#9;&#9;(/sdm:sonic-device_metadata/sdm:DEVICE_METADATA/sdm:localhost/sdm:switch_type='fabric') or&#10;     &#9;&#9;&#9;(/sdm:sonic-device_metadata/sdm:DEVICE_METADATA/sdm:localhost/sdm:hwsku='msft_four_asic_vs') or&#10;     &#9;&#9;&#9;(/sdm:sonic-device_metadata/sdm:DEVICE_METADATA/sdm:localhost/sdm:hwsku='msft_multi_asic_vs')))"/>
+          <description>
+            <text>Number of hardware lanes for the port. This is mandatory for all devices except for chassis devices</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="string">
+            <length value="1..128"/>
+          </type>
+        </leaf>
+        <leaf name="mode">
+          <description>
+            <text>SwitchPort Modes possible values are routed|access|trunk. Default value  for mode is routed</text>
+          </description>
+          <type name="stypes:switchport_mode"/>
+        </leaf>
+        <leaf name="description">
+          <description>
+            <text>User-defined description for the port.</text>
+          </description>
+          <type name="string">
+            <length value="0..255"/>
+          </type>
+        </leaf>
+        <leaf name="speed">
+          <description>
+            <text>Port speed in Mbps.</text>
+          </description>
+          <mandatory value="true"/>
+          <type name="uint32">
+            <range value="1..1600000"/>
+          </type>
+        </leaf>
+        <leaf name="dhcp_rate_limit">
+          <description>
+            <text>DHCP DOS Mitigation Rate with default value 300</text>
+          </description>
+          <type name="uint32"/>
+          <default value="300"/>
+        </leaf>
+        <leaf name="link_training">
+          <description>
+            <text>Port link training mode</text>
+          </description>
+          <type name="string">
+            <pattern value="on|off"/>
+          </type>
+        </leaf>
+        <leaf name="autoneg">
+          <description>
+            <text>Port auto negotiation mode</text>
+          </description>
+          <type name="string">
+            <pattern value="on|off"/>
+          </type>
+        </leaf>
+        <leaf-list name="adv_speeds">
+          <description>
+            <text>Port advertised speeds, valid value could be a list of interger or all</text>
+          </description>
+          <type name="union">
+            <type name="uint32">
+              <range value="1..1600000"/>
+            </type>
+            <type name="string">
+              <pattern value="all"/>
+            </type>
+          </type>
+          <ordered-by value="user"/>
+        </leaf-list>
+        <must condition="(count(adv_speeds[text()='all']) = 0) or (count(adv_speeds) = 1)"/>
+        <leaf name="interface_type">
+          <description>
+            <text>Port interface type</text>
+          </description>
+          <type name="stypes:interface_type"/>
+        </leaf>
+        <leaf-list name="adv_interface_types">
+          <description>
+            <text>Port advertised interface type, valid value could be a list of stypes:interface_type or all</text>
+          </description>
+          <type name="union">
+            <type name="stypes:interface_type"/>
+            <type name="string">
+              <pattern value="all"/>
+            </type>
+          </type>
+          <ordered-by value="user"/>
+        </leaf-list>
+        <must condition="(count(adv_interface_types[text()='all']) = 0) or (count(adv_interface_types) = 1)"/>
+        <leaf name="mtu">
+          <description>
+            <text>Maximum transmission unit size in bytes.</text>
+          </description>
+          <type name="uint16">
+            <range value="68..9216"/>
+          </type>
+        </leaf>
+        <leaf name="subport">
+          <description>
+            <text>Logical subport(s) for physical port breakout</text>
+          </description>
+          <type name="uint8">
+            <range value="0..8"/>
+          </type>
+        </leaf>
+        <leaf name="index">
+          <description>
+            <text>Front-panel port index.</text>
+          </description>
+          <type name="uint16"/>
+        </leaf>
+        <leaf name="asic_port_name">
+          <type name="string"/>
+          <description>
+            <text>port name in asic and asic name, e.g Eth0-ASIC1</text>
+          </description>
+        </leaf>
+        <leaf name="role">
+          <type name="string">
+            <pattern value="Ext|Int|Inb|Rec|Dpc"/>
+          </type>
+          <description>
+            <text>Internal port or External port for multi-asic or SmartSwitch platform</text>
+          </description>
+          <default value="Ext"/>
+        </leaf>
+        <leaf name="admin_status">
+          <description>
+            <text>Administrative up or down state of the port.</text>
+          </description>
+          <type name="stypes:admin_status"/>
+          <default value="down"/>
+        </leaf>
+        <leaf name="fec">
+          <description>
+            <text>Forward error correction mode for the port.</text>
+          </description>
+          <type name="string">
+            <pattern value="rs|fc|none|auto"/>
+          </type>
+        </leaf>
+        <leaf name="dom_polling">
+          <description>
+            <text>Enable or disable digital optical monitoring polling.</text>
+          </description>
+          <type name="stypes:admin_mode"/>
+        </leaf>
+        <leaf name="pfc_asym">
+          <description>
+            <text>Asymmetric priority flow control mode.</text>
+          </description>
+          <type name="string">
+            <pattern value="on|off"/>
+          </type>
+        </leaf>
+        <leaf name="tpid">
+          <description>
+            <text>This leaf describes the possible TPID value that can be configured
+      					to the specified port if the HW supports TPID configuration. The possible
+      					values are 0x8100, 0x9100, 0x9200, 0x88a8, and 0x88A8</text>
+          </description>
+          <type name="stypes:tpid_type"/>
+        </leaf>
+        <leaf name="mux_cable">
+          <description>
+            <text>Whether the port is connected to a mux cable for dual-ToR deployments.</text>
+          </description>
+          <type name="boolean"/>
+        </leaf>
+        <leaf name="macsec">
+          <description>
+            <text>MACsec profile name applied to the port.</text>
+          </description>
+          <type name="leafref">
+            <path value="/macsec:sonic-macsec/macsec:MACSEC_PROFILE/macsec:MACSEC_PROFILE_LIST/macsec:name"/>
+          </type>
+        </leaf>
+        <leaf name="tx_power">
+          <description>
+            <text>Target output power(dBm) for the 400G ZR transceiver</text>
+          </description>
+          <type name="decimal64">
+            <fraction-digits value="1"/>
+          </type>
+        </leaf>
+        <leaf name="laser_freq">
+          <description>
+            <text>Target laser frequency(GHz) for the 400G ZR transceiver</text>
+          </description>
+          <type name="int32"/>
+        </leaf>
+        <leaf name="fast_linkup">
+          <type name="boolean"/>
+          <default value="false"/>
+          <description>
+            <text>Enable or disable fast link-up on the port</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

@@ -1,0 +1,521 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-spanning-tree"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:stp="http://github.com/sonic-net/sonic-stp">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-stp"/>
+  <prefix value="stp"/>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>YANG model for Spanning Tree Protocol (STP) in SONiC, supporting PVST and MSTP</text>
+  </description>
+  <revision date="2025-03-15">
+    <description>
+      <text>Initial YANG model written for PVST &amp; MSTP configurations xFlow &amp; BRCM</text>
+    </description>
+    <reference>
+      <text>Initial implementation for SONiC STP support</text>
+    </reference>
+  </revision>
+  <grouping name="vlanModeAttr">
+    <description>
+      <text>Configuration parameters for VLAN-based STP settings</text>
+    </description>
+    <leaf name="forward_delay">
+      <type name="uint8">
+        <range value="4..30">
+          <error-message>
+            <value>Invalid Forwarding Delay Value</value>
+          </error-message>
+        </range>
+      </type>
+      <units name="seconds"/>
+      <default value="15"/>
+      <description>
+        <text>Delay before transitioning to the forwarding state</text>
+      </description>
+    </leaf>
+    <leaf name="hello_time">
+      <type name="uint8">
+        <range value="1..10">
+          <error-message>
+            <value>Invalid Hello Time value</value>
+          </error-message>
+        </range>
+      </type>
+      <units name="seconds"/>
+      <default value="2"/>
+      <description>
+        <text>Interval between configuration BPDUs</text>
+      </description>
+    </leaf>
+    <leaf name="max_age">
+      <type name="uint8">
+        <range value="6..40">
+          <error-message>
+            <value>Invalid Maximum Age Time value</value>
+          </error-message>
+        </range>
+      </type>
+      <units name="seconds"/>
+      <default value="20"/>
+      <description>
+        <text>Maximum time bridge stores BPDU information</text>
+      </description>
+    </leaf>
+    <leaf name="priority">
+      <type name="uint16">
+        <range value="0..61440">
+          <error-message>
+            <value>Invalid Bridge Priority value</value>
+          </error-message>
+        </range>
+      </type>
+      <default value="32768"/>
+      <description>
+        <text>Bridge Identifier priority component</text>
+      </description>
+    </leaf>
+  </grouping>
+  <grouping name="interfaceAttr">
+    <description>
+      <text>Configuration parameters for STP interfaces</text>
+    </description>
+    <leaf name="path_cost">
+      <type name="uint64">
+        <range value="1..200000000">
+          <error-message>
+            <value>Invalid Port Path Cost value</value>
+          </error-message>
+        </range>
+      </type>
+      <default value="200"/>
+      <description>
+        <text>Root path cost contribution</text>
+      </description>
+    </leaf>
+    <leaf name="priority">
+      <type name="uint8">
+        <range value="0..240">
+          <error-message>
+            <value>Invalid Port Priority value</value>
+          </error-message>
+        </range>
+      </type>
+      <default value="128"/>
+      <description>
+        <text>Port priority in STP calculations</text>
+      </description>
+    </leaf>
+  </grouping>
+  <container name="sonic-spanning-tree">
+    <description>
+      <text>SONiC Spanning Tree Protocol (STP) configuration</text>
+    </description>
+    <container name="STP">
+      <description>
+        <text>Global STP configurations, maps to STP_GLOBAL_TABLE</text>
+      </description>
+      <list name="STP_LIST">
+        <key value="keyleaf"/>
+        <max-elements value="1"/>
+        <description>
+          <text>Global STP configuration settings</text>
+        </description>
+        <leaf name="keyleaf">
+          <type name="enumeration">
+            <enum name="GLOBAL">
+              <description>
+                <text>Global STP identifier</text>
+              </description>
+            </enum>
+          </type>
+          <description>
+            <text>Key node identifier, always GLOBAL</text>
+          </description>
+        </leaf>
+        <leaf name="mode">
+          <type name="enumeration">
+            <enum name="pvst">
+              <description>
+                <text>Per VLAN Spanning Tree Mode</text>
+              </description>
+            </enum>
+            <enum name="mst">
+              <description>
+                <text>Multiple Spanning Tree Mode</text>
+              </description>
+            </enum>
+          </type>
+          <mandatory value="true"/>
+          <description>
+            <text>STP operating mode</text>
+          </description>
+        </leaf>
+        <leaf name="rootguard_timeout">
+          <type name="uint16">
+            <range value="5..600">
+              <error-message>
+                <value>Invalid Root-guard Timeout value</value>
+              </error-message>
+            </range>
+          </type>
+          <units name="seconds"/>
+          <must condition="../mode = 'pvst'">
+            <error-message>
+              <value>Root guard timeout configuration is allowed only in PVST mode</value>
+            </error-message>
+          </must>
+          <default value="30"/>
+          <description>
+            <text>Once superior BPDUs stop coming on the port, device will wait for a period until root guard timeout before moving the port to forwarding state</text>
+          </description>
+        </leaf>
+        <uses name="vlanModeAttr"/>
+      </list>
+    </container>
+    <container name="STP_VLAN">
+      <description>
+        <text>VLAN Specific STP Configurations, maps to STP_VLAN_TABLE</text>
+      </description>
+      <list name="STP_VLAN_LIST">
+        <key value="name"/>
+        <description>
+          <text>List of VLAN STP configurations</text>
+        </description>
+        <leaf name="name">
+          <type name="string"/>
+          <description>
+            <text>Vlan identifier in format 'Vlan&lt;id&gt;'</text>
+          </description>
+        </leaf>
+        <leaf name="vlanid">
+          <type name="uint16">
+            <range value="1..4095">
+              <error-message>
+                <value>Vlan ID out of range</value>
+              </error-message>
+            </range>
+          </type>
+          <description>
+            <text>Vlan identifier number</text>
+          </description>
+        </leaf>
+        <leaf name="enabled">
+          <type name="boolean"/>
+          <mandatory value="true"/>
+          <description>
+            <text>Spanning tree enabled/disabled on Vlan</text>
+          </description>
+        </leaf>
+        <uses name="vlanModeAttr"/>
+      </list>
+    </container>
+    <container name="STP_VLAN_PORT">
+      <description>
+        <text>Vlan port configurations, maps to STP_VLAN_PORT_TABLE</text>
+      </description>
+      <list name="STP_VLAN_PORT_LIST">
+        <key value="vlan-name ifname"/>
+        <description>
+          <text>List of VLAN port configurations</text>
+        </description>
+        <leaf name="vlan-name">
+          <type name="leafref">
+            <path value="../../../STP_VLAN/STP_VLAN_LIST/name"/>
+          </type>
+          <description>
+            <text>Reference to Vlan</text>
+          </description>
+        </leaf>
+        <leaf name="ifname">
+          <type name="leafref">
+            <path value="../../../STP_PORT/STP_PORT_LIST/ifname"/>
+          </type>
+          <description>
+            <text>Reference to Ethernet interface or PortChannel</text>
+          </description>
+        </leaf>
+        <uses name="interfaceAttr"/>
+      </list>
+    </container>
+    <container name="STP_PORT">
+      <description>
+        <text>Port Configurations, maps to STP_PORT_TABLE</text>
+      </description>
+      <list name="STP_PORT_LIST">
+        <key value="ifname"/>
+        <description>
+          <text>List of STP port List attributes</text>
+        </description>
+        <leaf name="ifname">
+          <type name="string"/>
+          <description>
+            <text>Reference to Ethernet interface or PortChannel</text>
+          </description>
+        </leaf>
+        <leaf name="enabled">
+          <type name="boolean"/>
+          <mandatory value="true"/>
+          <description>
+            <text>Spanning tree enabled/disabled on Interface</text>
+          </description>
+        </leaf>
+        <leaf name="root_guard">
+          <type name="boolean"/>
+          <default value="false"/>
+          <description>
+            <text>Enable/Disable Root guard on port</text>
+          </description>
+        </leaf>
+        <leaf name="bpdu_guard">
+          <type name="boolean"/>
+          <default value="false"/>
+          <description>
+            <text>Enable/Disable port BPDU guard</text>
+          </description>
+        </leaf>
+        <leaf name="bpdu_guard_do_disable">
+          <type name="boolean"/>
+          <default value="false"/>
+          <description>
+            <text>Port to be disabled as it receives a BPDU</text>
+          </description>
+        </leaf>
+        <leaf name="uplink_fast">
+          <type name="boolean"/>
+          <default value="false"/>
+          <description>
+            <text>Enable/Disable uplink-fast on port</text>
+          </description>
+        </leaf>
+        <leaf name="portfast">
+          <type name="boolean"/>
+          <must condition="current()='false' or ../../../STP/STP_LIST[keyleaf='GLOBAL']/mode='pvst'">
+            <error-message>
+              <value>Mode must be PVST, and PortFast must be enabled for this configuration to be valid.</value>
+            </error-message>
+          </must>
+          <default value="false"/>
+          <description>
+            <text>Enable/Disable portfast on port in PVST only</text>
+          </description>
+        </leaf>
+        <uses name="interfaceAttr"/>
+        <leaf name="edge_port">
+          <type name="boolean"/>
+          <must condition="current()='false' or ../../../STP/STP_LIST[keyleaf='GLOBAL']/mode='mst'">
+            <error-message>
+              <value>Mode must be MST, and EdgePort must be enabled for this configuration to be valid.</value>
+            </error-message>
+          </must>
+          <default value="false"/>
+          <description>
+            <text>Enable/Disable Edge-port on interface</text>
+          </description>
+        </leaf>
+        <leaf name="link_type">
+          <type name="enumeration">
+            <enum name="auto">
+              <description>
+                <text>Specifies the interface's link type as auto</text>
+              </description>
+            </enum>
+            <enum name="shared">
+              <description>
+                <text>Specifies the interface's link type as shared</text>
+              </description>
+            </enum>
+            <enum name="point-to-point">
+              <description>
+                <text>Specifies the interface's link type as point-to-point</text>
+              </description>
+            </enum>
+          </type>
+          <must condition="../../../STP/STP_LIST[keyleaf='GLOBAL']/mode='mst'">
+            <error-message>
+              <value>Configuration allowed in MST mode only</value>
+            </error-message>
+          </must>
+          <description>
+            <text>Specifies the interface's link type: shared, point-to-point or auto</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+    <container name="STP_MST">
+      <description>
+        <text>MST specific configuration container, maps to STP_MST_TABLE</text>
+      </description>
+      <list name="STP_MST_LIST">
+        <key value="keyleaf"/>
+        <max-elements value="1"/>
+        <description>
+          <text>List of MST global configurations</text>
+        </description>
+        <leaf name="keyleaf">
+          <type name="enumeration">
+            <enum name="GLOBAL">
+              <description>
+                <text>Global MST</text>
+              </description>
+            </enum>
+          </type>
+          <description>
+            <text>Key node identifier. It's value is always GLOBAL</text>
+          </description>
+        </leaf>
+        <leaf name="name">
+          <type name="string"/>
+          <must condition="../../../STP/STP_LIST[keyleaf='GLOBAL']/mode='mst'">
+            <error-message>
+              <value>Configuration allowed in MST mode</value>
+            </error-message>
+          </must>
+          <description>
+            <text>MST Region name</text>
+          </description>
+        </leaf>
+        <leaf name="revision">
+          <type name="uint32"/>
+          <must condition="../../../STP/STP_LIST[keyleaf='GLOBAL']/mode='mst'">
+            <error-message>
+              <value>Configuration allowed in MST mode</value>
+            </error-message>
+          </must>
+          <description>
+            <text>MST Revision number</text>
+          </description>
+        </leaf>
+        <leaf name="max_hops">
+          <type name="uint8"/>
+          <must condition="../../../STP/STP_LIST[keyleaf='GLOBAL']/mode='mst'">
+            <error-message>
+              <value>Configuration allowed in MST mode</value>
+            </error-message>
+          </must>
+          <default value="20"/>
+          <description>
+            <text>MST Max hops</text>
+          </description>
+        </leaf>
+        <leaf name="max_age">
+          <type name="uint8"/>
+          <must condition="../../../STP/STP_LIST[keyleaf='GLOBAL']/mode='mst'">
+            <error-message>
+              <value>Configuration allowed in MST mode</value>
+            </error-message>
+          </must>
+          <default value="20"/>
+          <description>
+            <text>MST max age in seconds</text>
+          </description>
+        </leaf>
+        <leaf name="hello_time">
+          <type name="uint8"/>
+          <must condition="../../../STP/STP_LIST[keyleaf='GLOBAL']/mode='mst'">
+            <error-message>
+              <value>Configuration allowed in MST mode</value>
+            </error-message>
+          </must>
+          <default value="2"/>
+          <description>
+            <text>MST hello time in seconds</text>
+          </description>
+        </leaf>
+        <leaf name="forward_delay">
+          <type name="uint8"/>
+          <must condition="../../../STP/STP_LIST[keyleaf='GLOBAL']/mode='mst'">
+            <error-message>
+              <value>Configuration allowed in MST mode</value>
+            </error-message>
+          </must>
+          <default value="15"/>
+          <description>
+            <text>MST forward delay in seconds</text>
+          </description>
+        </leaf>
+        <leaf name="hold_count">
+          <type name="uint8"/>
+          <must condition="../../../STP/STP_LIST[keyleaf='GLOBAL']/mode='mst'">
+            <error-message>
+              <value>Configuration allowed in MST mode</value>
+            </error-message>
+          </must>
+          <description>
+            <text>MST hold count</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+    <container name="STP_MST_INST">
+      <description>
+        <text>STP MST Instance Configuration, maps to STP_MST_INST_TABLE</text>
+      </description>
+      <list name="STP_MST_INST_LIST">
+        <key value="instance"/>
+        <description>
+          <text>List of STP MST Instance attributes</text>
+        </description>
+        <leaf name="instance">
+          <type name="uint16"/>
+          <description>
+            <text>Instance identifier</text>
+          </description>
+        </leaf>
+        <leaf-list name="vlan">
+          <type name="string"/>
+          <description>
+            <text>Vlan list assigned to MST instance</text>
+          </description>
+        </leaf-list>
+        <leaf name="bridge_priority">
+          <type name="uint16">
+            <range value="0..61440">
+              <error-message>
+                <value>Invalid Bridge Priority value</value>
+              </error-message>
+            </range>
+          </type>
+          <default value="32768"/>
+          <description>
+            <text>The manageable component of the Bridge Identifier</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+    <container name="STP_MST_PORT">
+      <description>
+        <text>STP MST Port configurations, maps to STP_MST_PORT_TABLE</text>
+      </description>
+      <list name="STP_MST_PORT_LIST">
+        <key value="inst_id ifname"/>
+        <description>
+          <text>STP MST Port List attributes</text>
+        </description>
+        <leaf name="inst_id">
+          <type name="leafref">
+            <path value="../../../STP_MST_INST/STP_MST_INST_LIST/instance"/>
+          </type>
+          <description>
+            <text>Reference to MST Instance</text>
+          </description>
+        </leaf>
+        <leaf name="ifname">
+          <type name="leafref">
+            <path value="../../../STP_PORT/STP_PORT_LIST/ifname"/>
+          </type>
+          <description>
+            <text>Reference to Ethernet interface or PortChannel</text>
+          </description>
+        </leaf>
+        <uses name="interfaceAttr"/>
+      </list>
+    </container>
+  </container>
+</module>

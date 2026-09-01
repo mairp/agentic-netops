@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-events-bgp"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:events-bgp="http://github.com/sonic-net/sonic-events-bgp"
+        xmlns:evtcmn="http://github.com/sonic-net/sonic-events-common"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types">
+  <namespace uri="http://github.com/sonic-net/sonic-events-bgp"/>
+  <prefix value="events-bgp"/>
+  <yang-version value="1.1"/>
+  <import module="sonic-events-common">
+    <prefix value="evtcmn"/>
+    <revision-date date="2022-12-01"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONIC BGP events</text>
+  </description>
+  <revision date="2022-12-01">
+    <description>
+      <text>BGP alert events.</text>
+    </description>
+  </revision>
+  <container name="sonic-events-bgp">
+    <container name="bgp-state">
+      <evtcmn:ALARM_SEVERITY_MINOR/>
+      <description>
+        <text>
+Declares an event for BGP state for a neighbor IP going up/down.</text>
+      </description>
+      <leaf name="ip">
+        <type name="inet:ip-address"/>
+        <description>
+          <text>IP of neighbor</text>
+        </description>
+      </leaf>
+      <leaf name="status">
+        <type name="stypes:admin_status"/>
+        <description>
+          <text>Provides the status as up (true) or down (false)</text>
+        </description>
+      </leaf>
+      <uses name="evtcmn:sonic-events-cmn"/>
+    </container>
+    <container name="notification">
+      <evtcmn:ALARM_SEVERITY_MAJOR/>
+      <description>
+        <text>
+Reports an notification.
+The error codes as per IANA.
+The other params are as in the message</text>
+      </description>
+      <leaf name="major_code">
+        <type name="uint8"/>
+        <description>
+          <text>Major IANA error code; [RFC4271][RFC7313]</text>
+        </description>
+      </leaf>
+      <leaf name="minor_code">
+        <type name="uint8"/>
+        <description>
+          <text>Minor IANA error code; [RFC4271][RFC7313]</text>
+        </description>
+      </leaf>
+      <leaf name="ip">
+        <type name="inet:ip-address"/>
+        <description>
+          <text>IP of neighbor associated with this notification</text>
+        </description>
+      </leaf>
+      <leaf name="is_sent">
+        <type name="boolean"/>
+        <description>
+          <text>true - if this notification was for sent messages; false if it was for received.</text>
+        </description>
+      </leaf>
+      <uses name="evtcmn:sonic-events-cmn"/>
+    </container>
+    <container name="zebra-no-buff">
+      <evtcmn:ALARM_SEVERITY_MINOR/>
+      <description>
+        <text>
+Declares an event for zebra running out of buffer.
+This event does not have any other parameter.
+Hence source + tag identifies an event</text>
+      </description>
+      <uses name="evtcmn:sonic-events-cmn"/>
+    </container>
+  </container>
+</module>

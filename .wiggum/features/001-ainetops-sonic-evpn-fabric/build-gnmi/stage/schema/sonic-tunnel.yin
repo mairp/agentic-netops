@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-tunnel"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:tunnel="http://github.com/sonic-net/sonic-tunnel"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:ps="http://github.com/sonic-net/sonic-peer-switch">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-tunnel"/>
+  <prefix value="tunnel"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-peer-switch">
+    <prefix value="ps"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONiC DualToR tunnel data</text>
+  </description>
+  <revision date="2022-08-23">
+    <description>
+      <text>Initial revision</text>
+    </description>
+  </revision>
+  <container name="sonic-tunnel">
+    <container name="TUNNEL">
+      <description>
+        <text>TUNNEL configuration for SONiC Dual-ToR</text>
+      </description>
+      <list name="TUNNEL_LIST">
+        <key value="mux_tunnel"/>
+        <leaf name="mux_tunnel">
+          <description>
+            <text>Name of MuxTunnel</text>
+          </description>
+          <type name="string">
+            <pattern value="MuxTunnel[0-9]+"/>
+          </type>
+        </leaf>
+        <leaf name="dscp_mode">
+          <description>
+            <text>DSCP handling mode for tunneled packets (uniform copies outer, pipe preserves inner).</text>
+          </description>
+          <type name="string">
+            <pattern value="uniform|pipe"/>
+          </type>
+        </leaf>
+        <leaf name="src_ip">
+          <description>
+            <text>source IPv4 address off the tunnel. Must be SONiC DualToR peer IPv4 address.</text>
+          </description>
+          <type name="leafref">
+            <path value="/ps:sonic-peer-switch/ps:PEER_SWITCH/ps:PEER_SWITCH_LIST/ps:address_ipv4"/>
+          </type>
+        </leaf>
+        <leaf name="dst_ip">
+          <description>
+            <text>IPv4 address of this switch.</text>
+          </description>
+          <type name="inet:ipv4-address"/>
+        </leaf>
+        <leaf name="ecn_mode">
+          <description>
+            <text>ECN handling mode for decapsulated packets.</text>
+          </description>
+          <type name="string">
+            <pattern value="copy_from_outer|standard"/>
+          </type>
+        </leaf>
+        <leaf name="encap_ecn_mode">
+          <description>
+            <text>ECN marking mode for encapsulated packets.</text>
+          </description>
+          <type name="string">
+            <pattern value="standard"/>
+          </type>
+        </leaf>
+        <leaf name="ttl_mode">
+          <description>
+            <text>TTL handling mode for tunneled packets (uniform copies outer, pipe preserves inner).</text>
+          </description>
+          <type name="string">
+            <pattern value="uniform|pipe"/>
+          </type>
+        </leaf>
+        <leaf name="tunnel_type">
+          <description>
+            <text>Encapsulation type for the tunnel.</text>
+          </description>
+          <type name="string">
+            <pattern value="IPINIP"/>
+          </type>
+        </leaf>
+        <leaf name="decap_dscp_to_tc_map">
+          <description>
+            <text>Name of the DSCP-to-traffic-class map applied on decapsulation.</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+        <leaf name="decap_tc_to_pg_map">
+          <description>
+            <text>Name of the traffic-class-to-priority-group map applied on decapsulation.</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+        <leaf name="encap_tc_to_dscp_map">
+          <description>
+            <text>Name of the traffic-class-to-DSCP map applied on encapsulation.</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+        <leaf name="encap_tc_to_queue_map">
+          <description>
+            <text>Name of the traffic-class-to-queue map applied on encapsulation.</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

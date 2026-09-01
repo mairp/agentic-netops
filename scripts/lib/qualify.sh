@@ -49,6 +49,10 @@ bail() {
 
 main() {
   local core_failed=0
+  # Materialize lab credentials/TLS locally before any gNMI capability test (T076)
+  # shellcheck source=lab_secrets.sh
+  source "${ROOT_DIR}/scripts/lib/lab_secrets.sh"
+  lab_secrets::ensure "kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
   # gNMI core tests (always run all in this block, then gate downstream on any failure)
   for t in Capabilities Get Set Subscribe sonic-srv6; do
     if run_test "$t"; then

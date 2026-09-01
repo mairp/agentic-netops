@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-serial-console"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:cli-sessions="http://github.com/Azure/sonic-serial-console"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/Azure/sonic-serial-console"/>
+  <prefix value="cli-sessions"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <description>
+    <text>Serial console session policy YANG module for SONiC OS.</text>
+  </description>
+  <revision date="2023-06-07">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-serial-console">
+    <container name="SERIAL_CONSOLE">
+      <description>
+        <text>Serial console session configuration.</text>
+      </description>
+      <container name="POLICIES">
+        <description>
+          <text>Serial console session timeout and security policies.</text>
+        </description>
+        <leaf name="inactivity_timeout">
+          <description>
+            <text>Serial console inactivity timeout in minutes; 0 disables the timeout.</text>
+          </description>
+          <type name="int32">
+            <range value="0..35000"/>
+          </type>
+          <default value="15"/>
+        </leaf>
+        <leaf name="sysrq_capabilities">
+          <type name="stypes:admin_mode"/>
+          <description>
+            <text>Enable or disable Linux SysRq key capabilities on the serial console.</text>
+          </description>
+          <default value="disabled"/>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

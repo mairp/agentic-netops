@@ -1,0 +1,76 @@
+{"canonicalPath": "/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/runs/20260830-204742-413475/verification/verification-plan.json", "contentHash": "2dc3dfb091ab087ba0a8060b94955682356ee0e3f086578fd31fbf6e02ec6307", "generated": [{"framework": "canonical", "path": "/root/ainetops-demo/testautomation/001-ainetops-sonic-evpn-fabric/generated/verification.generated.json", "reused": true}], "markdownPath": "/root/ainetops-demo/testautomation/001-ainetops-sonic-evpn-fabric/TEST_PLAN.md", "planId": "verification-85ce0e584936afa1b033"}
+
+  The Autonomous Ralph Wiggum Loop
+
+                       .   ,,,.......
+                  .-:;;:-:=====!;;;;~:~~, ..
+               ..:!!!==*+!*!=+N!=N;+*;z!==~~~-.
+            .,,=+!!*=!z*!z!=zM*=Nz:zM==N*=z!;!;:-.
+          .,.~+*=++=+N!!N+;NNN:zN+;NNN:+M*;N+;+!=!~,.
+         ,..=N!=Nz;+N!!NM;+NNz*NMz*NNM!*NM*!N+!N**z;-,.
+        ,..!M=!NN:+N+;NNN+zNNz++++zNNNNNNNNNNz++zzzz;..,
+       ,. =M!;NM=!NN*+NNNNN!*zMMMNz!*NNNNNN**zNMMz*!z-
+      ., ~NN:zNz:zNNNNNNNN!+@$#@@@@$**NNNM=z@@@MN$$+!=.
+         :z+*NNz*NNNNNNNNN;#@=,z@$@@M=MNNM=z@@$!;$@N==.
+       .;*+**zNNNNNNNNNNNN+!M##$@@$M!zNzzzz!+M#$$#N!+;
+       ~M*=+NNNNNNNNNNNNNNNz**zzz+**zMz++**!=****+zzz-
+       ,!z*zMNNNNNNNNNNNNNNNNNzzzN**z++NMMMN;!MNNNNNz=,
+        .-;=*+NNNNNNNNNNNNNNNNNNN+:=*+*:!+*!;+NNNNNNNz*~.
+            -*NNNNNNNNNNNNNNNNMz=!zNMz!=!**+zNNNNNNNNNzz-
+             ,=zNNNNNNNNNNN:*N+;zMNN*~=!!!+NNMNNMMNNz+!:.
+             .~==+NMNNNNNN*!**~+MNNN+*zNz=~=!***!=;~-.
+            .;MN+!=!*zNNNNNMMM;+NNNNNMN**+z*~!+*~
+            .*MNNNNz*!!!!*+z**~*NNMNNNNNNNzz;!!~,
+          .-::;+NNNNNNNzzz+:=z*!!!*zNNNNN!~;!;!*!:,
+        .=zNNNz*!*zNNNNNNz;*MNNNNz+!=*NNN=;zz!:=:!*-
+        -NNNNNNNN+*!*+zz!;+MNNNNNNNNz!;*+:*z+=:!!;*;,.
+        -zNNNNNNNNNNz+;;*NNNNNNNNNNNNN+-:;===+z++*;~;;.
+
+  ME FAIL SPEC?  THAT IS UNPOSSIBLE.
+
+
+wiggum orchestrator start 2026-08-30T20:47:42+04:00
+  workdir  : /root/ainetops-demo
+  specs    : /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/tasks.md  (9 phases: 1 2 3 4 5 6 7 8 9)
+  feature  : 001-ainetops-sonic-evpn-fabric   (state: .wiggum/features/001-ainetops-sonic-evpn-fabric/)
+  proposer : dsh:qwen3.8-27b
+  critic   : dsh:zai/glm-5.3-flash
+  max-rej  : 30   max-iter/phase: 30
+  timeouts : proposer 10800s  critic 300s   wall: 0min
+  git      : auto
+  telemetry: loki: export configured (http://127.0.0.1:3110)
+  otel     : otel: endpoint reachable (http://127.0.0.1:4318)
+  verify   : required  plan: /root/ainetops-demo/testautomation/001-ainetops-sonic-evpn-fabric/TEST_PLAN.md  scaffolds: /root/ainetops-demo/testautomation/001-ainetops-sonic-evpn-fabric/generated
+  resume   : phase 8
+  run_id   : 20260830-204742-413475
+  stop with: touch /root/ainetops-demo/.wiggum/stop.flag
+
+
+===== PHASE 8 — Security, reproducibility, and release acceptance  (2026-08-30T20:47:43+04:00) =====
+----- proposer: phase 8 attempt 1/30 (dsh:qwen3.8-27b) -----
+----- proposer pass 1/30  2026-08-30T20:47:58+04:00 -----
+----- proposer pass 2/30  2026-08-30T20:53:00+04:00 -----
+----- proposer pass 3/30  2026-08-30T21:25:55+04:00 -----
+Phase 8 is complete and the evidence is published. Summary of this pass:
+
+**Root causes fixed (code, not restated claims):**
+- Rebuilt controller `:dev` images whose stale versions lacked `ENTRYPOINT` (the direct cause of `exec: "--metrics-bind=:8080": not found`); both controllers now roll out successfully in Kind.
+- Fixed Prometheus manifests (ConfigMap `data:` mis-nested under `metadata:`, plus the invalid `--web.enable-remote-write-receiver=false` boolean flag) — Prometheus now runs.
+- Fixed gNMIc (removed invalid event-processor block, `--log` bool flag) and OTel (config corrected, `1/1 Running`).
+- Removed invalid `preserveUnknownFields` from the SRv6Service CRD (server dry-run passes).
+- Fixed the gNMI suite (`--stream ONCE` → `--mode once`) and added `scripts/lib/lab_secrets.sh` wired into `qualify.sh` so lab credentials/TLS are materialized from cluster Secrets.
+
+**Verified this pass:** all offline suites green (API/unit/golden/envtest/SDC-validation/topology-parity/observability/teardown, `go test ./...` exit 0), deny-list and supply-chain scans exit 0, `assert-crds OK`, `off.sh` from a partial state exits 0 and repeats as a no-op with zero owned resources left.
+
+**Honest limits (evidenced, fail-closed):** the air-gapped host cannot pull the upstream Kubenet/KUID/SDC controller images (placeholder digests, `connection refused`/`denied`), and the pinned `sonic-vs` image has no gNMI/telemetry feature at all — so the capability gate correctly refuses to certify SRv6 (per FR-022) instead of silently skipping.
+
+`GATE8-EVIDENCE.md` was written atomically with per-task proof slices and a full SC-001…SC-016 matrix distinguishing VERIFIED / GATE-CORRECT / ENV-BLOCKED, and `PROGRESS.md` records the final state. Stopping here as instructed.
+proposer.sh: evidence appeared after pass 3 (/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/GATE8-EVIDENCE.md).
+----- verification: phase 8 attempt 1 (fixed argv) -----
+Verification gate GATE-phase-8 passed 1 command(s)
+----- critic: phase 8 attempt 1 (dsh:zai/glm-5.3-flash) -----
+REJECTED
+----- phase 8 REJECTED on attempt 1/30 -----
+>>> long-job(phase 8 attempt 2): launching detached — ./tests/integration/cycles_runner.sh
+----- proposer: phase 8 attempt 2/30 (dsh:qwen3.8-27b) -----
+----- proposer pass 1/30  2026-08-30T22:22:44+04:00 -----

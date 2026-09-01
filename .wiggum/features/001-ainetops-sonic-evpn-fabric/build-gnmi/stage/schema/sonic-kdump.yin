@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-kdump"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:kdump="http://github.com/sonic-net/sonic-kdump">
+  <namespace uri="http://github.com/sonic-net/sonic-kdump"/>
+  <prefix value="kdump"/>
+  <yang-version value="1.1"/>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>This module contains a collection of YANG definitions for the
+Linux Kernel crash dumping (Kdump) mechanism. The Kdump feature
+is used to detect and record Linux kernel crash events.</text>
+  </description>
+  <revision date="2022-05-09">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-kdump">
+    <container name="KDUMP">
+      <description>
+        <text>Kdump configuration parameters</text>
+      </description>
+      <container name="config">
+        <description>
+          <text>Top level grouping for attributes for Kdump.</text>
+        </description>
+        <leaf name="enabled">
+          <type name="boolean"/>
+          <description>
+            <text>Enable or Disable the Kdump mechanism</text>
+          </description>
+        </leaf>
+        <leaf name="memory">
+          <type name="string">
+            <pattern value="((((([0-9]+[MG]?)?(-([0-9]+[MG])?):)?[0-9]+[MG],?)+)|([0-9]+[MG],high))"/>
+          </type>
+          <description>
+            <text>Memory reserved for loading the crash handler kernel. The amount
+of reserved memory can be variable, depending on the total amount
+of installed memory. The syntax for variable memory reservation is
+&lt;range1&gt;:&lt;size1&gt;,&lt;range2&gt;:&lt;size2&gt;. For example, 512M-2G:64M,2G-:128M,
+where a memory of 64MB is reserved for the crash kernel for systems
+with installed memory between 512MB and 2GB, 128MB is reserved for
+systems that have more than 2GB installed memory. An absolute memory
+value can also be specified in the format &lt;size&gt;M or &lt;size&gt;G.
+For example, 512M.</text>
+          </description>
+        </leaf>
+        <leaf name="num_dumps">
+          <type name="uint8">
+            <range value="1 .. 9"/>
+          </type>
+          <description>
+            <text>Maximum number of Kernel Core files Stored</text>
+          </description>
+        </leaf>
+        <leaf name="remote">
+          <type name="boolean"/>
+          <description>
+            <text>Enable or Disable the Kdump remote ssh mechanism</text>
+          </description>
+        </leaf>
+        <leaf name="ssh_string">
+          <type name="string">
+            <pattern value="([a-zA-Z0-9._%+-]+@([a-zA-Z0-9.-]+|[0-9]{1,3}(\.[0-9]{1,3}){3}))"/>
+          </type>
+          <description>
+            <text>Remote ssh connection string</text>
+          </description>
+        </leaf>
+        <leaf name="ssh_path">
+          <type name="string">
+            <pattern value="(/([a-zA-Z0-9._-]+|\.)+)+"/>
+          </type>
+          <description>
+            <text>Remote ssh private key path</text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

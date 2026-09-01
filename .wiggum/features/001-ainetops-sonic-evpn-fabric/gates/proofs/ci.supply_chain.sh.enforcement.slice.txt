@@ -1,0 +1,30 @@
+    18	# 1) Enforce SR Linux absence in go dependency graph and manifests (FR-020)
+    19	log "Checking SR Linux absence in go.mod/go.sum, Dockerfiles, and Kubernetes manifests"
+    20	SR_PAT='\bsr[ -]?linux\b|ghcr\.io/nokia/srlinux|nokia_srlinux'
+    21	SR_MATCHES=$(rg -i -n --hidden \
+    22	  -g '!**/.git/**' \
+    23	  -g '!**/vendor/**' \
+    24	  -e "$SR_PAT" \
+    25	  go.mod go.sum cmd config deploy scripts || true)
+    26	if [[ -n "$SR_MATCHES" ]]; then
+    27	  echo "::error title=SR Linux mention(s) in dependency graph/manifests::${SR_MATCHES}" | tee "$REPORT_DIR/supply-chain.srlinux.matches.txt"
+    28	  fail=1
+    29	else
+    30	  echo "No SR Linux artifacts detected in dependency graph/manifests" | tee "$REPORT_DIR/supply-chain.srlinux.ok.txt"
+    31	fi
+    33	# 2) Image provenance: require pinned digests for platform images in deploy/**.yaml
+    34	log "Verifying platform images are pinned by immutable digests"
+    35	if command -v rg >/dev/null 2>&1; then
+    36	  IMG_LINES=$(rg -n '^\s*image:\s*[^#]+' deploy || true)
+    37	else
+    38	  IMG_LINES=$(grep -RinE '^\s*image:\s*[^#]+' deploy 2>/dev/null || true)
+    39	fi
+    40	MISSING_DIGEST=$(printf "%s" "$IMG_LINES" | awk -F: 'BEGIN{ok=1} {line=$0; if ($0 !~ /@sha256:[0-9a-f]{64}/) {print line; ok=0}} END{exit ok==1 ? 0 : 1}') || {
+    41	  echo "::error title=Unpinned images found::The following image lines are not pinned by digest:" | tee "$REPORT_DIR/supply-chain.unpinned-images.txt"
+    42	  printf "%s\n" "$IMG_LINES" | awk '$0 !~ /@sha256:[0-9a-f]{64}/' | tee -a "$REPORT_DIR/supply-chain.unpinned-images.txt"
+    43	  fail=1
+    44	}
+    45	# Positive artifact when all images are pinned by digest
+    46	if [[ -z "${MISSING_DIGEST:-}" ]]; then
+    47	  printf "%s\n" "$IMG_LINES" | tee "$REPORT_DIR/supply-chain.images-pinned.ok.txt" >/dev/null
+    48	fi

@@ -82,16 +82,16 @@ spec:
       labels:
         app.kubernetes.io/name: sdc-data
     spec:
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: sdc-data
       containers:
       - name: data
         image: ghcr.io/sdcio/sdc-data@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         volumeMounts:
         - name: data
           mountPath: /var/lib/sdc/data
-        volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: sdc-data
         ports:
         - name: http
           containerPort: 8080
@@ -119,16 +119,16 @@ spec:
       labels:
         app.kubernetes.io/name: sdc-cache
     spec:
+      volumes:
+      - name: cache
+        persistentVolumeClaim:
+          claimName: sdc-cache
       containers:
       - name: cache
         image: ghcr.io/sdcio/sdc-cache@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
         volumeMounts:
         - name: cache
           mountPath: /var/lib/sdc/cache
-        volumes:
-        - name: cache
-          persistentVolumeClaim:
-            claimName: sdc-cache
         ports:
         - name: http
           containerPort: 8080

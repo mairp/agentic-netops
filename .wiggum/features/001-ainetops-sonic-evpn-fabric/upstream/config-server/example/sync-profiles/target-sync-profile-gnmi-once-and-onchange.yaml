@@ -1,0 +1,28 @@
+# DO NOT UPDATE THESE FILES OR CHANGE THE NAME, RATHER CREATE NEW ONCE
+# These files have 2 purposes
+# 1. they serve as unit tests
+# 2. they can be used as discovery rules examples
+####### HEADER END #######
+apiVersion: inv.sdcio.dev/v1alpha1
+kind: TargetSyncProfile
+metadata:
+  name: gnmi-onchange-and-once
+  namespace: default
+spec:
+  buffer: 0
+  workers: 10
+  validate: true
+  sync:
+  - name: config
+    protocol: gnmi
+    paths:
+    - /
+    mode: onChange
+    encoding: PROTO
+  - name: all_once
+    protocol: gnmi
+    paths:
+    - /
+    mode: once
+    encoding: JSON_IETF
+    interval: 30s

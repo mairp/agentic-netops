@@ -1,0 +1,27 @@
+diff --git a/cvl/tools/generate_yin.py b/cvl/tools/generate_yin.py
+index 7976ca2..d88168f 100755
+--- a/cvl/tools/generate_yin.py
++++ b/cvl/tools/generate_yin.py
+@@ -111,13 +111,18 @@ class ListDependencyPlugin:
+                     for data in type_data:
+                         key_type, type_obj = data
+                         if key_type == "leafref":
++                            target_node = None
+                             try:
+                                 target_node = type_obj.i_type_spec.i_target_node
+-                            except:
++                            except Exception:
+                                 # This is due to union type, pyang does not set it by itself
+-                                target_node = statements.validate_leafref_path(self.ctx, key_leaf, type_obj.i_type_spec.path_spec, type_obj.i_type_spec.path_, False)[0]
+-                            target_list_node = target_node.parent
+-                            self.add_to_list_depends(stmt.arg, target_list_node.arg)
++                                res = statements.validate_leafref_path(self.ctx, key_leaf, type_obj.i_type_spec.path_spec, type_obj.i_type_spec.path_, False)
++                                if res:
++                                    target_node = res[0]
++                            if target_node is not None and target_node.parent is not None:
++                                self.add_to_list_depends(stmt.arg, target_node.parent.arg)
++                            else:
++                                print("[generate_yin] WARN: unresolvable leafref for key %s in list %s; skipping dependency" % (key_leaf.arg, stmt.arg))
+         if level < 3:
+             for child in stmt.substmts:
+                 self.process_children(child, level + 1)

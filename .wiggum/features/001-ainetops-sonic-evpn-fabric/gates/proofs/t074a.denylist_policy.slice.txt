@@ -1,0 +1,15 @@
+3:# Enforces migration (FR-020), visualization (FR-032), and placement (FR-023) boundaries
+4:# Allowed contexts only: spec.md Scope and interpretation and SC-010; research.md and REVERSE.md citations;
+5:# README presentation-only mention of srl-telemetry-lab. Fails build on any match outside allowed contexts.
+13:# Helper: filter allowed contexts from search matches (works with rg or grep output)
+14:filter_allowed() {
+28:  # Allow mentions in spec.md "Scope and interpretation" section and SC-010 success criterion only
+34:    sc010_start=$(awk '/^- \*\*SC-010\*\*/{print NR; exit}' "$spec_path" || true)
+97:  echo "::group::Migration boundary terms (FR-020)"
+100:  MIG_VIOLATIONS=$(filter_allowed "$MIG_MATCHES")
+102:    echo "::error title=Migration boundary term(s) found outside allowed contexts::${MIG_VIOLATIONS}"
+107:  echo "::group::Visualization boundary terms (FR-032)"
+110:  VIS_VIOLATIONS=$(filter_allowed "$VIS_MATCHES")
+112:    echo "::error title=SR Linux mention(s) found outside allowed contexts::${VIS_VIOLATIONS}"
+117:  echo "::group::Placement boundary (FR-023): Compose/standalone indicators"
+120:  PL_VIOLATIONS=$(filter_allowed "$PL_MATCHES")

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-queue"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:squeue="http://github.com/sonic-net/sonic-queue"
+        xmlns:sonic-ext="http://github.com/sonic-net/sonic-extension"
+        xmlns:port="http://github.com/sonic-net/sonic-port"
+        xmlns:sch="http://github.com/sonic-net/sonic-scheduler"
+        xmlns:wrd="http://github.com/sonic-net/sonic-wred-profile"
+        xmlns:sdm="http://github.com/sonic-net/sonic-device_metadata"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-queue"/>
+  <prefix value="squeue"/>
+  <import module="sonic-extension">
+    <prefix value="sonic-ext"/>
+  </import>
+  <import module="sonic-port">
+    <prefix value="port"/>
+  </import>
+  <import module="sonic-scheduler">
+    <prefix value="sch"/>
+  </import>
+  <import module="sonic-wred-profile">
+    <prefix value="wrd"/>
+  </import>
+  <import module="sonic-device_metadata">
+    <prefix value="sdm"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>QUEUE yang Module for SONiC OS</text>
+  </description>
+  <revision date="2021-04-01">
+    <description>
+      <text>Initial revision</text>
+    </description>
+  </revision>
+  <container name="sonic-queue">
+    <container name="QUEUE">
+      <description>
+        <text>Configures egress queue scheduling and WRED profiles per port.</text>
+      </description>
+      <list name="QUEUE_LIST">
+        <when condition="not(/sdm:sonic-device_metadata/sdm:DEVICE_METADATA/sdm:localhost/sdm:switch_type) or&#10;(/sdm:sonic-device_metadata/sdm:DEVICE_METADATA/sdm:localhost/sdm:switch_type!='voq')"/>
+        <key value="ifname qindex"/>
+        <description>
+          <text>Queue entry for a non-VOQ port.</text>
+        </description>
+        <leaf name="ifname">
+          <type name="union">
+            <type name="leafref">
+              <path value="/port:sonic-port/port:PORT/port:PORT_LIST/port:name"/>
+            </type>
+            <type name="string">
+              <pattern value="CPU"/>
+            </type>
+          </type>
+          <description>
+            <text>Interface name.</text>
+          </description>
+        </leaf>
+        <leaf name="qindex">
+          <type name="string"/>
+          <description>
+            <text>Queue index on the interface.</text>
+          </description>
+        </leaf>
+        <leaf name="scheduler">
+          <type name="leafref">
+            <path value="/sch:sonic-scheduler/sch:SCHEDULER/sch:SCHEDULER_LIST/sch:name"/>
+          </type>
+          <description>
+            <text>Scheduler for queue.</text>
+          </description>
+        </leaf>
+        <leaf name="wred_profile">
+          <type name="leafref">
+            <path value="/wrd:sonic-wred-profile/wrd:WRED_PROFILE/wrd:WRED_PROFILE_LIST/wrd:name"/>
+          </type>
+          <description>
+            <text>Wred profile for queue.</text>
+          </description>
+        </leaf>
+      </list>
+      <list name="VOQ_QUEUE_LIST">
+        <when condition="boolean(/sdm:sonic-device_metadata/sdm:DEVICE_METADATA/sdm:localhost/sdm:switch_type) and&#10;(/sdm:sonic-device_metadata/sdm:DEVICE_METADATA/sdm:localhost/sdm:switch_type='voq')"/>
+        <key value="hostname asic_name ifname qindex"/>
+        <description>
+          <text>Queue entry for a VOQ chassis port.</text>
+        </description>
+        <leaf name="hostname">
+          <type name="stypes:hostname"/>
+          <description>
+            <text>VOQ chassis hostname owning this port.</text>
+          </description>
+        </leaf>
+        <leaf name="asic_name">
+          <type name="stypes:asic_name"/>
+          <description>
+            <text>ASIC instance name within the VOQ chassis.</text>
+          </description>
+        </leaf>
+        <leaf name="ifname">
+          <type name="string">
+            <length value="1..128"/>
+          </type>
+          <description>
+            <text>Interface name.</text>
+          </description>
+        </leaf>
+        <leaf name="qindex">
+          <type name="string"/>
+          <description>
+            <text>Queue index on the interface.</text>
+          </description>
+        </leaf>
+        <leaf name="scheduler">
+          <type name="leafref">
+            <path value="/sch:sonic-scheduler/sch:SCHEDULER/sch:SCHEDULER_LIST/sch:name"/>
+          </type>
+          <description>
+            <text>Scheduler for queue.</text>
+          </description>
+        </leaf>
+        <leaf name="wred_profile">
+          <type name="leafref">
+            <path value="/wrd:sonic-wred-profile/wrd:WRED_PROFILE/wrd:WRED_PROFILE_LIST/wrd:name"/>
+          </type>
+          <description>
+            <text>Wred profile for queue.</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

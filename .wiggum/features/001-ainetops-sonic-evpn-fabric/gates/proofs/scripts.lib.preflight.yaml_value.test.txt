@@ -1,0 +1,5 @@
+     1	kind.binary=v0.22.0
+     2	kubernetes.kubernetes=v1.29.4
+     3	host_tools.kubectl=v1.29.4
+     4	host_tools.helm=v3.14.4
+     5	containerlab.version=0.79.0

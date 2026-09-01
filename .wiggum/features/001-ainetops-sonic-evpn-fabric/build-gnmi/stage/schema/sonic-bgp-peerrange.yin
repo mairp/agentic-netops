@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-bgp-peerrange"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:pr="http://github.com/sonic-net/sonic-bgp-peerrange"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head"
+        xmlns:vrf="http://github.com/sonic-net/sonic-vrf"
+        xmlns:svnet="http://github.com/sonic-net/sonic-vnet">
+  <namespace uri="http://github.com/sonic-net/sonic-bgp-peerrange"/>
+  <prefix value="pr"/>
+  <yang-version value="1.1"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <import module="sonic-vrf">
+    <prefix value="vrf"/>
+  </import>
+  <import module="sonic-vnet">
+    <prefix value="svnet"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONIC BGP Peer Range YANG</text>
+  </description>
+  <revision date="2022-02-24">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-bgp-peerrange">
+    <container name="BGP_PEER_RANGE">
+      <list name="BGP_PEER_RANGE_LIST">
+        <description>
+          <text>This list supports BGP_PEER_RANGE_TEMPLATE configurations with vnet and vrf support</text>
+        </description>
+        <key value="vrf_name peer_range_name"/>
+        <leaf name="vrf_name">
+          <type name="union">
+            <type name="leafref">
+              <path value="/vrf:sonic-vrf/vrf:VRF/vrf:VRF_LIST/vrf:name"/>
+            </type>
+            <type name="leafref">
+              <path value="/svnet:sonic-vnet/svnet:VNET/svnet:VNET_LIST/svnet:name"/>
+            </type>
+          </type>
+          <description>
+            <text>VRF or VNET name for this peer range.</text>
+          </description>
+        </leaf>
+        <leaf name="peer_range_name">
+          <type name="string"/>
+          <description>
+            <text>Peer range name</text>
+          </description>
+        </leaf>
+        <leaf name="name">
+          <type name="string"/>
+          <must condition="(current() = current()/../peer_range_name)">
+            <error-message>
+              <value>Invalid name, name must match peer_range_name</value>
+            </error-message>
+          </must>
+          <description>
+            <text>Peer range display name, must match the peer_range_name key.</text>
+          </description>
+        </leaf>
+        <leaf name="src_address">
+          <type name="inet:ip-address"/>
+          <description>
+            <text>Source address to use for connection</text>
+          </description>
+        </leaf>
+        <leaf name="peer_asn">
+          <type name="uint32">
+            <range value="1..4294967295"/>
+          </type>
+          <description>
+            <text>Peer AS number</text>
+          </description>
+        </leaf>
+        <leaf-list name="ip_range">
+          <type name="stypes:sonic-ip-prefix"/>
+          <ordered-by value="user"/>
+          <description>
+            <text>A range of addresses</text>
+          </description>
+        </leaf-list>
+      </list>
+      <list name="BGP_PEER_RANGE_TEMPLATE_LIST">
+        <description>
+          <text>This list is to support template based BGP peer range configurations.</text>
+        </description>
+        <key value="peer_range_name"/>
+        <leaf name="peer_range_name">
+          <type name="string"/>
+          <description>
+            <text>Peer range name</text>
+          </description>
+        </leaf>
+        <leaf name="name">
+          <type name="string"/>
+          <must condition="(current() = current()/../peer_range_name)">
+            <error-message>
+              <value>Invalid name, name must match peer_range_name</value>
+            </error-message>
+          </must>
+          <description>
+            <text>Peer range display name, must match the peer_range_name key.</text>
+          </description>
+        </leaf>
+        <leaf name="src_address">
+          <type name="inet:ip-address"/>
+          <description>
+            <text>Source address to use for connection</text>
+          </description>
+        </leaf>
+        <leaf name="peer_asn">
+          <type name="uint32">
+            <range value="1..4294967295"/>
+          </type>
+          <description>
+            <text>Peer AS number</text>
+          </description>
+        </leaf>
+        <leaf-list name="ip_range">
+          <type name="stypes:sonic-ip-prefix"/>
+          <ordered-by value="user"/>
+          <description>
+            <text>A range of addresses</text>
+          </description>
+        </leaf-list>
+      </list>
+    </container>
+  </container>
+</module>

@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-server
+  namespace: sdc-system
+data: 
+  data-server.yaml: |
+    grpc-server:
+      schema-server:
+        enabled: true
+        schemas-directory: ./schemas
+
+      data-server:
+        max-candidates: 16
+
+      max-recv-msg-size: 25165824 # 24 * 1024 * 1024 (24MB)
+
+    datastores: # this specifies MAIN datastores
+
+    schema-store:
+      # type is either memory or persistent (default)
+      type: persistent
+      path: "/schemadb"
+
+    cache: 
+      type: local
+      store-type: badgerdb
+      dir: "/cached/caches"
+
+    prometheus:
+      address: ":56090"

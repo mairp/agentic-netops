@@ -1,0 +1,111 @@
+     1	#!/usr/bin/env bash
+     2	# Verify versions.lock.yaml pins per NFR-003
+     3	set -euo pipefail
+     4	
+     5	fail() { echo "[verify-pins] ERROR: $*" >&2; exit 1; }
+     6	info() { echo "[verify-pins] $*" >&2; }
+     7	
+     8	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+     9	LOCK_FILE="${ROOT_DIR}/versions.lock.yaml"
+    10	
+    11	[[ -f "$LOCK_FILE" ]] || fail "missing $LOCK_FILE"
+    12	
+    13	# Reject floating refs
+    14	if grep -En '\blatest\b|\bmain\b|\bmaster\b|\bHEAD\b' "$LOCK_FILE" >/dev/null; then
+    15	  fail "floating refs found (latest/main/master/HEAD)"
+    16	fi
+    17	
+    18	# Extract helper: get yaml value block by top-level section name (simple, indentation-based)
+    19	get_block() {
+    20	  # get_block SECTION_NAME returns block lines until next top-level key (top-level only)
+    21	  awk -v sec="$1" '
+    22	    $0 ~ "^" sec ":\\s*$" {inside=1; print; next}
+    23	    inside && /^[^[:space:]]/ {exit}
+    24	    inside {print}
+    25	  ' "$LOCK_FILE"
+    26	}
+    27	
+    28	# Check kind node image digest (robust section parsing)
+    29	if ! get_block kind | grep -E '^[[:space:]]*node_image:[[:space:]]*[^@]+@sha256:[0-9a-f]{64}[[:space:]]*$' >/dev/null; then
+    30	  fail "kind.node_image must include @sha256 digest"
+    31	fi
+    32	
+    33	# Check controller-runtime and Go (use robust block extraction)
+    34	get_block kubernetes | grep -E '^[[:space:]]*controller_runtime:[[:space:]]*v[0-9]+\.[0-9]+\.[0-9]+' >/dev/null || fail "missing kubernetes.controller_runtime semver"
+    35	get_block kubernetes | grep -E "^[[:space:]]*go:[[:space:]]*['\"]?1\.[0-9]+(\.[0-9]+)?['\"]?[[:space:]]*$" >/dev/null || fail "missing kubernetes.go version"
+    36	
+    37	# Check Kubenet/KUID/SDC pinned release+commit
+    38	for sec in kubenet kuid sdc; do
+    39	  block=$(get_block "$sec") || true
+    40	  echo "$block" | grep -E "^[[:space:]]*release:[[:space:]]*v?[0-9]+\.[0-9]+\.[0-9]+" >/dev/null || fail "$sec.release missing or not semver"
+    41	  # Some nested SDC entries may not have a single top-level commit; allow absence for sdc but enforce for kubenet/kuid
+    42	  if [[ "$sec" != "sdc" ]]; then
+    43	    echo "$block" | grep -E "^[[:space:]]*commit:[[:space:]]*[0-9a-f]{40}[[:space:]]*$" >/dev/null || fail "$sec.commit must be 40-hex"
+    44	  fi
+    45	  if [[ "$sec" == "kubenet" ]]; then
+    46	    echo "$block" | grep -E '^[[:space:]]*api_shape:[[:space:]]*(NetworkConfig|NetworkDesign)([[:space:]]+#.*)?$' >/dev/null || fail "kubenet.api_shape must be NetworkConfig or NetworkDesign"
+    47	  fi
+    48	done
+    49	
+    50	# Tooling images must be pinned by digest
+    51	get_block tooling | grep -E '@sha256:[0-9a-f]{64}' >/dev/null || fail "tooling images must include @sha256 digests"
+    52	
+    53	# Containerlab version pinned
+    54	get_block containerlab | grep -E '^[[:space:]]*version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' >/dev/null || fail "containerlab.version must be semver"
+    55	
+    56	# SONiC images pinned: allow image+separate digest, but require digest present
+    57	# Robust YAML scan without relying on regex ranges sensitive to comments
+    58	svs_img=$(awk '
+    59	  $1=="sonic_images:" {sec=1; next}
+    60	  sec && /^[^[:space:]]/ {exit}
+    61	  sec && $1=="sonic_vs:" {vs=1; next}
+    62	  sec && vs && /^[^[:space:]]/ {vs=0}
+    63	  sec && vs && $1=="image:" {print $2; exit}
+    64	' "$LOCK_FILE")
+    65	svs_dig=$(awk '
+    66	  $1=="sonic_images:" {sec=1; next}
+    67	  sec && /^[^[:space:]]/ {exit}
+    68	  sec && $1=="sonic_vs:" {vs=1; next}
+    69	  sec && vs && /^[^[:space:]]/ {vs=0}
+    70	  sec && vs && $1=="digest:" {print $2; exit}
+    71	' "$LOCK_FILE")
+    72	svm_img=$(awk '
+    73	  $1=="sonic_images:" {sec=1; next}
+    74	  sec && /^[^[:space:]]/ {exit}
+    75	  sec && $1=="sonic_vm:" {vm=1; next}
+    76	  sec && vm && /^[^[:space:]]/ {vm=0}
+    77	  sec && vm && $1=="image:" {print $2; exit}
+    78	' "$LOCK_FILE")
+    79	svm_dig=$(awk '
+    80	  $1=="sonic_images:" {sec=1; next}
+    81	  sec && /^[^[:space:]]/ {exit}
+    82	  sec && $1=="sonic_vm:" {vm=1; next}
+    83	  sec && vm && /^[^[:space:]]/ {vm=0}
+    84	  sec && vm && $1=="digest:" {print $2; exit}
+    85	' "$LOCK_FILE")
+    86	
+    87	[[ -n "$svs_img" && -n "$svs_dig" ]] || fail "sonic_vs image and digest required"
+    88	[[ -n "$svm_img" && -n "$svm_dig" ]] || fail "sonic_vm image and digest required"
+    89	[[ "$svs_dig" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "sonic_vs digest must be sha256:..."
+    90	[[ "$svm_dig" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "sonic_vm digest must be sha256:..."
+    91	
+    92	svs_full="${svs_img%@*}@${svs_dig}"
+    93	svm_full="${svm_img%@*}@${svm_dig}"
+    94	
+    95	# YANG compatibility must include entries for both images and match commit prefixes
+    96	# Extract commits by simple grep (robust to comments/indent)
+    97	oc_commit=$(grep -E '^[[:space:]]*openconfig_commit:[[:space:]]*[0-9a-f]{40}[[:space:]]*$' "$LOCK_FILE" | head -n1 | sed 's/.*openconfig_commit:[[:space:]]*//')
+    98	na_commit=$(grep -E '^[[:space:]]*sonic_native_commit:[[:space:]]*[0-9a-f]{40}[[:space:]]*$' "$LOCK_FILE" | head -n1 | sed 's/.*sonic_native_commit:[[:space:]]*//')
+    99	[[ -n "$oc_commit" ]] || fail "openconfig_commit must be 40-hex"
+   100	[[ -n "$na_commit" ]] || fail "sonic_native_commit must be 40-hex"
+   101	
+   102	oc_pref=${oc_commit:0:8}
+   103	na_pref=${na_commit:0:8}
+   104	
+   105	# Check that compatibility block contains expected images and version prefixes
+   106	grep -F "image: ${svs_full}" "$LOCK_FILE" >/dev/null || fail "compatibility missing sonic_vs image ${svs_full}"
+   107	grep -F "image: ${svm_full}" "$LOCK_FILE" >/dev/null || fail "compatibility missing sonic_vm image ${svm_full}"
+   108	grep -F "oc_version: openconfig@${oc_pref}" "$LOCK_FILE" >/dev/null || fail "compatibility oc_version must match openconfig commit prefix ${oc_pref}"
+   109	grep -F "native_version: sonic_yang@${na_pref}" "$LOCK_FILE" >/dev/null || fail "compatibility native_version must match native commit prefix ${na_pref}"
+   110	
+   111	info "versions.lock.yaml pins and compatibility are consistent"

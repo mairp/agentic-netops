@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-mclag"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:smclag="http://github.com/sonic-net/sonic-mclag"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:prt="http://github.com/sonic-net/sonic-port"
+        xmlns:lag="http://github.com/sonic-net/sonic-portchannel">
+  <namespace uri="http://github.com/sonic-net/sonic-mclag"/>
+  <prefix value="smclag"/>
+  <yang-version value="1.1"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-port">
+    <prefix value="prt"/>
+  </import>
+  <import module="sonic-portchannel">
+    <prefix value="lag"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONIC MCLAG</text>
+  </description>
+  <revision date="2019-10-01">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-mclag">
+    <container name="MCLAG_DOMAIN">
+      <list name="MCLAG_DOMAIN_LIST">
+        <key value="domain_id"/>
+        <max-elements value="1"/>
+        <leaf name="domain_id">
+          <description>
+            <text>MCLAG Domain ID</text>
+          </description>
+          <type name="uint16">
+            <range value="1..4095">
+              <error-message>
+                <value>MCLAG Domain ID out of range</value>
+              </error-message>
+            </range>
+          </type>
+        </leaf>
+        <leaf name="source_ip">
+          <type name="inet:ipv4-address"/>
+          <description>
+            <text>MCLAG Domain source ip address for session between MCLAG Peers</text>
+          </description>
+        </leaf>
+        <leaf name="peer_ip">
+          <type name="inet:ipv4-address"/>
+          <description>
+            <text>MCLAG Domain peer ip address for session between MCLAG Peers</text>
+          </description>
+        </leaf>
+        <leaf name="peer_link">
+          <description>
+            <text>MCLAG Domain peer link, data backup path link between MCLAG peers</text>
+          </description>
+          <type name="union">
+            <type name="leafref">
+              <path value="/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:name"/>
+            </type>
+            <type name="leafref">
+              <path value="/lag:sonic-portchannel/lag:PORTCHANNEL/lag:PORTCHANNEL_LIST/lag:name"/>
+            </type>
+          </type>
+        </leaf>
+        <leaf name="keepalive_interval">
+          <description>
+            <text>keepalive interval in seconds for MCLAG session between peers</text>
+          </description>
+          <type name="uint16">
+            <range value="1..60">
+              <error-message>
+                <value>MCLAG Domain keepalive interval out of range</value>
+              </error-message>
+              <error-app-tag value="keepalive_interval-invalid"/>
+            </range>
+          </type>
+          <default value="1"/>
+        </leaf>
+        <leaf name="session_timeout">
+          <description>
+            <text>Session timeout in seconds for MCLAG session between peers</text>
+          </description>
+          <type name="uint16">
+            <range value="1..3600">
+              <error-message>
+                <value>MCLAG Domain session timeout out of range</value>
+              </error-message>
+              <error-app-tag value="session_timeout-invalid"/>
+            </range>
+          </type>
+          <default value="30"/>
+        </leaf>
+        <must condition="(keepalive_interval * 3) &lt;= session_timeout">
+          <error-message>
+            <value>(keepalive interval * 3) &lt;= session_timeout value</value>
+          </error-message>
+          <error-app-tag value="keepalive_session_multiplier-invalid"/>
+        </must>
+      </list>
+    </container>
+    <container name="MCLAG_INTERFACE">
+      <list name="MCLAG_INTERFACE_LIST">
+        <description>
+          <text>List of MCLAG interfaces</text>
+        </description>
+        <key value="domain_id if_name"/>
+        <leaf name="domain_id">
+          <description>
+            <text>Reference to the MCLAG domain this interface belongs to</text>
+          </description>
+          <type name="leafref">
+            <path value="../../../MCLAG_DOMAIN/MCLAG_DOMAIN_LIST/domain_id"/>
+          </type>
+        </leaf>
+        <leaf name="if_name">
+          <description>
+            <text>MCLAG interface name</text>
+          </description>
+          <type name="leafref">
+            <path value="/lag:sonic-portchannel/lag:PORTCHANNEL/lag:PORTCHANNEL_LIST/lag:name"/>
+          </type>
+        </leaf>
+        <leaf name="if_type">
+          <description>
+            <text>MCLAG interface type, placeholder field to create instance</text>
+          </description>
+          <type name="string"/>
+        </leaf>
+      </list>
+    </container>
+    <container name="MCLAG_UNIQUE_IP">
+      <list name="MCLAG_UNIQUE_IP_LIST">
+        <description>
+          <text>List of VLANs allowed to have unique ip addresses on MCLAG Peer nodes</text>
+        </description>
+        <key value="if_name"/>
+        <must condition="count(../../MCLAG_DOMAIN/MCLAG_DOMAIN_LIST/domain_id) != 0">
+          <error-message>
+            <value>mclag not configured</value>
+          </error-message>
+          <error-app-tag value="mclag-invalid"/>
+        </must>
+        <leaf name="if_name">
+          <description>
+            <text>Vlan interface name on which MCLAG unique ip config is done</text>
+          </description>
+          <type name="string">
+            <pattern value="Vlan([0-9]{1,3}|[1-3][0-9]{3}|[4][0][0-8][0-9]|[4][0][9][0-4])"/>
+          </type>
+        </leaf>
+        <leaf name="unique_ip">
+          <description>
+            <text>unique ip enable, by default disable</text>
+          </description>
+          <type name="enumeration">
+            <enum name="enable"/>
+          </type>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

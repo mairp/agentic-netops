@@ -24,7 +24,7 @@ metadata:
   namespace: monitoring
   labels:
     app.kubernetes.io/name: prometheus
-  data:
+data:
     prometheus.yml: |
       global:
         scrape_interval: 15s
@@ -61,7 +61,7 @@ metadata:
   namespace: monitoring
   labels:
     app.kubernetes.io/name: prometheus
-  data:
+data:
     targets.rules.yml: |
       groups:
         - name: targets.health
@@ -114,7 +114,8 @@ spec:
             - --storage.tsdb.retention.time=24h
             - --storage.tsdb.retention.size=4GB
             - --web.enable-lifecycle
-            - --web.enable-remote-write-receiver=false
+            # Remote write receiver left at its disabled default: Prometheus
+            # boolean flags reject an explicit "=false" value (T073).
           ports:
             - name: http
               containerPort: 9090

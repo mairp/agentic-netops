@@ -1,0 +1,15 @@
+     1	if command -v docker >/dev/null 2>&1; then
+     2	  if docker network inspect ainetops-mgmt >/dev/null 2>&1; then
+     3	    # Do not remove if foreign label
+     4	    if docker network inspect ainetops-mgmt -f '{{json .Labels}}' | grep -q '"ainetops.owner":"ainetops"'; then
+     5	      docker network rm ainetops-mgmt >/dev/null 2>&1 || true
+     6	    else
+     7	      echo "[off] preserving non-owned network ainetops-mgmt" >&2
+     8	    fi
+     9	  fi
+    10	fi
+    11	
+    12	# Remove generated Secrets from local repo if present
+    13	rm -f "${SCRIPT_DIR}/../secrets/gnmi.key" "${SCRIPT_DIR}/../secrets/gnmi.crt" "${SCRIPT_DIR}/../secrets/ca.crt" 2>/dev/null || true
+    14	
+    15	echo "[off] Teardown complete (idempotent)."

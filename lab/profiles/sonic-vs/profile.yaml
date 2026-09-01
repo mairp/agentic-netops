@@ -1,7 +1,7 @@
 # AINETOPS SONiC lab profile: sonic-vs
 profile: sonic-vs
 kind: sonic-vs
-image: localhost:5000/sonic-vs-gnmi:202605@sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb45d7a68710ba9d64ac27b1870768
+image: localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e
 bootstrap:
   # Limited bootstrap: management, TLS, gNMI only; persistent config under /etc/sonic
   path: lab/profiles/sonic-vs/bootstrap
@@ -22,3 +22,10 @@ notes: |
   (versions.lock.yaml sonic_vs_base, a build frozen since 2022-01) shipped no gNMI server
   at all, which is why the capability gate failed closed against it — that was a property
   of the image, not a misconfiguration.
+
+  Image v2 (2026-08-31): adds supervisord programs for dbus-daemon and sonic-host-server
+  (recipe: lab/images/sonic-vs-gnmi/Dockerfile.v2). Bootstrap also sets
+  DEVICE_METADATA.localhost.switch_type=npu (the YANG enum rejects "switch", and GCU
+  validates the whole CONFIG_DB before any patch) and installs TLS certs with ".cer"
+  suffixes (sonic-telemetry YANG pattern; a ".crt" path made every GCU write fail).
+  See docs/SRV6_GNMI_CAPABILITY_FINDINGS.md §4.1 and §7 (D1–D4, all resolved).

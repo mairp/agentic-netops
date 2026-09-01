@@ -1,0 +1,6 @@
+     1	## Logging and redaction
+     2	
+     3	- Do not log secrets, usernames, or passwords
+     4	- Emit events with reason strings from pkg/reasons; use standard Condition types
+     5	
+     6	## Reproducibility

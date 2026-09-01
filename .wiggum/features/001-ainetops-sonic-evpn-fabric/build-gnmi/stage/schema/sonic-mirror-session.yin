@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-mirror-session"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:sms="http://github.com/sonic-net/sonic-mirror-session"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:port="http://github.com/sonic-net/sonic-port"
+        xmlns:policer="http://github.com/sonic-net/sonic-policer">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-mirror-session"/>
+  <prefix value="sms"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-port">
+    <prefix value="port"/>
+  </import>
+  <import module="sonic-policer">
+    <prefix value="policer"/>
+  </import>
+  <description>
+    <text>SONiC Mirror session yang model</text>
+  </description>
+  <revision date="2026-04-14">
+    <description>
+      <text>Add sample_rate and truncate_size leaves for sampled port mirroring
+with truncation support.</text>
+    </description>
+  </revision>
+  <revision date="2021-06-15">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <typedef name="session_type">
+    <type name="enumeration">
+      <enum name="ERSPAN">
+        <description>
+          <text>ERSPAN session</text>
+        </description>
+      </enum>
+      <enum name="SPAN">
+        <description>
+          <text>SPAN session</text>
+        </description>
+      </enum>
+    </type>
+  </typedef>
+  <typedef name="session_direction">
+    <type name="enumeration">
+      <enum name="RX">
+        <description>
+          <text>RX direction</text>
+        </description>
+      </enum>
+      <enum name="TX">
+        <description>
+          <text>TX direction</text>
+        </description>
+      </enum>
+      <enum name="BOTH">
+        <description>
+          <text>Both RX and TX direction</text>
+        </description>
+      </enum>
+    </type>
+  </typedef>
+  <container name="sonic-mirror-session">
+    <container name="MIRROR_SESSION">
+      <list name="MIRROR_SESSION_LIST">
+        <key value="name"/>
+        <leaf name="name">
+          <type name="string">
+            <pattern value="[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,31})"/>
+            <length value="1..32">
+              <error-message>
+                <value>Invalid mirror session name</value>
+              </error-message>
+              <error-app-tag value="session-name-invalid"/>
+            </length>
+          </type>
+          <description>
+            <text>Mirror session name.</text>
+          </description>
+        </leaf>
+        <leaf name="type">
+          <type name="session_type"/>
+          <default value="ERSPAN"/>
+          <description>
+            <text>Mirror session type.</text>
+          </description>
+        </leaf>
+        <leaf name="src_ip">
+          <when condition="current()/../type = 'ERSPAN'"/>
+          <must condition="(contains(current(), ':') and contains(../dst_ip, ':')) or (not(contains(current(), ':')) and not(contains(../dst_ip, ':')))">
+            <error-message>
+              <value>src_ip and dst_ip must have the same IP version.</value>
+            </error-message>
+          </must>
+          <type name="inet:ip-address"/>
+          <description>
+            <text>ERSPAN source ip. This IP will be set as source ip in
+outer header of mirrored frame </text>
+          </description>
+        </leaf>
+        <leaf name="dst_ip">
+          <when condition="current()/../type = 'ERSPAN'"/>
+          <must condition="(contains(current(), ':') and contains(../src_ip, ':')) or (not(contains(current(), ':')) and not(contains(../src_ip, ':')))">
+            <error-message>
+              <value>src_ip and dst_ip must have the same IP version.</value>
+            </error-message>
+          </must>
+          <type name="inet:ip-address"/>
+          <description>
+            <text>ERSPAN destination ip. Mirrored frames will be routed to this destination.
+This IP will be set as destination ip in outer header of mirrored frame </text>
+          </description>
+        </leaf>
+        <leaf name="gre_type">
+          <when condition="current()/../type = 'ERSPAN'"/>
+          <type name="string">
+            <pattern value="0[xX][0-9a-fA-F]*|([0-9]|[1-5]?[0-9]{2,4}|6[1-4][0-9]{3}|65[1-4][0-9]{2}|655[1-2][0-9]|6553[0-5])"/>
+            <length value="1..6">
+              <error-message>
+                <value>Invalid GRE type</value>
+              </error-message>
+              <error-app-tag value="gre-type-invalid"/>
+            </length>
+          </type>
+          <default value="0x88be"/>
+          <description>
+            <text>ERSPAN outer header GRE type.</text>
+          </description>
+        </leaf>
+        <leaf name="dscp">
+          <when condition="current()/../type = 'ERSPAN'"/>
+          <type name="uint8">
+            <range value="0..63">
+              <error-message>
+                <value>Invalid dscp value</value>
+              </error-message>
+              <error-app-tag value="dscp-invalid"/>
+            </range>
+          </type>
+          <description>
+            <text>ERSPAN outer header DSCP value. Mirrored frames will be sent with configured DSCP value</text>
+          </description>
+        </leaf>
+        <leaf name="ttl">
+          <when condition="current()/../type = 'ERSPAN'"/>
+          <type name="uint8">
+            <range value="0..255">
+              <error-message>
+                <value>Invalid TTL value</value>
+              </error-message>
+              <error-app-tag value="ttl-invalid"/>
+            </range>
+          </type>
+          <description>
+            <text>ERSPAN outer header TTL value. Mirrored frames will be sent with configured TTL value</text>
+          </description>
+        </leaf>
+        <leaf name="queue">
+          <type name="uint8"/>
+          <description>
+            <text>ERSPAN Queue. Mirrored frames will be sent to this queue</text>
+          </description>
+        </leaf>
+        <leaf name="dst_port">
+          <when condition="current()/../type = 'SPAN'"/>
+          <type name="union">
+            <type name="leafref">
+              <path value="/port:sonic-port/port:PORT/port:PORT_LIST/port:name"/>
+            </type>
+            <type name="string">
+              <pattern value="CPU"/>
+            </type>
+          </type>
+          <description>
+            <text>Destination port configuration for port mirroring(SPAN).</text>
+          </description>
+        </leaf>
+        <leaf name="src_port">
+          <type name="string">
+            <length value="1..2048"/>
+          </type>
+          <description>
+            <text>Source port configuration for mirroring. Can be configured for both SPAN/ERSPAN.
+Supports both port and port-channel as arguments</text>
+          </description>
+        </leaf>
+        <leaf name="direction">
+          <type name="session_direction"/>
+          <default value="BOTH"/>
+          <description>
+            <text>Direction configuration for mirroring. Can be configured for both SPAN/ERSPAN.
+Supports rx/tx/both as direction config.
+  RX: Captures frames ingressing on source port.
+  TX: Captures frames egressing on source port.
+  BOTH: Captures frames ingressing or egressing on source port.</text>
+          </description>
+        </leaf>
+        <leaf name="policer">
+          <type name="leafref">
+            <path value="/policer:sonic-policer/policer:POLICER/policer:POLICER_LIST/policer:name"/>
+          </type>
+          <description>
+            <text>Policer to be applied for the mirrored traffic.</text>
+          </description>
+        </leaf>
+        <leaf name="sample_rate">
+          <when condition="current()/../type = 'ERSPAN'"/>
+          <type name="uint32">
+            <range value="2..max">
+              <error-message>
+                <value>Sample rate must be in range 2..max</value>
+              </error-message>
+              <error-app-tag value="sample-rate-invalid"/>
+            </range>
+          </type>
+          <description>
+            <text>Sampling rate for mirrored packets. When not configured,
+full mirroring is used (no sampling). N means mirror 1 out
+of every N packets.</text>
+          </description>
+        </leaf>
+        <leaf name="truncate_size">
+          <when condition="current()/../type = 'ERSPAN'"/>
+          <type name="uint32">
+            <range value="64..9216">
+              <error-message>
+                <value>Truncate size must be 64..9216</value>
+              </error-message>
+              <error-app-tag value="truncate-size-invalid"/>
+            </range>
+          </type>
+          <description>
+            <text>Truncation size in bytes for mirrored packets.
+When not configured, no truncation is applied. When set,
+only the first N bytes of each mirrored packet are sent.</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

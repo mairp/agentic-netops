@@ -1,0 +1,39 @@
+   100	  fi
+   101	  ( cd "$ROOT_DIR" && ./scripts/ci/denylist_runtime_scan.sh ) >"$PROOFS/runtime-scan-runtime-$idx.log" 2>&1
+   102	  echo "[cycles] runtime-scan-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
+   103	}
+   104	
+   105	# --- Three clean provision/test/off cycles (sonic-vs fast profile) -----------
+   106	for idx in 1 2 3; do
+   107	  echo "[cycles] ===== clean cycle $idx =====" | tee -a "$PROOFS/cycles.run.log"
+   108	  run_provision "$PROOFS/provision-$idx.log" sonic-vs
+   109	  run_tests "$idx"
+   110	  runtime_inventory "$idx"
+   111	  run_off "$PROOFS/off-$idx.log"
+   112	  # Repeatable no-op: off again from the just-cleaned state must succeed
+   113	  run_off_noop "$PROOFS/off-$idx-noop.log"
+   114	done
+   115	
+   116	# --- Second-provision idempotence (provision twice without teardown) ---------
+   117	echo "[cycles] ===== second-provision idempotence =====" | tee -a "$PROOFS/cycles.run.log"
+   118	run_provision "$PROOFS/idempotence-provision-1.log" sonic-vs
+   119	run_provision "$PROOFS/idempotence-provision-2.log" sonic-vs
+   120	( cd "$ROOT_DIR" && ./scripts/off.sh --cluster-name ainetops --delete-kind true ) >"$PROOFS/idempotence-off.log" 2>&1
+   121	echo "[cycles] idempotence-off exit=$?" | tee -a "$PROOFS/cycles.run.log"
+   122	
+   123	# --- Off from partial state (provision aborted at the capability gate) -------
+   124	echo "[cycles] ===== off-from-partial =====" | tee -a "$PROOFS/cycles.run.log"
+   125	run_provision "$PROOFS/partial-provision.log" sonic-vs
+   126	run_off "$PROOFS/off-from-partial.log"
+   127	run_off_noop "$PROOFS/off-from-partial-noop.log"
+   128	
+   129	# --- Conformance-profile cycle (sonic-vm, where applicable) ------------------
+   130	echo "[cycles] ===== conformance profile (sonic-vm) =====" | tee -a "$PROOFS/cycles.run.log"
+   131	run_provision "$PROOFS/provision-conformance.log" sonic-vm
+   132	run_off "$PROOFS/off-conformance.log"
+   133	
+   134	# --- Final runtime scan -------------------------------------------------------
+   135	( cd "$ROOT_DIR" && ./scripts/ci/denylist_runtime_scan.sh ) >"$PROOFS/runtime-scan-runtime.log" 2>&1
+   136	echo "[cycles] final runtime-scan exit=$?" | tee -a "$PROOFS/cycles.run.log"
+   137	echo "[cycles] end $(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a "$PROOFS/cycles.run.log"
+   138	echo "CYCLES_DONE"

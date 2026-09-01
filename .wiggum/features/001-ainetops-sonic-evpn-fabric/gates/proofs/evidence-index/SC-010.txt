@@ -1,0 +1,3 @@
+SC-010 — No proprietary runtime, SR Linux absence
+- Evidence: scripts/ci/supply_chain.sh (SR Linux absence enforced; digest pins)
+- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/scripts.ci.supply_chain.enforce_srlinux.slice.txt

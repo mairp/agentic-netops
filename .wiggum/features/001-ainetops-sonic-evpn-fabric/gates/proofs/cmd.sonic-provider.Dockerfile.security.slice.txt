@@ -1,0 +1,5 @@
+cmd/sonic-provider/Dockerfile (anchored proof)
+14: FROM gcr.io/distroless/static:nonroot AS runtime
+15: WORKDIR /
+16: USER nonroot:nonroot
+17: COPY --from=builder /out/sonic-provider /sonic-provider

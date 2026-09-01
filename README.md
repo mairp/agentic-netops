@@ -17,11 +17,12 @@ The CI enforces a vendor-agnostic deny-list to uphold the migration boundary:
 - No Compose/standalone platform-app placements under controllers/, config/, scripts/, examples/, tests/
 
 Allowed contexts:
-- specs/**/spec.md: the single migration-boundary sentence
+- specs/**/spec.md: the single migration-boundary sentence in the "Scope and interpretation" section
 - specs/**/research.md citations
-- Mention of the `srl-telemetry-lab` repository as a visualization reference only (no runtime dependency)
+- REVERSE.md citations
+- Mention of the telemetry visualization lab reference (FR-032) as a presentation-only pattern (no runtime dependency)
 
-See .github/workflows/denylist.yml for the checks.
+See .github/workflows/denylist.yml for the checks. Run `make denylist` locally to reproduce.
 
 ## Jumbo MTU policy
 

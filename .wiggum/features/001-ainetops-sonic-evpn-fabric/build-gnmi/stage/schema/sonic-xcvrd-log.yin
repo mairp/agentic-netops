@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-xcvrd-log"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:xcvrd_log="http://github.com/sonic-net/sonic-xcvrd-log">
+  <namespace uri="http://github.com/sonic-net/sonic-xcvrd-log"/>
+  <prefix value="xcvrd_log"/>
+  <yang-version value="1.1"/>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONiC DualToR xcvrd logging configuration data</text>
+  </description>
+  <revision date="2024-10-14">
+    <description>
+      <text>Initial revision</text>
+    </description>
+  </revision>
+  <container name="sonic-xcvrd-log">
+    <container name="XCVRD_LOG">
+      <description>
+        <text>Transceiver daemon logging configuration.</text>
+      </description>
+      <container name="Y_CABLE">
+        <description>
+          <text>Logging settings for Y-cable transceiver operations.</text>
+        </description>
+        <leaf name="log_verbosity">
+          <type name="enumeration">
+            <enum name="info"/>
+            <enum name="notice"/>
+            <enum name="debug"/>
+            <enum name="warning"/>
+            <enum name="critical"/>
+          </type>
+          <description>
+            <text>xcvrd log verbosity level. </text>
+          </description>
+        </leaf>
+      </container>
+    </container>
+  </container>
+</module>

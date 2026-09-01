@@ -1,0 +1,2 @@
+cmd/sonic-provider/Dockerfile:14:FROM gcr.io/distroless/static:nonroot AS runtime
+cmd/srv6-controller/Dockerfile:14:FROM gcr.io/distroless/static:nonroot AS runtime

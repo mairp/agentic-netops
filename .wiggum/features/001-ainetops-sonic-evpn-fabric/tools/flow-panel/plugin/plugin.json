@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/v11.2.0/docs/sources/developers/plugins/schema.json",
+  "id": "grafana-flow-panel",
+  "type": "panel",
+  "name": "AINETOPS Flow Topology",
+  "info": {
+    "description": "Renders the AINETOPS physical fabric topology (nodes/links embedded from containerlab metadata) with live per-link state from Prometheus.",
+    "author": {
+      "name": "AINETOPS"
+    },
+    "keywords": ["topology", "fabric", "evpn"],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "version": "1.0.0"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=11.0.0",
+    "plugins": []
+  },
+  "module": "module.js"
+}

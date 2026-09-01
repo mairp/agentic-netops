@@ -1,8 +1,17 @@
-/openconfig-interfaces:interfaces
-/openconfig-network-instance:network-instances
-/openconfig-vlan:vlans
-/openconfig-bgp:bgp
-/sonic-telemetry:sonic-telemetry/TELEMETRY
-/sonic-vrf:sonic-vrf
-/sonic-tunnel:sonic-tunnel
-/sonic-srv6:sonic-srv6
+# Required YANG path qualification (T014) — sonic-db origin mapping.
+#
+# The OpenConfig translib path forms are advertised by gNMI Capabilities but NOT mapped
+# in this sonic-gnmi build (xYangSpecMap miss — docs/SRV6_GNMI_CAPABILITY_FINDINGS.md
+# §4.2), so each required path is qualified through its CONFIG_DB table on the sonic-db
+# origin. Format: <label>|<sonic-db get path>|<table-name>
+# Tables listed in NONEMPTY_TABLES (DEVICE_METADATA, TELEMETRY) must return content;
+# tables that are legitimately empty on a freshly bootstrapped node are asserted for a
+# well-formed reply only — their content is covered by the configured-fabric suites.
+openconfig-interfaces|sonic-db:/CONFIG_DB/INTERFACE|INTERFACE
+openconfig-network-instance|sonic-db:/CONFIG_DB/VRF|VRF
+openconfig-vlan|sonic-db:/CONFIG_DB/VLAN|VLAN
+openconfig-bgp|sonic-db:/CONFIG_DB/BGP_GLOBALS|BGP_GLOBALS
+sonic-telemetry|/TELEMETRY|TELEMETRY
+sonic-vrf|sonic-db:/CONFIG_DB/VRF|VRF
+sonic-tunnel|sonic-db:/CONFIG_DB/TUNNEL|TUNNEL
+sonic-srv6|sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS|SRV6_MY_LOCATORS

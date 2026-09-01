@@ -1,0 +1,4 @@
+22:19:29 INFO no containerlab containers found
+[clab] destroy complete
+[off] Teardown complete (idempotent).
+OFF_NOOP_EXIT=0

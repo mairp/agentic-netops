@@ -1,0 +1,128 @@
+     1	name: Denylist Scan
+     2	
+     3	on:
+     4	  push:
+     5	    branches: [ main, master ]
+     6	  pull_request:
+     7	
+     8	jobs:
+     9	  denylist:
+    10	    runs-on: ubuntu-latest
+    11	    steps:
+    12	      - name: Checkout
+    13	        uses: actions/checkout@v4
+    14	
+    15	      - name: Install ripgrep and coreutils
+    16	        run: |
+    17	          sudo apt-get update
+    18	          sudo apt-get install -y ripgrep coreutils
+    19	
+    20	      - name: Run repository-wide deny-list checks (SC-010, FR-020, FR-023, FR-032)
+    21	        shell: bash
+    22	        run: |
+    23	          set -euo pipefail
+    24	
+    25	          fail=0
+    26	
+    27	          # Helper: filter allowed contexts from ripgrep matches
+    28	          filter_allowed() {
+    29	            local matches="$1"
+    30	            # Normalize paths and allow citations in research.md and REVERSE.md
+    31	            matches=$(printf "%s" "${matches}" | sed -E 's#^\./##' | rg -v 'specs/.+/research\.md:' | rg -v '(^|.*/)REVERSE\.md:' || true)
+    32	            # Exclude enforcement sources to avoid self-reference false positives
+    33	            matches=$(printf "%s" "${matches}" | rg -v '^(\.github/workflows/denylist\.yml|scripts/ci/denylist_policy\.sh|scripts/ci/supply_chain\.sh|scripts/ci/denylist_runtime_scan\.sh|tests/integration/cycles_runner\.sh):' || true)
+    34	
+    35	            # Allow mentions in spec.md "Scope and interpretation" section and SC-010 success criterion only
+    36	            # Compute line ranges for the sections in the pinned spec
+    37	            local spec_path="specs/001-ainetops-sonic-evpn-fabric/spec.md"
+    38	            if [[ -f "$spec_path" ]]; then
+    39	              local start end sc010_start sc010_end
+    40	              start=$(awk '/^##\s+Scope and interpretation/{print NR; exit}' "$spec_path" || true)
+    41	              end=$(awk 'p && /^##\s+/{print NR; exit} /^##\s+Scope and interpretation/{p=1}' "$spec_path" || true)
+    42	              sc010_start=$(awk '/^- \*\*SC-010\*\*/{print NR; exit}' "$spec_path" || true)
+    43	              sc010_end=$(awk -v s="$sc010_start" 'NR > s && /^- \*\*SC-/{print NR; exit}' "$spec_path" || true)
+    44	              if [[ -z "$sc010_end" ]]; then sc010_end=999999; fi
+    45	              if [[ -n "${start}" && -n "${end}" ]]; then
+    46	                # Remove matches within allowed line ranges in spec.md
+    47	                matches=$(printf "%s" "${matches}" | awk -v s="$start" -v e="$end" -v s2="$sc010_start" -v e2="$sc010_end" -F: '!( $1=="'"$spec_path"'" && ( ($2>=s && $2<=e) || ($2>=s2 && $2<=e2) ) )')
+    48	              fi
+    49	            fi
+    50	
+    51	            # Do NOT globally allow srl-telemetry-lab — handle it in its own scoped check below
+    52	
+    53	            printf "%s" "${matches}"
+    54	          }
+    55	
+    56	          echo "::group::Migration boundary terms (FR-020)"
+    57	          MIG_PATTERN='\\b(cisco|crosswork|nso|cnc|proprietary\\s+ned|proprietary\\s+neds|ai-network-services-devnet-2606|devnet-2606)\\b'
+    58	          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    59	            MIG_MATCHES=$(git ls-files -z | rg -z -v '^(vendor/|\.wiggum/|scripts/ci/)' | xargs -0 rg -i -n -e "$MIG_PATTERN" || true)
+    60	          else
+    61	            MIG_MATCHES=$(rg -i -n --hidden --no-ignore -g '!*/.git/*' -g '!vendor/**' -g '!.wiggum/**' -g '!scripts/ci/**' -e "$MIG_PATTERN" . || true)
+    62	          fi
+    63	          MIG_VIOLATIONS=$(filter_allowed "$MIG_MATCHES")
+    64	          if [[ -n "$MIG_VIOLATIONS" ]]; then
+    65	            echo "::error title=Migration boundary term(s) found outside allowed contexts::${MIG_VIOLATIONS}"
+    66	            fail=1
+    67	          fi
+    68	          echo "::endgroup::"
+    69	
+    70	          echo "::group::Visualization boundary terms (FR-032)"
+    71	          VIS_PATTERN='\\b(sr[ -]?linux|nokia_srlinux)\\b|ghcr\\.io/nokia/srlinux'
+    72	          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    73	            VIS_MATCHES=$(git ls-files -z | rg -z -v '^(vendor/|\.wiggum/|scripts/ci/)' | xargs -0 rg -i -n -e "$VIS_PATTERN" || true)
+    74	          else
+    75	            VIS_MATCHES=$(rg -i -n --hidden --no-ignore -g '!*/.git/*' -g '!vendor/**' -g '!.wiggum/**' -g '!scripts/ci/**' -e "$VIS_PATTERN" . || true)
+    76	          fi
+    77	          VIS_VIOLATIONS=$(filter_allowed "$VIS_MATCHES")
+    78	          if [[ -n "$VIS_VIOLATIONS" ]]; then
+    79	            echo "::error title=SR Linux mention(s) found outside allowed contexts::${VIS_VIOLATIONS}"
+    80	            fail=1
+    81	          fi
+    82	          echo "::endgroup::"
+    83	
+    84	          echo "::group::Placement boundary (FR-023): Compose/standalone indicators"
+    85	          PL_PATTERN='(docker-compose|docker\\s+compose|compose\\.ya?ml|standalone\\s+container|standalone\\s+deployment)'
+    86	          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    87	            PL_MATCHES=$(git ls-files -z | rg -z -v '^(vendor/|\.wiggum/|scripts/ci/)' | xargs -0 rg -i -n -e "$PL_PATTERN" || true)
+    88	          else
+    89	            PL_MATCHES=$(rg -i -n --hidden --no-ignore -g '!*/.git/*' -g '!vendor/**' -g '!.wiggum/**' -g '!scripts/ci/**' -e "$PL_PATTERN" . || true)
+    90	          fi
+    91	          PL_VIOLATIONS=$(filter_allowed "$PL_MATCHES")
+    92	          if [[ -n "$PL_VIOLATIONS" ]]; then
+    93	            echo "::error title=Disallowed placement mention(s) found outside allowed contexts::${PL_VIOLATIONS}"
+    94	            fail=1
+    95	          fi
+    96	          echo "::endgroup::"
+    97	
+    98	          echo "::group::Visualization reference repository exception (srl-telemetry-lab only in allowed contexts)"
+    99	          SRLTL_PATTERN='srl-telemetry-lab'
+   100	          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+   101	            SRLTL_MATCHES=$(git ls-files -z | rg -z -v '^(vendor/|\.wiggum/|scripts/ci/)' | xargs -0 rg -i -n -e "$SRLTL_PATTERN" || true)
+   102	          else
+   103	            SRLTL_MATCHES=$(rg -i -n --hidden --no-ignore -g '!*/.git/*' -g '!vendor/**' -g '!.wiggum/**' -g '!scripts/ci/**' -e "$SRLTL_PATTERN" . || true)
+   104	          fi
+   105	          # Allowed contexts: spec.md Scope and interpretation section, SC-010 in spec.md, specs/**/research.md, REVERSE.md, and README.md line stating presentation-only reference
+   106	          ALLOWED_SPECS_SCOPE=$(awk '/^##\s+Scope and interpretation/{print NR; exit}' specs/001-ainetops-sonic-evpn-fabric/spec.md || true)
+   107	          ALLOWED_SPECS_SCOPE_END=$(awk 'p && /^##\s+/{print NR; exit} /^##\s+Scope and interpretation/{p=1}' specs/001-ainetops-sonic-evpn-fabric/spec.md || true)
+   108	          # Also allow SC-010 success criterion lines in spec.md
+   109	          ALLOWED_SC010_START=$(awk '/^- \*\*SC-010\*\*/{print NR; exit}' specs/001-ainetops-sonic-evpn-fabric/spec.md || true)
+   110	          ALLOWED_SC010_END=$(awk -v s="$ALLOWED_SC010_START" 'NR > s && /^- \*\*SC-/{print NR; exit}' specs/001-ainetops-sonic-evpn-fabric/spec.md || true)
+   111	          if [[ -z "$ALLOWED_SC010_END" ]]; then ALLOWED_SC010_END=999999; fi
+   112	          SRLTL_VIOLATIONS=$(printf "%s" "${SRLTL_MATCHES}" \
+   113	            | awk -F: -v s="$ALLOWED_SPECS_SCOPE" -v e="$ALLOWED_SPECS_SCOPE_END" -v s2="$ALLOWED_SC010_START" -v e2="$ALLOWED_SC010_END" '!( $1 ~ /^specs\/001-ainetops-sonic-evpn-fabric\/spec.md$/ && ( ($2>=s && $2<=e) || ($2>=s2 && $2<=e2) ) )' \
+   114	            | rg -v '^specs/.+/research\.md:' \
+   115	            | rg -v '(^|.*/)REVERSE\.md:' \
+   116	            | rg -v '^README\.md:.*visualization/presentation reference only' \
+   117	            | rg -v '^(\.github/workflows/denylist\.yml|scripts/ci/denylist_policy\.sh|scripts/ci/denylist_runtime_scan\.sh|tests/integration/cycles_runner\.sh):' || true)
+   118	          if [[ -n "$SRLTL_VIOLATIONS" ]]; then
+   119	            echo "::error title=srl-telemetry-lab mention(s) found outside allowed contexts::${SRLTL_VIOLATIONS}"
+   120	            fail=1
+   121	          fi
+   122	          echo "::endgroup::"
+   123	
+   124	          if [[ "$fail" -ne 0 ]]; then
+   125	            echo "Deny-list checks failed" >&2
+   126	            exit 1
+   127	          fi
+   128	          echo "All deny-list checks passed"

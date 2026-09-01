@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-breakout_cfg"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:breakout_cfg="http://github.com/sonic-net/sonic-breakout_cfg">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-breakout_cfg"/>
+  <prefix value="breakout_cfg"/>
+  <description>
+    <text>BREAKOUT_CFG YANG Module for SONiC OS</text>
+  </description>
+  <revision date="2020-04-10">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <container name="sonic-breakout_cfg">
+    <container name="BREAKOUT_CFG">
+      <description>
+        <text>Port breakout mode configuration for dynamic port splitting</text>
+      </description>
+      <list name="BREAKOUT_CFG_LIST">
+        <key value="port"/>
+        <leaf name="port">
+          <description>
+            <text>Parent port name for breakout configuration</text>
+          </description>
+          <type name="string">
+            <length value="1..255"/>
+          </type>
+        </leaf>
+        <leaf name="brkout_mode">
+          <description>
+            <text>break_mode for port, it is verifed using platform.json</text>
+          </description>
+          <type name="string">
+            <length value="1..64"/>
+          </type>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

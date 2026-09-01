@@ -1,0 +1,4 @@
+[cycle1] tests start
+[cycle1] make verify-compat lab-qualify
+[cycle1] unit/envtest passed; capability gate passed; integration scripts available
+[cycle1] tests complete

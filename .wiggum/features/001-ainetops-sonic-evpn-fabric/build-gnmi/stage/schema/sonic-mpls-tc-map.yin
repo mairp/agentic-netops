@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-mpls-tc-map"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:mpls_tc_map="http://github.com/sonic-net/sonic-mpls-tc-map"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-mpls-tc-map"/>
+  <prefix value="mpls_tc_map"/>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>MPLS_TC_TO_TC_MAP yang Module for SONiC OS</text>
+  </description>
+  <revision date="2021-04-15">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <container name="sonic-mpls-tc-map">
+    <container name="MPLS_TC_TO_TC_MAP">
+      <description>
+        <text>Maps MPLS TC bits to traffic class for QoS classification of MPLS traffic.</text>
+      </description>
+      <list name="MPLS_TC_TO_TC_MAP_LIST">
+        <key value="name"/>
+        <description>
+          <text>A named MPLS TC to traffic class map.</text>
+        </description>
+        <leaf name="name">
+          <description>
+            <text>Name of the MPLS TC to TC map.</text>
+          </description>
+          <type name="string">
+            <pattern value="[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,31})"/>
+            <length value="1..32">
+              <error-message>
+                <value>Invalid length for map name.</value>
+              </error-message>
+              <error-app-tag value="map-name-invalid-length"/>
+            </length>
+          </type>
+        </leaf>
+        <list name="MPLS_TC_TO_TC_MAP">
+          <key value="mpls"/>
+          <description>
+            <text>Single mapping entry from an MPLS TC value to a traffic class.</text>
+          </description>
+          <leaf name="mpls">
+            <description>
+              <text>MPLS TC Value</text>
+            </description>
+            <type name="string">
+              <pattern value="[0-7]?">
+                <error-message>
+                  <value>Invalid MPLS</value>
+                </error-message>
+                <error-app-tag value="mpls-invalid"/>
+              </pattern>
+            </type>
+          </leaf>
+          <leaf name="tc">
+            <description>
+              <text>Matching TC Value</text>
+            </description>
+            <type name="stypes:tc_type"/>
+          </leaf>
+        </list>
+      </list>
+    </container>
+  </container>
+</module>

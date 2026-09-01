@@ -1,0 +1,13 @@
+[run] sdc-validation: go test ./tests/unit -run OfflineValidate|RegisterGuard|RendererPathsCoveredByRegister|FullValidate -v
+=== RUN   TestCompat_FullValidateContractsAndPins
+--- PASS: TestCompat_FullValidateContractsAndPins (0.00s)
+=== RUN   TestOfflineValidateRejectsNonPathKeys
+--- PASS: TestOfflineValidateRejectsNonPathKeys (0.00s)
+=== RUN   TestRegisterGuard_CatchesMissingPath
+--- PASS: TestRegisterGuard_CatchesMissingPath (0.00s)
+=== RUN   TestRegisterGuard_PassesForRenderedPaths
+--- PASS: TestRegisterGuard_PassesForRenderedPaths (0.00s)
+=== RUN   TestRendererPathsCoveredByRegister
+--- PASS: TestRendererPathsCoveredByRegister (0.00s)
+PASS
+ok  	github.com/mairp/ainetops/tests/unit	(cached)

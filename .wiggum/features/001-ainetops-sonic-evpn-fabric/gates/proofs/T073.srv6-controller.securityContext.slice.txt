@@ -1,0 +1,11 @@
+    42	        securityContext:
+    43	          runAsNonRoot: true
+    44	          allowPrivilegeEscalation: false
+    45	          readOnlyRootFilesystem: true
+    46	          capabilities:
+    47	            drop: ["ALL"]
+    48	---
+    49	apiVersion: v1
+    50	kind: Service
+    51	metadata:
+    52	  name: ainetops-srv6-controller

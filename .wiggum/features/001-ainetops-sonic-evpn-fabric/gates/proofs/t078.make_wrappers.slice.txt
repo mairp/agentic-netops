@@ -1,0 +1,10 @@
+62:quickstart:
+63-	@"$(PWD)/scripts/provision.sh" --profile $(PROF) --cluster-name $(CLUSTER) --timeout $(TIMEOUT)
+64-	@$(MAKE) -s verify-compat lab-qualify
+--
+66:provision:
+67-	@"$(PWD)/scripts/provision.sh" --profile $(PROF) --cluster-name $(CLUSTER) --timeout $(TIMEOUT)
+68-
+69:off:
+70-	@AINETOPS_DELETE_KIND=$(DELETE_KIND) AINETOPS_CAPTURE_EVIDENCE=$(CAPTURE) "$(PWD)/scripts/off.sh" --cluster-name $(CLUSTER)
+71-

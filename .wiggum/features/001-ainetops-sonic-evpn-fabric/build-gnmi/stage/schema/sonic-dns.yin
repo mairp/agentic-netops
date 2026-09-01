@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-dns"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:dns="http://github.com/sonic-net/sonic-dns"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types">
+  <namespace uri="http://github.com/sonic-net/sonic-dns"/>
+  <yang-version value="1.1"/>
+  <prefix value="dns"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>Domain Name System (DNS) resolver configuration YANG module for SONiC OS.</text>
+  </description>
+  <revision date="2023-02-14">
+    <description>
+      <text>Initial version</text>
+    </description>
+  </revision>
+  <container name="sonic-dns">
+    <container name="DNS_NAMESERVER">
+      <description>
+        <text>DNS nameserver addresses for name resolution.</text>
+      </description>
+      <list name="DNS_NAMESERVER_LIST">
+        <max-elements value="3"/>
+        <description>
+          <text>Ordered list of DNS nameserver IP addresses.</text>
+        </description>
+        <key value="ip"/>
+        <leaf name="ip">
+          <description>
+            <text>IPv4 or IPv6 address of a DNS nameserver.</text>
+          </description>
+          <type name="inet:ip-address"/>
+        </leaf>
+      </list>
+    </container>
+    <container name="DNS_OPTIONS">
+      <description>
+        <text>DNS resolver options; requires at least one nameserver to be configured.</text>
+      </description>
+      <container name="GLOBAL">
+        <leaf-list name="search">
+          <description>
+            <text>Configure the DNS search suffix list</text>
+          </description>
+          <type name="inet:host"/>
+        </leaf-list>
+        <leaf name="ndots">
+          <description>
+            <text>Sets a threshold for the number of dots which must appear in a name given before an initial absolute query will be made</text>
+          </description>
+          <type name="uint8">
+            <range value="0..15"/>
+          </type>
+          <default value="1"/>
+        </leaf>
+        <leaf name="timeout">
+          <description>
+            <text>Sets the amount of time in seconds the resolver will wait for a response from a remote name server before retrying the query via a different name server.</text>
+          </description>
+          <type name="uint8">
+            <range value="1..30"/>
+          </type>
+          <default value="5"/>
+        </leaf>
+        <leaf name="attempts">
+          <description>
+            <text>Sets the number of times the resolver will send a query to its name servers before giving up and returning an error to the calling application.</text>
+          </description>
+          <type name="uint8">
+            <range value="1..5"/>
+          </type>
+          <default value="2"/>
+        </leaf>
+      </container>
+      <when condition="count(../DNS_NAMESERVER/DNS_NAMESERVER_LIST/ip) &gt; 0"/>
+    </container>
+  </container>
+</module>

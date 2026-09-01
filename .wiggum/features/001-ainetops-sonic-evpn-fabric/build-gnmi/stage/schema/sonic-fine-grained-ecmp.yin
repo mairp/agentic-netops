@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-fine-grained-ecmp"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:sfgecmp="http://github.com/sonic-net/sonic-fine-grained-ecmp"
+        xmlns:inet="urn:ietf:params:xml:ns:yang:ietf-inet-types"
+        xmlns:lag="http://github.com/sonic-net/sonic-portchannel"
+        xmlns:port="http://github.com/sonic-net/sonic-port"
+        xmlns:stypes="http://github.com/sonic-net/sonic-head">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-fine-grained-ecmp"/>
+  <prefix value="sfgecmp"/>
+  <import module="ietf-inet-types">
+    <prefix value="inet"/>
+  </import>
+  <import module="sonic-portchannel">
+    <prefix value="lag"/>
+  </import>
+  <import module="sonic-port">
+    <prefix value="port"/>
+  </import>
+  <import module="sonic-types">
+    <prefix value="stypes"/>
+  </import>
+  <organization>
+    <text>SONiC</text>
+  </organization>
+  <contact>
+    <text>SONiC</text>
+  </contact>
+  <description>
+    <text>SONIC Fine Grained ECMP</text>
+  </description>
+  <revision date="2024-09-15">
+    <description>
+      <text>Added support for dynamic nexthop group.</text>
+    </description>
+  </revision>
+  <revision date="2023-01-19">
+    <description>
+      <text>Initial revision.</text>
+    </description>
+  </revision>
+  <typedef name="match-mode-name">
+    <type name="enumeration">
+      <enum name="route-based">
+        <description>
+          <text>Fine grained ecmp is used when the route prefix matches the FG_NHG_PREFIX prefix and associated
+nexthop IPs match the FG_NHG_MEMBER IPs</text>
+        </description>
+      </enum>
+      <enum name="nexthop-based">
+        <description>
+          <text>Fine grained ecmp is used when the nexthop IPs match the FG_NHG_MEMBER IPs</text>
+        </description>
+      </enum>
+      <enum name="prefix-based">
+        <description>
+          <text>Fine grained ecmp is used when the route prefix matches the FG_NHG_PREFIX prefix. The nexthop
+IPs are derived from the route updates and FG_NHG_MEMBER table doesn't need to be programmed.</text>
+        </description>
+      </enum>
+    </type>
+    <description>
+      <text>This enumeration type defines the method used to determine whether fine grained ecmp should be applied.</text>
+    </description>
+  </typedef>
+  <container name="sonic-fine-grained-ecmp">
+    <container name="FG_NHG">
+      <description>
+        <text>Fine-grained ECMP next-hop group definitions</text>
+      </description>
+      <list name="FG_NHG_LIST">
+        <key value="name"/>
+        <leaf name="name">
+          <type name="string"/>
+          <description>
+            <text>FG_NHG group name</text>
+          </description>
+        </leaf>
+        <leaf name="bucket_size">
+          <type name="uint16"/>
+          <mandatory value="true"/>
+          <description>
+            <text>total hash bucket size desired, recommended value of Lowest Common
+Multiple of 1..{max # of next-hops}</text>
+          </description>
+        </leaf>
+        <leaf name="match_mode">
+          <type name="match-mode-name"/>
+          <mandatory value="true"/>
+          <description>
+            <text> The filtering method used to identify when to use Fine Grained vs regular route handling.
+   -- nexthop-based filters on nexthop IPs only.
+   -- route-based filters on both prefix and nexthop IPs.
+   -- prefix-based filters on prefix only.</text>
+          </description>
+        </leaf>
+        <leaf name="max_next_hops">
+          <when condition="current()/../match_mode = 'prefix-based'"/>
+          <mandatory value="true"/>
+          <type name="uint16">
+            <range value="1..128"/>
+          </type>
+          <must condition="current() &gt; 0">
+            <error-message>
+              <value>max_next_hops needs to be a positive value in dynamic-nhg mode</value>
+            </error-message>
+          </must>
+          <description>
+            <text>Applicable only for match_mode = prefix-based. Maximum number of nexthops that will be
+received in route updates for any of the prefixes that match FG_NHG_PREFIX for this FG_NHG.</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+    <container name="FG_NHG_PREFIX">
+      <description>
+        <text>IP prefixes associated with fine-grained ECMP next-hop groups</text>
+      </description>
+      <list name="FG_NHG_PREFIX_LIST">
+        <key value="ip_prefix"/>
+        <leaf name="ip_prefix">
+          <type name="stypes:sonic-ip-prefix"/>
+          <description>
+            <text>FG_NHG_PREFIX for which FG behavior is
+desired</text>
+          </description>
+        </leaf>
+        <leaf name="FG_NHG">
+          <type name="leafref">
+            <path value="/sfgecmp:sonic-fine-grained-ecmp/sfgecmp:FG_NHG/sfgecmp:FG_NHG_LIST/sfgecmp:name"/>
+          </type>
+          <mandatory value="true"/>
+          <description>
+            <text>Fine Grained next-hop group name</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+    <container name="FG_NHG_MEMBER">
+      <description>
+        <text>Next-hop IP members belonging to fine-grained ECMP groups</text>
+      </description>
+      <list name="FG_NHG_MEMBER_LIST">
+        <key value="next_hop_ip"/>
+        <leaf name="next_hop_ip">
+          <type name="inet:ip-address"/>
+          <description>
+            <text>FG_NHG next-hop-ip member associated
+with prefix</text>
+          </description>
+        </leaf>
+        <leaf name="FG_NHG">
+          <type name="leafref">
+            <path value="/sfgecmp:sonic-fine-grained-ecmp/sfgecmp:FG_NHG/sfgecmp:FG_NHG_LIST/sfgecmp:name"/>
+          </type>
+          <mandatory value="true"/>
+          <description>
+            <text>Fine Grained next-hop group name</text>
+          </description>
+        </leaf>
+        <leaf name="bank">
+          <type name="uint16"/>
+          <mandatory value="true"/>
+          <description>
+            <text>An index which specifies a bank/group in which the redistribution is performed</text>
+          </description>
+        </leaf>
+        <leaf name="link">
+          <type name="union">
+            <type name="leafref">
+              <path value="/port:sonic-port/port:PORT/port:PORT_LIST/port:name"/>
+            </type>
+            <type name="leafref">
+              <path value="/lag:sonic-portchannel/lag:PORTCHANNEL/lag:PORTCHANNEL_LIST/lag:name"/>
+            </type>
+          </type>
+          <description>
+            <text>Link associated with next-hop-ip, if configured, enables next-hop withdrawal/addition
+per link's operational state changes</text>
+          </description>
+        </leaf>
+      </list>
+    </container>
+  </container>
+</module>

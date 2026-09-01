@@ -1,0 +1,309 @@
+[YANG-Paths] PASSED
+Test YANG-Paths completed successfully
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.21:8080
+[yang-path-suite] FAIL: openconfig-interfaces on 172.31.0.21:8080: gNMI Get failed: target "172.31.0.21:8080" Get request failed: "172.31.0.21:8080" GetRequest failed: rpc error: code = NotFound desc = No valid entry found on CONFIG_DB with key CONFIG_DB|INTERFACE
+Error: one or more requests failed
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-interfaces asserted on all targets
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-network-instance asserted on all targets
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-vlan asserted on all targets
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-bgp asserted on all targets
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.21:8080
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.22:8080
+[yang-path-suite] sonic-telemetry asserted on all targets
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-vrf asserted on all targets
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-tunnel asserted on all targets
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-srv6 asserted on all targets
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-interfaces asserted on all targets
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-network-instance asserted on all targets
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-vlan asserted on all targets
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-bgp asserted on all targets
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.21:8080
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.22:8080
+[yang-path-suite] sonic-telemetry asserted on all targets
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-vrf asserted on all targets
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-tunnel asserted on all targets
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-srv6 asserted on all targets
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-interfaces asserted on all targets
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-network-instance asserted on all targets
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-vlan asserted on all targets
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-bgp asserted on all targets
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.21:8080
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.22:8080
+[yang-path-suite] sonic-telemetry asserted on all targets
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-vrf asserted on all targets
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-tunnel asserted on all targets
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-srv6 asserted on all targets
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-interfaces asserted on all targets
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-network-instance asserted on all targets
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-vlan asserted on all targets
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-bgp asserted on all targets
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.21:8080
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.22:8080
+[yang-path-suite] sonic-telemetry asserted on all targets
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-vrf asserted on all targets
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-tunnel asserted on all targets
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-srv6 asserted on all targets
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-interfaces asserted on all targets
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-network-instance asserted on all targets
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-vlan asserted on all targets
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-bgp asserted on all targets
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.21:8080
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.22:8080
+[yang-path-suite] sonic-telemetry asserted on all targets
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-vrf asserted on all targets
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-tunnel asserted on all targets
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-srv6 asserted on all targets
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-interfaces asserted on all targets
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-network-instance asserted on all targets
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-vlan asserted on all targets
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-bgp asserted on all targets
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.21:8080
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.22:8080
+[yang-path-suite] sonic-telemetry asserted on all targets
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-vrf asserted on all targets
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-tunnel asserted on all targets
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-srv6 asserted on all targets
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-interfaces asserted on all targets
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-network-instance asserted on all targets
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-vlan asserted on all targets
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-bgp asserted on all targets
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.21:8080
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.22:8080
+[yang-path-suite] sonic-telemetry asserted on all targets
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-vrf asserted on all targets
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-tunnel asserted on all targets
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-srv6 asserted on all targets
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-interfaces asserted on all targets
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-network-instance asserted on all targets
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-vlan asserted on all targets
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] openconfig-bgp asserted on all targets
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.21:8080
+[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.22:8080
+[yang-path-suite] sonic-telemetry asserted on all targets
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-vrf asserted on all targets
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-tunnel asserted on all targets
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.21:8080
+[yang-path-suite] 172.31.0.21:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-srv6 asserted on all targets

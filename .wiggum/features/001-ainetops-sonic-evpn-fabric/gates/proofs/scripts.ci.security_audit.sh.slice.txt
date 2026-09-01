@@ -1,0 +1,83 @@
+     1	#!/usr/bin/env bash
+     2	# Security audit (T073, FR-015): scan RBAC verbs/scopes, Secret use, TLS validation,
+     3	# image privileges, Docker/KVM trust boundaries, Grafana plugin provenance,
+     4	# anonymous access/default credentials, and log/status redaction.
+     5	# Emits a human-readable report and exits non-zero on critical findings.
+     6	set -euo pipefail
+     7	
+     8	ROOT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+     9	cd "$ROOT_DIR"
+    10	
+    11	RED="\e[31m"; YEL="\e[33m"; GRN="\e[32m"; NC="\e[0m"
+    12	fail=0
+    13	
+    14	section() { echo -e "\n=== $1 ==="; }
+    15	ok() { echo -e "${GRN}OK${NC}: $1"; }
+    16	warn() { echo -e "${YEL}WARN${NC}: $1"; }
+    17	err() { echo -e "${RED}ERROR${NC}: $1"; fail=1; }
+    18	
+    19	# Helper: rg wrapper falling back to grep. When ripgrep is unavailable,
+    20	# translate "\\s" to POSIX [[:space:]] so whitespace classes still match.
+    21	search_ci() {
+    22	  local pattern="$1"; shift
+    23	  local pat_grep="${pattern//\\s/[[:space:]]}"
+    24	  if command -v rg >/dev/null 2>&1; then
+    25	    rg -n --hidden --no-ignore -g '!*/.git/*' -e "$pattern" "$@" || true
+    26	  else
+    27	    grep -RIn --exclude-dir=.git -E "$pat_grep" "$@" || true
+    28	  fi
+    29	}
+    30	
+    31	section "RBAC minimal verbs/scopes"
+    32	rbac_dirs=(config/rbac deploy/rbac)
+    33	# Match list form: verbs: ["*"] or value form: - "*"
+    34	found_wildcards=$(search_ci '\\bverbs\\s*:\\s*(\\[[^]]*\\*[^]]*\\]|$)|^-\\s*\"?\*\"?$' "${rbac_dirs[@]}")
+    35	cluster_admin_bindings=$(search_ci 'cluster-admin' config/rbac deploy/rbac)
+    36	if [[ -n "$found_wildcards" ]]; then err "Wildcard verbs detected:\n$found_wildcards"; else ok "No wildcard verbs in RBAC"; fi
+    37	if [[ -n "$cluster_admin_bindings" ]]; then err "cluster-admin binding detected:\n$cluster_admin_bindings"; else ok "No cluster-admin bindings in AINETOPS manifests"; fi
+    38	
+    39	section "Secret use"
+    40	static_secret_data=$(search_ci '^\s*(data|stringData):' deploy/rbac | grep -vE 'secret-generator|example|test' || true)
+    41	if [[ -n "$static_secret_data" ]]; then warn "Potential static Secret content present (should be generated):\n$static_secret_data"; else ok "No static Secret content checked into deploy/rbac"; fi
+    42	gen_jobs=$(ls -1 deploy/rbac/secret-generator-job.yaml 2>/dev/null || true)
+    43	if [[ -n "$gen_jobs" ]]; then ok "Secret generator job present: deploy/rbac/secret-generator-job.yaml"; else err "Missing secret generator job under deploy/rbac"; fi
+    44	
+    45	section "TLS validation for gNMIc"
+    46	if [[ -f deploy/gnmi/gnmic.yaml ]]; then
+    47	  if grep -nE "skip-verify:\\s*false" deploy/gnmi/gnmic.yaml >/dev/null; then ok "gNMIc TLS skip-verify=false"; else err "gNMIc skip-verify not set to false"; fi
+    48	  if search_ci 'secretKeyRef:.*(tls-ca|tls-cert|tls-key)' deploy/gnmi/gnmic.yaml >/dev/null; then ok "gNMIc references tls-ca/tls-cert/tls-key via Secret"; else err "gNMIc TLS secretKeyRefs not found"; fi
+    49	else warn "deploy/gnmi/gnmic.yaml not found"; fi
+    50	
+    51	section "Image privileges (Dockerfiles/manifests)"
+    52	bad_user=$(search_ci '^\s*USER\s+root\b' cmd | grep -v '/vendor/' || true)
+    53	if [[ -n "$bad_user" ]]; then err "Some Dockerfiles set USER root:\n$bad_user"; else ok "Controller Dockerfiles do not run as root"; fi
+    54	distroless=$(search_ci '(gcr\.io/distroless|distroless)' cmd || true)
+    55	if [[ -n "$distroless" ]]; then ok "Distroless base images in use"; else warn "Distroless base image not detected; verify minimal base manually"; fi
+    56	manifest_nonroot=$(search_ci 'runAsNonRoot:\\s*true' deploy || true)
+    57	if [[ -n "$manifest_nonroot" ]]; then ok "Kubernetes manifests set runAsNonRoot where applicable"; else warn "runAsNonRoot not explicitly set in manifests"; fi
+    58	
+    59	section "Docker/KVM trust boundaries"
+    60	if grep -nE "preflight::kvm_check|kvm_check" scripts/lib/preflight.sh >/dev/null 2>&1; then ok "KVM check present in preflight for sonic-vm"; else warn "KVM check not found in preflight"; fi
+    61	
+    62	section "Grafana plugin provenance and auth"
+    63	if [[ -f deploy/observability/grafana.yaml ]]; then
+    64	  if search_ci 'GF_AUTH_ANONYMOUS_ENABLED:\\s*"?false"?' deploy/observability/grafana.yaml >/dev/null; then ok "Grafana anonymous disabled"; else err "Grafana anonymous may be enabled"; fi
+    65	  plugin_install=$(search_ci 'name: GF_INSTALL_PLUGINS' deploy/observability/grafana.yaml || true)
+    66	  if [[ -n "$plugin_install" ]]; then err "Grafana third-party plugin install present (no unpinned plugins allowed)"; else ok "Grafana installs no third-party plugins (built-in panels only)"; fi
+    67	  if grep -q 'grafana_flow_plugin:.*@sha256:[a-f0-9]\{64\}' versions.lock.yaml 2>/dev/null; then ok "Grafana flow visualization pin recorded (presentation reference, FR-032)"; else err "Grafana flow visualization pin missing from versions.lock.yaml"; fi
+    68	else warn "deploy/observability/grafana.yaml not found"; fi
+    69	
+    70	section "Anonymous access/default credentials"
+    71	admin_secret_job=$(ls -1 deploy/observability/grafana-secret-generator-job.yaml 2>/dev/null || true)
+    72	if [[ -n "$admin_secret_job" ]]; then ok "Grafana secret generator job present"; else warn "Grafana secret generator job not found"; fi
+    73	
+    74	section "Log/status redaction"
+    75	secret_logs=$(search_ci '\\blog\\w*\\(.*(secret|password|token).*\\)' controllers || true)
+    76	if [[ -n "$secret_logs" ]]; then warn "Potential secret logging sites:\n$secret_logs"; else ok "No obvious secret value logging patterns found"; fi
+    77	
+    78	if [[ "$fail" -ne 0 ]]; then
+    79	  echo -e "\nSecurity audit completed with errors (FR-015)" >&2
+    80	  exit 1
+    81	fi
+    82	
+    83	echo "SECURITY_AUDIT_OK"

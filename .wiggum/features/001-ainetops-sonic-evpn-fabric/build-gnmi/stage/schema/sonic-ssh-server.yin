@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="sonic-ssh-server"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:sshg="http://github.com/sonic-net/sonic-ssh-server">
+  <yang-version value="1.1"/>
+  <namespace uri="http://github.com/sonic-net/sonic-ssh-server"/>
+  <prefix value="sshg"/>
+  <description>
+    <text>SSH server daemon configuration YANG module for SONiC OS.</text>
+  </description>
+  <revision date="2022-08-29">
+    <description>
+      <text>First Revision</text>
+    </description>
+  </revision>
+  <revision date="2023-06-07">
+    <description>
+      <text>Introduce inactivity timeout and max syslogins options</text>
+    </description>
+  </revision>
+  <container name="sonic-ssh-server">
+    <container name="SSH_SERVER">
+      <description>
+        <text>SSH server global configuration.</text>
+      </description>
+      <container name="POLICIES">
+        <description>
+          <text>SSH server security and session policies.</text>
+        </description>
+        <leaf name="authentication_retries">
+          <description>
+            <text>Maximum number of authentication attempts per SSH connection.</text>
+          </description>
+          <default value="6"/>
+          <type name="uint32">
+            <range value="1..100"/>
+          </type>
+        </leaf>
+        <leaf name="login_timeout">
+          <description>
+            <text>Maximum time in seconds allowed for successful SSH authentication.</text>
+          </description>
+          <default value="120"/>
+          <type name="uint32">
+            <range value="1..600"/>
+          </type>
+        </leaf>
+        <leaf name="ports">
+          <description>
+            <text>Comma-separated list of TCP port numbers the SSH daemon listens on.</text>
+          </description>
+          <default value="22"/>
+          <type name="string">
+            <pattern value="([1-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-6])(,([1-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-6]))*">
+              <error-message>
+                <value>Invalid port numbers value</value>
+              </error-message>
+              <error-app-tag value="ssh-server-ports-invalid-value"/>
+            </pattern>
+          </type>
+        </leaf>
+        <leaf name="inactivity_timeout">
+          <description>
+            <text>SSH session inactivity timeout in minutes; 0 disables the timeout.</text>
+          </description>
+          <default value="15"/>
+          <type name="uint32">
+            <range value="0..35000"/>
+          </type>
+        </leaf>
+        <leaf name="max_sessions">
+          <description>
+            <text>Maximum number of concurrent SSH sessions; 0 means unlimited.</text>
+          </description>
+          <default value="0"/>
+          <type name="uint32">
+            <range value="0..100"/>
+          </type>
+        </leaf>
+        <leaf name="permit_root_login">
+          <description>
+            <text>Specifies whether root can log in using ssh.</text>
+          </description>
+          <type name="enumeration">
+            <enum name="yes"/>
+            <enum name="prohibit-password"/>
+            <enum name="forced-commands-only"/>
+            <enum name="no"/>
+          </type>
+        </leaf>
+        <leaf name="password_authentication">
+          <description>
+            <text>Specifies whether password authentication is enabled.</text>
+          </description>
+          <type name="boolean"/>
+          <default value="true"/>
+        </leaf>
+        <leaf-list name="ciphers">
+          <description>
+            <text>Specifies the ciphers allowed.</text>
+          </description>
+          <type name="enumeration">
+            <enum name="3des-cbc"/>
+            <enum name="aes128-cbc"/>
+            <enum name="aes192-cbc"/>
+            <enum name="aes256-cbc"/>
+            <enum name="aes128-ctr"/>
+            <enum name="aes192-ctr"/>
+            <enum name="aes256-ctr"/>
+            <enum name="aes128-gcm@openssh.com"/>
+            <enum name="aes256-gcm@openssh.com"/>
+            <enum name="chacha20-poly1305@openssh.com"/>
+          </type>
+        </leaf-list>
+        <leaf-list name="kex_algorithms">
+          <description>
+            <text>Specifies the available Key Exchange algorithms.</text>
+          </description>
+          <type name="enumeration">
+            <enum name="diffie-hellman-group1-sha1"/>
+            <enum name="diffie-hellman-group14-sha1"/>
+            <enum name="diffie-hellman-group14-sha256"/>
+            <enum name="diffie-hellman-group16-sha512"/>
+            <enum name="diffie-hellman-group18-sha512"/>
+            <enum name="diffie-hellman-group-exchange-sha1"/>
+            <enum name="diffie-hellman-group-exchange-sha256"/>
+            <enum name="ecdh-sha2-nistp256"/>
+            <enum name="ecdh-sha2-nistp384"/>
+            <enum name="ecdh-sha2-nistp521"/>
+            <enum name="curve25519-sha256"/>
+            <enum name="curve25519-sha256@libssh.org"/>
+            <enum name="sntrup761x25519-sha512"/>
+            <enum name="sntrup761x25519-sha512@openssh.com"/>
+          </type>
+        </leaf-list>
+        <leaf-list name="macs">
+          <description>
+            <text>Specifies the available MAC (message authentication code) algorithms.</text>
+          </description>
+          <type name="enumeration">
+            <enum name="hmac-sha1"/>
+            <enum name="hmac-sha1-96"/>
+            <enum name="hmac-sha2-256"/>
+            <enum name="hmac-sha2-512"/>
+            <enum name="hmac-md5"/>
+            <enum name="hmac-md5-96"/>
+            <enum name="umac-64@openssh.com"/>
+            <enum name="umac-128@openssh.com"/>
+            <enum name="hmac-sha1-etm@openssh.com"/>
+            <enum name="hmac-sha1-96-etm@openssh.com"/>
+            <enum name="hmac-sha2-256-etm@openssh.com"/>
+            <enum name="hmac-sha2-512-etm@openssh.com"/>
+            <enum name="hmac-md5-etm@openssh.com"/>
+            <enum name="hmac-md5-96-etm@openssh.com"/>
+            <enum name="umac-64-etm@openssh.com"/>
+            <enum name="umac-128-etm@openssh.com"/>
+          </type>
+        </leaf-list>
+      </container>
+    </container>
+  </container>
+</module>

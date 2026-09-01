@@ -1,0 +1,2 @@
+#!/bin/sh
+nl -ba scripts/ci/denylist_runtime_scan.sh | sed -n '1,200p'

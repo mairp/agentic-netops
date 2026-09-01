@@ -1,0 +1,9 @@
+     1	::group::Migration boundary terms (FR-020)
+     2	::endgroup::
+     3	::group::Visualization boundary terms (FR-032)
+     4	::endgroup::
+     5	::group::Placement boundary (FR-023): Compose/standalone indicators
+     6	::endgroup::
+     7	::group::Visualization reference repository exception (srl-telemetry-lab only in allowed contexts)
+     8	::endgroup::
+     9	All deny-list checks passed
