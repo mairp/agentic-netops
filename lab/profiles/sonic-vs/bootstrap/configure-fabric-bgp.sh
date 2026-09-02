@@ -291,6 +291,17 @@ ensure_overlay_devices() {
   # burning ~12 min per run in its 24x5s reachability retry until the wiggum
   # repeat-stall watchdog killed the phase-8 pass.
   docker exec "$c" bash -c "
+    # Wait for vlanmgrd to create Bridge, exactly as the boot hook does. Bailing on
+    # a missing Bridge without waiting made the join RACE-DEPENDENT: on a leaf where
+    # the L3VNI never adopts (D-A2) the wait loop above burns its full timeout and
+    # Bridge is there by the time we run, but on a leaf that DOES get its L3VNI vtep
+    # the loop breaks early and Bridge may not exist yet. Observed 2026-09-03 at 11
+    # minutes uptime: leaf01 eth3 UP/master=Bridge, leaf02 eth3 DOWN/master=none, and
+    # the overlay at 100% packet loss because one side of the bridge was missing.
+    for _i in \$(seq 1 45); do
+      ip link show Bridge >/dev/null 2>&1 && break
+      sleep 2
+    done
     ip link show Bridge >/dev/null 2>&1 || exit 0
     ip link set $ACCESS_IFACE up 2>/dev/null || true
     master_acc=\$(ip -d link show $ACCESS_IFACE 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
@@ -359,7 +370,23 @@ apply_frr() {
         sleep 3
       done
       [ "$adopted" -eq 1 ] && { echo "[fabric-bgp] $node: bgpd adopted L2 VNI $L2VNI (attempt $attempt)"; break; }
-      echo "[fabric-bgp] $node: bgpd missing L2 VNI $L2VNI (attempt $attempt) — restarting"
+      # Escalate through ZEBRA, not just bgpd. bgpd learns VNIs by querying zebra, so
+      # if ZEBRA's own table is empty a bgpd restart can never recover -- it re-asks a
+      # daemon that has nothing to give. zebra populates that table from the vxlan/
+      # bridge devices as it starts, so a zebra that came up before vxlanmgrd created
+      # vtep1-<L2VNI> stays permanently empty.
+      #
+      # Observed 2026-09-03 at 11 minutes uptime: leaf02 `show evpn vni` returned
+      # NOTHING while leaf01 listed both VNIs, and the overlay was at 100% packet
+      # loss. Restarting zebra (then bgpd) on leaf02 brought back "100 L2 vtep1-100
+      # 2 MACs 1 Remote VTEP" on both leaves and the client ping went to 0% loss.
+      if ! docker exec "$c" bash -c "vtysh -c 'show evpn vni' 2>/dev/null | grep -qE '^[[:space:]]*$L2VNI[[:space:]]'"; then
+        echo "[fabric-bgp] $node: zebra has no VNI $L2VNI (attempt $attempt) — restarting zebra then bgpd"
+        docker exec "$c" supervisorctl restart zebra >/dev/null 2>&1 || true
+        sleep 12
+      else
+        echo "[fabric-bgp] $node: bgpd missing L2 VNI $L2VNI (attempt $attempt) — restarting bgpd"
+      fi
       docker exec "$c" supervisorctl restart bgpd >/dev/null 2>&1 || true
       sleep 10
     done
@@ -385,7 +412,13 @@ apply_frr() {
       fi
     fi
   fi
-  docker exec "$c" bash -c 'pgrep -x bgpd >/dev/null' 2>/dev/null || { echo "[fabric-bgp] ERROR: bgpd did not start on $node" >&2; return 1; }
+  docker exec "$c" bash -c 'pgrep -x bgpd >/dev/null' 2>/dev/null || {
+    if [ "${AINETOPS_WAIVE_L2VNI_ADOPTION:-0}" = "1" ] && [ "$role" = "leaf" ]; then
+      echo "[fabric-bgp] WARN: bgpd not running on $node — continuing under AINETOPS_WAIVE_L2VNI_ADOPTION=1 (overlay will not forward)"
+    else
+      echo "[fabric-bgp] ERROR: bgpd did not start on $node" >&2; return 1
+    fi
+  }
   return 0
 }
 
