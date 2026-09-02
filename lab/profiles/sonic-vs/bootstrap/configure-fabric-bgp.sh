@@ -275,26 +275,36 @@ ensure_overlay_devices() {
   # L3VLAN device fallback (see fabric-init hook comment): create kernel-side
   # if vlanmgrd did not
   docker exec "$c" bash -c "ip link show $L3VLAN >/dev/null 2>&1 || ip link add $L3VLAN link Bridge type vlan id ${L3VLAN#Vlan} 2>/dev/null || true" || true
-  [[ -n "$vtep_dev" ]] || { echo "[fabric-bgp] WARN: no vtep carrying vni $L3VNI on $c" >&2; return 0; }
+  # L2 access link -- joined BEFORE the L3VNI guard below, because Type-2 bridging
+  # must not depend on L3VNI/Type-5 being healthy. Two independent defects made that
+  # dependency fatal on 2026-09-02:
+  #   * the access link was never enslaved at all on a first provision. The enslave +
+  #     link-up live only in the fabric-init boot hook (section 5b), and
+  #     install_boot_hook writes the supervisor conf without a `supervisorctl reread
+  #     && update`, so that hook first runs on the NEXT boot.
+  #   * `bridge vlan add dev X` is a no-op on a device that is not a bridge port, and
+  #     every line here carries `|| true`, so it failed silently.
+  # With the pinned image's FRR not adopting the L3VNI (D-A2), vtep_dev stays empty,
+  # the guard returns 0, and the L2 path was collateral damage: eth3 DOWN and absent
+  # from Bridge on both leaves, VLAN|Vlan100 present in CONFIG_DB and APPL_DB with no
+  # port carrying it, client01 -> client02 at 100% packet loss, and fabric_verify.sh
+  # burning ~12 min per run in its 24x5s reachability retry until the wiggum
+  # repeat-stall watchdog killed the phase-8 pass.
   docker exec "$c" bash -c "
-    ip link set $L3VLAN up 2>/dev/null || true
-    ip -br addr show $L3VLAN 2>/dev/null | grep -q '$svi4/24' || ip addr add $svi4/24 dev $L3VLAN 2>/dev/null || true
-    ip link set $L3VLAN master $TENANT_VRF 2>/dev/null || true
-    # The access link must be a BRIDGE PORT and UP before any \`bridge vlan\` call:
-    # \`bridge vlan add dev X\` is a no-op on a device that is not enslaved, and it
-    # fails silently here because every line carries \`|| true\`. The boot hook
-    # (section 5b) does the enslave + up correctly, but that hook only runs on the
-    # NEXT boot -- install_boot_hook writes the supervisor conf without a
-    # \`supervisorctl reread && update\`, so on the FIRST provision nothing performs
-    # the join. Result observed 2026-09-02 on a fresh lab: eth3 DOWN and absent from
-    # Bridge on both leaves, Bridge holding only dummy + vtep1-100, client01 -> client02
-    # 100% packet loss, and fabric_verify.sh stalling ~12 min per run in its 24x5s
-    # reachability retry -- which tripped the wiggum repeat-stall watchdog.
+    ip link show Bridge >/dev/null 2>&1 || exit 0
     ip link set $ACCESS_IFACE up 2>/dev/null || true
     master_acc=\$(ip -d link show $ACCESS_IFACE 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
     [ \"\$master_acc\" = 'Bridge' ] || ip link set $ACCESS_IFACE master Bridge 2>/dev/null || true
     bridge vlan del dev $ACCESS_IFACE vid 1 2>/dev/null || true
     bridge vlan add dev $ACCESS_IFACE vid ${VLAN#Vlan} pvid untagged 2>/dev/null || true
+    ip -d link show $ACCESS_IFACE 2>/dev/null | grep -q 'master Bridge' \
+      && echo '[fabric-bgp] access link $ACCESS_IFACE bridged into vlan ${VLAN#Vlan}'
+  " || true
+  [[ -n "$vtep_dev" ]] || { echo "[fabric-bgp] WARN: no vtep carrying vni $L3VNI on $c" >&2; return 0; }
+  docker exec "$c" bash -c "
+    ip link set $L3VLAN up 2>/dev/null || true
+    ip -br addr show $L3VLAN 2>/dev/null | grep -q '$svi4/24' || ip addr add $svi4/24 dev $L3VLAN 2>/dev/null || true
+    ip link set $L3VLAN master $TENANT_VRF 2>/dev/null || true
     master=\$(ip -d link show $vtep_dev 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
     [ \"\$master\" = '$TENANT_VRF' ] || ip link set $vtep_dev master $TENANT_VRF 2>/dev/null || true
     ip -d link show $vtep_dev 2>/dev/null | grep -q 'master $TENANT_VRF' && echo '[fabric-bgp] L3VNI $vtep_dev bound to $TENANT_VRF'
