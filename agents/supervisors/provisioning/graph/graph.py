@@ -74,7 +74,7 @@ from langgraph.graph.state import CompiledStateGraph
 from pydantic import ValidationError
 
 from common.audit import build_audit_event, emit_audit_event
-from common.llm import get_llm
+from common.llm import get_llm, set_current_thread_id
 from common.metrics import get_metrics
 from common.provisioning_states import NetworkProvisioningStatus
 from common.redaction import redact, redact_model_response, redact_prompt
@@ -1131,7 +1131,18 @@ class ProvisioningGraph:
         """T089 — run the classifier on the nonce-fenced user text and
         route: provisionable -> mapper, informational -> general_info,
         unsupported -> refusal. An unparseable or failed classification
-        never routes to a worker (it falls back to general_info)."""
+        never routes to a worker (it falls back to general_info).
+
+        T414 — ensure the per-conversation token budget is keyed to the
+        LangGraph conversation thread_id. We set the current thread id on
+        entry so common.llm tracks tokens against this conversation, not
+        the Python OS thread.
+        """
+        try:
+            thread_id = (config or {}).get("configurable", {}).get("thread_id", "default_session")
+            set_current_thread_id(thread_id)
+        except Exception:
+            pass
         nonce = new_request_nonce()
         fenced = wrap_user_text(redact_prompt(user_content), nonce)
         try:

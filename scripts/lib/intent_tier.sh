@@ -21,6 +21,10 @@
 # T184                    — strict mode (`set -euo pipefail` locally), a
 #                           phase logger (intent::log / intent::phase), and
 #                           every wait bounded by INTENT_TIER_TIMEOUT.
+# T398 intent::backup     — archive the supervisor-checkpoint PVC contents as a
+#                           timestamped tar.gz to a given directory.
+# T399 intent::restore    — restore a previously archived supervisor checkpoint
+#                           tar.gz into the PVC (with safe rollout sequencing).
 #
 # Sourced by scripts/provision.sh (`--with-intent-tier`) and
 # scripts/off.sh (`--purge-intent-tier`). Consumes the caller's exported
@@ -145,6 +149,97 @@ intent::wait() {
   return "$failed"
 }
 
+# T398 — Backup the supervisor checkpointer PVC to a directory
+# Usage: intent::backup /path/to/dir
+intent::backup() {
+  local outdir=${1:-}
+  [[ -n "$outdir" ]] || { intent::log "ERROR: intent::backup requires an output directory"; return 2; }
+  mkdir -p "$outdir"
+  intent::phase "backup (PVC supervisor-checkpoint)"
+  local ts; ts=$(date -u +%Y%m%dT%H%M%SZ)
+  local tmpdir; tmpdir=$(mktemp -d)
+  # Create a helper pod with the PVC mounted read-only and tar its contents
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" delete pod checkpoint-backup --ignore-not-found || true
+  cat <<EOF | intent::kubectl -n "$INTENT_TIER_NAMESPACE" apply -f -
+apiVersion: v1
+kind: Pod
+metadata: { name: checkpoint-backup, labels: { app: checkpoint-backup } }
+spec:
+  restartPolicy: Never
+  containers:
+  - name: tar
+    image: alpine:3.20
+    command: ["/bin/sh","-c","tar -czf /out/supervisor-checkpoint.tgz -C /state . && sleep 1"]
+    volumeMounts:
+    - { name: pvc, mountPath: /state, readOnly: true }
+    - { name: out, mountPath: /out }
+  volumes:
+  - name: pvc
+    persistentVolumeClaim: { claimName: supervisor-checkpoint }
+  - name: out
+    emptyDir: {}
+EOF
+  # Wait for pod to become Ready, then copy the tarball out
+  if ! intent::kubectl -n "$INTENT_TIER_NAMESPACE" wait --for=condition=Ready pod/checkpoint-backup --timeout=60s; then
+    intent::log "ERROR: backup pod did not become Ready"; return 1; fi
+  # Give a moment for tar to write
+  sleep 1
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" cp checkpoint-backup:/out/supervisor-checkpoint.tgz "$tmpdir/ckpt.tgz" || {
+    intent::kubectl -n "$INTENT_TIER_NAMESPACE" logs pod/checkpoint-backup || true
+    intent::log "ERROR: failed to copy checkpoint archive"; return 1; }
+  local dest="$outdir/supervisor-checkpoint-${ts}.tar.gz"
+  mv "$tmpdir/ckpt.tgz" "$dest"
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" delete pod checkpoint-backup --ignore-not-found || true
+  rm -rf "$tmpdir"
+  intent::log "backup complete: $dest"
+}
+
+# T399 — Restore the supervisor checkpointer PVC from an archive
+# Usage: intent::restore /path/to/supervisor-checkpoint-<ts>.tar.gz
+intent::restore() {
+  local archive=${1:-}
+  [[ -f "$archive" ]] || { intent::log "ERROR: archive not found: $archive"; return 2; }
+  intent::phase "restore (PVC supervisor-checkpoint)"
+  # Ensure supervisor is not using the PVC
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" scale deploy/supervisor --replicas=0 || true
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" rollout status deploy/supervisor --timeout="$INTENT_TIER_TIMEOUT" || true
+  # Create a helper pod to untar into the PVC
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" delete pod checkpoint-restore --ignore-not-found || true
+  cat <<EOF | intent::kubectl -n "$INTENT_TIER_NAMESPACE" apply -f -
+apiVersion: v1
+kind: Pod
+metadata: { name: checkpoint-restore, labels: { app: checkpoint-restore } }
+spec:
+  restartPolicy: Never
+  containers:
+  - name: tar
+    image: alpine:3.20
+    command: ["/bin/sh","-c","rm -rf /state/* && tar -xzf /in/ckpt.tgz -C /state && ls -l /state && sleep 1"]
+    volumeMounts:
+    - { name: pvc, mountPath: /state }
+    - { name: in, mountPath: /in }
+  volumes:
+  - name: pvc
+    persistentVolumeClaim: { claimName: supervisor-checkpoint }
+  - name: in
+    emptyDir: {}
+EOF
+  # Copy archive into the pod and execute restore
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" wait --for=condition=Ready pod/checkpoint-restore --timeout=60s || {
+    intent::log "ERROR: restore pod did not become Ready"; return 1; }
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" cp "$archive" checkpoint-restore:/in/ckpt.tgz || {
+    intent::log "ERROR: failed to upload archive"; return 1; }
+  # Wait a short time for the command to finish
+  sleep 2
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" logs pod/checkpoint-restore || true
+  # Cleanup helper pod
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" delete pod checkpoint-restore --ignore-not-found || true
+  # Scale supervisor back up
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" scale deploy/supervisor --replicas=1 || true
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" rollout status deploy/supervisor --timeout="$INTENT_TIER_TIMEOUT" || true
+  intent::log "restore complete"
+}
+
 intent::log_pipe() { sed 's/^/[intent-tier]   /'; }
 
 intent::ui_url() {
@@ -205,3 +300,15 @@ intent::uninstall() {
   intent::kubectl -n "$INTENT_TIER_NAMESPACE" get deploy,po,svc,pvc 2>/dev/null | intent::log_pipe || true
   intent::log "uninstall complete (no orphan workloads, no claimed identifiers)"
 }
+
+# Dispatcher: allow invoking functions when this file is executed directly
+if [[ "${BASH_SOURCE[0]:-}" == "$0" ]]; then
+  cmd="${1:-}"; shift || true
+  case "$cmd" in
+    intent::install|intent::wait|intent::backup|intent::restore|intent::uninstall|intent::ui_url)
+      "$cmd" "$@";;
+    *)
+      echo "Usage: $0 <intent::install|intent::wait|intent::backup|intent::restore|intent::uninstall|intent::ui_url> [args...]" >&2
+      exit 2;;
+  esac
+fi

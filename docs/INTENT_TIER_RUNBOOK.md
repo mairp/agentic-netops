@@ -22,7 +22,8 @@ Steps:
    - kubectl --context kind-ainetops -n ainetops-agents get deploy,po,svc
    - curl http://supervisor.ainetops-agents.svc:9090/health (liveness ok)
    - curl http://supervisor.ainetops-agents.svc:9090/v1/health (200 ok with workers map, or 503 degraded with named worker)
-   - Access UI at http://localhost:30000 (Kind NodePort mapping).
+   - curl http://supervisor.ainetops-agents.svc:9090/transport/config (expects endpoint :46357)
+- Access UI at http://localhost:30000 (Kind NodePort mapping).
 
 Expected outcomes:
 - All tier Deployments Ready; supervisor /v1/health reports status ok and transport SLIM with the in-cluster gateway endpoint (http://slim.ainetops-agents.svc:46357).

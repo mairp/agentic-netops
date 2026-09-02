@@ -45,6 +45,8 @@ while [[ $# -gt 0 ]]; do
   shift || true
 done
 export AINETOPS_CLUSTER_NAME AINETOPS_PROFILE AINETOPS_TIMEOUT
+# Export the parsed WITH_INTENT_TIER for preflight headroom checks (Phase 10)
+export AINETOPS_WITH_INTENT_TIER="$WITH_INTENT_TIER"
 
 # shellcheck source=./lib/preflight.sh
 if [[ -f "${LIB_DIR}/preflight.sh" ]]; then
