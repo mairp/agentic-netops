@@ -51,7 +51,11 @@ test('happy path: interpretation, allocation, deployment progress', async ({ pag
   await page.getByLabel('Service request').fill('provision service')
   await page.keyboard.press('Enter')
   await expect(page.getByText('VPWS')).toBeVisible()
+  await expect(page.getByLabel('confirm-mapper')).toBeVisible()
+  await expect(page.getByLabel('decline-mapper')).toBeVisible()
   await expect(page.getByText('rd')).toBeVisible()
+  await expect(page.getByLabel('confirm-allocator')).toBeVisible()
+  await expect(page.getByLabel('decline-allocator')).toBeVisible()
   await expect(page.getByText('Deployment in progress…')).toBeVisible()
   await expect(page.getByText('applying manifests')).toBeVisible()
 })
@@ -86,4 +90,36 @@ test('failure card renders operator-readable reason and correlation chip', async
   await expect(page.getByLabel('failure-reason')).toContainText('allocator payload out of contract')
   // Correlation chip shows a shortened id; clicking should not throw
   await page.getByTitle('Copy correlation id').click()
+})
+
+// Remove-service: confirmation actions are rendered on a deployer confirmation_request
+// and completion/failure states render via deployer-tools stage and error cards.
+
+test('remove-service confirmation actions render', async ({ page }) => {
+  await injectEvents(page)
+  await page.goto('http://localhost:3000')
+  await page.evaluate(() => (window as any).__injectEvents([
+    { type: 'status', status: 'RECEIVED_REQUEST', thread_id: 't4', correlation_id: 'dddddddddddddddddddddddddddddddd' },
+    { type: 'confirmation_request', stage: 'deployer', prompt: 'Confirm remove?', refusable: true, correlation_id: 'dddddddddddddddddddddddddddddddd' },
+    { type: 'final', status: 'PENDING', correlation_id: 'dddddddddddddddddddddddddddddddd' }
+  ]))
+  await page.getByLabel('Service request').fill('remove service')
+  await page.keyboard.press('Enter')
+  await expect(page.getByLabel('confirm-deployer')).toBeVisible()
+  await expect(page.getByLabel('decline-deployer')).toBeVisible()
+})
+
+test('remove-service completion and failure states render', async ({ page }) => {
+  await injectEvents(page)
+  await page.goto('http://localhost:3000')
+  await page.evaluate(() => (window as any).__injectEvents([
+    { type: 'status', status: 'RECEIVED_REQUEST', thread_id: 't5', correlation_id: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' },
+    { type: 'stage', stage: 'deployer-tools', status: 'TOOLS', tool: 'remove', result: { removed: { selector: 'ainetops.io/correlation-id=eeeeeeeeeeeeeeee', deleted: 2 } }, correlation_id: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' },
+    { type: 'error', stage: 'deployer', status: 'FAILED', reason: 'remove failed on cluster permission', correlation_id: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' },
+    { type: 'final', status: 'FAILED', correlation_id: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' }
+  ]))
+  await page.getByLabel('Service request').fill('remove service')
+  await page.keyboard.press('Enter')
+  await expect(page.getByLabel('tools-result-json')).toContainText('removed')
+  await expect(page.getByLabel('failure-reason')).toContainText('remove failed')
 })
