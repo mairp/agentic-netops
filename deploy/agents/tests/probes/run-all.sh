@@ -10,6 +10,9 @@
 #                           express forbidden actions (no device session,
 #                           no writes outside the deployer's scope) —
 #                           structural denials, not behavioral ones.
+#   slim-auth-denial.sh     US3/T151/FR-024: an unauthenticated client
+#                           cannot register with the SLIM gateway
+#                           (client-certificate verification + PASSWORD).
 #
 # Each probe's output is captured under logs/ next to this script; the
 # suite exit code is 0 iff every probe passed.
@@ -44,6 +47,7 @@ run_probe() {
 run_probe rbac-denials
 run_probe mgmt-network-denial
 run_probe us2-denials
+run_probe slim-auth-denial
 
 echo
 echo "run-all: ${pass} probes passed, ${fail} failed (logs: ${LOG_DIR})"

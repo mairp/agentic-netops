@@ -1,0 +1,118 @@
+# deploy/agents/mapper.yaml — the mapper worker agent (US3).
+#
+# T178: Deployment/mapper + Service/mapper on 9092/TCP (the subject's port,
+# contracts/supervisor-http.md), liveness/readiness probes on the deep
+# `GET /v1/health` (a real A2A session probe over SLIM — "alive" means the
+# worker can be reached, not merely that the process is up), and lab-sized
+# resources (requests 50m/128Mi, limits 500m/512Mi) for the kind lab.
+#
+# The worker registers with the SLIM gateway over TRANSPORT_SERVER_ENDPOINT
+# (server.py run_transport); SLIM-only is enforced in code (require_slim).
+# The service account is non-token-bearing (automountServiceAccountToken:
+# false in deploy/agents/namespace-rbac.yaml) — mapper touches no cluster API.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mapper
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+spec:
+  selector:
+    app: mapper
+  ports:
+    - name: http
+      port: 9092
+      targetPort: 9092
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mapper
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mapper
+  template:
+    metadata:
+      labels:
+        app: mapper
+        ainetops.owner: ainetops
+        ainetops.io/tier: intent
+    spec:
+      serviceAccountName: intent-mapper
+      automountServiceAccountToken: false
+      containers:
+        - name: mapper
+          image: ainetops/intent-mapper:latest
+          imagePullPolicy: IfNotPresent
+          # FR-024: the gateway verifies client certificates; the pinned SDK
+          # cannot present one, so the container front-ends it with a
+          # pod-local mTLS proxy (docker/mtls-proxy.sh) presenting this
+          # agent's certificate from Secret/slim-tls.
+          command: ["/bin/bash", "/app/docker/mtls-proxy.sh"]
+          args: ["python", "provisioning/mapper/server.py"]
+          ports:
+            - name: http
+              containerPort: 9092
+          env:
+            - name: SLIM_TLS_DIR
+              value: /etc/slim/tls
+            - name: SLIM_CLIENT_NAME
+              value: mapper
+            - name: SLIM_UPSTREAM
+              value: slim.ainetops-agents.svc:46357
+            - name: ENABLE_HTTP
+              value: "true"
+            - name: DEFAULT_MESSAGE_TRANSPORT
+              value: "SLIM"
+            # The transport reaches the gateway through the pod-local proxy.
+            - name: TRANSPORT_SERVER_ENDPOINT
+              value: "http://127.0.0.1:46357"
+          # Trivial liveness (process up); a transport outage degrades
+          # /v1/health readiness (named 503) instead of killing the pod.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9092
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /v1/health
+              port: 9092
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: slim-tls
+              mountPath: /etc/slim/tls
+              readOnly: true
+      volumes:
+        - name: slim-tls
+          secret:
+            secretName: slim-tls
+            items:
+              - key: ca.crt
+                path: ca.crt
+              - key: mapper.crt
+                path: mapper.crt
+              - key: mapper.key
+                path: mapper.key

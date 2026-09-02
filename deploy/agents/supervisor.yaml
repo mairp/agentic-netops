@@ -1,0 +1,233 @@
+# deploy/agents/supervisor.yaml — the conversational supervisor (US3).
+#
+# T175: Deployment/supervisor with `replicas: 1` and `strategy: Recreate` —
+# the SQLite checkpointer is a single-writer file on a ReadWriteOnce PVC, so
+# two replicas can never share it, and a Recreate (never RollingUpdate)
+# guarantees the old pod released the SQLite file before the new one starts.
+# T176: Service/supervisor (9090), PVC/supervisor-checkpoint,
+# ConfigMap/supervisor-prompts, Secret/llm-provider (no credential literals —
+# the LLM provider keys are materialized at provision time; an empty
+# stringData here only declares the object and its keys).
+# T177: liveness probe on the trivial `GET /health` (never touches the
+# transport — a worker outage must not restart the supervisor into amnesia)
+# and readiness on the deep `GET /v1/health` (probe every worker, name the
+# unavailable one — FR-026).
+# T170: the PVC is mounted at /state/supervisor-checkpoint and
+# SUPERVISOR_CHECKPOINT_DB points at the SQLite file inside it
+# (graph.py CHECKPOINT_DB_PATH), so LangGraph checkpoints survive a restart.
+#
+# Lab-sized resources (requests 100m/256Mi, limits 1/1Gi) fit the kind lab.
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: llm-provider
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+  annotations:
+    ainetops.io/populated-by: "provision-time (LLM provider credentials; never committed)"
+type: Opaque
+stringData:
+  LLM_MODEL: ""
+  OAUTH2_CLIENT_ID: ""
+  OAUTH2_CLIENT_SECRET: ""
+  OAUTH2_TOKEN_URL: ""
+  OAUTH2_BASE_URL: ""
+  OAUTH2_APPKEY: ""
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supervisor-prompts
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+data:
+  suggested_prompts.json: |
+    [
+      "Deploy a VPLS for tenant ACME between leaf01 client01 and leaf02 client02",
+      "Provision a VPWS point-to-point 1Gbps link for tenant GLOBEX connecting leaf01 and leaf02",
+      "Create an L3VPN for tenant INITECH with route distinguisher from the fabric index between site A and site B",
+      "Set up an L2L3-IRB service for tenant UMBRELLA with both L2 access and an L3 gateway between two sites"
+    ]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: supervisor-checkpoint
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supervisor
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+spec:
+  selector:
+    app: supervisor
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supervisor
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+spec:
+  # T175: single writer on the checkpoint SQLite file; Recreate, never
+  # RollingUpdate (two pods would fight over the RWO-mounted SQLite file).
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: supervisor
+  template:
+    metadata:
+      labels:
+        app: supervisor
+        ainetops.owner: ainetops
+        ainetops.io/tier: intent
+    spec:
+      serviceAccountName: intent-supervisor
+      automountServiceAccountToken: false
+      containers:
+        - name: supervisor
+          image: ainetops/intent-supervisor:latest
+          imagePullPolicy: IfNotPresent
+          # FR-024: the gateway verifies client certificates; the pinned SDK
+          # cannot present one, so the container front-ends it with a
+          # pod-local mTLS proxy (docker/mtls-proxy.sh) presenting the
+          # supervisor's certificate from Secret/slim-tls.
+          command: ["/bin/bash", "/app/docker/mtls-proxy.sh"]
+          args: ["uv", "run", "python", "supervisors/provisioning/main.py"]
+          ports:
+            - name: http
+              containerPort: 9090
+          env:
+            - name: SLIM_TLS_DIR
+              value: /etc/slim/tls
+            - name: SLIM_CLIENT_NAME
+              value: supervisor
+            - name: SLIM_UPSTREAM
+              value: slim.ainetops-agents.svc:46357
+            - name: ENABLE_HTTP
+              value: "true"
+            - name: DEFAULT_MESSAGE_TRANSPORT
+              value: "SLIM"
+            # The transport reaches the gateway through the pod-local proxy.
+            - name: TRANSPORT_SERVER_ENDPOINT
+              value: "http://127.0.0.1:46357"
+            - name: SUPERVISOR_CHECKPOINT_DB
+              value: /state/supervisor-checkpoint/checkpoints.sqlite
+            # LLM provider selection is the LLM_MODEL prefix alone
+            # (common/llm.py); the credentials come from Secret/llm-provider.
+            - name: LLM_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: llm-provider
+                  key: LLM_MODEL
+                  optional: true
+            - name: OAUTH2_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: llm-provider
+                  key: OAUTH2_CLIENT_ID
+                  optional: true
+            - name: OAUTH2_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: llm-provider
+                  key: OAUTH2_CLIENT_SECRET
+                  optional: true
+            - name: OAUTH2_TOKEN_URL
+              valueFrom:
+                secretKeyRef:
+                  name: llm-provider
+                  key: OAUTH2_TOKEN_URL
+                  optional: true
+            - name: OAUTH2_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: llm-provider
+                  key: OAUTH2_BASE_URL
+                  optional: true
+            - name: OAUTH2_APPKEY
+              valueFrom:
+                secretKeyRef:
+                  name: llm-provider
+                  key: OAUTH2_APPKEY
+                  optional: true
+          # T177: trivial liveness on /health (no transport touch);
+          # deep readiness on /v1/health (probes every worker).
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9090
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /v1/health
+              port: 9090
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            # T170: the SQLite checkpoint file lives on the PVC.
+            - name: checkpoint
+              mountPath: /state/supervisor-checkpoint
+            - name: prompts
+              mountPath: /app/supervisors/provisioning/suggested_prompts.json
+              subPath: suggested_prompts.json
+              readOnly: true
+            - name: slim-tls
+              mountPath: /etc/slim/tls
+              readOnly: true
+      volumes:
+        - name: checkpoint
+          persistentVolumeClaim:
+            claimName: supervisor-checkpoint
+        - name: prompts
+          configMap:
+            name: supervisor-prompts
+        - name: slim-tls
+          secret:
+            secretName: slim-tls
+            items:
+              - key: ca.crt
+                path: ca.crt
+              - key: supervisor.crt
+                path: supervisor.crt
+              - key: supervisor.key
+                path: supervisor.key

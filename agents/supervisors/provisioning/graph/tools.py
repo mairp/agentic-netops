@@ -51,6 +51,29 @@ WORKER_CALL_RETRIES = int(os.getenv("WORKER_CALL_RETRIES", "2"))
 _RETRY_BACKOFF_SECONDS = 1.0
 
 
+# ---------------------------------------------------------------------------
+# T139 — the capability-to-card registry. The supervisor never hardcodes a
+# topic or a card inline at a call site: every worker is reached through its
+# AgentCard (whose ``id`` is the routable ``org/namespace/local_name`` the
+# topic is derived from, contracts/a2a-transport.md), keyed here by the
+# worker's advertised skill id (the A2A "capability").
+# ---------------------------------------------------------------------------
+CAPABILITY_CARDS = {
+    MAPPER_CARD.skills[0].id: MAPPER_CARD,
+    ALLOCATOR_CARD.skills[0].id: ALLOCATOR_CARD,
+    DEPLOYER_CARD.skills[0].id: DEPLOYER_CARD,
+}
+
+
+def card_for_capability(capability_id: str):
+    """Return the AgentCard advertising ``capability_id`` (T139).
+
+    Raises KeyError for an unknown capability — a typo must fail loudly,
+    never silently route to the wrong worker.
+    """
+    return CAPABILITY_CARDS[capability_id]
+
+
 class WorkerUnavailableError(ConnectionError):
     """FR-026 — the named worker could not be reached over the transport.
 
@@ -134,7 +157,7 @@ async def call_mapper_agent(user_message: str):
     (T094/FR-028): the worker's model sees the operator's text only as a
     labelled data block.
     """
-    return await _send("mapper", MAPPER_CARD, user_message)
+    return await _send("mapper", card_for_capability("map_network_request"), user_message)
 
 
 async def call_allocator_agent(interpretation_json: str):
@@ -144,7 +167,7 @@ async def call_allocator_agent(interpretation_json: str):
     serialized canonically, fenced by ``wrap_worker_text`` (T095) — it is
     worker-returned text (the mapper's output) and stays data.
     """
-    return await _send("allocator", ALLOCATOR_CARD, interpretation_json)
+    return await _send("allocator", card_for_capability("allocate_network_service"), interpretation_json)
 
 
 async def call_deployer_agent(payload_json: str):
@@ -155,4 +178,4 @@ async def call_deployer_agent(payload_json: str):
     "confirm"``, T124/T125) — enforced in ``graph._deployer_node`` before
     any call is made.
     """
-    return await _send("deployer", DEPLOYER_CARD, payload_json)
+    return await _send("deployer", card_for_capability("deploy_network_service"), payload_json)
