@@ -181,6 +181,51 @@ async def handle_stream_prompt(request: PromptRequest):
                         )
                     elif node_name == "deployer" and status == NetworkProvisioningStatus.PROVISIONING.value:
                         yield chunk({"type": "stage", "stage": "deployer", "status": status})
+                        # T273 — emit progress chunks from convergence watch (stubbed)
+                        try:
+                            from provisioning.deployer.watch import watch_ready
+                            def on_progress(evt: dict):
+                                try:
+                                    evt = dict(evt or {})
+                                except Exception:
+                                    return
+                                evt.setdefault("type", "progress")
+                                evt.setdefault("stage", "deployer")
+                                evt.setdefault("status", status)
+                                yield_chunk = chunk(evt)
+                                # local function inside generator: use closure to yield
+                                nonlocal_yield.append(yield_chunk)
+                            nonlocal_yield = []
+                            ok = watch_ready(on_progress=on_progress)
+                            # Drain any progress events captured
+                            for entry in nonlocal_yield:
+                                yield entry
+                        except Exception:
+                            pass
+                    # T258/T259 — tools path: status-query and remove-service chunks
+                    elif node_name == "supervisor" and node_state.get("pending_action") == "confirm_remove":
+                        yield chunk(
+                            {
+                                "type": "confirmation_request",
+                                "stage": "deployer",
+                                "prompt": "Remove this service? Reply 'confirm' to proceed or 'decline' to cancel.",
+                                "refusable": True,
+                            }
+                        )
+                    elif node_name == "deployer" and node_state.get("tool_result"):
+                        try:
+                            tool_payload = json.loads(node_state.get("tool_result") or "{}")
+                        except Exception:
+                            tool_payload = {}
+                        yield chunk(
+                            {
+                                "type": "stage",
+                                "stage": "deployer-tools",
+                                "tool": node_state.get("tool_action") or "",
+                                "result": tool_payload,
+                                "status": status,
+                            }
+                        )
                     elif status == NetworkProvisioningStatus.FAILED.value:
                         # A refusal/rejection: the final chunk carries the
                         # operator-readable reason (FR-034).

@@ -36,7 +36,7 @@ from uvicorn import Config, Server
 
 from common.exceptions import AuthError
 from config.config import DEFAULT_MESSAGE_TRANSPORT, ENABLE_HTTP, TRANSPORT_SERVER_ENDPOINT
-from provisioning.allocator.agent_executor import AllocationAgentExecutor
+from provisioning.allocator.agent_executor import AllocatorAgentExecutor
 from provisioning.allocator.card import AGENT_CARD
 
 factory = AgntcyFactory("devnet.network_allocator", enable_tracing=True)
@@ -161,7 +161,7 @@ def build_http_server(a2a_app: A2AStarletteApplication) -> FastAPI:
 
 def create_app() -> FastAPI:
     request_handler = DefaultRequestHandler(
-        agent_executor=AllocationAgentExecutor(),
+        agent_executor=AllocatorAgentExecutor(),
         task_store=InMemoryTaskStore(),
     )
 
@@ -244,7 +244,7 @@ async def main(enable_http: bool) -> None:
     require_slim(DEFAULT_MESSAGE_TRANSPORT)  # T143 — refuse a non-SLIM startup
 
     request_handler = DefaultRequestHandler(
-        agent_executor=AllocationAgentExecutor(),
+        agent_executor=AllocatorAgentExecutor(),
         task_store=InMemoryTaskStore(),
     )
 

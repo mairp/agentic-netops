@@ -342,6 +342,11 @@ class GraphState(MessagesState):
     suggestion: str | None = None
     classification: str | None = None
 
+    # --- US1 tools/routing additions (status/remove) ---
+    tool_action: str | None = None  # "status" | "remove"
+    tool_request: str | None = None  # canonical JSON of the tool request
+    tool_result: str | None = None   # canonical JSON of the tool result
+
 
 # ---------------------------------------------------------------------------
 # Deterministic safety-layer detectors (pure functions — used by
@@ -904,13 +909,80 @@ class ProvisioningGraph:
         user_content = user_message.content
         user_content_l = user_content.lower().strip()
 
+        # ---------- T256/T257: status-query and remove-service routing -----
+        # Detect a status query for an existing service id or by correlation id
+        m = re.search(r"status of (?:service |)(?P<sid>[a-z0-9-]{6,15})", user_content_l)
+        if m:
+            sid = m.group("sid")
+            req = canonical_json({"action": "status", "serviceId": sid})
+            logger.info("routing status query for service %s to deployer tools", sid)
+            return {
+                "next_node": NodeStates.DEPLOYER,
+                "tool_action": "status",
+                "tool_request": req,
+                "messages": [],
+            }
+        m = re.search(r"remove (?:service |)(?P<sid>[a-z0-9-]{6,15})", user_content_l)
+        if m:
+            sid = m.group("sid")
+            req = canonical_json({"action": "remove", "serviceId": sid})
+            logger.info("routing remove-service for service %s to deployer tools (confirmation required)", sid)
+            return {
+                "next_node": END,
+                "tool_action": "remove",
+                "tool_request": req,
+                "awaiting_confirmation": True,
+                "pending_action": "confirm_remove",
+                "messages": [
+                    AIMessage(
+                        content=(
+                            "Remove this service? Reply 'confirm' to delete by correlation id, or 'decline' to cancel."
+                        )
+                    )
+                ],
+            }
+        m = re.search(r"remove .*?correlation[- ]id[:\s]+(?P<cid>[a-f0-9]{16,32})", user_content_l)
+        if m:
+            cid = m.group("cid")
+            req = canonical_json({"action": "remove", "correlationId": cid})
+            logger.info("routing remove-service for correlation %s to deployer tools (confirmation required)", cid[:8])
+            return {
+                "next_node": END,
+                "tool_action": "remove",
+                "tool_request": req,
+                "awaiting_confirmation": True,
+                "pending_action": "confirm_remove",
+                "messages": [
+                    AIMessage(
+                        content=(
+                            "Remove this service? Reply 'confirm' to delete by correlation id, or 'decline' to cancel."
+                        )
+                    )
+                ],
+            }
+
         # ---------- confirmation handling (the subject's text-driven
         # flow, graph.py:353-367, carried forward + FR-006 decisions) ----
         awaiting_confirmation = state.get("awaiting_confirmation", False)
         pending_action = state.get("pending_action")
 
-        if awaiting_confirmation and pending_action in ("confirm_1", "confirm_2"):
+        if awaiting_confirmation and pending_action in ("confirm_1", "confirm_2", "confirm_remove"):
             if any(w in user_content_l for w in CONFIRM_WORDS):
+                if pending_action == "confirm_remove":
+                    # Remove-service: proceed to deployer tools without submission preconditions
+                    self._audit(
+                        state,
+                        config,
+                        "confirm",
+                        reason="remove-service recorded: operator confirmed",
+                    )
+                    logger.info("user confirmed remove-service")
+                    return {
+                        "next_node": NodeStates.DEPLOYER,
+                        "awaiting_confirmation": False,
+                        "pending_action": None,
+                        "messages": [],
+                    }
                 which = "confirmation_1" if pending_action == "confirm_1" else "confirmation_2"
                 decision = Decision(
                     decided="confirm",
@@ -943,6 +1015,29 @@ class ProvisioningGraph:
                     "messages": [],
                 }
             if any(w in user_content_l for w in DECLINE_WORDS):
+                if pending_action == "confirm_remove":
+                    self._audit(
+                        state,
+                        config,
+                        "decline",
+                        reason="remove-service recorded: operator declined",
+                    )
+                    logger.info("user declined remove-service")
+                    return {
+                        "next_node": END,
+                        "workflow_status": NetworkProvisioningStatus.FAILED.value,
+                        "refusal_reason": "remove-service declined by operator",
+                        "suggestion": DEFAULT_SUGGESTION,
+                        "awaiting_confirmation": False,
+                        "pending_action": None,
+                        "messages": [
+                            AIMessage(
+                                content=(
+                                    "Understood — the remove-service request was declined and nothing will be done."
+                                )
+                            )
+                        ],
+                    }
                 which = "confirmation_1" if pending_action == "confirm_1" else "confirmation_2"
                 decision = Decision(
                     decided="decline",
@@ -1209,14 +1304,41 @@ class ProvisioningGraph:
         """Deployment — with the structural submission preconditions
         (T124/T125) checked BEFORE any worker call or cluster access.
 
-        * T124: ``workflow_status == APPROVED``;
-        * T125: ``confirmation_2.decided == "confirm"``.
-
-        A routing mistake cannot submit: without both preconditions the
-        node refuses (audit refuse, FAILED, END) and touches nothing —
-        no deployer worker, no cluster client.
+        Also handles status/remove tool routing (T256/T257): when tool_action
+        is set, bypass submission preconditions and call the deployer tools
+        path with the canonical tool_request.
         """
-        # ---- T124: workflow_status == APPROVED --------------------------
+        # Tool path: call deployer for status/remove without submission preconditions
+        tool_action = state.get("tool_action")
+        if tool_action in ("status", "remove"):
+            req = state.get("tool_request") or "{}"
+            nonce = new_request_nonce()
+            fenced = wrap_worker_text(redact_prompt(req), nonce)  # T095
+            logger.info("[Deployer:tools] calling deployer worker (nonce=%s)", nonce[:8])
+            try:
+                result = await self.transport.call_deployer(fenced)
+            except WorkerUnavailableError as exc:
+                logger.warning("deployer unavailable: %s", exc)
+                return {
+                    "next_node": END,
+                    "messages": [
+                        AIMessage(content=("The deployer worker is currently unavailable; please try again later."))
+                    ],
+                }
+            payload, worker_text = extract_payload_and_text(result, DEPLOYER_MARKER)
+            # Minimal contract: expect a dict with either status or removed
+            if not isinstance(payload, dict) or not any(k in payload for k in ("status", "removed")):
+                return self._reject_out_of_contract(
+                    state, config, stage="deployer", error="no contract tools report", worker_text=worker_text
+                )
+            summary = redact_model_response(worker_text.split("<!--")[0].strip()) or "Tools result."
+            return {
+                "next_node": END,
+                "tool_result": canonical_json(payload),
+                "messages": [AIMessage(content=summary)],
+            }
+
+        # ---- Submission preconditions (T124/T125) -----------------------
         workflow_status = state.get("workflow_status")
         if workflow_status != NetworkProvisioningStatus.APPROVED.value:
             return self._refuse(
@@ -1227,7 +1349,6 @@ class ProvisioningGraph:
                 DEFAULT_SUGGESTION,
                 stage="deployer",
             )
-        # ---- T125: confirmation_2.decided == "confirm" ------------------
         confirmation_2 = state.get("confirmation_2")
         decided = confirmation_2.get("decided") if isinstance(confirmation_2, dict) else None
         if decided != "confirm":

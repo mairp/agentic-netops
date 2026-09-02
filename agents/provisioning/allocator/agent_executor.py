@@ -31,8 +31,12 @@ logger = logging.getLogger("devnet.network_allocator.agent_executor")
 WORKER_NAME = "allocator"
 
 
-class AllocationAgentExecutor(AgentExecutor):
-    """Stub: acknowledges the task and completes it as a skeleton."""
+class AllocatorAgentExecutor(AgentExecutor):
+    """US1: call AllocatorAgent and emit authoritative payload + marker (T230)."""
+
+    def __init__(self) -> None:
+        from provisioning.allocator.agent import AllocatorAgent
+        self._agent = AllocatorAgent()
 
     async def execute(
         self,
@@ -46,25 +50,17 @@ class AllocationAgentExecutor(AgentExecutor):
             task = new_task(context.message)
             await event_queue.enqueue_event(task)
 
-        await event_queue.enqueue_event(
-            Message(
-                message_id=str(uuid4()),
-                role=Role.agent,
-                metadata={"name": "Network Allocator Agent", "skeleton": True, "worker": WORKER_NAME},
-                parts=[
-                    Part(
-                        TextPart(
-                            text=(
-                                "skeleton (Phase 2): allocator stub — KUID claim "
-                                "allocation lands in Phase 3. Nothing has been "
-                                "allocated; no identifier has been generated locally (FR-013)."
-                            )
-                        )
-                    )
-                ],
-            )
-        )
-        logger.debug("Allocation stub execution completed")
+        # The supervisor fences worker-returned text with the validated Interpretation
+        interp_text = getattr(context.message, "parts", [])[0].root.text if context.message and context.message.parts else ""
+
+        try:
+            message, _intent = await self._agent.ainvoke(interp_text)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("allocation failed: %s", exc)
+            raise
+
+        await event_queue.enqueue_event(message)
+        logger.debug("Allocation execution completed")
 
     async def cancel(
         self,
