@@ -478,13 +478,24 @@ verify_loopback_reachability() {
     echo "[fabric-verify] ASSERTION FAILED: could not auto-discover loopback IPv6 addresses (gNMI/CONFIG_DB not answering)" >&2
     return 1
   fi
-  local rc=0 i out ok src dst
+  local rc=0 i out ok src dst dst_addr
   for pair in "1:2" "2:1"; do
-    if [[ "$pair" == "1:2" ]]; then src="$l1"; dst="$l2"; else src="$l2"; dst="$l1"; fi
-    echo "[fabric-verify] ping6 $src(${src#"$CLAB_PREFIX"}) -> $dst(${dst#"$CLAB_PREFIX"})"
+    if [[ "$pair" == "1:2" ]]; then src="$l1"; dst="$l2"; dst_addr="$lo2";
+    else src="$l2"; dst="$l1"; dst_addr="$lo1"; fi
+    echo "[fabric-verify] ping6 $src(${src#"$CLAB_PREFIX"}) -> $dst(${dst#"$CLAB_PREFIX"}) [$dst_addr]"
     ok=0
     for i in $(seq 1 30); do
-      out=$(docker exec "$src" ping -6 -c 3 -W 2 "$dst" 2>&1) || true
+      # Ping the peer's Loopback0 ADDRESS, not the container name. The two
+      # addresses are discovered via gNMI just above and were then discarded: the
+      # probe used "$dst", a clab container name, so it exercised Docker's
+      # embedded DNS on the management network rather than the underlay, and could
+      # never pass at all -- `ping -6 clab-ainetops-fabric-leaf02` answers
+      # "Address family for hostname not supported" and exits immediately with no
+      # statistics line, which is why the failure logged an EMPTY "(last: )".
+      # Verified 2026-09-03 on a live lab. Loopback0 IPv6 reachability is what
+      # this assertion is for, and it is only meaningful against the address the
+      # underlay advertises.
+      out=$(docker exec "$src" ping -6 -c 3 -W 2 "$dst_addr" 2>&1) || true
       if grep -q " 0% packet loss" <<<"$out"; then ok=1; break; fi
       sleep 5
     done
