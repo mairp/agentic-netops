@@ -1,0 +1,28 @@
+# T119 — transport-engineering unsupported phrasings.
+#
+# Natural-language ways an operator can ask for traffic engineering. The
+# fabric has no TE (pkg/migration rejects `tePolicy`), so every phrasing
+# must be refused with the EXACT unsupported property named (FR-012,
+# SC-003): the Go literal `tePolicy` must appear in the refusal reason.
+category: transport_engineering
+property: tePolicy
+cases:
+  - id: te-phrasing-001
+    text: "provision a VPLS service between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme with a traffic engineering policy that pins the flow over the fast path"
+    expect: refusal
+
+  - id: te-phrasing-002
+    text: "provision an L3VPN between leaf01 and leaf02 for tenant acme with a TE policy using an explicit path through the core"
+    expect: refusal
+
+  - id: te-phrasing-003
+    text: "set up a VPLS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme, with a TE path for protection against the link failure"
+    expect: refusal
+
+  - id: te-phrasing-004
+    text: "add traffic engineering to the VPWS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme so the traffic stays on the primary spine"
+    expect: refusal
+
+  - id: te-phrasing-005
+    text: "the tenant needs traffic engineering with a TE path over the core for the VPWS between leaf01 ethernet1 and leaf02 ethernet2, tenant acme"
+    expect: refusal

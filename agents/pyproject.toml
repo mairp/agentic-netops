@@ -61,4 +61,10 @@ select = ["E", "F", "W", "I", "UP", "B"]
 pythonpath = ["."]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "-ra"
+# e2e tests are cluster-gated (they need kubectl + the kind cluster with
+# deploy/agents/namespace-rbac.yaml applied); run them explicitly with
+# `pytest -m e2e`. The default run (CI included) executes the rest.
+addopts = "-ra -m \"not e2e\""
+markers = [
+    "e2e: cluster-gated end-to-end tests (require a live kind cluster)",
+]

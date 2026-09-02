@@ -1,17 +1,22 @@
-"""Provisioning supervisor — Phase 2 skeleton (T078-T081).
+"""Provisioning supervisor — the five-route HTTP surface.
 
-The five-route HTTP surface of contracts/supervisor-http.md, verbatim in
-shape: ``POST /agent/prompt/stream`` (NDJSON), ``GET /health``,
+The five-route surface of contracts/supervisor-http.md, verbatim in shape:
+``POST /agent/prompt/stream`` (NDJSON), ``GET /health``,
 ``GET /v1/health`` (per-worker readiness, names the down worker — FR-026),
 ``GET /transport/config``, ``GET /suggested-prompts``. Port 9090 (the
 subject's, kept).
 
-Phase 2 boundary: there is deliberately NO import of Phase 3 modules — the
-LangGraph graph, the shared factory, and the A2A call helpers do not exist
-yet. The stream emits the contract's status chunk followed by a bounded,
-named failure (never a hang, FR-004 in spirit); ``/v1/health`` probes each
-worker's own ``/v1/health`` over plain HTTP (Phase 3 replaces the probe
-with the A2A-over-SLIM client the contract names).
+Phase 3: ``POST /agent/prompt/stream`` runs the LangGraph supervisor graph
+(``graph/graph.py``) — the three-way classifier (T089), the direct-device
+refusals (T090/T091/T092), the nonce-fenced worker calls with schema
+validation (T094-T102), and the deployer's submission preconditions
+(T124/T125) — and streams the contract's NDJSON chunks (``status``,
+``stage``, ``confirmation_request``, ``progress``, ``final``, ``error``;
+every chunk carries ``correlation_id`` and a status drawn only from
+``NetworkProvisioningStatus``). ``/v1/health`` probes each worker's own
+``/v1/health`` over plain HTTP (the A2A-over-SLIM session probe is a
+later-phase refinement; the readiness contract — 200 iff every worker
+answers, 503 naming the down worker — is met either way).
 """
 
 from __future__ import annotations
@@ -26,8 +31,11 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 
+from common.provisioning_states import NetworkProvisioningStatus
+from common.redaction import redact
 from config.config import (
     ALLOCATOR_ENDPOINT,
     DEFAULT_MESSAGE_TRANSPORT,
@@ -36,6 +44,10 @@ from config.config import (
     TRANSPORT_SERVER_ENDPOINT,
 )
 from config.logging_config import setup_logging
+from supervisors.provisioning.graph.graph import (
+    ProvisioningGraph,
+    default_deadline,
+)
 
 # -------------------- Logging --------------------
 setup_logging()
@@ -67,40 +79,152 @@ class PromptRequest(BaseModel):
     principal: str | None = None
 
 
+# -------------------- Graph (Phase 3) --------------------
+_graph: ProvisioningGraph | None = None
+
+
+def get_graph() -> ProvisioningGraph:
+    """The process-wide supervisor graph (lazy; the SQLite checkpointer is
+    bound to SUPERVISOR_CHECKPOINT_DB — the supervisor-checkpoint PVC in
+    cluster, :memory: for out-of-cluster runs)."""
+    global _graph
+    if _graph is None:
+        _graph = ProvisioningGraph()
+    return _graph
+
+
 # -------------------- HTTP Endpoints --------------------
 @app.post("/agent/prompt/stream")
 async def handle_stream_prompt(request: PromptRequest):
-    """NDJSON stream (application/x-ndjson). Phase 2 skeleton: emits the
-    contract's ``status`` chunk, then a bounded ``error`` chunk naming the
-    responsible stage (supervisor) — the graph wiring lands in Phase 3.
-    ``status`` values are drawn only from NetworkProvisioningStatus."""
+    """NDJSON stream (application/x-ndjson). Runs the supervisor graph and
+    streams the contract's chunks (contracts/supervisor-http.md): every
+    chunk carries ``correlation_id`` and a ``status`` drawn only from
+    NetworkProvisioningStatus; a failure names the responsible stage
+    (FR-034). Never hangs: the graph is bounded (FR-004)."""
     correlation_id = uuid.uuid4().hex  # 32-hex, the W3C trace id of the root span
-    thread_id = request.thread_id
+    thread_id = request.thread_id or str(uuid.uuid4())
+    principal = request.principal or "operator"
+
+    def chunk(obj: dict) -> str:
+        obj.setdefault("correlation_id", correlation_id)
+        return json.dumps(obj) + "\n"
 
     async def stream_generator():
-        yield json.dumps(
+        yield chunk(
             {
                 "type": "status",
-                "correlation_id": correlation_id,
-                "status": "RECEIVED_REQUEST",
+                "status": NetworkProvisioningStatus.RECEIVED_REQUEST.value,
                 "stage": "supervisor",
                 "thread_id": thread_id,
             }
-        ) + "\n"
-        logger.info(
-            "skeleton stream for thread=%s principal=%s: graph wiring is Phase 3",
-            thread_id,
-            request.principal,
         )
-        yield json.dumps(
-            {
-                "type": "error",
-                "stage": "supervisor",
-                "status": "FAILED",
-                "reason": "skeleton (Phase 2): LangGraph wiring lands in Phase 3; request not processed",
+        logger.info(
+            "stream for thread=%s principal=%s correlation=%s", thread_id, principal, correlation_id
+        )
+        try:
+            graph = get_graph()
+            config = {"configurable": {"thread_id": thread_id}}
+            seed = {
+                "messages": [HumanMessage(content=request.prompt)],
                 "correlation_id": correlation_id,
+                "principal": principal,
+                "workflow_status": NetworkProvisioningStatus.RECEIVED_REQUEST.value,
+                "deadline": default_deadline(),
             }
-        ) + "\n"
+            last = {}
+            async for update in graph.astream(seed, config=config):
+                for node_name, node_state in update.items():
+                    last = {**last, **node_state}
+                    status = node_state.get("workflow_status") or last.get("workflow_status")
+                    if node_name == "mapper" and status == NetworkProvisioningStatus.MAPPED.value:
+                        yield chunk(
+                            {
+                                "type": "stage",
+                                "stage": "mapper",
+                                "status": status,
+                                "payload": json.loads(node_state.get("mapped_parameters") or "{}"),
+                            }
+                        )
+                        if node_state.get("pending_action") != "clarify":
+                            # A complete interpretation asks for the first
+                            # confirmation; a clarification asks for fields.
+                            yield chunk(
+                                {
+                                    "type": "confirmation_request",
+                                    "stage": "mapper",
+                                    "prompt": (
+                                        "Confirm this interpretation? Reply 'confirm' to proceed to allocation, "
+                                        "or 'decline' to cancel."
+                                    ),
+                                    "refusable": True,
+                                }
+                            )
+                    elif node_name == "allocator" and status == NetworkProvisioningStatus.ALLOCATED.value:
+                        yield chunk(
+                            {
+                                "type": "stage",
+                                "stage": "allocator",
+                                "status": status,
+                                "payload": json.loads(node_state.get("allocated_resources") or "{}"),
+                            }
+                        )
+                        yield chunk(
+                            {
+                                "type": "confirmation_request",
+                                "stage": "allocator",
+                                "prompt": (
+                                    "Deploy this service? Reply 'confirm' to submit it to the cluster, "
+                                    "or 'decline' to cancel."
+                                ),
+                                "refusable": True,
+                            }
+                        )
+                    elif node_name == "deployer" and status == NetworkProvisioningStatus.PROVISIONING.value:
+                        yield chunk({"type": "stage", "stage": "deployer", "status": status})
+                    elif status == NetworkProvisioningStatus.FAILED.value:
+                        # A refusal/rejection: the final chunk carries the
+                        # operator-readable reason (FR-034).
+                        break
+            status = last.get("workflow_status", NetworkProvisioningStatus.STATUS_UNKNOWN.value)
+            if status == NetworkProvisioningStatus.FAILED.value:
+                reason = last.get("refusal_reason") or "request failed"
+                # The refusal_reason carries the responsible stage
+                # ("<stage>: ..." / "<stage> payload out of contract: ...").
+                if reason.startswith("mapper payload out of contract"):
+                    responsible_stage = "mapper"
+                elif reason.startswith("allocator payload out of contract"):
+                    responsible_stage = "allocator"
+                elif reason.startswith("deployer payload out of contract"):
+                    responsible_stage = "deployer"
+                elif ": " in reason:
+                    responsible_stage = reason.split(" ", 1)[0].rstrip(":")
+                else:
+                    responsible_stage = "supervisor"
+                yield chunk(
+                    {
+                        "type": "error",
+                        "stage": responsible_stage,
+                        "status": status,
+                        "reason": redact(reason),
+                        "suggestion": redact(last.get("suggestion") or ""),
+                    }
+                )
+            elif status == NetworkProvisioningStatus.PROVISIONING.value:
+                yield chunk({"type": "final", "status": status})
+            else:
+                # MAPPED/ALLOCATED awaiting a confirmation, or a completed
+                # informational answer: the thread is resumable.
+                yield chunk({"type": "final", "status": status})
+        except Exception as exc:  # noqa: BLE001 - the stream must end with a named failure
+            logger.exception("stream failed for thread=%s", thread_id)
+            yield chunk(
+                {
+                    "type": "error",
+                    "stage": "supervisor",
+                    "status": NetworkProvisioningStatus.FAILED.value,
+                    "reason": redact(f"internal error: {exc}"),
+                }
+            )
 
     return StreamingResponse(stream_generator(), media_type="application/x-ndjson")
 

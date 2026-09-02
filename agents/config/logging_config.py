@@ -1,11 +1,20 @@
-# logging_config.py — ported from the subject's ``config/logging_config.py``,
-# extended with the credential-redaction wiring (T064 / FR-031 / SC-016).
+"""logging_config.py — ported from the subject's ``config/logging_config.py``,
+extended with the credential-redaction wiring (T064 / FR-031 / SC-016).
+
+Phase 3 (T108): the redaction patterns are no longer defined here — the
+single source of truth is ``common/redaction.py`` (T106). The
+:class:`RedactingFilter` below applies those patterns to every log record
+through this module, so the log path, the prompt/response path
+(:func:`common.redaction.redact`), and the audit path
+(``common/audit.py``) scrub with exactly the same rules and cannot drift
+apart.
+"""
 
 from __future__ import annotations
 
 import logging
-import re
 
+from common.redaction import CREDENTIAL_PATTERNS
 from config.config import LOGGING_LEVEL
 
 # ---------------------------------------------------------------------------
@@ -14,24 +23,12 @@ from config.config import LOGGING_LEVEL
 # (same level, format, noisy-library dampening); on top of it a
 # RedactingFilter is wired onto the root handlers so every formatted record
 # is scrubbed before it leaves the process.
+#
+# T108: the patterns come from common/redaction.py — the same list applied
+# to prompts and model responses (T106/T107). Kept as a module-level name
+# for backward compatibility with Phase 2 references.
 # ---------------------------------------------------------------------------
-
-# Patterns matched against the formatted log line; the secret half is
-# replaced, the label half is kept so logs stay diagnosable.
-_REDACTION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
-    # SLIM gateway password (Secret/slim-gateway key PASSWORD)
-    (re.compile(r"(?i)(PASSWORD\s*[=:]\s*)\S+"), r"\1***REDACTED***"),
-    # LLM provider API key (Secret/llm-provider) and generic api_key forms
-    (re.compile(r"(?i)((?:api[_-]?key|apikey|authorization)\s*[=:]\s*(?:Bearer\s+)?)\S+"), r"\1***REDACTED***"),
-    # Bearer tokens anywhere (KUID API, model provider, SLIM)
-    (re.compile(r"(?i)(Bearer\s+)\S+"), r"\1***REDACTED***"),
-    # URL-embedded credentials (scheme://user:pass@host)
-    (re.compile(r"(://[^:/@\s]+:)[^@\s]+(@)"), r"\1***REDACTED***\2"),
-    # PEM blocks, if one is ever logged by accident
-    (re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"), "***REDACTED-PEM***"),
-    # ClickHouse / gNMI style password= literals
-    (re.compile(r"(?i)(password=)\S+"), r"\1***REDACTED***"),
-]
+_REDACTION_PATTERNS: list = CREDENTIAL_PATTERNS
 
 
 class RedactingFilter(logging.Filter):
@@ -64,7 +61,7 @@ def setup_logging() -> None:
     )
 
     # Wire the redaction filter onto every existing and future root handler
-    # (T064): FR-031/SC-016 hold for whatever a dependency logs.
+    # (T064/T108): FR-031/SC-016 hold for whatever a dependency logs.
     for handler in logging.getLogger().handlers:
         if not any(isinstance(f, RedactingFilter) for f in handler.filters):
             handler.addFilter(RedactingFilter())

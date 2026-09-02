@@ -1,0 +1,28 @@
+# T122 — service-chaining unsupported phrasings.
+#
+# Chaining services (through a firewall/inspection node, or one service
+# feeding another) is not expressible in the fabric (pkg/migration rejects
+# `serviceChain`). Every phrasing must be refused naming the EXACT
+# unsupported property: the Go literal `serviceChain`.
+category: service_chaining
+property: serviceChain
+cases:
+  - id: chain-phrasing-001
+    text: "provision a VPLS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme as a service chain of two VPNs through the firewall node"
+    expect: refusal
+
+  - id: chain-phrasing-002
+    text: "provision chained services for tenant acme: a VPLS between leaf01 ethernet1 and leaf02 ethernet2 then an L3VPN on top"
+    expect: refusal
+
+  - id: chain-phrasing-003
+    text: "set up service chaining through the firewall node for the VPWS between leaf01 ethernet1 and leaf02 ethernet2, tenant acme"
+    expect: refusal
+
+  - id: chain-phrasing-004
+    text: "the tenant needs service chaining for the inspection flow: VPWS between leaf01 ethernet1 and leaf02 ethernet2, acme"
+    expect: refusal
+
+  - id: chain-phrasing-005
+    text: "provision a service chain for tenant acme — VPLS first, then the L3VPN between leaf01 and leaf02"
+    expect: refusal

@@ -1,0 +1,27 @@
+# T120 — pseudowire-OAM unsupported phrasings.
+#
+# Pseudowire OAM / control words are not part of the contract
+# (pkg/migration rejects `pseudowireOAM`). Every phrasing must be refused
+# naming the EXACT unsupported property: the Go literal `pseudowireOAM`.
+category: pseudowire_oam
+property: pseudowireOAM
+cases:
+  - id: pw-oam-phrasing-001
+    text: "provision a VPWS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme with pseudowire OAM enabled on both ends"
+    expect: refusal
+
+  - id: pw-oam-phrasing-002
+    text: "set up the VPWS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme with PW OAM, the customer requires it"
+    expect: refusal
+
+  - id: pw-oam-phrasing-003
+    text: "provision a VPWS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme with a control word in the pseudowire header"
+    expect: refusal
+
+  - id: pw-oam-phrasing-004
+    text: "enable pseudowire OAM control word on the VPWS between leaf01 ethernet1 and leaf02 ethernet2, tenant acme"
+    expect: refusal
+
+  - id: pw-oam-phrasing-005
+    text: "add pseudowire OAM to the service between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme so the customer can detect faults"
+    expect: refusal

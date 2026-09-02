@@ -1,0 +1,27 @@
+# T121 — multicast unsupported phrasings.
+#
+# Multicast (PIM/MSDP, multicast VPN) is not expressible in the fabric
+# (pkg/migration rejects `multicastVPN`). Every phrasing must be refused
+# naming the EXACT unsupported property: the Go literal `multicastVPN`.
+category: multicast
+property: multicastVPN
+cases:
+  - id: multicast-phrasing-001
+    text: "provision a VPLS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme with multicast VPN enabled"
+    expect: refusal
+
+  - id: multicast-phrasing-002
+    text: "set up an L3VPN between leaf01 and leaf02 for tenant acme using PIM so the video feeds replicate"
+    expect: refusal
+
+  - id: multicast-phrasing-003
+    text: "provision the L3VPN between leaf01 and leaf02 for tenant acme with MSDP peering to the core for the multicast groups"
+    expect: refusal
+
+  - id: multicast-phrasing-004
+    text: "the tenant needs multicast over the VPLS between leaf01 ethernet1 and leaf02 ethernet2, acme"
+    expect: refusal
+
+  - id: multicast-phrasing-005
+    text: "enable PIM multicast on the service between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme"
+    expect: refusal
