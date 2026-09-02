@@ -1,0 +1,74 @@
+# deploy/agents/ui.yaml — UI Deployment and Service (port 3000)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui
+  namespace: ainetops-agents
+  labels:
+    app.kubernetes.io/name: intent-ui
+    app.kubernetes.io/component: ui
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: intent-ui
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: intent-ui
+        app.kubernetes.io/component: ui
+        ainetops.owner: ainetops
+        ainetops.io/tier: intent
+    spec:
+      automountServiceAccountToken: false  # T301
+      serviceAccountName: intent-ui
+      containers:
+      - name: ui
+        image: ainetops/intent-ui:latest
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: ui-env
+        ports:
+        - name: http
+          containerPort: 3000
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 3
+          periodSeconds: 10
+        resources:
+          requests: { cpu: "50m", memory: "64Mi" }
+          limits: { cpu: "200m", memory: "256Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ui
+  namespace: ainetops-agents
+  labels:
+    app.kubernetes.io/name: intent-ui
+    app.kubernetes.io/component: ui
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: intent-ui
+  ports:
+  - name: http
+    port: 3000
+    targetPort: http
+    protocol: TCP
+    nodePort: 30000

@@ -1,0 +1,29 @@
+# deploy/agents/ui-configmap.yaml — UI runtime configuration (feature 002 US4)
+#
+# Provides Service DNS defaults for the operator UI to reach the intent tier
+# inside the cluster. docker/ui-build-and-serve.sh regenerates .env from these
+# VITE_* values at container start so the built bundle points at the correct
+# Services without a rebuild.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ui-env
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+    app.kubernetes.io/name: intent-ui
+    app.kubernetes.io/component: ui
+    app.kubernetes.io/part-of: ainetops-intent-tier
+  annotations:
+    description: VITE_* URLs consumed by docker/ui-build-and-serve.sh for the UI
+
+data:
+  # Supervisor HTTP surface base (contracts/supervisor-http.md)
+  VITE_SUPERVISOR_API_URL: "http://supervisor.ainetops-agents.svc:9090"
+  # Worker endpoints are not called directly from the UI in this feature, but
+  # exposing the stable Service DNS names as defaults keeps parity with the
+  # subject and supports future diagnostics-only calls if added.
+  VITE_MAPPER_API_URL: "http://mapper.ainetops-agents.svc:9092"
+  VITE_ALLOCATOR_API_URL: "http://allocator.ainetops-agents.svc:9091"
+  VITE_DEPLOYER_API_URL: "http://deployer.ainetops-agents.svc:9093"

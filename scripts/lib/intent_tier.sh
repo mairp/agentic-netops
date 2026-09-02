@@ -3,6 +3,9 @@
 #
 # T181 intent::install    — apply the tier's manifests in dependency order
 #                           (SLIM gateway first, then supervisor + workers),
+# UI access (US4/T302): the Kind cluster exposes the UI Service as a NodePort
+# on 30000/TCP; config/kind/cluster.yaml maps container 30000->host 30000.
+# Use intent::ui_url to print the host URL.
 #                           load the locally built images into Kind, and run
 #                           the tier secret generator (SLIM gateway password,
 #                           TLS material) before any worker starts.
@@ -101,6 +104,8 @@ intent::install() {
   intent::kubectl apply -f "$(intent::manifest mapper.yaml)"
   intent::kubectl apply -f "$(intent::manifest allocator.yaml)"
   intent::kubectl apply -f "$(intent::manifest deployer.yaml)"
+  intent::kubectl apply -f "$(intent::manifest ui-configmap.yaml)"
+  intent::kubectl apply -f "$(intent::manifest ui.yaml)"
 
   intent::log "tier manifests applied; waiting for rollouts"
   intent::wait
@@ -112,7 +117,7 @@ intent::install() {
 intent::wait() {
   intent::phase "wait (rollout status, timeout ${INTENT_TIER_TIMEOUT})"
   local dep failed=0
-  for dep in slim supervisor mapper allocator deployer; do
+  for dep in slim supervisor mapper allocator deployer ui; do
     if intent::kubectl -n "$INTENT_TIER_NAMESPACE" rollout status \
          "deployment/${dep}" --timeout="${INTENT_TIER_TIMEOUT}"; then
       intent::log "deployment/${dep} ready"
@@ -129,6 +134,12 @@ intent::wait() {
 
 intent::log_pipe() { sed 's/^/[intent-tier]   /'; }
 
+intent::ui_url() {
+  # Kind control-plane publishes NodePort 30000 -> host 30000
+  local host=localhost
+  echo "http://${host}:30000"
+}
+
 # T182 — uninstall: delete every tier workload and its claimed identifiers.
 # The PVC (supervisor-checkpoint) is deleted too — a stale checkpoint is
 # exactly the "orphan claimed identifier" class US3 forbids; the namespace
@@ -140,10 +151,10 @@ intent::uninstall() {
   # Workloads first (scale to zero semantics), then Services, then Jobs,
   # then config/secret state, then the PVC.
   local dep
-  for dep in supervisor mapper allocator deployer slim; do
+  for dep in supervisor mapper allocator deployer slim ui; do
     intent::kubectl -n "$INTENT_TIER_NAMESPACE" delete deployment "$dep" --ignore-not-found --wait=true --timeout="$INTENT_TIER_TIMEOUT" || true
   done
-  intent::kubectl -n "$INTENT_TIER_NAMESPACE" delete svc supervisor mapper allocator deployer slim \
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" delete svc supervisor mapper allocator deployer slim ui \
     --ignore-not-found || true
   intent::kubectl -n "$INTENT_TIER_NAMESPACE" delete job intent-secret-generator \
     --ignore-not-found --wait=true --timeout="$INTENT_TIER_TIMEOUT" || true

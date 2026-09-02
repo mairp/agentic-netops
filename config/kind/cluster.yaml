@@ -30,6 +30,9 @@ nodes:
   - containerPort: 30418   # OTLP HTTP NodePort
     hostPort: 30418
     protocol: TCP
+  - containerPort: 30000   # UI NodePort (intent-tier operator chat)
+    hostPort: 30000
+    protocol: TCP
   extraMounts:
   - hostPath: /var/local/ainetops
     containerPath: /var/local/ainetops
