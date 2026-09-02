@@ -16,3 +16,12 @@ testautomation/*/generated/
 .wiggum/events.jsonl
 .wiggum/proposer.pid
 .wiggum/last-run.conf
+
+# TLS material generated per-deployment by the lab bootstrap. These are real private
+# keys; they were committed once (2026-09-01, 26e9c8d4) and purged from the unpushed
+# history on 2026-09-02 before this repo's first push carrying them. Never track them:
+# scripts/provision.sh regenerates them on every run.
+secrets/
+*.key
+*.pem
+lab/clab-ainetops-fabric/.tls/
