@@ -280,6 +280,19 @@ ensure_overlay_devices() {
     ip link set $L3VLAN up 2>/dev/null || true
     ip -br addr show $L3VLAN 2>/dev/null | grep -q '$svi4/24' || ip addr add $svi4/24 dev $L3VLAN 2>/dev/null || true
     ip link set $L3VLAN master $TENANT_VRF 2>/dev/null || true
+    # The access link must be a BRIDGE PORT and UP before any \`bridge vlan\` call:
+    # \`bridge vlan add dev X\` is a no-op on a device that is not enslaved, and it
+    # fails silently here because every line carries \`|| true\`. The boot hook
+    # (section 5b) does the enslave + up correctly, but that hook only runs on the
+    # NEXT boot -- install_boot_hook writes the supervisor conf without a
+    # \`supervisorctl reread && update\`, so on the FIRST provision nothing performs
+    # the join. Result observed 2026-09-02 on a fresh lab: eth3 DOWN and absent from
+    # Bridge on both leaves, Bridge holding only dummy + vtep1-100, client01 -> client02
+    # 100% packet loss, and fabric_verify.sh stalling ~12 min per run in its 24x5s
+    # reachability retry -- which tripped the wiggum repeat-stall watchdog.
+    ip link set $ACCESS_IFACE up 2>/dev/null || true
+    master_acc=\$(ip -d link show $ACCESS_IFACE 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
+    [ \"\$master_acc\" = 'Bridge' ] || ip link set $ACCESS_IFACE master Bridge 2>/dev/null || true
     bridge vlan del dev $ACCESS_IFACE vid 1 2>/dev/null || true
     bridge vlan add dev $ACCESS_IFACE vid ${VLAN#Vlan} pvid untagged 2>/dev/null || true
     master=\$(ip -d link show $vtep_dev 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
