@@ -1,0 +1,12 @@
+{"action": "create", "kind": "Network", "name": "net-acme-1", "correlation_id": "CID-8521590"}
+{"action": "create", "kind": "Network", "name": "net-acme-1", "correlation_id": "CID-8319493"}
+{"action": "create", "kind": "Network", "name": "net-acme-1", "correlation_id": "CID-2556331"}
+{"action": "create", "kind": "Network", "name": "net-acme-1", "correlation_id": "CID-1356280"}
+{"action": "create", "kind": "Network", "name": "net-acme-1", "correlation_id": "CID-3265888"}
+{"action": "create", "kind": "Network", "name": "net-acme-1", "correlation_id": "CID-6573352"}
+{"action": "delete", "kind": "Network", "name": "net-acme-1", "correlation_id": "CID-8521590"}
+{"action": "delete", "kind": "Network", "name": "net-acme-1", "correlation_id": "CID-8319493"}
+{"action": "delete", "kind": "Network", "name": "net-acme-1", "correlation_id": "CID-2556331"}
+{"action": "delete", "kind": "Network", "name": "net-acme-1", "correlation_id": "CID-1356280"}
+{"action": "delete", "kind": "Network", "name": "net-acme-1", "correlation_id": "CID-3265888"}
+{"action": "delete", "kind": "Network", "name": "net-acme-1", "correlation_id": "CID-6573352"}

@@ -1,0 +1,12 @@
+{"action": "submitted", "correlation_id": "CID-8521590", "resource": {"kind": "Network", "name": "net-acme-1"}}
+{"action": "submitted", "correlation_id": "CID-8319493", "resource": {"kind": "Network", "name": "net-acme-1"}}
+{"action": "submitted", "correlation_id": "CID-2556331", "resource": {"kind": "Network", "name": "net-acme-1"}}
+{"action": "submitted", "correlation_id": "CID-1356280", "resource": {"kind": "Network", "name": "net-acme-1"}}
+{"action": "submitted", "correlation_id": "CID-3265888", "resource": {"kind": "Network", "name": "net-acme-1"}}
+{"action": "submitted", "correlation_id": "CID-6573352", "resource": {"kind": "Network", "name": "net-acme-1"}}
+{"action": "claimed", "correlation_id": "CID-8521590", "claim": {"name": "claim-0"}}
+{"action": "claimed", "correlation_id": "CID-8319493", "claim": {"name": "claim-1"}}
+{"action": "claimed", "correlation_id": "CID-2556331", "claim": {"name": "claim-2"}}
+{"action": "claimed", "correlation_id": "CID-1356280", "claim": {"name": "claim-3"}}
+{"action": "claimed", "correlation_id": "CID-3265888", "claim": {"name": "claim-4"}}
+{"action": "claimed", "correlation_id": "CID-6573352", "claim": {"name": "claim-5"}}

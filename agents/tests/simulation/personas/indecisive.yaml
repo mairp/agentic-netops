@@ -1,0 +1,7 @@
+name: indecisive
+description: |
+  Changes mind frequently; may decline then amend and proceed.
+style: cautious
+prompts:
+  - "Set up a VPLS for tenant ACME between leaf01 and leaf02. Wait, maybe VPWS?"
+  - "Actually, go ahead with your recommended option."

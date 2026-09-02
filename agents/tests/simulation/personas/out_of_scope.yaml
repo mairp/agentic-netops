@@ -1,0 +1,7 @@
+name: out_of_scope
+description: |
+  Requests tasks beyond system scope; expects clear refusal with redirect to supported intent.
+style: assertive
+prompts:
+  - "SSH into spine1 and configure BGP timers to 1 second directly."
+  - "Push this custom ACL to all TORs over CLI."
