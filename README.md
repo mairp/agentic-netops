@@ -1,37 +1,95 @@
-# AINETOPS SONiC EVPN/VXLAN Fabric
+# AINETOPS — SONiC EVPN/VXLAN fabric with an agentic intent tier
 
-This repository implements an open-source reference platform per `specs/001-ainetops-sonic-evpn-fabric/`.
+A reproducible, vendor-neutral reference platform: a containerlab SONiC fabric driven by
+Kubernetes controllers, with an optional multi-agent "intent tier" that turns a plain-language
+service request into declarative resources.
 
-- scripts/provision.sh: primary up/converge lifecycle entrypoint
-- scripts/off.sh: primary teardown lifecycle entrypoint
-- versions.lock.yaml: immutable compatibility manifest for all pins
-- Makefile: includes `verify-pins` per NFR-003
+Everything below is self-contained. The `specs/` directory is intentionally untracked
+(spec-kit working material), so this README carries the instructions rather than pointing at it.
 
-See specs/001-ainetops-sonic-evpn-fabric/quickstart.md for the acceptance workflow.
+## What you get
 
-## CI deny-list policy
+| Piece | What it is |
+| --- | --- |
+| SONiC fabric | 2 spines, 2 leaves, 4 clients in containerlab; BGP underlay, EVPN/VXLAN overlay |
+| Controllers | SRv6Service CRD + provider, built from vendored Go source |
+| Observability | OpenTelemetry collector, Prometheus, Grafana with fabric dashboards |
+| Intent tier *(branch `002-agntcy-intent-tier`)* | AGNTCY supervisor + mapper/allocator/deployer agents, chat UI |
 
-The CI enforces a vendor-agnostic deny-list to uphold the migration boundary:
-- No SR Linux runtime artifacts in code/manifests
-- No mentions of proprietary NED(s) outside research citations and the explicit migration-boundary sentence in the spec
-- No Compose/standalone platform-app placements under controllers/, config/, scripts/, examples/, tests/
+## Prerequisites
 
-Allowed contexts:
-- specs/**/spec.md: the single migration-boundary sentence in the "Scope and interpretation" section
-- specs/**/research.md citations
-- REVERSE.md citations
-- Mention of the telemetry visualization lab reference (FR-032) as a presentation-only pattern (no runtime dependency)
+Read **[docs/DEPENDENCIES.md](docs/DEPENDENCIES.md)** first — it lists the host tooling and two
+traps that will otherwise cost you time:
 
-See .github/workflows/denylist.yml for the checks. Run `make denylist` locally to reproduce.
+- `provision.sh` dry-runs against your **current kubectl context**. Point it somewhere harmless
+  or delete stale clusters first, or you get a confusing `namespaces "kubenet-system" not found`.
+- `kubectl top` needs **metrics-server**, which kind does not install. Anything that measures
+  resource usage silently returns nothing without it.
 
-## Jumbo MTU policy
+## Quickstart
 
-The lab standardizes on jumbo underlay MTU 9216 to align with modern data center practices and provide headroom for encapsulation:
-- VXLAN effective payload MTU: 9166 (IPv4), 9162 (IPv6)
-- SRv6 overhead depends on SID count (IPv6 40B + SRH 8B + 16B/SID). With 3 SIDs, effective payload ≈ 9120 bytes.
+```bash
+# bring the fabric up (~30-40 min on first run: image pulls + controller build)
+./scripts/provision.sh --profile sonic-vs --cluster-name ainetops
 
-Acceptance tests size packets accordingly to avoid fragmentation.
+# verify
+./tests/integration/fabric_verify.sh      # BGP sessions, EVPN routes, overlay data path
+make verify-pins                          # every image/binary matches versions.lock.yaml
+kubectl --context kind-ainetops get pods -A
 
-## Getting started
+# tear down (idempotent; safe to re-run)
+./scripts/off.sh --delete-kind true
+```
 
-See specs/001-ainetops-sonic-evpn-fabric/spec.md, plan.md, and tasks.md for scope, design, and task breakdown.
+Add the agent tier (from the `002-agntcy-intent-tier` branch):
+
+```bash
+./scripts/provision.sh --profile sonic-vs --cluster-name ainetops --with-intent-tier
+kubectl --context kind-ainetops -n ainetops-agents get deploy
+# UI on http://localhost:30000
+```
+
+## Known limitations — read before trusting a run
+
+These are real, reproduced, and documented rather than hidden:
+
+- **EVPN Type-5 routes are not originated.** The pinned `sonic-vs` FRR 10.5.4 build silently drops
+  the `vni` line and never adopts the L3VNI. Type-2 and Type-3 work, including the bridged data
+  path. See `docs/FABRIC_BGP_EVPN_DEFERRED.md` (D-A2).
+- **`vlanmgrd` can crash on startup** (AddressSanitizer), leaving a leaf with no overlay devices,
+  so the fabric cannot forward. Provisioning fails closed by design. To continue past it and have
+  the defect reported rather than block the run:
+  `AINETOPS_WAIVE_L2VNI_ADOPTION=1 ./scripts/provision.sh …` — see D-A3.
+- **Two pinned images have no local build step** (`grafana/flow-plugin`,
+  `ghcr.io/ainetops/topology-generator`). Provisioning warns rather than fails; the dependent
+  workload ends in `ImagePullBackOff`. `deployment/ui` is the observed case.
+- **`docs/INTENT_TIER_OPS_READINESS.md` contains resource figures that were never measured.**
+  They were produced before a cluster existed and before metrics-server was installed; real
+  values differ by large factors. Re-measure before relying on that document.
+
+## Repository layout
+
+```
+scripts/          provision.sh, off.sh, and lib/ (containerlab, rbac, qualify, intent_tier)
+lab/              containerlab topology and the sonic-vs profile bootstrap
+deploy/           Kubernetes manifests: controllers, kubenet, observability, agents
+controllers/      SRv6Service controller (Go)
+tests/            integration (fabric_verify, cycles_runner) and unit suites
+agents/           intent tier: supervisors, provisioning workers, test corpora (002 branch)
+docs/             operations, security audit, dependencies, known defects
+versions.lock.yaml  every image and binary pin; enforced by `make verify-pins`
+```
+
+## Policies enforced in CI
+
+**Deny-list** — keeps the platform vendor-neutral. No SR Linux runtime artifacts, no proprietary
+NED references outside research citations, no Compose/standalone platform-app placements under
+`controllers/`, `config/`, `scripts/`, `examples/`, `tests/`. Reproduce locally with
+`make denylist`; see `.github/workflows/denylist.yml`.
+
+**Jumbo MTU** — the lab standardises on underlay MTU 9216. VXLAN effective payload is 9166 (IPv4)
+and 9162 (IPv6); with 3 SRv6 SIDs it is ~9120. Acceptance tests size packets to avoid
+fragmentation.
+
+**Supply chain** — `make verify-pins` fails if any running image or binary drifts from
+`versions.lock.yaml`.
