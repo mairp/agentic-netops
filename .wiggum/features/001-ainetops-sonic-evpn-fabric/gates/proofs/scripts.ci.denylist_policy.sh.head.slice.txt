@@ -1,0 +1,56 @@
+     1	#!/usr/bin/env bash
+     2	# Central deny-list policy (T074a) used by CI and local runs
+     3	# Enforces migration (FR-020), visualization (FR-032), and placement (FR-023) boundaries
+     4	# Allowed contexts only: spec.md Scope and interpretation and SC-010; research.md and REVERSE.md citations;
+     5	# README presentation-only mention of srl-telemetry-lab. Fails build on any match outside allowed contexts.
+     6	# Scope: the AINETOPS 001 feature distribution. Other speckit feature directories under
+     7	# specs/ (specs/002-*, specs/10-*, ...) belong to their own feature gates; their spec
+     8	# artifacts document subject systems and cite REVERSE.md research, so they are excluded
+     9	# from this feature's boundary scan the same way vendor/ and .wiggum/ are.
+    10	set -euo pipefail
+    11	
+    12	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+    13	cd "$ROOT_DIR"
+    14	
+    15	fail=0
+    16	
+    17	# Helper: filter allowed contexts from search matches (works with rg or grep output)
+    18	filter_allowed() {
+    19	  local matches="$1"
+    20	  # Normalize leading ./ to ease anchored filters
+    21	  matches=$(printf "%s" "${matches}" | sed -E 's#^\./##')
+    22	  # Allow citations in research.md and REVERSE.md
+    23	  matches=$(printf "%s" "${matches}" | neg_filter '^specs/.+/research\.md:' | neg_filter '(^|.*/)REVERSE\.md:' || true)
+    24	  # Exclude other speckit feature spec directories (owned by their own gates)
+    25	  matches=$(printf "%s" "${matches}" | neg_filter '^specs/00[2-9]-' | neg_filter '^specs/[1-9][0-9]-' || true)
+    26	  # Exclude enforcement/policy sources to avoid self-reference false positives
+    27	  matches=$(printf "%s" "${matches}" \
+    28	    | neg_filter '^\.github/workflows/denylist\.yml:' \
+    29	    | neg_filter '^scripts/ci/denylist_policy\.sh:' \
+    30	    | neg_filter '^scripts/ci/supply_chain\.sh:' \
+    31	    | neg_filter '^scripts/ci/denylist_runtime_scan\.sh:' \
+    32	    | neg_filter '^tests/integration/cycles_runner\.sh:' || true)
+    33	
+    34	  # Allow mentions in spec.md "Scope and interpretation" section and SC-010 success criterion only
+    35	  local spec_path="specs/001-ainetops-sonic-evpn-fabric/spec.md"
+    36	  if [[ -f "$spec_path" ]]; then
+    37	    local start end sc010_start sc010_end
+    38	    start=$(awk '/^##\s+Scope and interpretation/{print NR; exit}' "$spec_path" || true)
+    39	    end=$(awk 'p && /^##\s+/{print NR; exit} /^##\s+Scope and interpretation/{p=1}' "$spec_path" || true)
+    40	    sc010_start=$(awk '/^- \*\*SC-010\*\*/{print NR; exit}' "$spec_path" || true)
+    41	    sc010_end=$(awk -v s="$sc010_start" 'NR > s && /^- \*\*SC-/{print NR; exit}' "$spec_path" || true)
+    42	    if [[ -z "$sc010_end" ]]; then sc010_end=999999; fi
+    43	    if [[ -n "${start}" && -n "${end}" ]]; then
+    44	      matches=$(printf "%s" "${matches}" | awk -v s="$start" -v e="$end" -v s2="$sc010_start" -v e2="$sc010_end" -F: '!( $1=="'"$spec_path"'" && ( ($2>=s && $2<=e) || ($2>=s2 && $2<=e2) ) )')
+    45	    fi
+    46	  fi
+    47	
+    48	  printf "%s" "${matches}"
+    49	}
+    50	
+    51	# Prefer ripgrep when present; otherwise fall back to grep -RinE
+    52	have_rg=0
+    53	if command -v rg >/dev/null 2>&1; then have_rg=1; fi
+    54	
+    55	search_all() {
+    56	  local pattern=$1

@@ -1,4 +1,4 @@
-[cycles] start 2026-08-31T20:13:12Z host=mairp cpu=22 mem=96070MB
+[cycles] start 2026-09-01T07:07:40Z host=mairp cpu=22 mem=96070MB
 [cycles] ===== clean cycle 1 =====
 [cycles] provision profile=sonic-vs log=/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/provision-1.log
 [cycles] provision profile=sonic-vs exit=0
@@ -11,40 +11,3 @@
 [cycles] off-noop log=off-1-noop.log exit=0
 [cycles] ===== clean cycle 2 =====
 [cycles] provision profile=sonic-vs log=/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/provision-2.log
-[cycles] provision profile=sonic-vs exit=0
-[cycles] test-fabric-2 exit=1
-[cycles] test-parity-2 exit=0
-[cycles] test-observability-2 exit=0
-[cycles] runtime-scan-2 exit=0
-[cycles] off log=/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/off-2.log
-[cycles] off exit=0
-[cycles] off-noop log=off-2-noop.log exit=0
-[cycles] ===== clean cycle 3 =====
-[cycles] provision profile=sonic-vs log=/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/provision-3.log
-[cycles] provision profile=sonic-vs exit=0
-[cycles] test-fabric-3 exit=1
-[cycles] test-parity-3 exit=0
-[cycles] test-observability-3 exit=0
-[cycles] runtime-scan-3 exit=0
-[cycles] off log=/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/off-3.log
-[cycles] off exit=0
-[cycles] off-noop log=off-3-noop.log exit=0
-[cycles] ===== second-provision idempotence =====
-[cycles] provision profile=sonic-vs log=/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/idempotence-provision-1.log
-[cycles] provision profile=sonic-vs exit=0
-[cycles] provision profile=sonic-vs log=/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/idempotence-provision-2.log
-[cycles] provision profile=sonic-vs exit=0
-[cycles] idempotence-off exit=0
-[cycles] ===== off-from-partial =====
-[cycles] provision profile=sonic-vs log=/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/partial-provision.log
-[cycles] provision profile=sonic-vs exit=0
-[cycles] off log=/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/off-from-partial.log
-[cycles] off exit=0
-[cycles] off-noop log=off-from-partial-noop.log exit=0
-[cycles] ===== conformance profile (sonic-vm) =====
-[cycles] provision profile=sonic-vm log=/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/provision-conformance.log
-[cycles] provision profile=sonic-vm exit=1
-[cycles] off log=/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/off-conformance.log
-[cycles] off exit=0
-[cycles] final runtime-scan exit=0
-[cycles] end 2026-08-31T22:31:16Z

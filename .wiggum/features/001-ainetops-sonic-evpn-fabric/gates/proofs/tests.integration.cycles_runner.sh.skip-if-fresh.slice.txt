@@ -1,0 +1,30 @@
+     1	# --- Skip-if-fresh: reuse a just-completed, still-valid prior pass's evidence
+     2	# wiggum's ensure_long_job() launches this command fresh on EVERY orchestrator
+     3	# restart — it scopes done-markers by run-id with no concept of "recent and
+     4	# still valid" (see INCIDENT-2026-08-31-ainetops-phase8.md, issue #9). Without
+     5	# this check, a restart mid-phase-8 unconditionally overwrites a fully
+     6	# verified ~90-minute pass sitting untouched on disk, at the very next write
+     7	# below (the `tee` that truncates cycles.run.log). This check must run before
+     8	# that line. It only affects future invocations of this script — it cannot
+     9	# retroactively help a copy that is already mid-run.
+    10	CYCLES_FRESH_MAX_AGE_SEC="${CYCLES_FRESH_MAX_AGE_SEC:-21600}"  # 6h default
+    11	if [[ -z "${CYCLES_FORCE_RERUN:-}" && -f "$PROOFS/cycles.run.log" ]]; then
+    12	  # The script's actual last stdout line, "CYCLES_DONE", is a bare echo (not
+    13	  # tee) so it never lands in cycles.run.log itself — only "[cycles] end ..."
+    14	  # (the line right before it) is tee'd into the file. That line only prints
+    15	  # if the script ran to its final statement uninterrupted (no `set -e`, but
+    16	  # a kill/crash mid-run stops output here too), so it's the correct on-disk
+    17	  # completion marker to check. Confirmed live 2026-08-31: a bare CYCLES_DONE
+    18	  # check here never matches, so the very first attempted skip silently fails
+    19	  # to skip.
+    20	  if [[ "$(tail -n1 "$PROOFS/cycles.run.log" 2>/dev/null)" == "[cycles] end "* ]]; then
+    21	    age=$(( $(date +%s) - $(stat -c %Y "$PROOFS/cycles.run.log") ))
+    22	    if (( age <= CYCLES_FRESH_MAX_AGE_SEC )); then
+    23	      echo "[cycles] skip-if-fresh: cycles.run.log already complete, ${age}s old (<= ${CYCLES_FRESH_MAX_AGE_SEC}s) — reusing existing evidence, not rerunning" | tee -a "$PROOFS/cycles.run.log"
+    24	      echo "CYCLES_DONE"
+    25	      exit 0
+    26	    fi
+    27	    echo "[cycles] skip-if-fresh: prior completed run is ${age}s old (> ${CYCLES_FRESH_MAX_AGE_SEC}s) — treating as stale, rerunning" >&2
+    28	  fi
+    29	fi
+    30	

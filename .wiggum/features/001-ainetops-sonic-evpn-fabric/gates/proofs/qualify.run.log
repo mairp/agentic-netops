@@ -347,3 +347,58 @@
 [qualify] Running Subscribe
 [qualify] Running sonic-srv6
 [qualify] FAILED: core capability failure; not running EVPN/SRv6 or YANG path suites
+[qualify] Running Capabilities
+[qualify] Running Get
+[qualify] Running Set
+[qualify] Running Subscribe
+[qualify] Running sonic-srv6
+[qualify] Running Set
+[qualify] OK
+[qualify] Running Capabilities
+[qualify] Running Get
+[qualify] Running Set
+[qualify] Running Subscribe
+[qualify] Running sonic-srv6
+[qualify] Running Set
+[qualify] OK
+[qualify] Running Capabilities
+[qualify] Running Get
+[qualify] Running Set
+[qualify] Running Subscribe
+[qualify] Running sonic-srv6
+[qualify] Running Set
+[qualify] OK
+[qualify] Running Capabilities
+[qualify] Running Get
+[qualify] Running Set
+[qualify] Running Subscribe
+[qualify] Running sonic-srv6
+[qualify] Running Set
+[qualify] OK
+[qualify] Running Capabilities
+[qualify] Running Get
+[qualify] Running Set
+[qualify] Running Subscribe
+[qualify] Running sonic-srv6
+[qualify] Running Set
+[qualify] OK
+[qualify] Running Capabilities
+[qualify] Running Get
+[qualify] Running Set
+[qualify] Running Subscribe
+[qualify] Running sonic-srv6
+[qualify] Running Set
+[qualify] OK
+[qualify] Running Capabilities
+[qualify] Running Get
+[qualify] Running Set
+[qualify] Running Subscribe
+[qualify] Running sonic-srv6
+[qualify] FAILED: core capability failure; not running EVPN/SRv6 or YANG path suites
+[qualify] Running Capabilities
+[qualify] Running Get
+[qualify] Running Set
+[qualify] Running Subscribe
+[qualify] Running sonic-srv6
+[qualify] Running Set
+[qualify] OK

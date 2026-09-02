@@ -1,0 +1,68 @@
+     1	name: Denylist Scan
+     2	
+     3	on:
+     4	  push:
+     5	    branches: [ main, master ]
+     6	  pull_request:
+     7	
+     8	jobs:
+     9	  denylist:
+    10	    runs-on: ubuntu-latest
+    11	    steps:
+    12	      - name: Checkout
+    13	        uses: actions/checkout@v4
+    14	
+    15	      - name: Install ripgrep and coreutils
+    16	        run: |
+    17	          sudo apt-get update
+    18	          sudo apt-get install -y ripgrep coreutils
+    19	
+    20	      - name: Run repository-wide deny-list checks (SC-010, FR-020, FR-023, FR-032)
+    21	        shell: bash
+    22	        run: |
+    23	          set -euo pipefail
+    24	
+    25	          fail=0
+    26	
+    27	          # Helper: filter allowed contexts from ripgrep matches
+    28	          filter_allowed() {
+    29	            local matches="$1"
+    30	            # Normalize paths and allow citations in research.md and REVERSE.md
+    31	            matches=$(printf "%s" "${matches}" | sed -E 's#^\./##' | rg -v 'specs/.+/research\.md:' | rg -v '(^|.*/)REVERSE\.md:' || true)
+    32	            # Exclude other speckit feature spec directories (specs/002-*, specs/10-*, ...)
+    33	            # — owned by their own feature gates; their artifacts document subject systems.
+    34	            matches=$(printf "%s" "${matches}" | rg -v '^specs/00[2-9]-' | rg -v '^specs/[1-9][0-9]-' || true)
+    35	            # Exclude enforcement sources to avoid self-reference false positives
+    36	            matches=$(printf "%s" "${matches}" | rg -v '^(\.github/workflows/denylist\.yml|scripts/ci/denylist_policy\.sh|scripts/ci/supply_chain\.sh|scripts/ci/denylist_runtime_scan\.sh|tests/integration/cycles_runner\.sh):' || true)
+    37	
+    38	            # Allow mentions in spec.md "Scope and interpretation" section and SC-010 success criterion only
+    39	            # Compute line ranges for the sections in the pinned spec
+    40	            local spec_path="specs/001-ainetops-sonic-evpn-fabric/spec.md"
+    41	            if [[ -f "$spec_path" ]]; then
+    42	              local start end sc010_start sc010_end
+    43	              start=$(awk '/^##\s+Scope and interpretation/{print NR; exit}' "$spec_path" || true)
+    44	              end=$(awk 'p && /^##\s+/{print NR; exit} /^##\s+Scope and interpretation/{p=1}' "$spec_path" || true)
+    45	              sc010_start=$(awk '/^- \*\*SC-010\*\*/{print NR; exit}' "$spec_path" || true)
+    46	              sc010_end=$(awk -v s="$sc010_start" 'NR > s && /^- \*\*SC-/{print NR; exit}' "$spec_path" || true)
+    47	              if [[ -z "$sc010_end" ]]; then sc010_end=999999; fi
+    48	              if [[ -n "${start}" && -n "${end}" ]]; then
+    49	                # Remove matches within allowed line ranges in spec.md
+    50	                matches=$(printf "%s" "${matches}" | awk -v s="$start" -v e="$end" -v s2="$sc010_start" -v e2="$sc010_end" -F: '!( $1=="'"$spec_path"'" && ( ($2>=s && $2<=e) || ($2>=s2 && $2<=e2) ) )')
+    51	              fi
+    52	            fi
+    53	
+    54	            # Do NOT globally allow srl-telemetry-lab — handle it in its own scoped check below
+    55	
+    56	            printf "%s" "${matches}"
+    57	          }
+    58	
+    59	          echo "::group::Migration boundary terms (FR-020)"
+    60	          MIG_PATTERN='\\b(cisco|crosswork|nso|cnc|proprietary\\s+ned|proprietary\\s+neds|ai-network-services-devnet-2606|devnet-2606)\\b'
+    61	          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    62	            MIG_MATCHES=$(git ls-files -z | rg -z -v '^(vendor/|\.wiggum/|scripts/ci/)' | xargs -0 rg -i -n -e "$MIG_PATTERN" || true)
+    63	          else
+    64	            MIG_MATCHES=$(rg -i -n --hidden --no-ignore -g '!*/.git/*' -g '!vendor/**' -g '!.wiggum/**' -g '!scripts/ci/**' -e "$MIG_PATTERN" . || true)
+    65	          fi
+    66	          MIG_VIOLATIONS=$(filter_allowed "$MIG_MATCHES")
+    67	          if [[ -n "$MIG_VIOLATIONS" ]]; then
+    68	            echo "::error title=Migration boundary term(s) found outside allowed contexts::${MIG_VIOLATIONS}"

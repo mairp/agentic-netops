@@ -1,3 +1,4 @@
+== security-audit 2026-09-01T07:30:09Z
 
 === RBAC minimal verbs/scopes ===
 grep: character class syntax is [[:space:]], not [:space:]
@@ -25,7 +26,8 @@ grep: character class syntax is [[:space:]], not [:space:]
 === Grafana plugin provenance and auth ===
 grep: character class syntax is [[:space:]], not [:space:]
 [32mOK[0m: Grafana anonymous disabled
-[32mOK[0m: Grafana plugins pinned by digest
+[32mOK[0m: Grafana installs no third-party plugins (built-in panels only)
+[32mOK[0m: Grafana flow visualization pin recorded (presentation reference, FR-032)
 
 === Anonymous access/default credentials ===
 [32mOK[0m: Grafana secret generator job present
@@ -33,3 +35,4 @@ grep: character class syntax is [[:space:]], not [:space:]
 === Log/status redaction ===
 [32mOK[0m: No obvious secret value logging patterns found
 SECURITY_AUDIT_OK
+security-audit rc=0

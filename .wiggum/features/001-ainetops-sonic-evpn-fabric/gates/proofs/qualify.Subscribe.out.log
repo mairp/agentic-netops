@@ -133,3 +133,18 @@ Error: one or more requests failed
 [gnmi-suite] 172.31.0.21:8080: subscribe content asserted (DEVICE_METADATA delivered)
 [gnmi-suite] 172.31.0.22:8080: subscribe content asserted (DEVICE_METADATA delivered)
 [gnmi-suite] FAIL: 172.31.0.21:8080: subscribe returned no DEVICE_METADATA content
+[gnmi-suite] 172.31.0.21:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.22:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.21:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.22:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.21:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.22:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.21:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.22:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.21:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.22:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.21:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.22:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] FAIL: 172.31.0.21:8080: subscribe returned no DEVICE_METADATA content
+[gnmi-suite] 172.31.0.21:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.22:8080: subscribe content asserted (DEVICE_METADATA delivered)

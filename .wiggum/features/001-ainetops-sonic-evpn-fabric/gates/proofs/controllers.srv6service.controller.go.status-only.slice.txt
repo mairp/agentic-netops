@@ -1,0 +1,56 @@
+    24	func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+    25		var svc ainetopsv1alpha1.SRv6Service
+    26		if err := r.Get(ctx, req.NamespacedName, &svc); err != nil {
+    27			return ctrl.Result{}, client.IgnoreNotFound(err)
+    28		}
+    29	
+    30		// Handle deletion early
+    31		if !svc.DeletionTimestamp.IsZero() {
+    32			return ctrl.Result{}, nil
+    33		}
+    34	
+    35		// Set ObservedGeneration and initial gating conditions
+    36		updated := svc.DeepCopy()
+    37		if updated.Status.ObservedGeneration != svc.Generation {
+    38			updated.Status.ObservedGeneration = svc.Generation
+    39		}
+    40		// Ensure Ready=False and Degraded=False with WaitingDependencies
+    41		condReady := metav1.Condition{
+    42			Type:               "Ready",
+    43			Status:             metav1.ConditionFalse,
+    44			ObservedGeneration: svc.Generation,
+    45			LastTransitionTime: metav1.NewTime(time.Now()),
+    46			Reason:             reasons.ReasonWaitingDependencies,
+    47			Message:            "Waiting for topology, allocations, targets, and schema compatibility",
+    48		}
+    49		condDegraded := metav1.Condition{
+    50			Type:               "Degraded",
+    51			Status:             metav1.ConditionFalse,
+    52			ObservedGeneration: svc.Generation,
+    53			LastTransitionTime: metav1.NewTime(time.Now()),
+    54			Reason:             reasons.ReasonWaitingDependencies,
+    55			Message:            "No failures observed; dependencies not yet satisfied",
+    56		}
+    57		updated.Status.Conditions = upsertCondition(updated.Status.Conditions, condReady)
+    58		updated.Status.Conditions = upsertCondition(updated.Status.Conditions, condDegraded)
+    59	
+    60		// Integrate compatibility-set validation
+    61		set := compat.FromAnnotations(svc.Annotations)
+    62		discovered := map[string]bool{"sai.srv6": svc.Labels["ainetops.dev/cap.sai.srv6"] == "true"}
+    63		if err := compat.FullValidate(set, svc.Labels, discovered); err != nil {
+    64			reason := compat.ReasonFor(err)
+    65			cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: svc.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reason, Message: err.Error()}
+    66			updated.Status.Conditions = upsertCondition(updated.Status.Conditions, cond)
+    67			if e := r.Status().Patch(ctx, updated, client.MergeFrom(&svc)); e != nil {
+    68				return ctrl.Result{}, e
+    69			}
+    70			return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
+    71		}
+    72	
+    73		if err := r.Status().Patch(ctx, updated, client.MergeFrom(&svc)); err != nil {
+    74			return ctrl.Result{}, err
+    75		}
+    76	
+    77		// Requeue with bounded backoff while waiting
+    78		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+    79	}

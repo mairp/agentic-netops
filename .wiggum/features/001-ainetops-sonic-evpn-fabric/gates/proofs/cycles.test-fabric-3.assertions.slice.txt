@@ -1,0 +1,21 @@
+     1	3:[172.31.0.21:8080] assertion passed: underlay BGP neighbors configured (BGP_NEIGHBOR populated)
+     2	5:[172.31.0.22:8080] assertion passed: underlay BGP neighbors configured (BGP_NEIGHBOR populated)
+     3	7:[172.31.0.11:8080] assertion passed: underlay BGP neighbors configured (BGP_NEIGHBOR populated)
+     4	9:[172.31.0.12:8080] assertion passed: underlay BGP neighbors configured (BGP_NEIGHBOR populated)
+     5	10:[clab-ainetops-fabric-leaf01] assertion passed: underlay BGP session Established
+     6	11:[clab-ainetops-fabric-leaf02] assertion passed: underlay BGP session Established
+     7	12:[clab-ainetops-fabric-spine01] assertion passed: underlay BGP session Established
+     8	13:[clab-ainetops-fabric-spine02] assertion passed: underlay BGP session Established
+     9	15:[clab-ainetops-fabric-leaf01] assertion passed: L2VPN EVPN AF negotiated with an Established peer
+    10	16:[clab-ainetops-fabric-leaf02] assertion passed: L2VPN EVPN AF negotiated with an Established peer
+    11	20:[client01→client02] ASSERTION FAILED: no bridged Vlan100 reachability across the overlay (last: 3 packets transmitted, 0 received, +3 errors, 100% packet loss, time 2068ms)
+    12	22:[clab-ainetops-fabric-leaf01] assertion passed: EVPN Type-2 route present
+    13	23:[clab-ainetops-fabric-leaf01] assertion passed: EVPN Type-3 route present
+    14	24:[clab-ainetops-fabric-leaf01] ASSERTION FAILED: no EVPN Type-5 route in the RIB (L3VNI origination defect of the sonic-vs FRR 10.5.4 build — see docs/FABRIC_BGP_EVPN_DEFERRED.md and gates evidence)
+    15	25:[clab-ainetops-fabric-leaf02] assertion passed: EVPN Type-2 route present
+    16	26:[clab-ainetops-fabric-leaf02] assertion passed: EVPN Type-3 route present
+    17	27:[clab-ainetops-fabric-leaf02] ASSERTION FAILED: no EVPN Type-5 route in the RIB (L3VNI origination defect of the sonic-vs FRR 10.5.4 build — see docs/FABRIC_BGP_EVPN_DEFERRED.md and gates evidence)
+    18	51:[172.31.0.11:8080] OK: no VXLAN/VTEP state on spine (CONFIG_DB VXLAN_TUNNEL empty)
+    19	53:[172.31.0.12:8080] OK: no VXLAN/VTEP state on spine (CONFIG_DB VXLAN_TUNNEL empty)
+    20	55:[172.31.0.11:8080] OK: no tenant VRF names detected on spine
+    21	57:[172.31.0.12:8080] OK: no tenant VRF names detected on spine

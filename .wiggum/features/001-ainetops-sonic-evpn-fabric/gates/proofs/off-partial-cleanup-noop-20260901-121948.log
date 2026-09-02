@@ -1,0 +1,9 @@
+Error in configuration: context was not found for specified context: kind-ainetops
+Error in configuration: context was not found for specified context: kind-ainetops
+[clab] destroying /root/ainetops-demo/lab/topology.clab.yml
+12:19:49 INFO Parsing & checking topology file=topology.clab.yml
+12:19:49 INFO no containerlab containers found
+[clab] destroy complete
+[kind] cluster 'ainetops' not present (idempotent)
+[off] Teardown complete (idempotent).
+OFF_NOOP_RC=0 LOG=/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/off-partial-cleanup-noop-20260901-121948.log

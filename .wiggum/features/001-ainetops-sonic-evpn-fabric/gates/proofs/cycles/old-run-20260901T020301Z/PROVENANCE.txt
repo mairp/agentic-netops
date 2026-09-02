@@ -1,0 +1,17 @@
+This directory preserves the per-phase logs of the COMPLETED cycles run
+2026-09-01T02:03:01Z -> 2026-09-01T05:41:39Z (host mairp), as copied at
+2026-09-01 ~07:20 UTC before a re-run started overwriting the canonical
+filenames in cycles/.
+
+Authoritative record of that run's section exit codes and completion:
+- .wiggum/features/001-ainetops-sonic-evpn-fabric/long-jobs/phase8-attempt1-20260901-060259-747138.log
+  (orchestrator capture of the runner stdout; last lines:
+   "[cycles] end 2026-09-01T05:41:39Z" and "CYCLES_DONE")
+- Line-numbered slice of the original cycles.run.log:
+  ../cycles.cycles.run.log.full.slice.txt (33+ lines, all [cycles] status lines)
+- Key-line slices of the original (now-superseded) provision logs:
+  ../cycles.provision-{1,2,3}.key.proof.txt etc. in the proofs/ root.
+
+provision-1.log from the original run was partially overwritten before this
+copy was taken; its key lines are preserved in
+../cycles.provision-1.key.proof.txt (line numbers 342-651).

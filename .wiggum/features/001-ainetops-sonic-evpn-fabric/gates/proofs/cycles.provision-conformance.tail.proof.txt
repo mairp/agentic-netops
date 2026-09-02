@@ -1,0 +1,8 @@
+     1	[qualify] Running Set
+     2	[gnmi-suite] FAIL: Set 172.31.0.21:8080: GCU apply-patch of SRv6 locator+SID failed
+     3	[qualify] Running Subscribe
+     4	[gnmi-suite] FAIL: 172.31.0.21:8080: subscribe returned no DEVICE_METADATA content
+     5	[qualify] Running sonic-srv6
+     6	[gnmi-suite] FAIL: sonic-srv6 172.31.0.21:8080: GCU locator write failed
+     7	[qualify] FAILED: core capability failure; not running EVPN/SRv6 or YANG path suites
+     8	[provision] capability gate failed for profile sonic-vm

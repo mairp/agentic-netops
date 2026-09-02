@@ -46,3 +46,19 @@ Error in configuration: context was not found for specified context: kind-aineto
 [clab] destroy complete
 [kind] cluster 'ainetops' not present (idempotent)
 [off] Teardown complete (idempotent).
+Error in configuration: context was not found for specified context: kind-ainetops
+Error in configuration: context was not found for specified context: kind-ainetops
+[clab] destroying /root/ainetops-demo/lab/topology.clab.yml
+10:28:45 INFO Parsing & checking topology file=topology.clab.yml
+10:28:45 INFO no containerlab containers found
+[clab] destroy complete
+[kind] cluster 'ainetops' not present (idempotent)
+[off] Teardown complete (idempotent).
+Error in configuration: context was not found for specified context: kind-ainetops
+Error in configuration: context was not found for specified context: kind-ainetops
+[clab] destroying /root/ainetops-demo/lab/topology.clab.yml
+12:20:51 INFO Parsing & checking topology file=topology.clab.yml
+12:20:51 INFO no containerlab containers found
+[clab] destroy complete
+[kind] cluster 'ainetops' not present (idempotent)
+[off] Teardown complete (idempotent).

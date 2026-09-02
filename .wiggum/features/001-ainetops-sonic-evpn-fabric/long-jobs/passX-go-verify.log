@@ -1,0 +1,16 @@
+?   	github.com/mairp/ainetops/api/v1alpha1	[no test files]
+?   	github.com/mairp/ainetops/cmd/migration-translator	[no test files]
+?   	github.com/mairp/ainetops/controllers/sonicprovider	[no test files]
+?   	github.com/mairp/ainetops/controllers/srv6service	[no test files]
+ok  	github.com/mairp/ainetops/internal/lockfile	0.614s
+?   	github.com/mairp/ainetops/pkg/compat	[no test files]
+?   	github.com/mairp/ainetops/pkg/kubenet	[no test files]
+?   	github.com/mairp/ainetops/pkg/migration	[no test files]
+?   	github.com/mairp/ainetops/pkg/model	[no test files]
+?   	github.com/mairp/ainetops/pkg/reasons	[no test files]
+?   	github.com/mairp/ainetops/pkg/render	[no test files]
+?   	github.com/mairp/ainetops/pkg/sdc	[no test files]
+?   	github.com/mairp/ainetops/pkg/version	[no test files]
+ok  	github.com/mairp/ainetops/tests/envtest	14.408s
+ok  	github.com/mairp/ainetops/tests/unit	1.245s
+GO_VERIFY_RC=0

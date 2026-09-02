@@ -1,0 +1,28 @@
+     1	# Ordered phases: verify pins and CRDs/register
+     2	if [[ -f "${REPO_ROOT}/Makefile" ]]; then
+     3	  make -C "${REPO_ROOT}" verify-compat
+     4	fi
+     5	
+     6	# Ensure external management network exists, labeled, and subnet-correct (idempotent).
+     7	# The subnet MUST be user-configured (172.31.0.0/16) so containerlab can assign the
+     8	# explicit per-node mgmt IPs; see scripts/lib/kind.sh kind::ensure_mgmt_network.
+     9	if command -v docker >/dev/null 2>&1 && [[ -x "${LIB_DIR}/kind.sh" ]]; then
+    10	  "${LIB_DIR}/kind.sh" ensure-mgmt
+    11	fi
+    12	
+    13	# Ensure Kind cluster exists and is using pinned image; attach nodes to mgmt network
+    14	if [[ -x "${LIB_DIR}/kind.sh" ]]; then
+    15	  "${LIB_DIR}/kind.sh" ensure
+    16	  "${LIB_DIR}/kind.sh" attach-mgmt
+    17	  "${LIB_DIR}/kind.sh" verify-context
+    18	else
+    19	  echo "[provision] WARN: kind helper not found; skipping Kind cluster ensure" >&2
+    20	fi
+    21	
+    22	# Deploy lab topology with containerlab
+    23	if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
+    24	  "${LIB_DIR}/containerlab.sh" deploy || { echo "[provision] containerlab deploy failed" >&2; exit 1; }
+    25	  "${LIB_DIR}/containerlab.sh" inspect || true
+    26	else
+    27	  echo "[provision] WARN: containerlab helper not found; skipping lab deploy" >&2
+    28	fi

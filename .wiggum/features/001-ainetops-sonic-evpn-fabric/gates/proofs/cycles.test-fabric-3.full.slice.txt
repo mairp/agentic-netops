@@ -1,0 +1,58 @@
+     1	[fabric-verify] underlay BGP: configuration (sonic-db) + session state (FRR)
+     2	[172.31.0.21:8080] sonic-db query error: target "172.31.0.21:8080" Get request failed: "172.31.0.21:8080" GetRequest failed: rpc error: code = Unauthenticated desc = Unauthenticated
+     3	[172.31.0.21:8080] assertion passed: underlay BGP neighbors configured (BGP_NEIGHBOR populated)
+     4	[172.31.0.22:8080] sonic-db query error: target "172.31.0.22:8080" Get request failed: "172.31.0.22:8080" GetRequest failed: rpc error: code = Unauthenticated desc = Unauthenticated
+     5	[172.31.0.22:8080] assertion passed: underlay BGP neighbors configured (BGP_NEIGHBOR populated)
+     6	[172.31.0.11:8080] sonic-db query error: target "172.31.0.11:8080" Get request failed: "172.31.0.11:8080" GetRequest failed: rpc error: code = Unauthenticated desc = Unauthenticated
+     7	[172.31.0.11:8080] assertion passed: underlay BGP neighbors configured (BGP_NEIGHBOR populated)
+     8	[172.31.0.12:8080] sonic-db query error: target "172.31.0.12:8080" Get request failed: "172.31.0.12:8080" GetRequest failed: rpc error: code = Unauthenticated desc = Unauthenticated
+     9	[172.31.0.12:8080] assertion passed: underlay BGP neighbors configured (BGP_NEIGHBOR populated)
+    10	[clab-ainetops-fabric-leaf01] assertion passed: underlay BGP session Established
+    11	[clab-ainetops-fabric-leaf02] assertion passed: underlay BGP session Established
+    12	[clab-ainetops-fabric-spine01] assertion passed: underlay BGP session Established
+    13	[clab-ainetops-fabric-spine02] assertion passed: underlay BGP session Established
+    14	[fabric-verify] verify EVPN AF activation on BGP neighbors (L2VPN_EVPN)
+    15	[clab-ainetops-fabric-leaf01] assertion passed: L2VPN EVPN AF negotiated with an Established peer
+    16	[clab-ainetops-fabric-leaf02] assertion passed: L2VPN EVPN AF negotiated with an Established peer
+    17	[fabric-verify] Driving client traffic across the EVPN overlay (Type-2 source)
+    18	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+    19	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+    20	[client01→client02] ASSERTION FAILED: no bridged Vlan100 reachability across the overlay (last: 3 packets transmitted, 0 received, +3 errors, 100% packet loss, time 2068ms)
+    21	[fabric-verify] EVPN overlay routes (Type2/Type3/Type5) on leaves
+    22	[clab-ainetops-fabric-leaf01] assertion passed: EVPN Type-2 route present
+    23	[clab-ainetops-fabric-leaf01] assertion passed: EVPN Type-3 route present
+    24	[clab-ainetops-fabric-leaf01] ASSERTION FAILED: no EVPN Type-5 route in the RIB (L3VNI origination defect of the sonic-vs FRR 10.5.4 build — see docs/FABRIC_BGP_EVPN_DEFERRED.md and gates evidence)
+    25	[clab-ainetops-fabric-leaf02] assertion passed: EVPN Type-2 route present
+    26	[clab-ainetops-fabric-leaf02] assertion passed: EVPN Type-3 route present
+    27	[clab-ainetops-fabric-leaf02] ASSERTION FAILED: no EVPN Type-5 route in the RIB (L3VNI origination defect of the sonic-vs FRR 10.5.4 build — see docs/FABRIC_BGP_EVPN_DEFERRED.md and gates evidence)
+    28	[fabric-verify] loopback reachability across all nodes (IPv6)
+    29	[172.31.0.21:8080] sonic-db query error: target "172.31.0.21:8080" Get request failed: "172.31.0.21:8080" GetRequest failed: rpc error: code = Unauthenticated desc = Unauthenticated
+    30	[172.31.0.22:8080] sonic-db query error: target "172.31.0.22:8080" Get request failed: "172.31.0.22:8080" GetRequest failed: rpc error: code = Unauthenticated desc = Unauthenticated
+    31	[fabric-verify] ping6 leaf01(2001:db8:ff::21) -> leaf02(2001:db8:ff::22)
+    32	PING 2001:db8:ff::22(2001:db8:ff::22) 56 data bytes
+    33	
+    34	--- 2001:db8:ff::22 ping statistics ---
+    35	3 packets transmitted, 0 received, 100% packet loss, time 2050ms
+    36	
+    37	[fabric-verify] ping6 leaf02(2001:db8:ff::22) -> leaf01(2001:db8:ff::21)
+    38	PING 2001:db8:ff::21(2001:db8:ff::21) 56 data bytes
+    39	
+    40	--- 2001:db8:ff::21 ping statistics ---
+    41	3 packets transmitted, 0 received, 100% packet loss, time 2052ms
+    42	
+    43	loopback reachability
+    44	[fabric-verify] IPv6 waypoint reachability for SRv6 path
+    45	[fabric-verify] INFO: no SRV6_WAYPOINTS provided; attempting traceroute to peer leaf loopback as waypoint surrogate
+    46	[172.31.0.22:8080] sonic-db query error: target "172.31.0.22:8080" Get request failed: "172.31.0.22:8080" GetRequest failed: rpc error: code = Unauthenticated desc = Unauthenticated
+    47	bash: line 1: traceroute: command not found
+    48	IPv6 waypoint reachability
+    49	[fabric-verify] Assert absence of tenant VTEP/VRF state on spines (FR-004)
+    50	[172.31.0.11:8080] sonic-db query error: target "172.31.0.11:8080" Get request failed: "172.31.0.11:8080" GetRequest failed: rpc error: code = Unauthenticated desc = Unauthenticated
+    51	[172.31.0.11:8080] OK: no VXLAN/VTEP state on spine (CONFIG_DB VXLAN_TUNNEL empty)
+    52	[172.31.0.12:8080] sonic-db query error: target "172.31.0.12:8080" Get request failed: "172.31.0.12:8080" GetRequest failed: rpc error: code = Unauthenticated desc = Unauthenticated
+    53	[172.31.0.12:8080] OK: no VXLAN/VTEP state on spine (CONFIG_DB VXLAN_TUNNEL empty)
+    54	[172.31.0.11:8080] sonic-db query error: target "172.31.0.11:8080" Get request failed: "172.31.0.11:8080" GetRequest failed: rpc error: code = Unauthenticated desc = Unauthenticated
+    55	[172.31.0.11:8080] OK: no tenant VRF names detected on spine
+    56	[172.31.0.12:8080] sonic-db query error: target "172.31.0.12:8080" Get request failed: "172.31.0.12:8080" GetRequest failed: rpc error: code = Unauthenticated desc = Unauthenticated
+    57	[172.31.0.12:8080] OK: no tenant VRF names detected on spine
+    58	absence of tenant VTEP/VRF state on spines (FR-004)

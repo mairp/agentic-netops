@@ -8,9 +8,10 @@ mkdir -p "$PROOF_DIR"
 
 SRC=${SRC:-clab-ainetops-fabric-srv6-client01}
 DST=${DST:-clab-ainetops-fabric-srv6-client02}
-# Precondition: skip gracefully if clients are absent
-if ! docker ps --format '{{.Names}}' | grep -q "$SRC"; then echo "[srv6-capture] SKIP: $SRC not present"; exit 0; fi
-if ! docker ps --format '{{.Names}}' | grep -q "$DST"; then echo "[srv6-capture] SKIP: $DST not present"; exit 0; fi
+# Precondition: skip gracefully if clients are absent (standard SKIP-LIVE marker,
+# matching evpn_traffic.sh / failure_recovery_invalid_yang.sh / srv6_failover_path_change.sh)
+if ! docker ps --format '{{.Names}}' | grep -q "$SRC"; then echo "SKIP-LIVE: SRv6 capture/counter suite requires a provisioned lab (${SRC} not present); capability gate (scripts/lib/qualify.sh) is the source of truth"; exit 0; fi
+if ! docker ps --format '{{.Names}}' | grep -q "$DST"; then echo "SKIP-LIVE: SRv6 capture/counter suite requires a provisioned lab (${DST} not present); capability gate (scripts/lib/qualify.sh) is the source of truth"; exit 0; fi
 SRC_IP6=${SRC_IP6:-2001:db8:3::31}
 DST_IP6=${DST_IP6:-2001:db8:4::41}
 LEAF_SRC=${LEAF_SRC:-172.31.0.21:8080}

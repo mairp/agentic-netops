@@ -1,8 +1,9 @@
+== go test ./... 2026-09-01T07:30:35Z
 ?   	github.com/mairp/ainetops/api/v1alpha1	[no test files]
 ?   	github.com/mairp/ainetops/cmd/migration-translator	[no test files]
 ?   	github.com/mairp/ainetops/controllers/sonicprovider	[no test files]
 ?   	github.com/mairp/ainetops/controllers/srv6service	[no test files]
-ok  	github.com/mairp/ainetops/internal/lockfile	0.092s
+ok  	github.com/mairp/ainetops/internal/lockfile	0.653s
 ?   	github.com/mairp/ainetops/pkg/compat	[no test files]
 ?   	github.com/mairp/ainetops/pkg/kubenet	[no test files]
 ?   	github.com/mairp/ainetops/pkg/migration	[no test files]
@@ -11,6 +12,6 @@ ok  	github.com/mairp/ainetops/internal/lockfile	0.092s
 ?   	github.com/mairp/ainetops/pkg/render	[no test files]
 ?   	github.com/mairp/ainetops/pkg/sdc	[no test files]
 ?   	github.com/mairp/ainetops/pkg/version	[no test files]
-ok  	github.com/mairp/ainetops/tests/envtest	(cached)
+ok  	github.com/mairp/ainetops/tests/envtest	0.107s
 ok  	github.com/mairp/ainetops/tests/unit	(cached)
-GO_TEST_EXIT=0
+go-test-all rc=0

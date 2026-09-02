@@ -1,0 +1,2 @@
+     1	[obs] checks: flow-pin-recorded no-plugin-install anonymous-disabled dash-physical-fabric.json dash-sdc-orchestration.json dash-srv6-service-path.json dash-pipeline-health.json alert-LinkDown alert-BGPPeerDown alert-ProviderFailedReconcile alert-ProviderDegradedDeviation alert-SDCTargetUnreachable alert-SRv6PathDown alert-TopologyInventoryMismatch alert-GNMIcExportFailures alert-OTelExportFailures cm-present deploy-present
+     2	OBSERVABILITY_SUITE_OK

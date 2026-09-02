@@ -3,6 +3,10 @@
 # Enforces migration (FR-020), visualization (FR-032), and placement (FR-023) boundaries
 # Allowed contexts only: spec.md Scope and interpretation and SC-010; research.md and REVERSE.md citations;
 # README presentation-only mention of srl-telemetry-lab. Fails build on any match outside allowed contexts.
+# Scope: the AINETOPS 001 feature distribution. Other speckit feature directories under
+# specs/ (specs/002-*, specs/10-*, ...) belong to their own feature gates; their spec
+# artifacts document subject systems and cite REVERSE.md research, so they are excluded
+# from this feature's boundary scan the same way vendor/ and .wiggum/ are.
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
@@ -17,6 +21,8 @@ filter_allowed() {
   matches=$(printf "%s" "${matches}" | sed -E 's#^\./##')
   # Allow citations in research.md and REVERSE.md
   matches=$(printf "%s" "${matches}" | neg_filter '^specs/.+/research\.md:' | neg_filter '(^|.*/)REVERSE\.md:' || true)
+  # Exclude other speckit feature spec directories (owned by their own gates)
+  matches=$(printf "%s" "${matches}" | neg_filter '^specs/00[2-9]-' | neg_filter '^specs/[1-9][0-9]-' || true)
   # Exclude enforcement/policy sources to avoid self-reference false positives
   matches=$(printf "%s" "${matches}" \
     | neg_filter '^\.github/workflows/denylist\.yml:' \
@@ -137,6 +143,8 @@ mkdir -p "$PROOFS_DIR"
     | awk -F: -v s="$ALLOWED_SPECS_SCOPE" -v e="$ALLOWED_SPECS_SCOPE_END" -v s2="$ALLOWED_SC010_START" -v e2="$ALLOWED_SC010_END" '!( $1 ~ /^specs\/001-ainetops-sonic-evpn-fabric\/spec.md$/ && ( ($2>=s && $2<=e) || ($2>=s2 && $2<=e2) ) )' \
     | neg_filter '^specs/.+/research\.md:' \
     | neg_filter '(^|.*/)REVERSE\.md:' \
+    | neg_filter '^specs/00[2-9]-' \
+    | neg_filter '^specs/[1-9][0-9]-' \
     | neg_filter '^README\.md:.*visualization/presentation reference only' \
     | neg_filter '^\.github/workflows/denylist\.yml:' \
     | neg_filter '^scripts/ci/denylist_policy\.sh:' \

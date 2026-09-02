@@ -1,0 +1,65 @@
+     1	# Install least-privilege RBAC base
+     2	if [[ -x "${LIB_DIR}/rbac.sh" ]]; then
+     3	  "${LIB_DIR}/rbac.sh"
+     4	fi
+     5	# Install pinned Kubenet/KUID and SDC into Kind and wait basic readiness
+     6	if [[ -x "${REPO_ROOT}/deploy/kubenet/install.sh" ]]; then
+     7	  "${REPO_ROOT}/deploy/kubenet/install.sh"
+     8	fi
+     9	if [[ -x "${REPO_ROOT}/deploy/sdc/install.sh" ]]; then
+    10	  "${REPO_ROOT}/deploy/sdc/install.sh"
+    11	fi
+    12	# Install observability stack (OTel Collector, gNMIc, Prometheus, Grafana)
+    13	# Preload pinned observability images from the local Docker cache into Kind so
+    14	# digest-pinned pod specs do not depend on a live registry pull at rollout time.
+    15	if command -v docker >/dev/null 2>&1 && command -v kind >/dev/null 2>&1 && [[ -f versions.lock.yaml ]]; then
+    16	  echo "[provision] preloading pinned observability images into Kind"
+    17	  for img in $(awk '/^tooling:/{f=1;next} f && /^[^ ]/{f=0} f && /: .*@sha256:/{print $2}' versions.lock.yaml); do
+    18	    if docker image inspect "$img" >/dev/null 2>&1; then
+    19	      cache="ainetops-cache$(echo "$img" | tr '/@:' '----')"
+    20	      docker tag "$img" "$cache" 2>/dev/null || true
+    21	      kind load docker-image "$cache" --name "${AINETOPS_CLUSTER_NAME}" >/dev/null 2>&1 \
+    22	        && echo "[provision] preloaded $img" || echo "[provision] WARN: preload failed for $img" >&2
+    23	      docker rmi "$cache" >/dev/null 2>&1 || true
+    24	    else
+    25	      echo "[provision] WARN: pinned image not in local cache: $img" >&2
+    26	    fi
+    27	  done
+    28	fi
+    29	if [[ -x "${LIB_DIR}/observability.sh" ]]; then
+    30	  "${LIB_DIR}/observability.sh" install || true
+    31	fi
+    32	
+    33	# Build, load, and deploy provider and srv6-controller images into Kind (T041)
+    34	# The controller images are static distroless-style binaries: build them on the host
+    35	# from the pinned, vendored Go source (go.mod + vendor/) and import them as scratch
+    36	# images. This keeps the lifecycle reproducible without pulling a build base image
+    37	# from an external registry (air-gapped qualified host friendly).
+    38	if command -v docker >/dev/null 2>&1 && command -v kind >/dev/null 2>&1 && command -v kubectl >/dev/null 2>&1 && command -v go >/dev/null 2>&1; then
+    39	  echo "[provision] building controller binaries (pinned vendored Go source)"
+    40	  ( cd "${REPO_ROOT}" && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    41	      go build -mod=vendor -tags ainetops_k8s -trimpath -ldflags='-s -w' \
+    42	      -o /tmp/ainetops-sonic-provider-bin ./cmd/sonic-provider )
+    43	  ( cd "${REPO_ROOT}" && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    44	      go build -mod=vendor -tags ainetops_k8s -trimpath -ldflags='-s -w' \
+    45	      -o /tmp/ainetops-srv6-controller-bin ./cmd/srv6-controller )
+    46	  ( cd /tmp && tar -cf ainetops-sonic-provider-bin.tar ainetops-sonic-provider-bin \
+    47	      && docker import --change 'USER 65532:65532' --change 'ENTRYPOINT ["/ainetops-sonic-provider-bin"]' ainetops-sonic-provider-bin.tar ainetops-sonic-provider:dev )
+    48	  ( cd /tmp && tar -cf ainetops-srv6-controller-bin.tar ainetops-srv6-controller-bin \
+    49	      && docker import --change 'USER 65532:65532' --change 'ENTRYPOINT ["/ainetops-srv6-controller-bin"]' ainetops-srv6-controller-bin.tar ainetops-srv6-controller:dev )
+    50	  echo "[provision] loading images into Kind"
+    51	  kind load docker-image ainetops-sonic-provider:dev --name "${AINETOPS_CLUSTER_NAME}" || true
+    52	  kind load docker-image ainetops-srv6-controller:dev --name "${AINETOPS_CLUSTER_NAME}" || true
+    53	  echo "[provision] deploying controllers"
+    54	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system apply -f "${REPO_ROOT}/deploy/ainetops/manifests/provider.yaml"
+    55	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system apply -f "${REPO_ROOT}/deploy/ainetops/manifests/srv6-controller.yaml"
+    56	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system set image deploy/ainetops-sonic-provider provider=ainetops-sonic-provider:dev || true
+    57	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system set image deploy/ainetops-srv6-controller srv6-controller=ainetops-srv6-controller:dev || true
+    58	  echo "[provision] waiting for controller pods ready (timeout=${AINETOPS_TIMEOUT})"
+    59	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system rollout status deploy/ainetops-sonic-provider --timeout="${AINETOPS_TIMEOUT}"
+    60	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system rollout status deploy/ainetops-srv6-controller --timeout="${AINETOPS_TIMEOUT}"
+    61	  # Capture independent observation proof
+    62	  mkdir -p "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+    63	  kubectl --context "kind-${AINETOPS_CLUSTER_NAME}" -n ainetops-system get deploy,po,svc -o wide \
+    64	    | nl -ba > "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-ainetops-system.txt"
+    65	fi

@@ -1,0 +1,8 @@
+ainetops-system
+kubenet-system
+kube-system
+kuid-system
+local-path-storage
+monitoring
+sdc-system
+RUNTIME_SCAN_NO_STANDALONE

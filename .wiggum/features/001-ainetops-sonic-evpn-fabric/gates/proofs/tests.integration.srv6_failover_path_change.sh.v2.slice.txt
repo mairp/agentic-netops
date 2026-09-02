@@ -1,0 +1,40 @@
+     1	#!/usr/bin/env bash
+     2	# T047c [US5] Failover and operator-directed path-change tests
+     3	set -euo pipefail
+     4	
+     5	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+     6	TOPO=${TOPO:-$ROOT_DIR/lab/topology.clab.yml}
+     7	SERVICE_NS=${SERVICE_NS:-default}
+     8	SERVICE_NAME=${SERVICE_NAME:-example-srv6}
+     9	LEAF_HEADEND=${LEAF_HEADEND:-172.31.0.21:8080}
+    10	GNMIC_BIN=${GNMIC_BIN:-gnmic}
+    11	GNMI_USER=${GNMI_USER:-admin}
+    12	GNMI_PASS=${GNMI_PASS:-admin}
+    13	GNMI_CACERT=${GNMI_CACERT:-./secrets/ca.crt}
+    14	GNMI_CERT=${GNMI_CERT:-./secrets/gnmi.crt}
+    15	GNMI_KEY=${GNMI_KEY:-./secrets/gnmi.key}
+    16	GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
+    17	_args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --insecure --encoding "$GNMI_ENCODING" --cacert "$GNMI_CACERT" --cert "$GNMI_CERT" --key "$GNMI_KEY")
+    18	PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+    19	mkdir -p "$PROOF_DIR"
+    20	
+    21	# containerlab 0.7x has no `link down/up` subcommand; we drive the interface via
+    22	# docker exec on the spine01 container (clab-ainetops-fabric-spine01).
+    23	FAIL_IF=${FAIL_IF:-eth1}
+    24	SPINE01_CONTAINER=${SPINE01_CONTAINER:-clab-ainetops-fabric-spine01}
+    25	
+    26	fail_link() {
+    27	  echo "[srv6-failover] force primary failure (down ${FAIL_IF} on ${SPINE01_CONTAINER})"
+    28	  docker exec "${SPINE01_CONTAINER}" ip link set "${FAIL_IF}" down || { echo "[srv6-failover] SKIP: cannot reach ${SPINE01_CONTAINER}" >&2; return 0; }
+    29	}
+    30	
+    31	assert_alert() {
+    32	  echo "[srv6-failover] assert the corresponding alert (SRv6PathDown active in Prometheus)"
+    33	  # Alerts are Prometheus state, not a Kubernetes resource: query the Prometheus
+    34	  # HTTP API through a port-forward and look for an active SRv6PathDown alert.
+    35	  local pf_port=19095 pf_pid
+    36	  kubectl --context "${CTX:-kind-ainetops}" -n monitoring port-forward svc/prometheus "${pf_port}":9090 >/dev/null 2>&1 &
+    37	  pf_pid=$!
+    38	  # Wait for the port-forward to come up
+    39	  local i
+    40	  for i in $(seq 1 20); do

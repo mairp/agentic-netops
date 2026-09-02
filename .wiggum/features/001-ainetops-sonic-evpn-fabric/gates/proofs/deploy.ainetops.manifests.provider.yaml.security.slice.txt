@@ -1,63 +1,21 @@
-     1	# AINETOPS SONiC provider placeholder Deployment and Service (T023)
-     2	apiVersion: apps/v1
-     3	kind: Deployment
-     4	metadata:
-     5	  name: ainetops-sonic-provider
-     6	  namespace: ainetops-system
-     7	  labels:
-     8	    app.kubernetes.io/name: ainetops-sonic-provider
-     9	spec:
-    10	  replicas: 1
-    11	  selector:
-    12	    matchLabels:
-    13	      app.kubernetes.io/name: ainetops-sonic-provider
-    14	  template:
-    15	    metadata:
-    16	      labels:
-    17	        app.kubernetes.io/name: ainetops-sonic-provider
-    18	      annotations:
-    19	        prometheus.io/scrape: "true"
-    20	        prometheus.io/port: "8080"
-    21	        prometheus.io/path: "/metrics"
-    22	    spec:
-    23	      serviceAccountName: ainetops-sonic-provider
-    24	      containers:
-    25	      - name: provider
-    26	        image: ghcr.io/ainetops/ainetops-sonic-provider@sha256:9999999999999999999999999999999999999999999999999999999999999999
-    27	        args: ["--metrics-bind=:8080", "--health-probe-bind=:8081"]
-    28	        ports:
-    29	        - name: http
-    30	          containerPort: 8080
-    31	        env:
-    32	        - name: OTEL_SERVICE_NAME
-    33	          value: ainetops-sonic-provider
-    34	        - name: OTEL_EXPORTER_OTLP_ENDPOINT
-    35	          value: http://otel-collector.ainetops-system:4318
-    36	        readinessProbe:
-    37	          httpGet: { path: /readyz, port: 8081 }
-    38	          initialDelaySeconds: 5
-    39	        livenessProbe:
-    40	          httpGet: { path: /healthz, port: 8081 }
-    41	          initialDelaySeconds: 10
-    42	        securityContext:
-    43	          runAsNonRoot: true
-    44	          allowPrivilegeEscalation: false
-    45	          readOnlyRootFilesystem: true
-    46	          capabilities:
-    47	            drop: ["ALL"]
-    48	      # Annotate for Prometheus scrape discovery
-    49	      # Prometheus job 'controllers' selects pods with these annotations
-    50	      # and scrapes the metrics endpoint
-    51	---
-    52	apiVersion: v1
-    53	kind: Service
-    54	metadata:
-    55	  name: ainetops-sonic-provider
-    56	  namespace: ainetops-system
-    57	spec:
-    58	  selector:
-    59	    app.kubernetes.io/name: ainetops-sonic-provider
-    60	  ports:
-    61	  - name: http
-    62	    port: 8080
-    63	    targetPort: 8080
+     1	          value: http://otel-collector.ainetops-system:4318
+     2	        readinessProbe:
+     3	          httpGet: { path: /readyz, port: 8081 }
+     4	          initialDelaySeconds: 5
+     5	        livenessProbe:
+     6	          httpGet: { path: /healthz, port: 8081 }
+     7	          initialDelaySeconds: 10
+     8	        securityContext:
+     9	          runAsNonRoot: true
+    10	          allowPrivilegeEscalation: false
+    11	          readOnlyRootFilesystem: true
+    12	          capabilities:
+    13	            drop: ["ALL"]
+    14	      # Annotate for Prometheus scrape discovery
+    15	      # Prometheus job 'controllers' selects pods with these annotations
+    16	      # and scrapes the metrics endpoint
+    17	---
+    18	apiVersion: v1
+    19	kind: Service
+    20	metadata:
+    21	  name: ainetops-sonic-provider

@@ -1,0 +1,57 @@
+     1	# older topology revisions, (re)adds the shared /24 + /64, then pings across
+     2	# the overlay with retries (remote MAC learning needs a few round trips).
+     3	drive_client_traffic() {
+     4	  echo "[fabric-verify] Driving client traffic across the EVPN overlay (Type-2 source)"
+     5	  local rc=0 c1="${CLAB_PREFIX}client01" c2="${CLAB_PREFIX}client02"
+     6	  for c in "$c1" "$c2"; do
+     7	    if ! docker ps --format '{{.Names}}' | grep -qx "$c"; then
+     8	      echo "[$c] ASSERTION FAILED: EVPN client container missing" >&2
+     9	      return 1
+    10	    fi
+    11	  done
+    12	  # Client image is busybox (no bash — `bash -c` execs fail with "executable
+    13	  # file not found"; observed in every 2026-09-01 cycle log).
+    14	  docker exec "$c1" ip addr del 192.0.2.11/31 dev eth1 2>/dev/null || true
+    15	  docker exec "$c2" ip addr del 192.0.2.21/31 dev eth1 2>/dev/null || true
+    16	  docker exec "$c1" ip -6 addr del 2001:db8:1::11/127 dev eth1 2>/dev/null || true
+    17	  docker exec "$c2" ip -6 addr del 2001:db8:2::21/127 dev eth1 2>/dev/null || true
+    18	  docker exec "$c1" sh -c 'ip -br addr show eth1 | grep -q "192.0.2.11/24" || ip addr add 192.0.2.11/24 dev eth1' || true
+    19	  docker exec "$c2" sh -c 'ip -br addr show eth1 | grep -q "192.0.2.21/24" || ip addr add 192.0.2.21/24 dev eth1' || true
+    20	  # Wait for the EVPN control plane to converge BEFORE pinging: flooding to
+    21	  # the remote VTEP only starts once the IMET (Type-3) from the peer leaf has
+    22	  # arrived. Fresh cycle labs converge ~25-30 min after the gate's netns-
+    23	  # preserving persistence restart (measured 2026-09-01: cycle-2's first
+    24	  # passing ping 29 min after deploy; cycle-3's test at 07:41 still 100%
+    25	  # loss). The wait is therefore bounded at ~10 min and the ping window at
+    26	  # ~4 min; the assertion stays fail-closed.
+    27	  local i wait_ok ok1 ok2
+    28	  local n1="${LEAF_NODES%%,*}" n2="${LEAF_NODES##*,}"
+    29	  wait_ok=0
+    30	  for i in $(seq 1 60); do
+    31	    # Remote VTEPs column ≥ 1 for vni 100 means the peer IMET arrived
+    32	    ok1=0; ok2=0
+    33	    docker exec "$n1" vtysh -c 'show evpn vni' 2>/dev/null | grep -E '^100 .*[1-9][0-9]*\s+default' >/dev/null && ok1=1
+    34	    docker exec "$n2" vtysh -c 'show evpn vni' 2>/dev/null | grep -E '^100 .*[1-9][0-9]*\s+default' >/dev/null && ok2=1
+    35	    if [[ "$ok1" -eq 1 && "$ok2" -eq 1 ]]; then
+    36	      wait_ok=1
+    37	      break
+    38	    fi
+    39	    sleep 10
+    40	  done
+    41	  [[ "$wait_ok" -eq 1 ]] || echo "[client01→client02] WARN: no remote VTEP on vni 100 on both leaves after 600s — ping may fail" >&2
+    42	  local out
+    43	  for i in $(seq 1 24); do
+    44	    out=$(docker exec "$c1" ping -c3 -W2 192.0.2.21 2>&1) || true
+    45	    # Match with a leading space: a bare "0% packet loss" grep also matches
+    46	    # "100% packet loss" (substring), which reported a false pass on a 100%
+    47	    # loss run in cycle-1 (observed 2026-09-01).
+    48	    if grep -q " 0% packet loss" <<<"$out"; then
+    49	      echo "[client01→client02] assertion passed: bridged Vlan100 reachability ($(grep ' 0% packet loss' <<<"$out"))"
+    50	      return 0
+    51	    fi
+    52	    sleep 5
+    53	  done
+    54	  echo "[client01→client02] ASSERTION FAILED: no bridged Vlan100 reachability across the overlay (last: $(grep -E 'packet loss|From' <<<"$out" | tail -1))" >&2
+    55	  return 1
+    56	}
+    57	

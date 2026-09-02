@@ -1,0 +1,32 @@
+     1	    ainetops.dev/spec-version: "v1"
+     2	    ainetops.dev/export: "otlp"
+     3	    ainetops.dev/role: "device-metrics"
+     4	data:
+     5	  gnmic.yaml: |
+     6	      username: ${GNMIC_USERNAME}
+     7	      password: ${GNMIC_PASSWORD}
+     8	      skip-verify: false
+     9	      tls-ca: /etc/gnmic/tls/ca.crt
+    10	      tls-cert: /etc/gnmic/tls/tls.crt
+    11	      tls-key: /etc/gnmic/tls/tls.key
+    12	      encoding: json_ietf
+    13	      targets:
+    14	        spine01: { address: 172.31.0.11:9339 }
+    15	        spine02: { address: 172.31.0.12:9339 }
+    16	        leaf01:  { address: 172.31.0.21:9339 }
+    17	              mountPath: /etc/gnmic/tls
+    18	              readOnly: true
+    19	          env:
+    20	            - name: GNMIC_USERNAME
+    21	              valueFrom:
+    22	                secretKeyRef: { name: gnmi-lab-creds, key: username }
+    23	            - name: GNMIC_PASSWORD
+    24	              valueFrom:
+    25	                secretKeyRef: { name: gnmi-lab-creds, key: password }
+    26	          ports:
+    27	            - name: http
+    28	              containerPort: 9804
+    29	      volumes:
+    30	        - name: config
+    31	          configMap:
+    32	            name: gnmic-config

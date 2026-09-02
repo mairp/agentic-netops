@@ -8,4 +8,4 @@
 === RUN   TestIRB_Golden
 --- PASS: TestIRB_Golden (0.00s)
 PASS
-ok  	github.com/mairp/ainetops/tests/unit	(cached)
+ok  	github.com/mairp/ainetops/tests/unit	0.015s

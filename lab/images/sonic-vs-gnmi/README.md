@@ -2,6 +2,10 @@
 
 `localhost:5000/sonic-vs-gnmi:202605@sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb45d7a68710ba9d64ac27b1870768`
 
+**Currently pinned** (`versions.lock.yaml` `sonic_images.sonic_vs`):
+`localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e`
+(v2 — see "v2 (2026-08-31)" below; the v1 digest is retained as the v2 base)
+
 ## Why this image exists
 
 The lab was pinned to `netreplica/docker-sonic-vs:20220111` (kept as

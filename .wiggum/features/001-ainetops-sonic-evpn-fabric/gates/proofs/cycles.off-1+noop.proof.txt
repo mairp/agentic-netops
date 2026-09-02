@@ -1,0 +1,6 @@
+     1	.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/off-1.log:19:[clab] destroy complete
+     2	.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/off-1.log:20:[kind] deleting cluster 'ainetops'
+     3	.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/off-1.log:23:[off] Teardown complete (idempotent).
+     4	.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/off-1-noop.log:4:[clab] destroy complete
+     5	.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/off-1-noop.log:5:[kind] cluster 'ainetops' not present (idempotent)
+     6	.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles/off-1-noop.log:6:[off] Teardown complete (idempotent).

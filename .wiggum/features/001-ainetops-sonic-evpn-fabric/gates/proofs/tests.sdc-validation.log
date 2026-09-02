@@ -10,4 +10,4 @@
 === RUN   TestRendererPathsCoveredByRegister
 --- PASS: TestRendererPathsCoveredByRegister (0.00s)
 PASS
-ok  	github.com/mairp/ainetops/tests/unit	(cached)
+ok  	github.com/mairp/ainetops/tests/unit	0.004s

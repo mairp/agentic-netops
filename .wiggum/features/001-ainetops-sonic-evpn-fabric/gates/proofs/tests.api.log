@@ -1,6 +1,6 @@
 [run] api: env KUBEBUILDER_ASSETS=/root/.local/share/kubebuilder-envtest/1.29.4-linux-amd64 go test ./tests/envtest -v
 === RUN   TestKubenetNetworkDeviceCreateGet
---- PASS: TestKubenetNetworkDeviceCreateGet (0.00s)
+--- PASS: TestKubenetNetworkDeviceCreateGet (0.01s)
 === RUN   TestCompat_ReasonFor
 === PAUSE TestCompat_ReasonFor
 === RUN   TestProvider_EmitsDeviationObservedEvent
@@ -10,14 +10,14 @@
 === RUN   TestProviderFinalization
 --- PASS: TestProviderFinalization (0.00s)
 === RUN   TestProvider_SDCStatusPropagation
---- PASS: TestProvider_SDCStatusPropagation (0.01s)
+--- PASS: TestProvider_SDCStatusPropagation (0.00s)
 === RUN   TestSRv6ServiceCRD_Envtest
 === PAUSE TestSRv6ServiceCRD_Envtest
 === CONT  TestCompat_ReasonFor
 --- PASS: TestCompat_ReasonFor (0.00s)
-=== CONT  TestProviderFinalization_Envtest
 === CONT  TestSRv6ServiceCRD_Envtest
---- PASS: TestProviderFinalization_Envtest (9.94s)
---- PASS: TestSRv6ServiceCRD_Envtest (10.75s)
+=== CONT  TestProviderFinalization_Envtest
+--- PASS: TestProviderFinalization_Envtest (8.43s)
+--- PASS: TestSRv6ServiceCRD_Envtest (8.80s)
 PASS
-ok  	github.com/mairp/ainetops/tests/envtest	(cached)
+ok  	github.com/mairp/ainetops/tests/envtest	8.874s

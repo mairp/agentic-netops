@@ -1,0 +1,16 @@
+================ tests.summary.txt ================
+PASS api
+PASS unit
+PASS golden
+PASS sdc-validation
+SKIP-LIVE(FABRIC_VERIFY_SKIPPED) integration
+SKIP-LIVE(SKIP-LIVE: failure/recovery suite requires a provisioned lab and Kind ) failure
+SKIP-LIVE(SKIP-LIVE: EVPN traffic suite requires a provisioned lab (clab-ainetop) traffic
+SKIP-LIVE(SKIP-LIVE: SRv6 capture/counter suite requires a provisioned lab (clab) srv6-capture
+SKIP-LIVE(SKIP-LIVE: SRv6 failover/path-change suite requires a provisioned lab ) srv6-failover
+PASS topology-parity
+PASS observability
+PASS teardown
+[run_suites] PASS=7 FAIL=0 SKIP=5
+ALL_SUITES_PASSED
+RUN_SUITES_RC=0

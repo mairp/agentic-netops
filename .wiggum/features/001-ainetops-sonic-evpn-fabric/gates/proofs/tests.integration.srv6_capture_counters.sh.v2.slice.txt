@@ -1,0 +1,45 @@
+     1	#!/usr/bin/env bash
+     2	# T047b [US5] SRv6 capture and counter tests between dedicated clients
+     3	# Capture outer IPv6/SRH with ordered SIDs, verify egress decapsulation into the intended VRF, and assert MySID counter increments
+     4	set -euo pipefail
+     5	
+     6	PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+     7	mkdir -p "$PROOF_DIR"
+     8	
+     9	SRC=${SRC:-clab-ainetops-fabric-srv6-client01}
+    10	DST=${DST:-clab-ainetops-fabric-srv6-client02}
+    11	# Precondition: skip gracefully if clients are absent
+    12	if ! docker ps --format '{{.Names}}' | grep -q "$SRC"; then echo "[srv6-capture] SKIP: $SRC not present"; exit 0; fi
+    13	if ! docker ps --format '{{.Names}}' | grep -q "$DST"; then echo "[srv6-capture] SKIP: $DST not present"; exit 0; fi
+    14	SRC_IP6=${SRC_IP6:-2001:db8:3::31}
+    15	DST_IP6=${DST_IP6:-2001:db8:4::41}
+    16	LEAF_SRC=${LEAF_SRC:-172.31.0.21:8080}
+    17	LEAF_DST=${LEAF_DST:-172.31.0.22:8080}
+    18	VRF_NAME=${VRF_NAME:-vrf-a}
+    19	
+    20	GNMIC_BIN=${GNMIC_BIN:-gnmic}
+    21	GNMI_USER=${GNMI_USER:-admin}
+    22	GNMI_PASS=${GNMI_PASS:-admin}
+    23	GNMI_CACERT=${GNMI_CACERT:-./secrets/ca.crt}
+    24	GNMI_CERT=${GNMI_CERT:-./secrets/gnmi.crt}
+    25	GNMI_KEY=${GNMI_KEY:-./secrets/gnmi.key}
+    26	GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
+    27	
+    28	_args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --encoding "$GNMI_ENCODING" --tls-ca "$GNMI_CACERT" --tls-cert "$GNMI_CERT" --tls-key "$GNMI_KEY")
+    29	
+    30	_capture_file_container=/tmp/srv6.pcap
+    31	_capture_file_host="$PROOF_DIR/srv6_outer_srh.pcap"
+    32	_capture_text_host="$PROOF_DIR/srv6_outer_srh.txt"
+    33	
+    34	start_capture() {
+    35	  echo "[srv6-capture] capture outer IPv6/SRH with ordered SIDs"
+    36	  docker exec -d "$SRC" bash -lc "tcpdump -i eth1 -w $_capture_file_container ip6 and dst ${DST_IP6} and srh"
+    37	}
+    38	
+    39	stop_capture() {
+    40	  echo "[srv6-capture] stopping capture and copying proof"
+    41	  docker exec "$SRC" bash -lc "pkill -f 'tcpdump -i eth1' || true"
+    42	  docker cp "$SRC:$_capture_file_container" "$_capture_file_host" || true
+    43	  if [[ -f "$_capture_file_host" ]]; then
+    44	    # textual summary for proof and inspection
+    45	    tcpdump -nnvv -r "$_capture_file_host" 2>/dev/null | tee "$_capture_text_host" >/dev/null || true

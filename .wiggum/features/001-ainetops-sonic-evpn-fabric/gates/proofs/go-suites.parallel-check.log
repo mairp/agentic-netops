@@ -1,0 +1,8 @@
+=== API suite (envtest) ===
+api rc=0
+=== Unit suite ===
+unit rc=0
+=== Golden suite ===
+golden rc=0
+=== SDC validation suite ===
+sdc-validation rc=0

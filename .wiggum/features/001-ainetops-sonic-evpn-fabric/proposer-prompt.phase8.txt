@@ -113,42 +113,38 @@ router hardware or that every WAN/MPLS feature has an EVPN equivalent. The MVP c
 containerlab fabric and only the mappings listed in this specification. It contains no
 Crosswork, NSO, CNC, proprietary NED, or vendor-specific controller dependency.
 
+### Non-goals — the multi-agent intent tier
+
+This specification covers the **declarative control plane only**: the fabric, its resources,
+and the controllers that reconcile them. It deliberately excludes the subject project's
+**multi-agent intent tier** — the conversational supervisor and its specialist worker agents
+that turn a natural-language service request into structured intent, described in `REVERSE.md`
+§1, §2, and §5.
+
+That exclusion was applied when this feature replaced the vendor-specific use case, but was
+never written down. Recording it here closes that gap. Two points of clarification, since the
+omission has been misread as the tier being overlooked:
+
+- **The reverse-engineering analysis did not miss it.** `REVERSE.md` documents the tier in
+  detail, including its transport, protocol, gateway port, and the division of labour across the
+  four roles.
+- **The exclusion is a scope boundary, not a rejection.** `research.md` Decision 2 rejects only
+  a specific arrangement — an agent holding a device session, with no durable Kubernetes desired
+  state, weaker validation, and unclear field ownership. It does not reject an intent tier that
+  sits *above* the declarative boundary and submits resources through the cluster API like any
+  other client.
+
+The tier is specified separately in [`specs/002-agntcy-intent-tier/spec.md`](../002-agntcy-intent-tier/spec.md),
+which layers on top of this feature and depends on it. That specification adds no requirement to
+this one, changes no resource schema, controller, or reconciliation contract here, and is
+required to leave every gate in this feature passing with the tier removed. Nothing in this
+specification needs to change for it to land.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Translate supported MPLS VPN intent (Priority: P2)
 
 A network engineer supplies normalized L2VPN, VPLS, VPWS, or L3VPN service intent. AINETOPS
-validates it and produces Kubenet `Network` intent for a SONiC EVPN/VXLAN fabric without
-silently discarding semantics.
-
-**Why this priority**: Service translation is the business outcome; however the translation
-controller lands after the MVP (Phase 6), so this story is P2 to align with delivery order.
-
-**Independent Test**: Apply one supported L2 service, one L3 service, and one unsupported
-MPLS-TE service. The supported services produce the expected bridge/VRF/VNI/attachment
-resources. The unsupported service is rejected before any device configuration changes.
-
-**Acceptance Scenarios**:
-
-1. **Given** VPLS or multipoint L2VPN intent, **When** translation succeeds, **Then** the
-   result is an EVPN bridge domain with a unique L2VNI, attachment VLANs, and import/export
-   route targets.
-2. **Given** L3VPN intent, **When** translation succeeds, **Then** the result is a tenant VRF,
-   L3VNI, RD, route targets, leaf attachments, and EVPN Type-5 routing where supported by the
-   qualified SONiC image.
-3. **Given** VPWS/E-Line intent, **When** translation succeeds, **Then** the result is a
-   dedicated two-attachment bridge domain and L2VNI and is explicitly marked as not proving
-   full pseudowire/RFC 8214 feature equivalence.
-4. **Given** RSVP-TE, SR-MPLS policy, pseudowire OAM/control-word, multicast VPN, unsupported
-   QoS, or another unmapped property, **When** it is validated, **Then** the request reports
-   the exact unsupported fields and creates no downstream `Network` or SDC `Config` resource.
-
----
-
-### User Story 2 - Reconcile the fabric declaratively (Priority: P1)
-
-An operator manages topology and services through Kubernetes resources. Kubenet/KUID derive
-the abstract per-device intent and allocations; an AINETOPS SONiC provider renders validated
 … (context truncated at line boundary) …
 
 ## Context: plan (read-only background, NOT a gate) — /root/ainetops-demo/specs/001-ainetops-sonic-evpn-fabric/plan.md

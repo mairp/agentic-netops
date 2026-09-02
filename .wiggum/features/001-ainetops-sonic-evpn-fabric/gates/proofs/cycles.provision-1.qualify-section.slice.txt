@@ -1,0 +1,109 @@
+   543	[qualify] Running Capabilities
+   544	[gnmi-suite] 172.31.0.21:8080: capabilities content asserted (sonic-db, openconfig-system, gNMI version)
+   545	[gnmi-suite] 172.31.0.22:8080: capabilities content asserted (sonic-db, openconfig-system, gNMI version)
+   546	[qualify] Running Get
+   547	[gnmi-suite] 172.31.0.21:8080: Get content asserted (DEVICE_METADATA.localhost present)
+   548	[gnmi-suite] 172.31.0.22:8080: Get content asserted (DEVICE_METADATA.localhost present)
+   549	[qualify] Running Set
+   550	[gnmi-suite] 172.31.0.21:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788229312)
+   551	[gnmi-suite] 172.31.0.22:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788229312)
+   552	[qualify] Running Subscribe
+   553	[gnmi-suite] 172.31.0.21:8080: subscribe content asserted (DEVICE_METADATA delivered)
+   554	[gnmi-suite] 172.31.0.22:8080: subscribe content asserted (DEVICE_METADATA delivered)
+   555	[qualify] Running sonic-srv6
+   556	[gnmi-suite] 172.31.0.21:8080: sonic-srv6 locator read-back asserted (prefix fc00:0:71::)
+   557	[gnmi-suite] 172.31.0.22:8080: sonic-srv6 locator read-back asserted (prefix fc00:0:71::)
+   558	[qualify] Running persistence pre-set (Set)
+   559	[qualify] Running Set
+   560	[gnmi-suite] 172.31.0.21:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788229439)
+   561	[gnmi-suite] 172.31.0.22:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788229439)
+   562	/root/ainetops-demo/scripts/lib/persistence.sh: line 12: v: command not found
+   563	[persist] writing SRv6 witness (persist-loc-1788229490) via GCU on all targets
+   564	[persist] pre-restart read-back over gNMI
+   565	[persist] restarting SONiC containers
+   566	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+   567	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+   568	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+   569	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+   570	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+   571	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+   572	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+   573	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+   574	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+   575	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+   576	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+   577	OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+   578	[persist] waiting for gNMI to come back
+   579	[persist] post-restart read-back over gNMI
+   580	[persist] 172.31.0.21:8080 persistence verified
+   581	[persist] 172.31.0.22:8080 persistence verified
+   582	[persist] cleaning up witness
+   583	[persist] persistence verified
+   584	[qualify] Running EVPN-Type2
+   585	[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+   586	[qualify] Running EVPN-Type3
+   587	[evpn-srv6-suite] clab-ainetops-fabric-leaf02: EVPN-Type3 (inclusive multicast AF) asserted (L2VPN EVPN session Established with 172.31.0.21)
+   588	[qualify] Running EVPN-Type5
+   589	[evpn-srv6-suite] clab-ainetops-fabric-leaf01: EVPN-Type5 (IP prefix AF) asserted (L2VPN EVPN session Established with 172.31.0.22)
+   590	[qualify] Running SRv6-Underlay
+   591	[evpn-srv6-suite] 172.31.0.21:8080: underlay locator asserted (prefix fc00:0:72::)
+   592	[evpn-srv6-suite] 172.31.0.22:8080: underlay locator asserted (prefix fc00:0:72::)
+   593	[qualify] Running H.Encaps.Red
+   594	[evpn-srv6-suite] 172.31.0.21:8080: H.Encaps.Red asserted (seg6 encap.red programmed and read back)
+   595	[evpn-srv6-suite] 172.31.0.22:8080: H.Encaps.Red asserted (seg6 encap.red programmed and read back)
+   596	[qualify] Running End
+   597	[evpn-srv6-suite] 172.31.0.21:8080: End asserted (uN SID present)
+   598	[evpn-srv6-suite] 172.31.0.22:8080: End asserted (uN SID present)
+   599	[qualify] Running End.DT46
+   600	[evpn-srv6-suite] 172.31.0.21:8080: End.DT46 asserted (uDT46 + decap_vrf present)
+   601	[evpn-srv6-suite] 172.31.0.22:8080: End.DT46 asserted (uDT46 + decap_vrf present)
+   602	[qualify] Running SID-list
+   603	[evpn-srv6-suite] 172.31.0.21:8080: SID-list asserted (seg6 encap programmed and read back)
+   604	[evpn-srv6-suite] 172.31.0.22:8080: SID-list asserted (seg6 encap programmed and read back)
+   605	[qualify] Running Decapsulation
+   606	[evpn-srv6-suite] 172.31.0.21:8080: decapsulation asserted (decap_dscp_mode=uniform)
+   607	[evpn-srv6-suite] 172.31.0.22:8080: decapsulation asserted (decap_dscp_mode=uniform)
+   608	[qualify] Running Counters
+   609	[evpn-srv6-suite] 172.31.0.21:8080: counters table asserted (COUNTERS_SRV6_NAME_MAP queryable over gNMI)
+   610	[evpn-srv6-suite] 172.31.0.22:8080: counters table asserted (COUNTERS_SRV6_NAME_MAP queryable over gNMI)
+   611	[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.21:8080
+   612	[yang-path-suite] 172.31.0.21:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+   613	[yang-path] checking openconfig-interfaces (sonic-db:/CONFIG_DB/INTERFACE) on 172.31.0.22:8080
+   614	[yang-path-suite] 172.31.0.22:8080: openconfig-interfaces absent (NotFound) — accepted for empty-by-design table
+   615	[yang-path-suite] openconfig-interfaces asserted on all targets
+   616	[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+   617	[yang-path-suite] 172.31.0.21:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+   618	[yang-path] checking openconfig-network-instance (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+   619	[yang-path-suite] 172.31.0.22:8080: openconfig-network-instance absent (NotFound) — accepted for empty-by-design table
+   620	[yang-path-suite] openconfig-network-instance asserted on all targets
+   621	[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.21:8080
+   622	[yang-path-suite] 172.31.0.21:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+   623	[yang-path] checking openconfig-vlan (sonic-db:/CONFIG_DB/VLAN) on 172.31.0.22:8080
+   624	[yang-path-suite] 172.31.0.22:8080: openconfig-vlan absent (NotFound) — accepted for empty-by-design table
+   625	[yang-path-suite] openconfig-vlan asserted on all targets
+   626	[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.21:8080
+   627	[yang-path-suite] 172.31.0.21:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+   628	[yang-path] checking openconfig-bgp (sonic-db:/CONFIG_DB/BGP_GLOBALS) on 172.31.0.22:8080
+   629	[yang-path-suite] 172.31.0.22:8080: openconfig-bgp absent (NotFound) — accepted for empty-by-design table
+   630	[yang-path-suite] openconfig-bgp asserted on all targets
+   631	[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.21:8080
+   632	[yang-path] checking sonic-telemetry (/TELEMETRY) on 172.31.0.22:8080
+   633	[yang-path-suite] sonic-telemetry asserted on all targets
+   634	[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.21:8080
+   635	[yang-path-suite] 172.31.0.21:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+   636	[yang-path] checking sonic-vrf (sonic-db:/CONFIG_DB/VRF) on 172.31.0.22:8080
+   637	[yang-path-suite] 172.31.0.22:8080: sonic-vrf absent (NotFound) — accepted for empty-by-design table
+   638	[yang-path-suite] sonic-vrf asserted on all targets
+   639	[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.21:8080
+   640	[yang-path-suite] 172.31.0.21:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+   641	[yang-path] checking sonic-tunnel (sonic-db:/CONFIG_DB/TUNNEL) on 172.31.0.22:8080
+   642	[yang-path-suite] 172.31.0.22:8080: sonic-tunnel absent (NotFound) — accepted for empty-by-design table
+   643	[yang-path-suite] sonic-tunnel asserted on all targets
+   644	[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.21:8080
+   645	[yang-path-suite] 172.31.0.21:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+   646	[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.22:8080
+   647	[yang-path-suite] 172.31.0.22:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+   648	[yang-path-suite] sonic-srv6 asserted on all targets
+   649	[qualify] OK
+   650	configmap/ainetops-topology unchanged
+   651	[provision] complete: pins verified, CRDs validated/asserted, Kind ensured/attached, lab deployed, apps installed, seed applied, capability gate executed.

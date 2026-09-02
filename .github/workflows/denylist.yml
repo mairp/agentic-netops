@@ -29,6 +29,9 @@ jobs:
             local matches="$1"
             # Normalize paths and allow citations in research.md and REVERSE.md
             matches=$(printf "%s" "${matches}" | sed -E 's#^\./##' | rg -v 'specs/.+/research\.md:' | rg -v '(^|.*/)REVERSE\.md:' || true)
+            # Exclude other speckit feature spec directories (specs/002-*, specs/10-*, ...)
+            # — owned by their own feature gates; their artifacts document subject systems.
+            matches=$(printf "%s" "${matches}" | rg -v '^specs/00[2-9]-' | rg -v '^specs/[1-9][0-9]-' || true)
             # Exclude enforcement sources to avoid self-reference false positives
             matches=$(printf "%s" "${matches}" | rg -v '^(\.github/workflows/denylist\.yml|scripts/ci/denylist_policy\.sh|scripts/ci/supply_chain\.sh|scripts/ci/denylist_runtime_scan\.sh|tests/integration/cycles_runner\.sh):' || true)
 
@@ -113,6 +116,8 @@ jobs:
             | awk -F: -v s="$ALLOWED_SPECS_SCOPE" -v e="$ALLOWED_SPECS_SCOPE_END" -v s2="$ALLOWED_SC010_START" -v e2="$ALLOWED_SC010_END" '!( $1 ~ /^specs\/001-ainetops-sonic-evpn-fabric\/spec.md$/ && ( ($2>=s && $2<=e) || ($2>=s2 && $2<=e2) ) )' \
             | rg -v '^specs/.+/research\.md:' \
             | rg -v '(^|.*/)REVERSE\.md:' \
+            | rg -v '^specs/00[2-9]-' \
+            | rg -v '^specs/[1-9][0-9]-' \
             | rg -v '^README\.md:.*visualization/presentation reference only' \
             | rg -v '^(\.github/workflows/denylist\.yml|scripts/ci/denylist_policy\.sh|scripts/ci/denylist_runtime_scan\.sh|tests/integration/cycles_runner\.sh):' || true)
           if [[ -n "$SRLTL_VIOLATIONS" ]]; then

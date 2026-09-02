@@ -1,0 +1,126 @@
+### config/rbac/cluster_role_binding.yaml
+     1	apiVersion: rbac.authorization.k8s.io/v1
+     2	kind: ClusterRoleBinding
+     3	metadata:
+     4	  name: ainetops-sonic-provider
+     5	subjects:
+     6	- kind: ServiceAccount
+     7	  name: ainetops-sonic-provider
+     8	  namespace: ainetops-system
+     9	roleRef:
+    10	  apiGroup: rbac.authorization.k8s.io
+    11	  kind: ClusterRole
+    12	  name: ainetops-sonic-provider
+    13	---
+    14	apiVersion: rbac.authorization.k8s.io/v1
+    15	kind: ClusterRoleBinding
+    16	metadata:
+    17	  name: ainetops-srv6-controller
+    18	subjects:
+    19	- kind: ServiceAccount
+    20	  name: ainetops-srv6-controller
+    21	  namespace: ainetops-system
+    22	roleRef:
+    23	  apiGroup: rbac.authorization.k8s.io
+    24	  kind: ClusterRole
+    25	  name: ainetops-srv6-controller
+### config/rbac/cluster_role.yaml
+     1	apiVersion: rbac.authorization.k8s.io/v1
+     2	kind: ClusterRole
+     3	metadata:
+     4	  name: ainetops-sonic-provider
+     5	rules:
+     6	- apiGroups: [""]
+     7	  resources: ["events"]
+     8	  verbs: ["create", "patch"]
+     9	- apiGroups: ["network.kubenet.dev"]
+    10	  resources: ["networkdevices", "networkdevices/status"]
+    11	  verbs: ["get", "list", "watch", "patch", "update"]
+    12	# Provider manages SDC Config specs but must not create/delete SDC Targets.
+    13	- apiGroups: ["sdc.sdcio.dev"]
+    14	  resources: ["configs", "configs/status"]
+    15	  verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+    16	- apiGroups: ["sdc.sdcio.dev"]
+    17	  resources: ["targets", "targets/status"]
+    18	  verbs: ["get", "list", "watch"]
+    19	---
+    20	apiVersion: rbac.authorization.k8s.io/v1
+    21	kind: ClusterRole
+    22	metadata:
+    23	  name: ainetops-srv6-controller
+    24	rules:
+    25	- apiGroups: [""]
+    26	  resources: ["events"]
+    27	  verbs: ["create", "patch"]
+    28	- apiGroups: ["ainetops.io"]
+    29	  resources: ["srv6services", "srv6services/status"]
+    30	  verbs: ["get", "list", "watch", "patch", "update"]
+### config/rbac/role_binding.yaml
+     1	apiVersion: rbac.authorization.k8s.io/v1
+     2	kind: RoleBinding
+     3	metadata:
+     4	  name: ainetops-sonic-provider
+     5	  namespace: ainetops-system
+     6	subjects:
+     7	- kind: ServiceAccount
+     8	  name: ainetops-sonic-provider
+     9	  namespace: ainetops-system
+    10	roleRef:
+    11	  apiGroup: rbac.authorization.k8s.io
+    12	  kind: Role
+    13	  name: ainetops-sonic-provider
+    14	---
+    15	apiVersion: rbac.authorization.k8s.io/v1
+    16	kind: RoleBinding
+    17	metadata:
+    18	  name: ainetops-srv6-controller
+    19	  namespace: ainetops-system
+    20	subjects:
+    21	- kind: ServiceAccount
+    22	  name: ainetops-srv6-controller
+    23	  namespace: ainetops-system
+    24	roleRef:
+    25	  apiGroup: rbac.authorization.k8s.io
+    26	  kind: Role
+    27	  name: ainetops-srv6-controller
+### config/rbac/role.yaml
+     1	apiVersion: rbac.authorization.k8s.io/v1
+     2	kind: Role
+     3	metadata:
+     4	  name: ainetops-sonic-provider
+     5	  namespace: ainetops-system
+     6	rules:
+     7	- apiGroups: [""]
+     8	  resources: ["events"]
+     9	  verbs: ["create", "patch"]
+    10	- apiGroups: ["network.kubenet.dev"]
+    11	  resources: ["networkdevices", "networkdevices/status"]
+    12	  verbs: ["get", "list", "watch", "patch", "update"]
+    13	- apiGroups: ["sdc.sdcio.dev"]
+    14	  resources: ["configs", "configs/status"]
+    15	  verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+    16	---
+    17	apiVersion: rbac.authorization.k8s.io/v1
+    18	kind: Role
+    19	metadata:
+    20	  name: ainetops-srv6-controller
+    21	  namespace: ainetops-system
+    22	rules:
+    23	- apiGroups: [""]
+    24	  resources: ["events"]
+    25	  verbs: ["create", "patch"]
+    26	- apiGroups: ["ainetops.io"]
+    27	  resources: ["srv6services", "srv6services/status"]
+    28	  verbs: ["get", "list", "watch", "patch", "update"]
+### config/rbac/service_account.yaml
+     1	apiVersion: v1
+     2	kind: ServiceAccount
+     3	metadata:
+     4	  name: ainetops-sonic-provider
+     5	  namespace: ainetops-system
+     6	---
+     7	apiVersion: v1
+     8	kind: ServiceAccount
+     9	metadata:
+    10	  name: ainetops-srv6-controller
+    11	  namespace: ainetops-system

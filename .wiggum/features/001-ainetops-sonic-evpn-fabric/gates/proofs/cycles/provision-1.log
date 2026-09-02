@@ -4,22 +4,12 @@ make: Entering directory '/root/ainetops-demo'
 [verify-pins] versions.lock.yaml pins and compatibility are consistent
 [validate-crds] server-side validating CRDs and examples
 [validate-crds] server-side dry-run: Kubenet CRDs (1 files)
-customresourcedefinition.apiextensions.k8s.io/networkconfigs.network.kubenet.dev unchanged (server dry run)
-customresourcedefinition.apiextensions.k8s.io/networkdevices.network.kubenet.dev unchanged (server dry run)
-customresourcedefinition.apiextensions.k8s.io/topologies.network.kubenet.dev unchanged (server dry run)
-customresourcedefinition.apiextensions.k8s.io/networks.network.kubenet.dev unchanged (server dry run)
+[validate-crds] WARN: no reachable cluster context for Kubenet CRDs; skipping server-side dry-run (validated at install apply time)
 [validate-crds] server-side dry-run: KUID CRDs (1 files)
-customresourcedefinition.apiextensions.k8s.io/ipindices.id.kuid.dev unchanged (server dry run)
-customresourcedefinition.apiextensions.k8s.io/asnindices.id.kuid.dev unchanged (server dry run)
-customresourcedefinition.apiextensions.k8s.io/vniindices.id.kuid.dev unchanged (server dry run)
-customresourcedefinition.apiextensions.k8s.io/claims.id.kuid.dev unchanged (server dry run)
+[validate-crds] WARN: no reachable cluster context for KUID CRDs; skipping server-side dry-run (validated at install apply time)
 [validate-crds] server-side dry-run: SDC CRDs (1 files)
-customresourcedefinition.apiextensions.k8s.io/schemas.sdc.sdcio.dev unchanged (server dry run)
-customresourcedefinition.apiextensions.k8s.io/configs.sdc.sdcio.dev unchanged (server dry run)
-customresourcedefinition.apiextensions.k8s.io/targets.sdc.sdcio.dev unchanged (server dry run)
-customresourcedefinition.apiextensions.k8s.io/discoveryrules.sdc.sdcio.dev unchanged (server dry run)
-[validate-crds] server-side dry-run: Kubenet examples (1 files)
-topology.network.kubenet.dev/ainetops-topology unchanged (server dry run)
+[validate-crds] WARN: no reachable cluster context for SDC CRDs; skipping server-side dry-run (validated at install apply time)
+[validate-crds] WARN: Kubenet CRDs not yet installed; skipping example server-side dry-run (validated at install apply time)
 [validate-crds] OK
 [verify-register] checking renderer paths against register
 === RUN   TestRendererPathsCoveredByRegister
@@ -28,63 +18,73 @@ PASS
 ok  	github.com/mairp/ainetops/tests/unit	(cached)
 [verify-compat] pins, CRD, and register validations passed
 make: Leaving directory '/root/ainetops-demo'
-[kind] cluster 'ainetops' already exists (idempotent)
-[kind] ainetops-worker already attached to ainetops-mgmt (idempotent)
-[kind] ainetops-control-plane already attached to ainetops-mgmt (idempotent)
+[kind] creating cluster 'ainetops' using /root/ainetops-demo/config/kind/cluster.yaml
+Creating cluster "ainetops" ...
+ • Ensuring node image (kindest/node) 🖼  ...
+ ✓ Ensuring node image (kindest/node) 🖼
+ • Preparing nodes 📦 📦   ...
+ ✓ Preparing nodes 📦 📦 
+ • Writing configuration 📜  ...
+ ✓ Writing configuration 📜
+ • Starting control-plane 🕹️  ...
+ ✓ Starting control-plane 🕹️
+ • Installing CNI 🔌  ...
+ ✓ Installing CNI 🔌
+ • Installing StorageClass 💾  ...
+ ✓ Installing StorageClass 💾
+ • Joining worker nodes 🚜  ...
+ ✓ Joining worker nodes 🚜
+Set kubectl context to "kind-ainetops"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-ainetops
+
+Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
+[kind] attaching ainetops-control-plane to ainetops-mgmt
+[kind] attaching ainetops-worker to ainetops-mgmt
 [clab] ensuring external Docker network ainetops-mgmt exists (subnet-correct)
 [clab] deploying /root/ainetops-demo/lab/topology.clab.yml
-00:13:18 INFO Containerlab started version=0.79.0
-00:13:18 INFO Parsing & checking topology file=topology.clab.yml
-00:13:18 INFO Destroying lab name=ainetops-fabric
-00:13:19 INFO Removed container name=clab-ainetops-fabric-client01
-00:13:19 INFO Removed container name=clab-ainetops-fabric-srv6-client02
-00:13:19 INFO Removed container name=clab-ainetops-fabric-srv6-client01
-00:13:19 INFO Removed container name=clab-ainetops-fabric-client02
-00:13:19 INFO Removed container name=clab-ainetops-fabric-spine01
-00:13:19 INFO Removed container name=clab-ainetops-fabric-spine02
-00:13:20 INFO Removed container name=clab-ainetops-fabric-leaf01
-00:13:20 INFO Removed container name=clab-ainetops-fabric-leaf02
-00:13:20 INFO Removing host entries path=/etc/hosts
-00:13:20 INFO Removing SSH config path=/etc/ssh/ssh_config.d/clab-ainetops-fabric.conf
-00:13:20 INFO Removing directory path=/root/ainetops-demo/lab/clab-ainetops-fabric
-00:13:20 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
+11:08:24 INFO Containerlab started version=0.79.0
+11:08:24 INFO Parsing & checking topology file=topology.clab.yml
+11:08:24 INFO Removing directory path=/root/ainetops-demo/lab/clab-ainetops-fabric
+11:08:24 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
 
-00:13:20 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
+11:08:24 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
 
-00:13:20 INFO Creating lab directory path=/root/ainetops-demo/lab/clab-ainetops-fabric
-00:13:20 INFO Creating container name=client01
-00:13:20 INFO Creating container name=client02
-00:13:20 INFO Creating container name=spine02
-00:13:20 INFO Creating container name=leaf02
-00:13:20 INFO Creating container name=srv6-client01
-00:13:20 INFO Creating container name=srv6-client02
-00:13:20 INFO Creating container name=leaf01
-00:13:20 INFO Creating container name=spine01
-00:13:21 INFO Created link: spine01:eth1 ▪┄┄▪ leaf01:eth1
-00:13:21 INFO Created link: spine02:eth1 ▪┄┄▪ leaf01:eth2
-00:13:21 INFO Created link: leaf01:eth3 ▪┄┄▪ client01:eth1
-00:13:21 INFO Created link: spine01:eth2 ▪┄┄▪ leaf02:eth1
-00:13:21 INFO Created link: leaf01:eth4 ▪┄┄▪ srv6-client01:eth1
-00:13:21 INFO Created link: spine02:eth2 ▪┄┄▪ leaf02:eth2
-00:13:21 INFO Created link: leaf02:eth3 ▪┄┄▪ client02:eth1
-00:13:21 INFO Created link: leaf02:eth4 ▪┄┄▪ srv6-client02:eth1
-00:13:21 INFO Executed command node=client01 command="ip link set dev eth1 up" stdout=""
-00:13:21 INFO Executed command node=srv6-client02 command="ip link set dev eth1 up" stdout=""
-00:13:21 INFO Executed command node=client01 command="ip addr add 192.0.2.11/31 dev eth1" stdout=""
-00:13:21 INFO Executed command node=srv6-client02 command="ip addr add 192.0.2.41/31 dev eth1" stdout=""
-00:13:21 INFO Executed command node=client02 command="ip link set dev eth1 up" stdout=""
-00:13:21 INFO Executed command node=srv6-client02 command="ip -6 addr add 2001:db8:4::41/127 dev eth1" stdout=""
-00:13:21 INFO Executed command node=srv6-client01 command="ip link set dev eth1 up" stdout=""
-00:13:21 INFO Executed command node=client01 command="ip -6 addr add 2001:db8:1::11/127 dev eth1" stdout=""
-00:13:21 INFO Executed command node=client02 command="ip addr add 192.0.2.21/31 dev eth1" stdout=""
-00:13:21 INFO Executed command node=srv6-client01 command="ip addr add 192.0.2.31/31 dev eth1" stdout=""
-00:13:21 INFO Executed command node=client02 command="ip -6 addr add 2001:db8:2::21/127 dev eth1" stdout=""
-00:13:21 INFO Executed command node=srv6-client01 command="ip -6 addr add 2001:db8:3::31/127 dev eth1" stdout=""
-00:13:21 INFO Adding host entries path=/etc/hosts
-00:13:21 INFO Adding SSH config for nodes path=/etc/ssh/ssh_config.d/clab-ainetops-fabric.conf
-[1m╭[0m[1m────────────────────────────────────[0m[1m┬[0m[1m────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m[1m┬[0m[1m─────────[0m[1m┬[0m[1m────────────────[0m[1m╮[0m
-[1m│[0m[1m                Name                [0m[1m│[0m[1m                                                   Kind/Image                                                   [0m[1m│[0m[1m  State  [0m[1m│[0m[1m IPv4/6 Address [0m[1m│[0m
-[1m├[0m[1m────────────────────────────────────[0m[1m┼[0m[1m────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m[1m┼[0m[1m─────────[0m[1m┼[0m[1m────────────────[0m[1m┤[0m
+11:08:24 INFO Creating lab directory path=/root/ainetops-demo/lab/clab-ainetops-fabric
+11:08:25 INFO Creating container name=client02
+11:08:25 INFO Creating container name=leaf01
+11:08:25 INFO Creating container name=srv6-client02
+11:08:25 INFO Creating container name=srv6-client01
+11:08:25 INFO Creating container name=spine02
+11:08:25 INFO Creating container name=leaf02
+11:08:25 INFO Creating container name=client01
+11:08:25 INFO Creating container name=spine01
+11:08:26 INFO Created link: spine02:eth2 ▪┄┄▪ leaf02:eth2
+11:08:26 INFO Created link: leaf02:eth3 ▪┄┄▪ client02:eth1
+11:08:26 INFO Created link: leaf02:eth4 ▪┄┄▪ srv6-client02:eth1
+11:08:26 INFO Created link: spine02:eth1 ▪┄┄▪ leaf01:eth2
+11:08:26 INFO Created link: spine01:eth1 ▪┄┄▪ leaf01:eth1
+11:08:26 INFO Created link: leaf01:eth3 ▪┄┄▪ client01:eth1
+11:08:26 INFO Created link: spine01:eth2 ▪┄┄▪ leaf02:eth1
+11:08:26 INFO Created link: leaf01:eth4 ▪┄┄▪ srv6-client01:eth1
+11:08:26 INFO Executed command node=srv6-client01 command="ip link set dev eth1 up" stdout=""
+11:08:26 INFO Executed command node=srv6-client02 command="ip link set dev eth1 up" stdout=""
+11:08:26 INFO Executed command node=srv6-client02 command="ip addr add 192.0.2.41/31 dev eth1" stdout=""
+11:08:26 INFO Executed command node=srv6-client01 command="ip addr add 192.0.2.31/31 dev eth1" stdout=""
+11:08:26 INFO Executed command node=client02 command="ip link set dev eth1 up" stdout=""
+11:08:26 INFO Executed command node=client01 command="ip link set dev eth1 up" stdout=""
+11:08:26 INFO Executed command node=srv6-client02 command="ip -6 addr add 2001:db8:4::41/127 dev eth1" stdout=""
+11:08:26 INFO Executed command node=client02 command="ip addr add 192.0.2.21/24 dev eth1" stdout=""
+11:08:26 INFO Executed command node=srv6-client01 command="ip -6 addr add 2001:db8:3::31/127 dev eth1" stdout=""
+11:08:26 INFO Executed command node=client01 command="ip addr add 192.0.2.11/24 dev eth1" stdout=""
+11:08:26 INFO Executed command node=client02 command="ip -6 addr add 2001:db8:9::21/64 dev eth1" stdout=""
+11:08:26 INFO Executed command node=client01 command="ip -6 addr add 2001:db8:9::11/64 dev eth1" stdout=""
+11:08:26 INFO Adding host entries path=/etc/hosts
+11:08:27 INFO Adding SSH config for nodes path=/etc/ssh/ssh_config.d/clab-ainetops-fabric.conf
+╭────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬─────────┬────────────────╮
+│                Name                │                                                   Kind/Image                                                   │  State  │ IPv4/6 Address │
+├────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────┼────────────────┤
 │ clab-ainetops-fabric-client01      │ linux                                                                                                          │ running │ 172.31.0.101   │
 │                                    │ localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f        │         │ N/A            │
 ├────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────┼────────────────┤
@@ -109,7 +109,7 @@ make: Leaving directory '/root/ainetops-demo'
 │ clab-ainetops-fabric-srv6-client02 │ linux                                                                                                          │ running │ 172.31.0.112   │
 │                                    │ localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f       │         │ N/A            │
 ╰────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─────────┴────────────────╯
-00:13:22 INFO Parsing & checking topology file=topology.clab.yml
+11:08:32 INFO Parsing & checking topology file=topology.clab.yml
 {
   "ainetops-fabric": [
     {
@@ -117,11 +117,11 @@ make: Leaving directory '/root/ainetops-demo'
       "labPath": "lab/topology.clab.yml",
       "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
       "name": "clab-ainetops-fabric-client01",
-      "container_id": "7e7bb041af15",
+      "container_id": "af74e75d4484",
       "image": "localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f",
       "kind": "linux",
       "state": "running",
-      "status": "Up 1 second",
+      "status": "Up 6 seconds",
       "ipv4_address": "172.31.0.101/16",
       "ipv6_address": "N/A",
       "owner": "root"
@@ -131,11 +131,11 @@ make: Leaving directory '/root/ainetops-demo'
       "labPath": "lab/topology.clab.yml",
       "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
       "name": "clab-ainetops-fabric-client02",
-      "container_id": "905625fd599f",
+      "container_id": "34bf5fa6759a",
       "image": "localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f",
       "kind": "linux",
       "state": "running",
-      "status": "Up 1 second",
+      "status": "Up 6 seconds",
       "ipv4_address": "172.31.0.102/16",
       "ipv6_address": "N/A",
       "owner": "root"
@@ -145,11 +145,11 @@ make: Leaving directory '/root/ainetops-demo'
       "labPath": "lab/topology.clab.yml",
       "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
       "name": "clab-ainetops-fabric-leaf01",
-      "container_id": "ad52694ecb01",
+      "container_id": "35daf9cbf48d",
       "image": "localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e",
       "kind": "sonic-vs",
       "state": "running",
-      "status": "Up 1 second",
+      "status": "Up 6 seconds",
       "ipv4_address": "172.31.0.21/16",
       "ipv6_address": "N/A",
       "owner": "root"
@@ -159,11 +159,11 @@ make: Leaving directory '/root/ainetops-demo'
       "labPath": "lab/topology.clab.yml",
       "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
       "name": "clab-ainetops-fabric-leaf02",
-      "container_id": "84a7ce93ec21",
+      "container_id": "d973b9aa8c85",
       "image": "localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e",
       "kind": "sonic-vs",
       "state": "running",
-      "status": "Up Less than a second",
+      "status": "Up 6 seconds",
       "ipv4_address": "172.31.0.22/16",
       "ipv6_address": "N/A",
       "owner": "root"
@@ -173,11 +173,11 @@ make: Leaving directory '/root/ainetops-demo'
       "labPath": "lab/topology.clab.yml",
       "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
       "name": "clab-ainetops-fabric-spine01",
-      "container_id": "8190f03d85b4",
+      "container_id": "7ff550d916de",
       "image": "localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e",
       "kind": "sonic-vs",
       "state": "running",
-      "status": "Up Less than a second",
+      "status": "Up 6 seconds",
       "ipv4_address": "172.31.0.11/16",
       "ipv6_address": "N/A",
       "owner": "root"
@@ -187,11 +187,11 @@ make: Leaving directory '/root/ainetops-demo'
       "labPath": "lab/topology.clab.yml",
       "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
       "name": "clab-ainetops-fabric-spine02",
-      "container_id": "220cda1594c3",
+      "container_id": "b5d832ba8850",
       "image": "localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e",
       "kind": "sonic-vs",
       "state": "running",
-      "status": "Up 1 second",
+      "status": "Up 6 seconds",
       "ipv4_address": "172.31.0.12/16",
       "ipv6_address": "N/A",
       "owner": "root"
@@ -201,11 +201,11 @@ make: Leaving directory '/root/ainetops-demo'
       "labPath": "lab/topology.clab.yml",
       "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
       "name": "clab-ainetops-fabric-srv6-client01",
-      "container_id": "06e81fa30815",
+      "container_id": "c1d9da824e59",
       "image": "localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f",
       "kind": "linux",
       "state": "running",
-      "status": "Up 1 second",
+      "status": "Up 6 seconds",
       "ipv4_address": "172.31.0.111/16",
       "ipv6_address": "N/A",
       "owner": "root"
@@ -215,58 +215,55 @@ make: Leaving directory '/root/ainetops-demo'
       "labPath": "lab/topology.clab.yml",
       "absLabPath": "/root/ainetops-demo/lab/topology.clab.yml",
       "name": "clab-ainetops-fabric-srv6-client02",
-      "container_id": "b4ae586ce3e1",
+      "container_id": "3b9c2162e08a",
       "image": "localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f",
       "kind": "linux",
       "state": "running",
-      "status": "Up 1 second",
+      "status": "Up 6 seconds",
       "ipv4_address": "172.31.0.112/16",
       "ipv6_address": "N/A",
       "owner": "root"
     }
   ]
 }
-namespace/ainetops-system configured
-serviceaccount/ainetops-controller unchanged
-role.rbac.authorization.k8s.io/ainetops-controller unchanged
-rolebinding.rbac.authorization.k8s.io/ainetops-controller unchanged
-networkpolicy.networking.k8s.io/deny-all-by-default unchanged
-secret/gnmi-lab-ca configured
-serviceaccount/ainetops-srv6-controller unchanged
+namespace/ainetops-system created
+serviceaccount/ainetops-controller created
+role.rbac.authorization.k8s.io/ainetops-controller created
+rolebinding.rbac.authorization.k8s.io/ainetops-controller created
+networkpolicy.networking.k8s.io/deny-all-by-default created
+secret/gnmi-lab-ca created
+serviceaccount/ainetops-srv6-controller created
+serviceaccount/ainetops-sonic-provider created
 serviceaccount/ainetops-sonic-provider unchanged
-serviceaccount/ainetops-sonic-provider unchanged
 serviceaccount/ainetops-srv6-controller unchanged
-clusterrole.rbac.authorization.k8s.io/ainetops-sonic-provider unchanged
-clusterrole.rbac.authorization.k8s.io/ainetops-srv6-controller unchanged
-clusterrolebinding.rbac.authorization.k8s.io/ainetops-sonic-provider unchanged
-clusterrolebinding.rbac.authorization.k8s.io/ainetops-srv6-controller unchanged
-clusterrole.rbac.authorization.k8s.io/ainetops-srv6-controller-crd unchanged
-clusterrolebinding.rbac.authorization.k8s.io/ainetops-srv6-controller-crd unchanged
-secret/gnmi-lab-creds configured
-secret/gnmi-lab-tls configured
+clusterrole.rbac.authorization.k8s.io/ainetops-sonic-provider created
+clusterrole.rbac.authorization.k8s.io/ainetops-srv6-controller created
+clusterrolebinding.rbac.authorization.k8s.io/ainetops-sonic-provider created
+clusterrolebinding.rbac.authorization.k8s.io/ainetops-srv6-controller created
+clusterrole.rbac.authorization.k8s.io/ainetops-srv6-controller-crd created
+clusterrolebinding.rbac.authorization.k8s.io/ainetops-srv6-controller-crd created
+secret/gnmi-lab-creds created
+secret/gnmi-lab-tls created
 Image: "kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8" with ID "sha256:1c9ff0e74d3140a4fe4070fb82b8b60a34aee3a3a04a0a057bb7a37167120fb7" not yet present on node "ainetops-control-plane", loading...
-job.batch/ainetops-secret-generator unchanged
-job.batch/ainetops-secret-generator condition met
-[rbac] secret gnmi-lab-creds key username missing; rerunning generator job
-job.batch "ainetops-secret-generator" deleted
+Image: "kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8" with ID "sha256:1c9ff0e74d3140a4fe4070fb82b8b60a34aee3a3a04a0a057bb7a37167120fb7" not yet present on node "ainetops-worker", loading...
 job.batch/ainetops-secret-generator created
 job.batch/ainetops-secret-generator condition met
 [rbac] base namespaces/RBAC/network policies, controller RBAC, and lab Secrets applied
 [kubenet-install] WARN: pinned upstream CRD URLs unreachable; applying repo-pinned CRD bundles (deploy/kubenet/crds, deploy/kuid/crds)
-customresourcedefinition.apiextensions.k8s.io/networkconfigs.network.kubenet.dev unchanged
-customresourcedefinition.apiextensions.k8s.io/networkdevices.network.kubenet.dev unchanged
-customresourcedefinition.apiextensions.k8s.io/topologies.network.kubenet.dev unchanged
-customresourcedefinition.apiextensions.k8s.io/networks.network.kubenet.dev unchanged
-customresourcedefinition.apiextensions.k8s.io/ipindices.id.kuid.dev unchanged
-customresourcedefinition.apiextensions.k8s.io/asnindices.id.kuid.dev unchanged
-customresourcedefinition.apiextensions.k8s.io/vniindices.id.kuid.dev unchanged
-customresourcedefinition.apiextensions.k8s.io/claims.id.kuid.dev unchanged
-namespace/kubenet-system unchanged
-deployment.apps/kubenet-controller unchanged
-serviceaccount/kubenet-controller unchanged
-namespace/kuid-system unchanged
-deployment.apps/kuid-controller unchanged
-serviceaccount/kuid-controller unchanged
+customresourcedefinition.apiextensions.k8s.io/networkconfigs.network.kubenet.dev created
+customresourcedefinition.apiextensions.k8s.io/networkdevices.network.kubenet.dev created
+customresourcedefinition.apiextensions.k8s.io/topologies.network.kubenet.dev created
+customresourcedefinition.apiextensions.k8s.io/networks.network.kubenet.dev created
+customresourcedefinition.apiextensions.k8s.io/ipindices.id.kuid.dev created
+customresourcedefinition.apiextensions.k8s.io/asnindices.id.kuid.dev created
+customresourcedefinition.apiextensions.k8s.io/vniindices.id.kuid.dev created
+customresourcedefinition.apiextensions.k8s.io/claims.id.kuid.dev created
+namespace/kubenet-system created
+deployment.apps/kubenet-controller created
+serviceaccount/kubenet-controller created
+namespace/kuid-system created
+deployment.apps/kuid-controller created
+serviceaccount/kuid-controller created
 customresourcedefinition.apiextensions.k8s.io/networkconfigs.network.kubenet.dev condition met
 customresourcedefinition.apiextensions.k8s.io/networks.network.kubenet.dev condition met
 customresourcedefinition.apiextensions.k8s.io/networkdevices.network.kubenet.dev condition met
@@ -277,17 +274,17 @@ customresourcedefinition.apiextensions.k8s.io/vniindices.id.kuid.dev condition m
 customresourcedefinition.apiextensions.k8s.io/claims.id.kuid.dev condition met
 [kubenet-install] CRDs applied; controller pods not Ready within window (kubenet=false kuid=false); continuing best-effort
 [sdc-install] WARN: pinned upstream CRD URLs unreachable; applying repo-pinned CRD bundle (deploy/sdc/crds)
-customresourcedefinition.apiextensions.k8s.io/schemas.sdc.sdcio.dev unchanged
-customresourcedefinition.apiextensions.k8s.io/configs.sdc.sdcio.dev unchanged
-customresourcedefinition.apiextensions.k8s.io/targets.sdc.sdcio.dev unchanged
-customresourcedefinition.apiextensions.k8s.io/discoveryrules.sdc.sdcio.dev unchanged
-namespace/sdc-system unchanged
-deployment.apps/sdc-schema unchanged
-deployment.apps/sdc-config unchanged
-deployment.apps/sdc-data unchanged
-deployment.apps/sdc-cache unchanged
-persistentvolumeclaim/sdc-data unchanged
-persistentvolumeclaim/sdc-cache unchanged
+customresourcedefinition.apiextensions.k8s.io/schemas.sdc.sdcio.dev created
+customresourcedefinition.apiextensions.k8s.io/configs.sdc.sdcio.dev created
+customresourcedefinition.apiextensions.k8s.io/targets.sdc.sdcio.dev created
+customresourcedefinition.apiextensions.k8s.io/discoveryrules.sdc.sdcio.dev created
+namespace/sdc-system created
+deployment.apps/sdc-schema created
+deployment.apps/sdc-config created
+deployment.apps/sdc-data created
+deployment.apps/sdc-cache created
+persistentvolumeclaim/sdc-data created
+persistentvolumeclaim/sdc-cache created
 customresourcedefinition.apiextensions.k8s.io/schemas.sdc.sdcio.dev condition met
 customresourcedefinition.apiextensions.k8s.io/configs.sdc.sdcio.dev condition met
 customresourcedefinition.apiextensions.k8s.io/targets.sdc.sdcio.dev condition met
@@ -301,92 +298,100 @@ customresourcedefinition.apiextensions.k8s.io/targets.sdc.sdcio.dev condition me
 [provision] WARN: pinned image not in local cache: ghcr.io/ainetops/topology-generator@sha256:9a0b2b0d57a4c2b2b5c78a7d34c8a0c1f9a3b7d6e2c4e5f6a7b8c9d0e1f2a3b4
 [obs] applying OTel Collector, gNMIc, Prometheus, Grafana
 namespace/ainetops-system configured
-serviceaccount/otel-collector unchanged
-clusterrole.rbac.authorization.k8s.io/otel-collector unchanged
-clusterrolebinding.rbac.authorization.k8s.io/otel-collector unchanged
-configmap/otel-collector-config unchanged
-deployment.apps/otel-collector unchanged
-service/otel-collector unchanged
+serviceaccount/otel-collector created
+clusterrole.rbac.authorization.k8s.io/otel-collector created
+clusterrolebinding.rbac.authorization.k8s.io/otel-collector created
+configmap/otel-collector-config created
+deployment.apps/otel-collector created
+service/otel-collector created
 namespace/ainetops-system unchanged
-serviceaccount/gnmic unchanged
-configmap/gnmic-config unchanged
-deployment.apps/gnmic unchanged
-namespace/monitoring unchanged
-persistentvolumeclaim/prometheus unchanged
-configmap/prometheus-config unchanged
-configmap/prometheus-rules unchanged
-deployment.apps/prometheus unchanged
-service/prometheus unchanged
-configmap/ainetops-topology unchanged
+serviceaccount/gnmic created
+configmap/gnmic-config created
+deployment.apps/gnmic created
+namespace/monitoring created
+persistentvolumeclaim/prometheus created
+configmap/prometheus-config created
+configmap/prometheus-rules created
+deployment.apps/prometheus created
+service/prometheus created
+configmap/ainetops-topology created
 error: resource mapping not found for name: "ainetops-alerts" namespace: "monitoring" from "/root/ainetops-demo/deploy/observability/rules/ainetops.rules.yaml": no matches for kind "PrometheusRule" in version "monitoring.coreos.com/v1"
 ensure CRDs are installed first
-serviceaccount/grafana-secret-generator unchanged
-role.rbac.authorization.k8s.io/grafana-secret-writer unchanged
-rolebinding.rbac.authorization.k8s.io/grafana-secret-writer-binding unchanged
-job.batch/grafana-admin-secret-generator unchanged
+serviceaccount/grafana-secret-generator created
+role.rbac.authorization.k8s.io/grafana-secret-writer created
+rolebinding.rbac.authorization.k8s.io/grafana-secret-writer-binding created
+job.batch/grafana-admin-secret-generator created
 job.batch/grafana-admin-secret-generator condition met
 namespace/monitoring unchanged
-persistentvolumeclaim/grafana unchanged
-configmap/grafana-provisioning unchanged
-configmap/grafana-dashboards unchanged
-deployment.apps/grafana unchanged
-service/grafana unchanged
+persistentvolumeclaim/grafana created
+configmap/grafana-provisioning created
+configmap/grafana-dashboards created
+deployment.apps/grafana created
+service/grafana created
 deployment "otel-collector" successfully rolled out
 deployment "gnmic" successfully rolled out
+Waiting for deployment "prometheus" rollout to finish: 0 of 1 updated replicas are available...
 deployment "prometheus" successfully rolled out
+Waiting for deployment "grafana" rollout to finish: 0 of 1 updated replicas are available...
 deployment "grafana" successfully rolled out
 [provision] building controller binaries (pinned vendored Go source)
-sha256:5b2c61c771560e0a6a3b80d6204332319bcc801cdedc2140ca00c3d36ea14d65
-sha256:3e84be0e41b2d7ba325d98fc3d59e0052e1738a474bc0140d952b0c022819ebd
+sha256:5bf95724b2874d049a3393947fc3587e0ef5ffa1aecefd3418d9e897af4a6dde
+sha256:336f2f582eebcb1366a19006b0c527e48059b2a086ecfa4c6ccd409bd76c215d
 [provision] loading images into Kind
-Image: "ainetops-sonic-provider:dev" with ID "sha256:5b2c61c771560e0a6a3b80d6204332319bcc801cdedc2140ca00c3d36ea14d65" not yet present on node "ainetops-worker", loading...
-Image: "ainetops-sonic-provider:dev" with ID "sha256:5b2c61c771560e0a6a3b80d6204332319bcc801cdedc2140ca00c3d36ea14d65" not yet present on node "ainetops-control-plane", loading...
-Image: "ainetops-srv6-controller:dev" with ID "sha256:3e84be0e41b2d7ba325d98fc3d59e0052e1738a474bc0140d952b0c022819ebd" not yet present on node "ainetops-worker", loading...
-Image: "ainetops-srv6-controller:dev" with ID "sha256:3e84be0e41b2d7ba325d98fc3d59e0052e1738a474bc0140d952b0c022819ebd" not yet present on node "ainetops-control-plane", loading...
+Image: "ainetops-sonic-provider:dev" with ID "sha256:5bf95724b2874d049a3393947fc3587e0ef5ffa1aecefd3418d9e897af4a6dde" not yet present on node "ainetops-control-plane", loading...
+Image: "ainetops-sonic-provider:dev" with ID "sha256:5bf95724b2874d049a3393947fc3587e0ef5ffa1aecefd3418d9e897af4a6dde" not yet present on node "ainetops-worker", loading...
+Image: "ainetops-srv6-controller:dev" with ID "sha256:336f2f582eebcb1366a19006b0c527e48059b2a086ecfa4c6ccd409bd76c215d" not yet present on node "ainetops-control-plane", loading...
+Image: "ainetops-srv6-controller:dev" with ID "sha256:336f2f582eebcb1366a19006b0c527e48059b2a086ecfa4c6ccd409bd76c215d" not yet present on node "ainetops-worker", loading...
 [provision] deploying controllers
-deployment.apps/ainetops-sonic-provider configured
-service/ainetops-sonic-provider unchanged
-deployment.apps/ainetops-srv6-controller configured
-service/ainetops-srv6-controller unchanged
+deployment.apps/ainetops-sonic-provider created
+service/ainetops-sonic-provider created
+deployment.apps/ainetops-srv6-controller created
+service/ainetops-srv6-controller created
 deployment.apps/ainetops-sonic-provider image updated
 deployment.apps/ainetops-srv6-controller image updated
 [provision] waiting for controller pods ready (timeout=120s)
+Waiting for deployment "ainetops-sonic-provider" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "ainetops-sonic-provider" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "ainetops-sonic-provider" rollout to finish: 1 old replicas are pending termination...
 deployment "ainetops-sonic-provider" successfully rolled out
+Waiting for deployment "ainetops-srv6-controller" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "ainetops-srv6-controller" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "ainetops-srv6-controller" rollout to finish: 1 old replicas are pending termination...
 deployment "ainetops-srv6-controller" successfully rolled out
 [provision] applying SRv6Service CRD and Kubenet default/tenant networks
-customresourcedefinition.apiextensions.k8s.io/srv6services.ainetops.io unchanged
+customresourcedefinition.apiextensions.k8s.io/srv6services.ainetops.io created
 [assert-crds] OK: AINETOPS-owned CRDs = srv6services.ainetops.io and no duplicate/conflicting fabric/device-config CRDs detected
-topology.network.kubenet.dev/ainetops-topology unchanged
-networkconfig.network.kubenet.dev/ainetops-default unchanged
-ipindex.id.kuid.dev/underlay-v6 unchanged
-asnindex.id.kuid.dev/fabric-asn unchanged
-vniindex.id.kuid.dev/evpn-vni unchanged
-claim.id.kuid.dev/underlay-v6-claim unchanged
-claim.id.kuid.dev/fabric-asn-claim unchanged
-claim.id.kuid.dev/evpn-vni-claim unchanged
-ipindex.id.kuid.dev/srv6-locator-v6 unchanged
-claim.id.kuid.dev/srv6-locator-claim unchanged
-ipindex.id.kuid.dev/srv6-sids-v6 unchanged
-claim.id.kuid.dev/srv6-sid-claim unchanged
-vniindex.id.kuid.dev/srv6-service-ids unchanged
-claim.id.kuid.dev/srv6-service-id-claim unchanged
-network.network.kubenet.dev/default-fabric unchanged
-network.network.kubenet.dev/tenant-a-l2-bridged unchanged
-network.network.kubenet.dev/tenant-a-l3-routed unchanged
-network.network.kubenet.dev/tenant-b-irb unchanged
-srv6service.ainetops.io/example-srv6 unchanged
+topology.network.kubenet.dev/ainetops-topology created
+networkconfig.network.kubenet.dev/ainetops-default created
+ipindex.id.kuid.dev/underlay-v6 created
+asnindex.id.kuid.dev/fabric-asn created
+vniindex.id.kuid.dev/evpn-vni created
+claim.id.kuid.dev/underlay-v6-claim created
+claim.id.kuid.dev/fabric-asn-claim created
+claim.id.kuid.dev/evpn-vni-claim created
+ipindex.id.kuid.dev/srv6-locator-v6 created
+claim.id.kuid.dev/srv6-locator-claim created
+ipindex.id.kuid.dev/srv6-sids-v6 created
+claim.id.kuid.dev/srv6-sid-claim created
+vniindex.id.kuid.dev/srv6-service-ids created
+claim.id.kuid.dev/srv6-service-id-claim created
+network.network.kubenet.dev/default-fabric created
+network.network.kubenet.dev/tenant-a-l2-bridged created
+network.network.kubenet.dev/tenant-a-l3-routed created
+network.network.kubenet.dev/tenant-b-irb created
+srv6service.ainetops.io/example-srv6 created
 error: timed out waiting for the condition on srv6services/example-srv6
-schema.sdc.sdcio.dev/sonic-oc unchanged
-config.sdc.sdcio.dev/sonic-conn-profile unchanged
-config.sdc.sdcio.dev/sonic-sync-profile unchanged
-discoveryrule.sdc.sdcio.dev/sonic-management unchanged
+schema.sdc.sdcio.dev/sonic-oc created
+config.sdc.sdcio.dev/sonic-conn-profile created
+config.sdc.sdcio.dev/sonic-sync-profile created
+discoveryrule.sdc.sdcio.dev/sonic-management created
 [clab] bootstrap: spine01
 [bootstrap] starting minimal SONiC bootstrap for gNMI
 [install-gnmi-certs] installed certs to /etc/sonic/telemetry
 [bootstrap] merged gNMI telemetry settings into /etc/sonic/config_db.json
 True
 [bootstrap] reloaded CONFIG_DB
-[bootstrap] created gNMI linux user 8acf4065
+[bootstrap] created gNMI linux user 5bd9643c
 [bootstrap] set gNMI user password
 [bootstrap] started sshd for gNMI password auth
 telemetry: stopped
@@ -400,7 +405,7 @@ telemetry: started
 [bootstrap] merged gNMI telemetry settings into /etc/sonic/config_db.json
 True
 [bootstrap] reloaded CONFIG_DB
-[bootstrap] created gNMI linux user 8acf4065
+[bootstrap] created gNMI linux user 5bd9643c
 [bootstrap] set gNMI user password
 [bootstrap] started sshd for gNMI password auth
 telemetry: stopped
@@ -414,7 +419,7 @@ telemetry: started
 [bootstrap] merged gNMI telemetry settings into /etc/sonic/config_db.json
 True
 [bootstrap] reloaded CONFIG_DB
-[bootstrap] created gNMI linux user 8acf4065
+[bootstrap] created gNMI linux user 5bd9643c
 [bootstrap] set gNMI user password
 [bootstrap] started sshd for gNMI password auth
 telemetry: stopped
@@ -428,7 +433,7 @@ telemetry: started
 [bootstrap] merged gNMI telemetry settings into /etc/sonic/config_db.json
 True
 [bootstrap] reloaded CONFIG_DB
-[bootstrap] created gNMI linux user 8acf4065
+[bootstrap] created gNMI linux user 5bd9643c
 [bootstrap] set gNMI user password
 [bootstrap] started sshd for gNMI password auth
 telemetry: stopped
@@ -436,6 +441,116 @@ telemetry: started
 [bootstrap] gNMI port 8080 is listening
 [bootstrap] completed
 [clab] bootstrap: leaf02 done
+[clab] bootstrap: configuring underlay BGP + EVPN across the fabric
+[fabric-bgp] spine01 (spine, AS65000): starting daemons
+Patch Applier: localhost: Patch application starting.
+Patch Applier: localhost: Patch: [{"op": "add", "path": "/LOOPBACK_INTERFACE", "value": {"Loopback0": {}, "Loopback0|10.0.0.11/32": {}, "Loopback0|2001:db8:ff::11/128": {}}}, {"op": "add", "path": "/BGP_NEIGHBOR", "value": {"10.1.0.1": {"asn": "65101", "local_addr": "10.1.0.0", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}, "2001:db8:1::2": {"asn": "65101", "local_addr": "2001:db8:1::3", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}, "10.1.0.3": {"asn": "65102", "local_addr": "10.1.0.2", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}, "2001:db8:1::4": {"asn": "65102", "local_addr": "2001:db8:1::5", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}}]
+Patch Applier: localhost getting current config db.
+Patch Applier: localhost: simulating the target full config after applying the patch.
+Patch Applier: localhost: validating all JsonPatch operations are permitted on the specified fields
+Patch Applier: localhost: validating target config does not have empty tables,
+                            since they do not show up in ConfigDb.
+Patch Applier: localhost: sorting patch updates.
+Patch Applier: The localhost patch was converted into 4 changes:
+Patch Applier: localhost: applying 4 changes in order:
+Patch Applier:   * [{"op": "add", "path": "/LOOPBACK_INTERFACE", "value": {"Loopback0": {}}}]
+Patch Applier:   * [{"op": "add", "path": "/LOOPBACK_INTERFACE/Loopback0|10.0.0.11~132", "value": {}}, {"op": "add", "path": "/LOOPBACK_INTERFACE/Loopback0|2001:db8:ff::11~1128", "value": {}}]
+Patch Applier:   * [{"op": "add", "path": "/BGP_NEIGHBOR", "value": {"10.1.0.1": {"asn": "65101", "local_addr": "10.1.0.0", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}}]
+Patch Applier:   * [{"op": "add", "path": "/BGP_NEIGHBOR/2001:db8:1::2", "value": {"asn": "65101", "local_addr": "2001:db8:1::3", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}, {"op": "add", "path": "/BGP_NEIGHBOR/10.1.0.3", "value": {"asn": "65102", "local_addr": "10.1.0.2", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}, {"op": "add", "path": "/BGP_NEIGHBOR/2001:db8:1::4", "value": {"asn": "65102", "local_addr": "2001:db8:1::5", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}]
+Patch Applier: localhost: verifying patch updates are reflected on ConfigDB.
+Patch Applier: localhost patch application completed.
+[fabric-bgp] CONFIG_DB intent applied
+[fabric-bgp] spine01: boot hook installed (role=spine)
+[fabric-bgp] spine02 (spine, AS65000): starting daemons
+[fabric-bgp] CONFIG_DB intent applied
+Patch Applier: localhost: Patch application starting.
+Patch Applier: localhost: Patch: [{"op": "add", "path": "/LOOPBACK_INTERFACE", "value": {"Loopback0": {}, "Loopback0|10.0.0.12/32": {}, "Loopback0|2001:db8:ff::12/128": {}}}, {"op": "add", "path": "/BGP_NEIGHBOR", "value": {"10.1.0.5": {"asn": "65101", "local_addr": "10.1.0.4", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}, "2001:db8:2::2": {"asn": "65101", "local_addr": "2001:db8:2::3", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}, "10.1.0.7": {"asn": "65102", "local_addr": "10.1.0.6", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}, "2001:db8:2::4": {"asn": "65102", "local_addr": "2001:db8:2::5", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}}]
+Patch Applier: localhost getting current config db.
+Patch Applier: localhost: simulating the target full config after applying the patch.
+Patch Applier: localhost: validating all JsonPatch operations are permitted on the specified fields
+Patch Applier: localhost: validating target config does not have empty tables,
+                            since they do not show up in ConfigDb.
+Patch Applier: localhost: sorting patch updates.
+Patch Applier: The localhost patch was converted into 4 changes:
+Patch Applier: localhost: applying 4 changes in order:
+Patch Applier:   * [{"op": "add", "path": "/LOOPBACK_INTERFACE", "value": {"Loopback0": {}}}]
+Patch Applier:   * [{"op": "add", "path": "/LOOPBACK_INTERFACE/Loopback0|10.0.0.12~132", "value": {}}, {"op": "add", "path": "/LOOPBACK_INTERFACE/Loopback0|2001:db8:ff::12~1128", "value": {}}]
+Patch Applier:   * [{"op": "add", "path": "/BGP_NEIGHBOR", "value": {"10.1.0.5": {"asn": "65101", "local_addr": "10.1.0.4", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}}]
+Patch Applier:   * [{"op": "add", "path": "/BGP_NEIGHBOR/2001:db8:2::2", "value": {"asn": "65101", "local_addr": "2001:db8:2::3", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}, {"op": "add", "path": "/BGP_NEIGHBOR/10.1.0.7", "value": {"asn": "65102", "local_addr": "10.1.0.6", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}, {"op": "add", "path": "/BGP_NEIGHBOR/2001:db8:2::4", "value": {"asn": "65102", "local_addr": "2001:db8:2::5", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}]
+Patch Applier: localhost: verifying patch updates are reflected on ConfigDB.
+Patch Applier: localhost patch application completed.
+[fabric-bgp] spine02: boot hook installed (role=spine)
+[fabric-bgp] leaf01 (leaf, AS65101): starting daemons
+[fabric-bgp] CONFIG_DB intent applied
+Patch Applier: localhost: Patch application starting.
+Patch Applier: localhost: Patch: [{"op": "add", "path": "/LOOPBACK_INTERFACE", "value": {"Loopback0": {}, "Loopback0|10.0.0.21/32": {}, "Loopback0|2001:db8:ff::21/128": {}}}, {"op": "add", "path": "/BGP_NEIGHBOR", "value": {"10.1.0.0": {"asn": "65000", "local_addr": "10.1.0.1", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}, "2001:db8:1::3": {"asn": "65000", "local_addr": "2001:db8:1::2", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}, "10.1.0.4": {"asn": "65000", "local_addr": "10.1.0.5", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}, "2001:db8:2::3": {"asn": "65000", "local_addr": "2001:db8:2::2", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}}]
+Patch Applier: localhost getting current config db.
+Patch Applier: localhost: simulating the target full config after applying the patch.
+Patch Applier: localhost: validating all JsonPatch operations are permitted on the specified fields
+Patch Applier: localhost: validating target config does not have empty tables,
+                            since they do not show up in ConfigDb.
+Patch Applier: localhost: sorting patch updates.
+Patch Applier: The localhost patch was converted into 4 changes:
+Patch Applier: localhost: applying 4 changes in order:
+Patch Applier:   * [{"op": "add", "path": "/LOOPBACK_INTERFACE", "value": {"Loopback0": {}}}]
+Patch Applier:   * [{"op": "add", "path": "/LOOPBACK_INTERFACE/Loopback0|10.0.0.21~132", "value": {}}, {"op": "add", "path": "/LOOPBACK_INTERFACE/Loopback0|2001:db8:ff::21~1128", "value": {}}]
+Patch Applier:   * [{"op": "add", "path": "/BGP_NEIGHBOR", "value": {"10.1.0.0": {"asn": "65000", "local_addr": "10.1.0.1", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}}]
+Patch Applier:   * [{"op": "add", "path": "/BGP_NEIGHBOR/2001:db8:1::3", "value": {"asn": "65000", "local_addr": "2001:db8:1::2", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}, {"op": "add", "path": "/BGP_NEIGHBOR/10.1.0.4", "value": {"asn": "65000", "local_addr": "10.1.0.5", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}, {"op": "add", "path": "/BGP_NEIGHBOR/2001:db8:2::3", "value": {"asn": "65000", "local_addr": "2001:db8:2::2", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}]
+Patch Applier: localhost: verifying patch updates are reflected on ConfigDB.
+Patch Applier: localhost patch application completed.
+Patch Applier: localhost: Patch application starting.
+Patch Applier: localhost: Patch: [{"op": "add", "path": "/VRF", "value": {"VrfBlue": {"vni": "1000"}}}]
+Patch Applier: localhost getting current config db.
+Patch Applier: localhost: simulating the target full config after applying the patch.
+Patch Applier: localhost: validating all JsonPatch operations are permitted on the specified fields
+Patch Applier: localhost: validating target config does not have empty tables,
+                            since they do not show up in ConfigDb.
+Patch Applier: localhost: sorting patch updates.
+Patch Applier: The localhost patch was converted into 1 change:
+Patch Applier: localhost: applying 1 change in order:
+Patch Applier:   * [{"op": "add", "path": "/VRF", "value": {"VrfBlue": {"vni": "1000"}}}]
+Patch Applier: localhost: verifying patch updates are reflected on ConfigDB.
+Patch Applier: localhost patch application completed.
+[fabric-bgp] leaf01: boot hook installed (role=leaf)
+[fabric-bgp] leaf02 (leaf, AS65102): starting daemons
+[fabric-bgp] CONFIG_DB intent applied
+Patch Applier: localhost: Patch application starting.
+Patch Applier: localhost: Patch: [{"op": "add", "path": "/LOOPBACK_INTERFACE", "value": {"Loopback0": {}, "Loopback0|10.0.0.22/32": {}, "Loopback0|2001:db8:ff::22/128": {}}}, {"op": "add", "path": "/BGP_NEIGHBOR", "value": {"10.1.0.2": {"asn": "65000", "local_addr": "10.1.0.3", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}, "2001:db8:1::5": {"asn": "65000", "local_addr": "2001:db8:1::4", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}, "10.1.0.6": {"asn": "65000", "local_addr": "10.1.0.7", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}, "2001:db8:2::5": {"asn": "65000", "local_addr": "2001:db8:2::4", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}}]
+Patch Applier: localhost getting current config db.
+Patch Applier: localhost: simulating the target full config after applying the patch.
+Patch Applier: localhost: validating all JsonPatch operations are permitted on the specified fields
+Patch Applier: localhost: validating target config does not have empty tables,
+                            since they do not show up in ConfigDb.
+Patch Applier: localhost: sorting patch updates.
+Patch Applier: The localhost patch was converted into 4 changes:
+Patch Applier: localhost: applying 4 changes in order:
+Patch Applier:   * [{"op": "add", "path": "/LOOPBACK_INTERFACE", "value": {"Loopback0": {}}}]
+Patch Applier:   * [{"op": "add", "path": "/LOOPBACK_INTERFACE/Loopback0|10.0.0.22~132", "value": {}}, {"op": "add", "path": "/LOOPBACK_INTERFACE/Loopback0|2001:db8:ff::22~1128", "value": {}}]
+Patch Applier:   * [{"op": "add", "path": "/BGP_NEIGHBOR", "value": {"10.1.0.2": {"asn": "65000", "local_addr": "10.1.0.3", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}}]
+Patch Applier:   * [{"op": "add", "path": "/BGP_NEIGHBOR/2001:db8:1::5", "value": {"asn": "65000", "local_addr": "2001:db8:1::4", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}, {"op": "add", "path": "/BGP_NEIGHBOR/10.1.0.6", "value": {"asn": "65000", "local_addr": "10.1.0.7", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}, {"op": "add", "path": "/BGP_NEIGHBOR/2001:db8:2::5", "value": {"asn": "65000", "local_addr": "2001:db8:2::4", "holdtime": "180", "keepalive": "60", "nhopself": "0", "rrclient": "0"}}]
+Patch Applier: localhost: verifying patch updates are reflected on ConfigDB.
+Patch Applier: localhost patch application completed.
+Patch Applier: localhost: Patch application starting.
+Patch Applier: localhost: Patch: [{"op": "add", "path": "/VRF", "value": {"VrfBlue": {"vni": "1000"}}}]
+Patch Applier: localhost getting current config db.
+Patch Applier: localhost: simulating the target full config after applying the patch.
+Patch Applier: localhost: validating all JsonPatch operations are permitted on the specified fields
+Patch Applier: localhost: validating target config does not have empty tables,
+                            since they do not show up in ConfigDb.
+Patch Applier: localhost: sorting patch updates.
+Patch Applier: The localhost patch was converted into 1 change:
+Patch Applier: localhost: applying 1 change in order:
+Patch Applier:   * [{"op": "add", "path": "/VRF", "value": {"VrfBlue": {"vni": "1000"}}}]
+Patch Applier: localhost: verifying patch updates are reflected on ConfigDB.
+Patch Applier: localhost patch application completed.
+[fabric-bgp] leaf02: boot hook installed (role=leaf)
+[fabric-bgp] spine01: writing bgpd.conf + starting bgpd
+[fabric-bgp] spine02: writing bgpd.conf + starting bgpd
+[fabric-bgp] leaf01: writing bgpd.conf + starting bgpd
+[fabric-bgp] L3VNI vtep1-2000 bound to VrfBlue
+[fabric-bgp] leaf02: writing bgpd.conf + starting bgpd
+[fabric-bgp] L3VNI vtep1-2000 bound to VrfBlue
+[fabric-bgp] underlay converged (all nodes Established)
 [qualify] Running Capabilities
 [gnmi-suite] 172.31.0.21:8080: capabilities content asserted (sonic-db, openconfig-system, gNMI version)
 [gnmi-suite] 172.31.0.22:8080: capabilities content asserted (sonic-db, openconfig-system, gNMI version)
@@ -443,8 +558,8 @@ telemetry: started
 [gnmi-suite] 172.31.0.21:8080: Get content asserted (DEVICE_METADATA.localhost present)
 [gnmi-suite] 172.31.0.22:8080: Get content asserted (DEVICE_METADATA.localhost present)
 [qualify] Running Set
-[gnmi-suite] 172.31.0.21:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788207778)
-[gnmi-suite] 172.31.0.22:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788207778)
+[gnmi-suite] 172.31.0.21:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788247459)
+[gnmi-suite] 172.31.0.22:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788247459)
 [qualify] Running Subscribe
 [gnmi-suite] 172.31.0.21:8080: subscribe content asserted (DEVICE_METADATA delivered)
 [gnmi-suite] 172.31.0.22:8080: subscribe content asserted (DEVICE_METADATA delivered)
@@ -453,12 +568,16 @@ telemetry: started
 [gnmi-suite] 172.31.0.22:8080: sonic-srv6 locator read-back asserted (prefix fc00:0:71::)
 [qualify] Running persistence pre-set (Set)
 [qualify] Running Set
-[gnmi-suite] 172.31.0.21:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788207918)
-[gnmi-suite] 172.31.0.22:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788207918)
+[gnmi-suite] 172.31.0.21:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788247589)
+[gnmi-suite] 172.31.0.22:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1788247589)
 /root/ainetops-demo/scripts/lib/persistence.sh: line 12: v: command not found
-[persist] writing SRv6 witness (persist-loc-1788207976) via GCU on all targets
+[persist] writing SRv6 witness (persist-loc-1788247643) via GCU on all targets
 [persist] pre-restart read-back over gNMI
 [persist] restarting SONiC containers
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
 OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
 OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
 OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown

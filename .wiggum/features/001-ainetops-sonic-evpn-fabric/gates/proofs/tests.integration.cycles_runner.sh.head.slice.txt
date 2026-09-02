@@ -1,0 +1,52 @@
+     1	#!/usr/bin/env bash
+     2	# T080: Run three clean provision/test/off cycles, plus a second-provision
+     3	# idempotence check, an off-from-partial-state test, and a conformance-profile
+     4	# cycle. Stores logs under gates/proofs/cycles/.
+     5	#
+     6	# A "clean" cycle starts from Absent (off.sh --delete-kind true removes the
+     7	# Kind cluster, lab, and owned network at cycle end), runs the ordered
+     8	# provision workflow, the test phase against the live lab, and a full teardown.
+     9	#
+    10	# The capability gate (scripts/lib/qualify.sh) is executed by provision.sh and
+    11	# is the single source of truth for SRv6 qualification (FR-022). When the
+    12	# selected profile is not SRv6-qualified, provision exits non-zero with the
+    13	# documented message; the cycle runner records that designed outcome and
+    14	# continues with teardown so each cycle ends in a verified clean state.
+    15	set -u
+    16	
+    17	ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+    18	PROOFS="$ROOT_DIR/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles"
+    19	mkdir -p "$PROOFS"
+    20	
+    21	# --- Skip-if-fresh: reuse a just-completed, still-valid prior pass's evidence
+    22	# wiggum's ensure_long_job() launches this command fresh on EVERY orchestrator
+    23	# restart — it scopes done-markers by run-id with no concept of "recent and
+    24	# still valid" (see INCIDENT-2026-08-31-ainetops-phase8.md, issue #9). Without
+    25	# this check, a restart mid-phase-8 unconditionally overwrites a fully
+    26	# verified ~90-minute pass sitting untouched on disk, at the very next write
+    27	# below (the `tee` that truncates cycles.run.log). This check must run before
+    28	# that line. It only affects future invocations of this script — it cannot
+    29	# retroactively help a copy that is already mid-run.
+    30	CYCLES_FRESH_MAX_AGE_SEC="${CYCLES_FRESH_MAX_AGE_SEC:-21600}"  # 6h default
+    31	if [[ -z "${CYCLES_FORCE_RERUN:-}" && -f "$PROOFS/cycles.run.log" ]]; then
+    32	  # The script's actual last stdout line, "CYCLES_DONE", is a bare echo (not
+    33	  # tee) so it never lands in cycles.run.log itself — only "[cycles] end ..."
+    34	  # (the line right before it) is tee'd into the file. That line only prints
+    35	  # if the script ran to its final statement uninterrupted (no `set -e`, but
+    36	  # a kill/crash mid-run stops output here too), so it's the correct on-disk
+    37	  # completion marker to check. Confirmed live 2026-08-31: a bare CYCLES_DONE
+    38	  # check here never matches, so the very first attempted skip silently fails
+    39	  # to skip.
+    40	  if [[ "$(tail -n1 "$PROOFS/cycles.run.log" 2>/dev/null)" == "[cycles] end "* ]]; then
+    41	    age=$(( $(date +%s) - $(stat -c %Y "$PROOFS/cycles.run.log") ))
+    42	    if (( age <= CYCLES_FRESH_MAX_AGE_SEC )); then
+    43	      echo "[cycles] skip-if-fresh: cycles.run.log already complete, ${age}s old (<= ${CYCLES_FRESH_MAX_AGE_SEC}s) — reusing existing evidence, not rerunning" | tee -a "$PROOFS/cycles.run.log"
+    44	      echo "CYCLES_DONE"
+    45	      exit 0
+    46	    fi
+    47	    echo "[cycles] skip-if-fresh: prior completed run is ${age}s old (> ${CYCLES_FRESH_MAX_AGE_SEC}s) — treating as stale, rerunning" >&2
+    48	  fi
+    49	fi
+    50	
+    51	TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    52	echo "[cycles] start $TS host=$(hostname) cpu=$(nproc) mem=$(awk '/MemTotal/{print int($2/1024)"MB"}' /proc/meminfo)" | tee "$PROOFS/cycles.run.log"

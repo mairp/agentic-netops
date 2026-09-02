@@ -30,12 +30,14 @@ suite(){
   ( "$@" ) >>"$out" 2>&1
   local rc=$?
   set -e
-  if [[ $rc -eq 0 ]]; then
-    record "$name" PASS
-  elif grep -q 'SKIP-LIVE' "$out"; then
-    record "$name" "SKIP-LIVE($(grep -m1 -o 'SKIP-LIVE[^"]*' "$out" | head -c 60))"
-  else
+  if [[ $rc -ne 0 ]]; then
     record "$name" "FAIL(rc=$rc)"
+  elif grep -q 'SKIP-LIVE' "$out" || grep -q 'FABRIC_VERIFY_SKIPPED' "$out"; then
+    # A suite that self-skipped (live-lab prerequisite absent) prints an
+    # explicit marker and exits 0; it is a SKIP, never a PASS.
+    record "$name" "SKIP-LIVE($(grep -m1 -oE 'SKIP-LIVE.*|FABRIC_VERIFY_SKIPPED' "$out" | head -c 70))"
+  else
+    record "$name" PASS
   fi
 }
 

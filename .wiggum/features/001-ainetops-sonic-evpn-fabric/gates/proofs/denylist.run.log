@@ -7,3 +7,6 @@
 ::group::Visualization reference repository exception (srl-telemetry-lab only in allowed contexts)
 ::endgroup::
 All deny-list checks passed
+up::
+All deny-list checks passed
+denylist rc=0

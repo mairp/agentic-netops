@@ -1,0 +1,53 @@
+     1	# Apply SRv6 CRD, default Kubenet Network, tenant examples, and sample SRv6 service
+     2	if command -v kubectl >/dev/null 2>&1; then
+     3	  CTX="kind-${AINETOPS_CLUSTER_NAME}"
+     4	  echo "[provision] applying SRv6Service CRD and Kubenet default/tenant networks"
+     5	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/config/crd/bases/ainetops.io_srv6services.yaml"
+     6	  # Assert CRD set per FR-006 (T079a)
+     7	  if [[ -x "${LIB_DIR}/assert_crds.sh" ]]; then "${LIB_DIR}/assert_crds.sh" || { echo "[provision] CRD assertion failed" >&2; exit 1; }; fi
+     8	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/topology.yaml"
+     9	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/topology-and-indices.yaml"
+    10	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/claims.yaml"
+    11	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/srv6-pools.yaml"
+    12	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/default.yaml"
+    13	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/l2-bridged.yaml"
+    14	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/l3-routed.yaml"
+    15	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/irb-symmetric.yaml"
+    16	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/config/samples/ainetops_v1alpha1_srv6service.yaml"
+    17	  # Wait for SRv6Service readiness (best-effort; controller enforces compatibility gates)
+    18	  kubectl --context "$CTX" -n default wait --for=condition=Ready --timeout="${AINETOPS_TIMEOUT}" srv6service/example-srv6 || true
+    19	  # Capture independent observation of applied Network resources
+    20	  kubectl --context "$CTX" -n kubenet-system get networkconfigs,networks 2>/dev/null | nl -ba > "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-kubenet-networks.txt" || true
+    21	fi
+    22	# Seed SDC schema/profile/discovery
+    23	if command -v kubectl >/dev/null 2>&1; then
+    24	  CTX="kind-${AINETOPS_CLUSTER_NAME}"
+    25	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/sonic-schema.yaml"
+    26	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/discovery-rule.yaml"
+    27	fi
+    28	
+    29	# Apply the profile bootstrap (gNMI TLS + TELEMETRY config) to the SONiC nodes
+    30	# before qualification so the capability gate has a live gNMI endpoint. The
+    31	# in-cluster secret generator must already have run (earlier phase).
+    32	if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
+    33	  "${LIB_DIR}/containerlab.sh" bootstrap "${AINETOPS_PROFILE}" || { echo "[provision] lab bootstrap failed" >&2; exit 1; }
+    34	fi
+    35	
+    36	# Run lab capability qualification; select conformance fallback when sonic-vs fails
+    37	if [[ -x "${LIB_DIR}/qualify.sh" ]]; then
+    38	  if ! "${LIB_DIR}/qualify.sh"; then
+    39	    echo "[provision] capability gate failed for profile ${AINETOPS_PROFILE}" >&2
+    40	    if [[ "${AINETOPS_PROFILE}" == "sonic-vs" ]]; then
+    41	      echo "[provision] sonic-vs failed gate; this profile is not SRv6-qualified. Use --profile sonic-vm for conformance." >&2
+    42	    fi
+    43	    exit 1
+    44	  fi
+    45	fi
+    46	
+    47	# Topology asset generation: ensure the ConfigMap is applied now for Grafana Flow
+    48	if command -v kubectl >/dev/null 2>&1; then
+    49	  CTX="kind-${AINETOPS_CLUSTER_NAME}"
+    50	  kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/observability/topology-configmap.yaml"
+    51	fi
+    52	
+    53	echo "[provision] complete: pins verified, CRDs validated/asserted, Kind ensured/attached, lab deployed, apps installed, seed applied, capability gate executed."

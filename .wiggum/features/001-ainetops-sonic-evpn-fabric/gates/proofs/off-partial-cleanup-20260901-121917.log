@@ -1,0 +1,24 @@
+[clab] destroying /root/ainetops-demo/lab/topology.clab.yml
+12:19:18 INFO Parsing & checking topology file=topology.clab.yml
+12:19:18 INFO Parsing & checking topology file=topology.clab.yml
+12:19:18 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
+
+12:19:18 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
+
+12:19:18 INFO Destroying lab name=ainetops-fabric
+12:19:19 INFO Removed container name=clab-ainetops-fabric-client02
+12:19:19 INFO Removed container name=clab-ainetops-fabric-client01
+12:19:19 INFO Removed container name=clab-ainetops-fabric-srv6-client01
+12:19:19 INFO Removed container name=clab-ainetops-fabric-srv6-client02
+12:19:19 INFO Removed container name=clab-ainetops-fabric-spine01
+12:19:19 INFO Removed container name=clab-ainetops-fabric-spine02
+12:19:20 INFO Removed container name=clab-ainetops-fabric-leaf01
+12:19:20 INFO Removed container name=clab-ainetops-fabric-leaf02
+12:19:20 INFO Removing host entries path=/etc/hosts
+12:19:20 INFO Removing SSH config path=/etc/ssh/ssh_config.d/clab-ainetops-fabric.conf
+[clab] destroy complete
+[kind] deleting cluster 'ainetops'
+Deleting cluster "ainetops" ...
+Deleted nodes: ["ainetops-control-plane" "ainetops-worker"]
+[off] Teardown complete (idempotent).
+OFF_RC=0 LOG=/root/ainetops-demo/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/off-partial-cleanup-20260901-121917.log
