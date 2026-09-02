@@ -40,6 +40,9 @@ from config.config import DEFAULT_MESSAGE_TRANSPORT, ENABLE_HTTP, TRANSPORT_SERV
 from provisioning.deployer.agent_executor import DeploymentAgentExecutor
 from provisioning.deployer.card import AGENT_CARD
 
+from config.telemetry import init_telemetry
+init_telemetry(app_name="intent-deployer")
+
 factory = AgntcyFactory("devnet.network_deployer", enable_tracing=True)
 
 logger = logging.getLogger("devnet.network_deployer.server")

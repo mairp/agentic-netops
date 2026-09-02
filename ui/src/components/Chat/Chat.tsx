@@ -54,9 +54,12 @@ function FailureCard({ evt }: { evt: Extract<AgentEvent, { type: 'error' }> }) {
   const { stage, reason, suggestion, correlation_id } = evt
   return (
     <div style={{ border: '1px solid #f3cccc', background: '#fff6f6', padding: '0.75rem', borderRadius: 8, marginBottom: '0.5rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <strong>Failure — {stage}</strong>
-        <CorrelationChip correlationId={correlation_id} />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <a href={`http://grafana.monitoring.svc:3000/d/intent-tier?correlation_id=${encodeURIComponent(correlation_id)}`} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>View in Grafana</a>
+          <CorrelationChip correlationId={correlation_id} />
+        </div>
       </div>
       <div style={{ marginTop: 4 }} aria-label="failure-reason">{reason}</div>
       {suggestion && <div style={{ marginTop: 4, fontSize: 13, color: '#444' }} aria-label="failure-suggestion">Suggestion: {suggestion}</div>}

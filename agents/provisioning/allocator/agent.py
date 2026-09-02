@@ -42,6 +42,7 @@ from common.redaction import redact_model_response
 from common.schemas.interpretation import Interpretation
 from common.schemas.normalized_intent import AddressFamilies, Endpoint, IRBGateway, NormalizedServiceIntent, Policies, RdRt
 from provisioning.allocator.kuid import KUIDClient
+from common.telemetry import get_trace_correlation_id
 
 logger = logging.getLogger("devnet.network_allocator.agent")
 
@@ -70,6 +71,10 @@ def _deterministic_endpoints(endpoints: list[Endpoint]) -> list[Endpoint]:
     return sorted(endpoints, key=lambda e: (e.node, e.attachment))
 
 
+from ioa_observe.sdk.decorators import agent
+
+
+@agent(name="Network Allocator Agent", method_name="ainvoke")
 class AllocatorAgent:
     """Allocates identifiers via KUID and emits a NormalizedServiceIntent."""
 
@@ -86,7 +91,8 @@ class AllocatorAgent:
             endpoints.append(Endpoint(node=ep.site_or_node, attachment=ep.attachment, vlan=ep.vlan))
         endpoints = _deterministic_endpoints(endpoints)  # T224
 
-        # Claim identifiers (FR-013): never generate locally
+        # Claim identifiers (FR-013): never generate locally — prefer trace-derived correlation id if present
+        correlation_id = correlation_id or get_trace_correlation_id() or uuid4().hex
         if st in ("VPLS", "VPWS", "IRB"):
             l2vni = self.kuid.allocate_l2vni(correlation_id)
         else:

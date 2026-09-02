@@ -53,6 +53,10 @@ from supervisors.provisioning.graph.graph import (
 setup_logging()
 logger = logging.getLogger("devnet.provision.supervisor.main")
 
+# -------------------- Telemetry --------------------
+from config.telemetry import init_telemetry
+init_telemetry(app_name="intent-supervisor")
+
 # -------------------- FastAPI --------------------
 app = FastAPI()
 app.add_middleware(
@@ -94,6 +98,9 @@ def get_graph() -> ProvisioningGraph:
 
 
 # -------------------- HTTP Endpoints --------------------
+from ioa_observe.sdk.tracing.tracing import session_start
+
+
 @app.post("/agent/prompt/stream")
 async def handle_stream_prompt(request: PromptRequest):
     """NDJSON stream (application/x-ndjson). Runs the supervisor graph and
@@ -110,6 +117,10 @@ async def handle_stream_prompt(request: PromptRequest):
         return json.dumps(obj) + "\n"
 
     async def stream_generator():
+        # Start a telemetry session to bind a session.id to the trace and capture context
+        with session_start():
+            pass  # context-only; span lifecycle is managed by decorators
+
         yield chunk(
             {
                 "type": "status",
@@ -233,18 +244,7 @@ async def handle_stream_prompt(request: PromptRequest):
             status = last.get("workflow_status", NetworkProvisioningStatus.STATUS_UNKNOWN.value)
             if status == NetworkProvisioningStatus.FAILED.value:
                 reason = last.get("refusal_reason") or "request failed"
-                # The refusal_reason carries the responsible stage
-                # ("<stage>: ..." / "<stage> payload out of contract: ...").
-                if reason.startswith("mapper payload out of contract"):
-                    responsible_stage = "mapper"
-                elif reason.startswith("allocator payload out of contract"):
-                    responsible_stage = "allocator"
-                elif reason.startswith("deployer payload out of contract"):
-                    responsible_stage = "deployer"
-                elif ": " in reason:
-                    responsible_stage = reason.split(" ", 1)[0].rstrip(":")
-                else:
-                    responsible_stage = "supervisor"
+                responsible_stage = _responsible_stage_from_reason(reason)
                 yield chunk(
                     {
                         "type": "error",
@@ -272,6 +272,19 @@ async def handle_stream_prompt(request: PromptRequest):
             )
 
     return StreamingResponse(stream_generator(), media_type="application/x-ndjson")
+
+
+def _responsible_stage_from_reason(reason: str) -> str:
+    reason = reason or ""
+    if reason.startswith("mapper payload out of contract"):
+        return "mapper"
+    if reason.startswith("allocator payload out of contract"):
+        return "allocator"
+    if reason.startswith("deployer payload out of contract"):
+        return "deployer"
+    if ": " in reason:
+        return reason.split(" ", 1)[0].rstrip(":")
+    return "supervisor"
 
 
 @app.get("/health")

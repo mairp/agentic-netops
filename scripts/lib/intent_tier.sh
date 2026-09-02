@@ -107,6 +107,19 @@ intent::install() {
   intent::kubectl apply -f "$(intent::manifest ui-configmap.yaml)"
   intent::kubectl apply -f "$(intent::manifest ui.yaml)"
 
+  # T339 — Mount the intent-tier dashboards into Grafana via a reversible patch
+  # We keep dashboards in the agents tree (ConfigMap grafana-dashboards-agents, namespace ainetops-agents)
+  # and mount them into the shared Grafana deployment in monitoring.
+  if intent::kubectl -n monitoring get deploy grafana >/dev/null 2>&1; then
+    intent::log "patching Grafana to mount intent-tier dashboards (T339)"
+    intent::kubectl -n monitoring patch deploy grafana --type='json' -p='[
+      {"op":"add","path":"/spec/template/spec/volumes/-","value":{"name":"dashboards-agents","configMap":{"name":"grafana-dashboards-agents","optional":true}}},
+      {"op":"add","path":"/spec/template/spec/containers/0/volumeMounts/-","value":{"name":"dashboards-agents","mountPath":"/var/lib/grafana/dashboards/intent-tier","readOnly":true}}
+    ]' || true
+  else
+    intent::log "Grafana deployment not present; skipping dashboard mount patch"
+  fi
+
   intent::log "tier manifests applied; waiting for rollouts"
   intent::wait
   intent::log "install complete"
@@ -151,6 +164,21 @@ intent::uninstall() {
   # Workloads first (scale to zero semantics), then Services, then Jobs,
   # then config/secret state, then the PVC.
   local dep
+  for dep in supervisor mapper allocator deployer slim ui; do
+    : # patch removal handled after deletes
+  done
+  # T339 — Revert Grafana patch if present
+  if intent::kubectl -n monitoring get deploy grafana >/dev/null 2>&1; then
+    intent::log "reverting Grafana dashboard mount patch (T339)"
+    # Remove volumeMount if exists
+    intent::kubectl -n monitoring patch deploy grafana --type='json' -p='[
+      {"op":"remove","path":"/spec/template/spec/containers/0/volumeMounts", "value":[]}
+    ]' || true
+    # Remove volumes if exists
+    intent::kubectl -n monitoring patch deploy grafana --type='json' -p='[
+      {"op":"remove","path":"/spec/template/spec/volumes", "value":[]}
+    ]' || true
+  fi
   for dep in supervisor mapper allocator deployer slim ui; do
     intent::kubectl -n "$INTENT_TIER_NAMESPACE" delete deployment "$dep" --ignore-not-found --wait=true --timeout="$INTENT_TIER_TIMEOUT" || true
   done

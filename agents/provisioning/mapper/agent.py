@@ -215,6 +215,10 @@ def _detect_tenant(text: str) -> str | None:
 
 
 # -------------------- MappingAgent --------------------
+from ioa_observe.sdk.decorators import agent
+
+
+@agent(name="Network Mapping Agent", method_name="ainvoke")
 class MappingAgent:
     """Maps nonce-fenced user text into an Interpretation.
 

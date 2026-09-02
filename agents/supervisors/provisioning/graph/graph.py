@@ -75,6 +75,7 @@ from pydantic import ValidationError
 
 from common.audit import build_audit_event, emit_audit_event
 from common.llm import get_llm
+from common.metrics import get_metrics
 from common.provisioning_states import NetworkProvisioningStatus
 from common.redaction import redact, redact_model_response, redact_prompt
 from common.schemas.audit import AuditEvent
@@ -607,6 +608,10 @@ async def default_checkpointer() -> AsyncSqliteSaver:
 # ---------------------------------------------------------------------------
 # The graph
 # ---------------------------------------------------------------------------
+from ioa_observe.sdk.decorators import graph
+
+
+@graph(name="ProvisioningSupervisorGraph", method_name="build_graph")
 class ProvisioningGraph:
     """LangGraph supervisor graph (the subject's shape + the US2 layer).
 
@@ -905,6 +910,11 @@ class ProvisioningGraph:
         user_message = next((m for m in reversed(state["messages"]) if isinstance(m, HumanMessage)), None)
         if not user_message:
             return {"next_node": NodeStates.GENERAL_INFO}
+        # Metrics: count received requests at supervisor stage
+        try:
+            get_metrics().inc_stage_request("supervisor")
+        except Exception:
+            pass
 
         user_content = user_message.content
         user_content_l = user_content.lower().strip()
@@ -1099,11 +1109,19 @@ class ProvisioningGraph:
         # ---------- T090: deterministic direct-device refusal FIRST ------
         hit = detect_direct_device(user_content)
         if hit is not None:
+            try:
+                get_metrics().inc_refused_unsafe()
+            except Exception:
+                pass
             return self._refuse(state, config, hit.reason, hit.suggestion, stage="supervisor")
 
         # ---------- T088/FR-012: unsupported-feature refusal -------------
         hit = detect_unsupported_feature(user_content)
         if hit is not None:
+            try:
+                get_metrics().inc_refused_unsafe()
+            except Exception:
+                pass
             return self._refuse(state, config, hit.reason, hit.suggestion, stage="supervisor")
 
         # ---------- T089: the three-way LLM classifier -------------------
@@ -1194,6 +1212,10 @@ class ProvisioningGraph:
         payload, worker_text = extract_payload_and_text(result, MAPPER_MARKER)  # T096/T097
         interpretation, error = validate_mapper_payload(payload)  # T100/T102
         if error is not None or interpretation is None:
+            try:
+                get_metrics().record_stage_result(stage="mapper", success=False)
+            except Exception:
+                pass
             return self._reject_out_of_contract(
                 state, config, stage="mapper", error=error or "payload is not an object", worker_text=worker_text
             )
@@ -1234,6 +1256,10 @@ class ProvisioningGraph:
 
         # Complete, valid interpretation -> first confirmation point.
         summary = redact_model_response(worker_text.split("<!--")[0].strip()) or "Interpretation ready."
+        try:
+            get_metrics().record_stage_result(stage="mapper", success=True)
+        except Exception:
+            pass
         return {
             "next_node": NodeStates.REFLECTION,
             "workflow_status": NetworkProvisioningStatus.MAPPED.value,
@@ -1285,11 +1311,19 @@ class ProvisioningGraph:
         payload, worker_text = extract_payload_and_text(result, ALLOCATOR_MARKER)  # T098/T099
         intent, error = validate_allocator_payload(payload, interpretation)  # T101/T102
         if error is not None or intent is None:
+            try:
+                get_metrics().record_stage_result(stage="allocator", success=False)
+            except Exception:
+                pass
             return self._reject_out_of_contract(
                 state, config, stage="allocator", error=error or "payload is not an object", worker_text=worker_text
             )
 
         summary = redact_model_response(worker_text.split("<!--")[0].strip()) or "Allocation ready."
+        try:
+            get_metrics().record_stage_result(stage="allocator", success=True)
+        except Exception:
+            pass
         return {
             "next_node": NodeStates.REFLECTION,
             "workflow_status": NetworkProvisioningStatus.ALLOCATED.value,
@@ -1319,6 +1353,10 @@ class ProvisioningGraph:
                 result = await self.transport.call_deployer(fenced)
             except WorkerUnavailableError as exc:
                 logger.warning("deployer unavailable: %s", exc)
+                try:
+                    get_metrics().record_stage_result(stage="deployer", success=False)
+                except Exception:
+                    pass
                 return {
                     "next_node": END,
                     "messages": [
@@ -1377,6 +1415,10 @@ class ProvisioningGraph:
             result = await self.transport.call_deployer(fenced)
         except WorkerUnavailableError as exc:
             logger.warning("deployer unavailable: %s", exc)
+            try:
+                get_metrics().record_stage_result(stage="deployer", success=False)
+            except Exception:
+                pass
             return {
                 "next_node": END,
                 "messages": [
@@ -1401,12 +1443,20 @@ class ProvisioningGraph:
                 for item in payload["submitted"]:
                     resources.append(ResourceRef.model_validate(item))
             except ValidationError as exc:
+                try:
+                    get_metrics().record_stage_result(stage="deployer", success=False)
+                except Exception:
+                    pass
                 return self._reject_out_of_contract(
                     state, config, stage="deployer",
                     error=f"submission report resources invalid: {_format_validation_error(exc)}",
                     worker_text=worker_text,
                 )
             self._audit(state, config, "submit", resources=resources, reason="deployer submission report")
+            try:
+                get_metrics().record_stage_result(stage="deployer", success=True)
+            except Exception:
+                pass
             return {
                 "next_node": END,
                 "workflow_status": NetworkProvisioningStatus.PROVISIONING.value,
@@ -1422,6 +1472,10 @@ class ProvisioningGraph:
                     )
                 ],
             }
+        try:
+            get_metrics().record_stage_result(stage="deployer", success=False)
+        except Exception:
+            pass
         return self._reject_out_of_contract(
             state,
             config,

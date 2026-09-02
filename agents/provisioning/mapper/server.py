@@ -46,6 +46,9 @@ from config.config import DEFAULT_MESSAGE_TRANSPORT, ENABLE_HTTP, TRANSPORT_SERV
 from provisioning.mapper.agent_executor import MappingAgentExecutor
 from provisioning.mapper.card import AGENT_CARD
 
+from config.telemetry import init_telemetry
+init_telemetry(app_name="intent-mapper")
+
 factory = AgntcyFactory("devnet.network_mapping", enable_tracing=True)
 
 logger = logging.getLogger("devnet.network_mapping.server")

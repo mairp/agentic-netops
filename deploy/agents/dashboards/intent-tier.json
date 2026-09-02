@@ -1,0 +1,78 @@
+{
+  "title": "Intent Tier",
+  "uid": "intent-tier",
+  "version": 1,
+  "schemaVersion": 39,
+  "tags": ["ainetops", "intent"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Supervisor Requests",
+      "id": 1,
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(ainetops_agent_stage_requests_total{stage=\"supervisor\"})",
+          "legendFormat": "requests"
+        }
+      ],
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+    },
+    {
+      "type": "timeseries",
+      "title": "Stage Success Rate",
+      "id": 2,
+      "gridPos": {"h": 8, "w": 12, "x": 6, "y": 0},
+      "targets": [
+        {"refId": "A", "expr": "sum by(stage) (rate(ainetops_agent_stage_success_total[5m]))"},
+        {"refId": "B", "expr": "sum by(stage) (rate(ainetops_agent_stage_failures_total[5m]))"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Stage Latency (s)",
+      "id": 3,
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "targets": [
+        {"refId": "A", "expr": "histogram_quantile(0.95, sum by(le, stage) (rate(ainetops_agent_stage_latency_seconds_bucket[5m])))", "legendFormat": "p95 {{stage}}"}
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Fabric Resources by Correlation (click a row to open conversation)",
+      "id": 4,
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 12},
+      "options": {
+        "showHeader": true
+      },
+      "links": [
+        {
+          "title": "Open Conversation",
+          "url": "http://ui.ainetops-agents.svc:3000/?correlation_id=${__data.fields.correlation_id}",
+          "targetBlank": true
+        }
+      ],
+      "transformations": [],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ainetops_fabric_resources{label_ainetops_io_correlation_id=~\"$correlation_id\"}",
+          "legendFormat": "{{kind}}/{{name}}"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "correlation_id",
+        "type": "textbox",
+        "label": "Correlation ID",
+        "query": "",
+        "current": {"text": "", "value": ""}
+      }
+    ]
+  }
+}

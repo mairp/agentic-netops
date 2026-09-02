@@ -102,6 +102,10 @@ def _parse_action(text: str) -> _Action:
     return _Action("submit")
 
 
+from ioa_observe.sdk.decorators import agent
+
+
+@agent(name="Network Deployer Agent", method_name="ainvoke")
 class DeployerAgent:
     """Submits a normalized intent through the Go translator or performs tools.
 

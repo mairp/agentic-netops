@@ -39,6 +39,9 @@ from config.config import DEFAULT_MESSAGE_TRANSPORT, ENABLE_HTTP, TRANSPORT_SERV
 from provisioning.allocator.agent_executor import AllocatorAgentExecutor
 from provisioning.allocator.card import AGENT_CARD
 
+from config.telemetry import init_telemetry
+init_telemetry(app_name="intent-allocator")
+
 factory = AgntcyFactory("devnet.network_allocator", enable_tracing=True)
 
 logger = logging.getLogger("devnet.network_allocator.server")

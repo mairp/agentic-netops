@@ -1,0 +1,38 @@
+groups:
+- name: intent-tier
+  rules:
+  - alert: IntentTierStageErrorRateHigh
+    expr: sum by(stage) (rate(ainetops_agent_stage_failures_total[5m])) / clamp_min(sum by(stage) (rate(ainetops_agent_stage_success_total[5m])) + sum by(stage) (rate(ainetops_agent_stage_failures_total[5m])), 1) > 0.2
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High error rate in {{ $labels.stage }} stage"
+      description: "More than 20% failures over 10m in stage {{ $labels.stage }}."
+
+  - alert: IntentTierTransportDown
+    expr: up{job="agent-otel-collector"} == 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Agent OTEL collector down"
+      description: "The intent-tier OTLP collector is not reporting to Prometheus."
+
+  - alert: IntentTierProviderUnavailable
+    expr: sum(rate(ainetops_agent_model_calls_total[5m])) > 0 and sum(rate(ainetops_agent_stage_failures_total{stage="supervisor"}[5m])) > 0
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "LLM provider possibly unavailable"
+      description: "Supervisor receives requests but model responses are failing."
+
+  - alert: IntentTierConvergenceTimeouts
+    expr: sum(rate(ainetops_agent_stage_failures_total{stage="deployer"}[15m])) > 0
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Convergence timeouts observed"
+      description: "Deployer failures detected over 15m; investigate convergence/watch."

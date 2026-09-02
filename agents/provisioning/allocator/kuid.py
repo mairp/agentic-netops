@@ -45,7 +45,7 @@ from config.config import KUID_API_ENDPOINT
 logger = logging.getLogger("devnet.network_allocator.kuid")
 
 KUID_NAMESPACE = "kuid-system"
-CORRELATION_LABEL = "ainetops.io/correlation-id"
+from common.telemetry import CORRELATION_LABEL
 
 
 class KUIDAPIError(RuntimeError):

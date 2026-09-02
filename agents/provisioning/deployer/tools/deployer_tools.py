@@ -24,6 +24,10 @@ logger = logging.getLogger("devnet.network_deployer.tools")
 TRANSLATOR_ENDPOINT = "http://127.0.0.1:8090"
 
 
+from ioa_observe.sdk.decorators import tool
+
+
+@tool(name="deployer.query_fabric_inventory")
 def query_fabric_inventory() -> dict[str, Any]:
     """T252 — return a deterministic inventory shape for tests.
 
@@ -33,6 +37,7 @@ def query_fabric_inventory() -> dict[str, Any]:
     return {"fabric": "lab", "nodes": [], "links": []}
 
 
+@tool(name="deployer.get_service_status")
 def get_service_status(*, service_id: str | None = None, correlation_id: str | None = None) -> dict[str, Any]:
     """T253 — return a deterministic status shape.
 
@@ -42,6 +47,7 @@ def get_service_status(*, service_id: str | None = None, correlation_id: str | N
     return {"serviceId": service_id or "", "correlationId": correlation_id or "", "phase": "Unknown"}
 
 
+@tool(name="deployer.remove_service")
 def remove_service(*, correlation_id: str | None, service_id: str | None = None, confirmed: bool = False) -> dict[str, Any]:
     """T254/T255 — remove by correlation id.
 
@@ -57,6 +63,7 @@ def remove_service(*, correlation_id: str | None, service_id: str | None = None,
     return {"selector": selector, "deleted": 0}
 
 
+@tool(name="deployer.submit_service")
 def submit_service(intent_json: dict[str, Any] | list[dict[str, Any]]) -> dict[str, Any]:
     """T262 — call the translator sidecar POST /v1/translate.
 

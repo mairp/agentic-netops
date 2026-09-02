@@ -89,6 +89,14 @@ data:
           env_var: CLICKHOUSE_USERNAME
         password:
           env_var: CLICKHOUSE_PASSWORD
+        # T351: queue/retry for ClickHouse outages
+        sending_queue:
+          enabled: true
+          num_consumers: 4
+          queue_size: 5000
+        retry_on_failure:
+          enabled: true
+          max_elapsed_time: 5m
       otlp/feature001:
         # Forward to feature 001's collector, which already accepts OTLP on
         # :4317 and exports to Prometheus. Its filter processor keeps
@@ -97,6 +105,14 @@ data:
         endpoint: otel-collector.ainetops-system.svc:4317
         tls:
           insecure: true
+        # T352: queue/retry for upstream OTLP outages
+        sending_queue:
+          enabled: true
+          num_consumers: 4
+          queue_size: 5000
+        retry_on_failure:
+          enabled: true
+          max_elapsed_time: 5m
 
     service:
       pipelines:
@@ -251,3 +267,25 @@ spec:
   - {name: native, port: 9000, targetPort: 9000}
   # Queried directly over :8123 (plan.md Component 8).
   - {name: http, port: 8123, targetPort: 8123}
+---
+# T338: dashboard ConfigMap for the intent tier (mounted into Grafana via scripts/lib/intent_tier.sh T339)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-agents
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+    app.kubernetes.io/name: intent-grafana-dashboards
+  annotations:
+    description: Intent-tier Grafana dashboards published by the agents feature
+data:
+  intent-tier.json: |
+    {
+      "title": "Intent Tier",
+      "uid": "intent-tier",
+      "version": 1,
+      "schemaVersion": 38,
+      "panels": []
+    }
