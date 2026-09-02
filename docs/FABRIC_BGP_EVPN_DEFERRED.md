@@ -149,12 +149,35 @@ adopted, bgpd never processes the peer IMET, zebra installs no remote VTEP, noth
 overlay ping fails with 100% loss. The generated `bgpd.conf` is correct — `advertise-all-vni` is
 emitted for leaves under `address-family l2vpn evpn` — so this is not a configuration error.
 
-This is the same class as D-A2: the recipe is right and the image does not honour it. It reproduces
-on fresh cycles-provisioned labs while the same recipe works on a hand-built lab, so the leading
-suspect is that `ensure_overlay_devices` only ever verifies the **L3VNI** vtep device; nothing
-confirms that `vtep1-100` (the L2VNI) exists and is enslaved with its vlan mapping before bgpd
-starts. If vxlanmgrd has not finished that, zebra never classifies VNI 100 and bgpd correctly
-receives nothing. Not yet confirmed live — recorded as the next diagnostic step.
+**ROOT CAUSE, confirmed live 2026-09-01 against a failed-bootstrap lab left standing.** The single
+symptom was actually TWO unrelated faults, and only one of them is real:
+
+*leaf02 — a false negative in the check itself.* bgpd HAD adopted the VNI: `Number of L2 VNIs: 1`
+and the table line `* 100        L2   10.0.0.22:3 …`. The adoption check added in `010a8d7e` greps
+`'^ \* $L2VNI '` — with a leading space before the asterisk — but the Kernel flag sits in COLUMN 1.
+The pattern can never match, so an adopted leaf was declared missing, restarted 3x for nothing, and
+(once the fall-through was made fatal) failed the provision outright. Fixed to
+`'^\*?[[:space:]]*$L2VNI[[:space:]]'`, verified against live FRR 10.5.4 output on both leaves.
+
+*leaf01 — a real image defect.* No overlay kernel devices existed at all: no `Bridge`, no `Vlan100`,
+no `vtep1-100`, and `show evpn vni` completely empty, while CONFIG_DB carried exactly the same
+VLAN/VXLAN_TUNNEL/VLAN_MEMBER/VRF intent as the working leaf02 and every daemon reported RUNNING.
+The cause is in the image: syslog shows
+
+```
+#supervisord: vlanmgrd AddressSanitizer:DEADLYSIGNAL
+message repeated 2183 times: [ vlanmgrd AddressSanitizer:DEADLYSIGNAL]
+```
+
+The image ships an **ASan-instrumented vlanmgrd that crashes on startup**. leaf02 logs 119 of the
+same lines but survived long enough to create its devices; leaf01 did not. Nothing in this repo can
+fix a crashing manager binary — this is precisely the class of defect a different SONiC image
+resolves.
+
+Caveat recorded honestly: the inspected containers report `StartedAt 09:05:56` with syslog ending
+09:29 while the provision that left them standing ran at ~13:20, so the lab may predate that run.
+The device/CONFIG_DB/bgpd observations above were all taken live and are internally consistent, but
+the ASan timeline should be re-confirmed on a freshly created lab.
 
 **Why this went undetected for hours:** three independent silent-success paths, all closed in
 `f6f471d0`. (1) the escalation fell through with no error; (2) `containerlab.sh` downgraded the hook

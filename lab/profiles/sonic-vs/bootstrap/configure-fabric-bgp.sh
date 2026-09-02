@@ -325,7 +325,14 @@ apply_frr() {
     for attempt in 1 2 3; do
       adopted=0
       for i in $(seq 1 10); do
-        docker exec "$c" bash -c "vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -q '^ \\* $L2VNI '" && { adopted=1; break; }
+        # Match the real bgpd table line, which is "* 100        L2   ..." with the
+        # Kernel flag in COLUMN 1 — not " * 100". The original pattern ('^ \* VNI ')
+        # assumed a leading space and therefore never matched, so a leaf that had
+        # adopted the VNI was reported missing, restarted 3x for nothing, and (once
+        # the fall-through was made fatal) failed the provision outright. Verified
+        # against live FRR 10.5.4 output 2026-09-01 on leaf02, which reported
+        # "Number of L2 VNIs: 1" while the old grep called it missing.
+        docker exec "$c" bash -c "vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -qE '^\\*?[[:space:]]*$L2VNI[[:space:]]'" && { adopted=1; break; }
         sleep 3
       done
       [ "$adopted" -eq 1 ] && { echo "[fabric-bgp] $node: bgpd adopted L2 VNI $L2VNI (attempt $attempt)"; break; }
