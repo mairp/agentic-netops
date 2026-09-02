@@ -48,6 +48,10 @@ jobs:
   # lockfile (uv sync --frozen), lints, and tests under agents/.
   python-tier:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # T362/T363 — model-provider matrix via LLM_MODEL prefix
+        provider: ["openai/gpt-4o-mini", "anthropic/claude-3-haiku"]
     defaults:
       run:
         working-directory: agents
@@ -67,6 +71,8 @@ jobs:
         run: uv run ruff check .
 
       - name: Test (pytest)
+        env:
+          LLM_MODEL: ${{ matrix.provider }}
         run: uv run pytest
 
   # Feature 002 (AGNTCY intent tier): operator chat surface under ui/ —
@@ -115,9 +121,56 @@ jobs:
           fi
           # Hard-coded secret assignments in manifests/Dockerfiles/scripts.
           # Placeholders are allowed: ${...}, <...>, empty, or 'changeme' markers.
-          if grep -RInE '(password|passwd|secret|api_?key|token)[[:space:]]*[:=][[:space:]]*["'"'"']?[A-Za-z0-9!@#$%^&*._-]{8,}' deploy/agents docker \
+          if grep -RInE '(password|passwd|secret|api_?key|token)[[:space:]]*[:=][[:space:]]*["'"']?[A-Za-z0-9!@#$%^&*._-]{8,}' deploy/agents docker \
              | grep -vE '\$\{|<[^>]*>|changeme|CHANGE_ME|REPLACE_ME|generated|example' ; then
             echo "FAIL: hard-coded credential literal detected in deploy/agents/ or docker/" >&2
             exit 1
           fi
           echo "PASS: no credential literals in deploy/agents/ or docker/"
+
+  # Phase 9 — tier absent gates (SC-013): purge the intent tier, then run full feature-001 gates
+  tier-absent-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Purge intent tier (SC-013)
+        run: |
+          chmod +x scripts/off.sh || true
+          ./scripts/off.sh --purge-intent-tier
+      - name: Verify pins and CRDs (feature-001)
+        run: |
+          make verify-compat
+      - name: Register guard (feature-001)
+        run: |
+          make verify-register
+      - name: Unit tests (feature-001)
+        run: |
+          go test ./tests/unit -v
+      - name: Envtest (schema dry-run)
+        run: |
+          # envtest assets are optional in CI image; skip when absent
+          if [ -x /usr/local/kubebuilder/bin/etcd ]; then \
+            export KUBEBUILDER_ASSETS=/usr/local/kubebuilder/bin; \
+            make test-envtest; \
+          else \
+            echo "envtest assets not present; skipping"; \
+          fi
+
+  # Phase 9 — lifecycle idempotence tests (provision/off double-runs)
+  lifecycle-idempotence:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agents
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.20"
+      - name: Install locked dependencies
+        run: uv sync --frozen
+      - name: Run idempotence tests (e2e marker)
+        run: uv run pytest -m "e2e" -k "lifecycle_idempotence"

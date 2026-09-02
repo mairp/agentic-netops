@@ -278,8 +278,18 @@ class StubClassifierLLM:
         for pattern in REDIRECT_PATTERNS:
             if pattern.search(text.lower()):
                 return "unsupported"
-        if _PROVISIONABLE_RE.search(text.lower()) and parse_service_request(text) is not None:
-            return "provisionable"
+        if _PROVISIONABLE_RE.search(text.lower()):
+            # Treat a structural service request as provisionable even when some
+            # fields (e.g., tenant) are missing so the mapper can ask to clarify
+            # (Phase 9 positive phrasing corpus, T361).
+            parsed = parse_service_request(text)
+            if parsed is not None:
+                return "provisionable"
+            low = text.lower()
+            has_between = _BETWEEN_RE.search(low) is not None
+            has_type = any(word in low for (word, _t) in _SERVICE_TYPE_WORDS)
+            if has_between and has_type:
+                return "provisionable"
         return "informational"
 
     async def ainvoke(self, input: Any, config: Any = None) -> AIMessage:

@@ -1,45 +1,73 @@
-"""Unsupported-phrasings corpus runner — US2 (T119-T123).
+"""Phrasing corpus runners — US2 polish (T355–T361, T119–T123).
 
-Loads the natural-language phrasings under
-``agents/tests/corpus/phrasings/unsupported/*.yaml`` (T119-T122: transport
-engineering, pseudowire OAM, multicast, service chaining) and asserts the
-FR-012 / SC-003 property on every case:
+This module provides two independent runners:
 
-* **T123 — unsupported-property naming assertion**: the refusal must NAME
-  the exact unsupported property — the Go literal the translator rejects
-  with (``tePolicy``, ``pseudowireOAM``, ``multicastVPN``, ``serviceChain``;
-  see ``common/schemas/normalized_intent.py::UnsupportedClaims``). The
-  assertion is on two levels: the deterministic detector
-  (``graph.py::detect_unsupported_feature``) must map the phrasing onto
-  the file's ``property``, and the operator-facing ``refusal_reason``
-  recorded in graph state (and the ``refuse`` audit event) must contain
-  ``unsupported property: <property>``.
-* the refusal is terminal (FAILED at END), explained, audited, and
-  performs no worker calls and no device sessions (same harness as the
-  adversarial runner — the refusal holds before any model call or worker
-  transport is touched).
+1) Unsupported phrasings (US2 T119–T123):
+   Loads natural-language phrasings under
+   ``agents/tests/corpus/phrasings/unsupported/*.yaml`` (transport
+   engineering, pseudowire OAM, multicast, service chaining) and asserts
+   FR-012 / SC-003 on every case — the refusal must NAME the exact
+   unsupported property (Go literal) and the refusal is terminal, audited,
+   and performs no worker calls and no device sessions.
 
-Run:  cd agents && .venv/bin/python -m tests.corpus.phrasings.runner
-Exit: 0 iff every phrasing is refused with the exact property named.
+2) Positive service phrasings (Phase 9 T355–T361):
+   Loads natural-language service requests from
+   ``agents/tests/corpus/phrasings/{vpls,vpws,l3vpn,irb}.yaml`` and verifies:
+   - T359 — phrasing corpus loader: the four files are loaded with
+     (service_type, id, text, first_pass) for every case.
+   - T360 — first-pass correctness scoring: for cases with
+     ``first_pass: true`` we assert the first pass reaches the MAPPED
+     confirmation gate (pending_action == "confirm_1"), and the mapped
+     Interpretation JSON names the expected ``service_type``.
+   - T361 — clarifying-question assertion: for cases with
+     ``first_pass: false`` we assert the mapper returns a clarification
+     request (pending_action == "clarify"), carries ``missing_fields``,
+     and the operator-facing message asks for the missing fields.
+
+Run locally:
+  cd agents && .venv/bin/python -m tests.corpus.phrasings.runner
+Exit:
+  0 iff every phrasing meets its assertions (both unsupported and positive).
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Iterable
 
 import yaml
+from langchain_core.messages import AIMessage
 
-from supervisors.provisioning.graph.graph import detect_unsupported_feature
-from tests.corpus.adversarial.runner import AdversarialCase, _run_once
+from supervisors.provisioning.graph.graph import (
+    ProvisioningGraph,
+    default_deadline,
+    detect_unsupported_feature,
+)
+from tests.corpus.adversarial.runner import (
+    AdversarialCase,
+    StubClassifierLLM,
+    StubTransport,
+    _run_once,
+    check_case,
+)
+from common.provisioning_states import NetworkProvisioningStatus
+from langchain_core.runnables import RunnableLambda
 
+# ----------------------------------------------------------------------------
+# Unsupported-phrasings runner (US2 T119–T123).
+# ----------------------------------------------------------------------------
 UNSUPPORTED_DIR = Path(__file__).resolve().parent / "unsupported"
 EXPECTED_PROPERTIES = ("tePolicy", "pseudowireOAM", "multicastVPN", "serviceChain")
 
 
-def load_phrasings(root: Path = UNSUPPORTED_DIR) -> list[tuple[str, AdversarialCase]]:
-    """Load every ``unsupported/*.yaml``; returns (property, case) pairs."""
+def load_unsupported(root: Path = UNSUPPORTED_DIR) -> list[tuple[str, AdversarialCase]]:
+    """Load every ``unsupported/*.yaml``; returns (property, case) pairs.
+
+    Keeps the original acceptance harness for T123 and friends.
+    """
     out: list[tuple[str, AdversarialCase]] = []
     for path in sorted(root.glob("*.yaml")):
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -63,58 +91,200 @@ def load_phrasings(root: Path = UNSUPPORTED_DIR) -> list[tuple[str, AdversarialC
 
 
 @dataclass
-class PhrasingResult:
+class UnsupportedResult:
     property_name: str
     case: AdversarialCase
-    result: object
+    result: object | None
     violations: list[str] = field(default_factory=list)
 
 
-def run_phrasings(root: Path = UNSUPPORTED_DIR) -> list[PhrasingResult]:
-    """Run every phrasing; return per-phrasing results with violations."""
-    results: list[PhrasingResult] = []
-    for property_name, case in load_phrasings(root):
+def run_unsupported(root: Path = UNSUPPORTED_DIR) -> list[UnsupportedResult]:
+    """Run every unsupported phrasing; return per-phrasing results."""
+    results: list[UnsupportedResult] = []
+    for property_name, case in load_unsupported(root):
         # Level 1 (T123): the deterministic detector maps the phrasing onto
         # the exact Go-literal property.
         hit = detect_unsupported_feature(case.text)
         if hit is None:
-            results.append(PhrasingResult(property_name, case, None, ["detector did not match the phrasing"]))
+            results.append(UnsupportedResult(property_name, case, None, ["detector did not match the phrasing"]))
             continue
         if hit.family != property_name:
             results.append(
-                PhrasingResult(
-                    property_name, case, None,
+                UnsupportedResult(
+                    property_name,
+                    case,
+                    None,
                     [f"detector named {hit.family!r}, the file requires {property_name!r}"],
                 )
             )
             continue
         # Level 2 (T123): the full graph run — refusal naming the property.
         result = asyncio.run(_run_once(case, None, case.text, []))
-        from tests.corpus.adversarial.runner import check_case
-
         check_case(result)
         if f"unsupported property: {property_name}" not in (result.state.get("refusal_reason") or ""):
             result.violations.append(
                 f"refusal_reason does not name the exact unsupported property {property_name!r}"
             )
         refuses = [e for e in result.sink_events if e.event_type == "refuse"]
-        if refuses and not any(f"unsupported property: {property_name}" in (e.reason or "") for e in refuses):
-            result.violations.append("the 'refuse' AuditEvent does not name the exact unsupported property (T105)")
-        results.append(PhrasingResult(property_name, case, result, result.violations))
+        if refuses and not any(
+            f"unsupported property: {property_name}" in (e.reason or "") for e in refuses
+        ):
+            result.violations.append(
+                "the 'refuse' AuditEvent does not name the exact unsupported property (T105)"
+            )
+        results.append(UnsupportedResult(property_name, case, result, result.violations))
     return results
 
 
+# ----------------------------------------------------------------------------
+# Positive phrasings runner (Phase 9 T355–T361).
+# ----------------------------------------------------------------------------
+POS_DIR = Path(__file__).resolve().parent
+POS_FILES = ("vpls.yaml", "vpws.yaml", "l3vpn.yaml", "irb.yaml")
+
+
+@dataclass(frozen=True)
+class PositiveCase:
+    id: str
+    service_type: str  # VPLS | VPWS | L3VPN | IRB
+    text: str
+    first_pass: bool
+
+
+@dataclass
+class PositiveResult:
+    case: PositiveCase
+    state: dict | None
+    violations: list[str] = field(default_factory=list)
+
+
+def _load_positive_file(path: Path) -> Iterable[PositiveCase]:
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    st = str(data.get("service_type") or "").strip().upper()
+    assert st in ("VPLS", "VPWS", "L3VPN", "IRB"), f"{path.name}: unsupported service_type {st!r}"
+    for raw in data.get("cases", []):
+        yield PositiveCase(
+            id=raw["id"],
+            service_type=st,
+            text=raw["text"],
+            first_pass=bool(raw.get("first_pass", True)),
+        )
+
+
+def load_positive(root: Path = POS_DIR) -> list[PositiveCase]:
+    cases: list[PositiveCase] = []
+    for fname in POS_FILES:
+        p = root / fname
+        if p.exists():
+            cases.extend(list(_load_positive_file(p)))
+    return cases
+
+
+async def _run_first_pass(text: str) -> dict:
+    """Run exactly one pass of the real graph with the deterministic harness.
+
+    Returns the final state of that pass (MAPPED with confirm_1 or clarify).
+    """
+    llm = StubClassifierLLM()
+    transport = StubTransport()
+    graph = ProvisioningGraph(
+        llm_factory=lambda streaming=None: RunnableLambda(llm.ainvoke),
+        transport=transport,
+    )
+    try:
+        config = {"configurable": {"thread_id": f"phr-{hash(text) & 0xffff:04x}"}}
+        seed = {
+            "messages": [{"type": "human", "content": text}],
+            "correlation_id": "0" * 32,
+            "principal": "phrasing-runner",
+            "workflow_status": NetworkProvisioningStatus.RECEIVED_REQUEST.value,
+            "deadline": default_deadline(),
+        }
+        return await graph.ainvoke(seed, config=config)
+    finally:
+        await graph.close()
+
+
+def run_positive(root: Path = POS_DIR) -> list[PositiveResult]:
+    results: list[PositiveResult] = []
+    cases = load_positive(root)
+    for case in cases:
+        state = asyncio.run(_run_first_pass(case.text))
+        v: list[str] = []
+        status = state.get("workflow_status")
+        pending = state.get("pending_action")
+        last_msg = ""
+        for msg in reversed(state.get("messages", [])):
+            if isinstance(msg, AIMessage):
+                last_msg = msg.content
+                break
+        mapped_json = state.get("mapped_parameters") or ""
+        # T360 — first-pass correctness scoring
+        if case.first_pass:
+            if status != NetworkProvisioningStatus.MAPPED.value:
+                v.append(f"expected MAPPED on first pass, got status={status!r}")
+            if pending != "confirm_1":
+                v.append(f"expected confirm_1 pending_action on first pass, got {pending!r}")
+            try:
+                if mapped_json:
+                    interp = json.loads(mapped_json)
+                    st = interp.get("service_type") or interp.get("serviceType")
+                    if (st or "").upper() != case.service_type:
+                        v.append(
+                            f"mapped service_type {st!r} does not match expected {case.service_type!r}"
+                        )
+                else:
+                    v.append("missing mapped_parameters JSON on first pass")
+            except Exception as exc:  # noqa: BLE001
+                v.append(f"invalid mapped_parameters JSON: {exc}")
+        # T361 — clarifying-question assertion for non-first-pass cases
+        else:
+            if status != NetworkProvisioningStatus.MAPPED.value:
+                v.append(f"expected MAPPED on clarification cases, got status={status!r}")
+            if pending != "clarify":
+                v.append(f"expected pending_action=clarify, got {pending!r}")
+            missing_fields = state.get("missing_fields") or []
+            if not missing_fields:
+                v.append("missing_fields not recorded on clarification case")
+            if "Before I can map this service I need" not in (last_msg or ""):
+                v.append("clarifying prompt not emitted in operator-facing message")
+        results.append(PositiveResult(case, state, v))
+    return results
+
+
+# ----------------------------------------------------------------------------
+# CLI entrypoint — run both suites and print a concise summary.
+# ----------------------------------------------------------------------------
+
+def _print_summary(title: str, failures: list[str]) -> None:
+    print(title)
+    if failures:
+        for line in failures:
+            print(f"  - {line}")
+    else:
+        print("  OK")
+
+
 def main(argv: list[str] | None = None) -> int:
-    results = run_phrasings()
     failed = 0
-    for r in results:
-        status = "PASS" if not r.violations else "FAIL"
-        if r.violations:
-            failed += 1
-        print(f"{status}  {r.property_name:<14} {r.case.id}")
-        for violation in r.violations:
-            print(f"      - {violation}")
-    print(f"{len(results) - failed}/{len(results)} phrasings refused with the exact property named")
+
+    # Unsupported phrasing suite
+    u_results = run_unsupported()
+    u_failed = [f"{r.property_name}/{r.case.id}: {', '.join(r.violations)}" for r in u_results if r.violations]
+    _print_summary("Unsupported phrasings (T119–T123)", u_failed)
+    failed += len(u_failed)
+
+    # Positive phrasing suite
+    p_results = run_positive()
+    p_failed = [
+        f"{r.case.service_type}/{r.case.id}: {', '.join(r.violations)}" for r in p_results if r.violations
+    ]
+    _print_summary("Positive phrasings (T355–T361)", p_failed)
+    failed += len(p_failed)
+
+    total_cases = len(u_results) + len(p_results)
+    total_passed = total_cases - failed
+    print(f"\n{total_passed}/{total_cases} phrasing cases passed")
     return 0 if failed == 0 else 1
 
 

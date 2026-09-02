@@ -1,0 +1,24 @@
+# T357 — L3VPN phrasing corpus.
+#
+# Natural-language requests that should map to an L3VPN service on the first
+# pass (complete: tenant + two endpoints with attachments/VRFs) unless noted.
+service_type: L3VPN
+cases:
+  - id: l3vpn-001
+    text: "provision an L3VPN between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme"
+    first_pass: true
+  - id: l3vpn-002
+    text: "set up an L3 VPN between leaf01 ethernet3 and leaf02 ethernet4 for tenant acme"
+    first_pass: true
+  - id: l3vpn-003
+    text: "create an L3VPN between leaf01 ethernet5 and leaf02 ethernet6 for tenant acme"
+    first_pass: true
+  - id: l3vpn-004
+    text: "L3VPN between leaf01 ethernet7 and leaf02 ethernet8 for tenant acme"
+    first_pass: true
+  - id: l3vpn-005
+    text: "provision an L3VPN between leaf01 ethernet9 and leaf02 ethernet10 for tenant acme with ipv4"
+    first_pass: true
+  - id: l3vpn-006
+    text: "set up an L3VPN between leaf01 ethernet1 and leaf02 ethernet2"
+    first_pass: false   # missing tenant triggers clarifying question

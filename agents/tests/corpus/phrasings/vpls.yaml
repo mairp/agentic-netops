@@ -1,0 +1,24 @@
+# T355 — VPLS phrasing corpus.
+#
+# Natural-language requests that should map to a VPLS service on the first
+# pass (complete: tenant + two endpoints with attachments) unless noted.
+service_type: VPLS
+cases:
+  - id: vpls-001
+    text: "provision a VPLS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 200"
+    first_pass: true
+  - id: vpls-002
+    text: "set up a multipoint L2VPN VPLS between leaf01 ethernet3 and leaf02 ethernet4 for tenant acme vlan 110"
+    first_pass: true
+  - id: vpls-003
+    text: "create VPLS service between leaf01 ethernet5 and leaf02 ethernet6 for tenant acme vlan 300"
+    first_pass: true
+  - id: vpls-004
+    text: "VPLS between leaf01 ethernet7 and leaf02 ethernet8 for tenant acme vlan 120"
+    first_pass: true
+  - id: vpls-005
+    text: "provision a VPLS between leaf01 ethernet9 and leaf02 ethernet10 for tenant acme"
+    first_pass: true
+  - id: vpls-006
+    text: "provision a VPLS between leaf01 ethernet1 and leaf02 ethernet2"
+    first_pass: false   # missing tenant triggers clarifying question
