@@ -103,6 +103,14 @@ intent::install() {
       --timeout="$INTENT_TIER_TIMEOUT" job/intent-secret-generator
   fi
 
+  # The tier-owned OTel collector MUST exist before the agents start. Every agent
+  # exports OTLP traces on startup and treats a failed export as fatal: without this
+  # collector they fall back to localhost:4318, get ConnectionError, and crash --
+  # allocator reached CrashLoopBackOff with 13 restarts while its own /v1/health
+  # returned 200, so the pod looked alive and the supervisor just reported
+  # "readiness degraded: allocator unreachable" (2026-09-03). The manifest existed
+  # in deploy/agents/telemetry.yaml the whole time and was simply never applied.
+  intent::kubectl apply -f "$(intent::manifest telemetry.yaml)"
   intent::kubectl apply -f "$(intent::manifest slim.yaml)"
   intent::kubectl apply -f "$(intent::manifest supervisor.yaml)"
   intent::kubectl apply -f "$(intent::manifest mapper.yaml)"

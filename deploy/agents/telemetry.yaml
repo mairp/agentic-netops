@@ -85,10 +85,15 @@ data:
         traces_table_name: traces
         metrics_table_name: metrics
         timeout: 10s
-        username:
-          env_var: CLICKHOUSE_USERNAME
-        password:
-          env_var: CLICKHOUSE_PASSWORD
+        # ${env:VAR}, not the `env_var:` map form. This collector version rejects
+        # the map outright -- "'password' expected type configopaque.String, got
+        # unconvertible type map[string]interface {}" -- so the collector never
+        # started, which took the whole agent tier down with it: every agent exports
+        # OTLP on startup and treats a failed export as fatal, so mapper, allocator
+        # and deployer all landed in CrashLoopBackOff (2026-09-03). The env vars
+        # themselves were already injected correctly from the clickhouse-auth Secret.
+        username: ${env:CLICKHOUSE_USERNAME}
+        password: ${env:CLICKHOUSE_PASSWORD}
         # T351: queue/retry for ClickHouse outages
         sending_queue:
           enabled: true
@@ -114,7 +119,22 @@ data:
           enabled: true
           max_elapsed_time: 5m
 
+    # health_check must exist: the Deployment's liveness AND readiness probes both
+    # target port 13133, which is this extension's port. Without it nothing listens
+    # there, the liveness probe fails, kubelet SIGTERMs the collector, and it shuts
+    # down cleanly -- so the pod restarts forever with Exit Code 0 / Reason
+    # "Completed", which reads like a normal exit rather than a failure.
+    #
+    # That loop took the whole agent tier with it (2026-09-03): every agent exports
+    # OTLP on startup and treats a failed export as fatal, so each time this
+    # collector went down mapper, allocator and deployer crashed too, and the
+    # supervisor reported "readiness degraded: mapper/allocator/deployer
+    # unreachable" while each of those pods' own /v1/health returned 200.
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
     service:
+      extensions: [health_check]
       pipelines:
         traces:
           receivers: [otlp]
