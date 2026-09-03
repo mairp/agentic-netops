@@ -35,10 +35,18 @@ data:
       tls-key: /etc/gnmic/tls/tls.key
       encoding: json_ietf
       targets:
-        spine01: { address: 172.31.0.11:9339 }
-        spine02: { address: 172.31.0.12:9339 }
-        leaf01:  { address: 172.31.0.21:9339 }
-        leaf02:  { address: 172.31.0.22:9339 }
+        spine01: { address: 172.31.0.11:8080 }
+        spine02: { address: 172.31.0.12:8080 }
+        leaf01:  { address: 172.31.0.21:8080 }
+        leaf02:  { address: 172.31.0.22:8080 }
+      # KNOWN GAP (2026-09-03): these OpenConfig paths do not stream on this build.
+      # A Subscribe without a prefix target is rejected -- the server answers
+      # "Unimplemented: Empty target data not supported", surfacing on the stream as
+      # "first message must be SubscribeRequest". Setting `target:` per subscription
+      # here does NOT satisfy it (tried and reverted). A manual subscribe WITH a DB
+      # target (e.g. --target COUNTERS_DB) is accepted and streams, so the fix is to
+      # move these to SONiC-native DB paths -- which changes the emitted metric names
+      # and therefore requires the Grafana dashboards to be rewired to match.
       subscriptions:
         ifaces:
           paths:

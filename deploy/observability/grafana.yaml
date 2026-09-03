@@ -172,8 +172,19 @@ spec:
           volumeMounts:
             - name: storage
               mountPath: /var/lib/grafana
+            # Grafana scans provisioning/datasources/ and provisioning/dashboards/
+            # -- SUBDIRECTORIES. Mounting the ConfigMap flat at
+            # /etc/grafana/provisioning put datasources.yaml and dashboards.yaml
+            # one level too high, so Grafana found neither: the API reported 0
+            # datasources and 0 dashboards while both files sat correctly mounted
+            # in the pod and all 5 dashboard JSONs were present on disk. The whole
+            # observability stack deployed and displayed nothing (2026-09-03).
             - name: provisioning
-              mountPath: /etc/grafana/provisioning
+              mountPath: /etc/grafana/provisioning/datasources/datasources.yaml
+              subPath: datasources.yaml
+            - name: provisioning
+              mountPath: /etc/grafana/provisioning/dashboards/dashboards.yaml
+              subPath: dashboards.yaml
             - name: dashboards
               mountPath: /var/lib/grafana/dashboards
           resources:

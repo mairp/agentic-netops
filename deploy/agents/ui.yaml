@@ -49,8 +49,14 @@ spec:
           initialDelaySeconds: 3
           periodSeconds: 10
         resources:
-          requests: { cpu: "50m", memory: "64Mi" }
-          limits: { cpu: "200m", memory: "256Mi" }
+          # The UI image runs a full `vite build` at container start (30+ seconds,
+          # 30 modules) before it serves anything, and Node's build peak does not
+          # fit in 256Mi: the container was OOMKilled (exit 137) mid-serve and went
+          # CrashLoopBackOff after 6 restarts, with the build log ending cleanly at
+          # "serving UI on port 3000..." each time -- so the logs looked healthy and
+          # only the exit code showed the kill (2026-09-03).
+          requests: { cpu: "100m", memory: "256Mi" }
+          limits: { cpu: "1000m", memory: "1Gi" }
 ---
 apiVersion: v1
 kind: Service

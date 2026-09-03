@@ -93,6 +93,34 @@ clab::bootstrap() {
       echo "[clab] bootstrap: ${node} config_db.json never appeared; continuing anyway" >&2
     fi
     docker exec "$c" bash -lc "chmod +x /etc/sonic/bootstrap/*.sh && /etc/sonic/bootstrap/init-sonic-bootstrap.sh"
+    # VERIFY the two things gNMI password auth actually needs, and repair them if
+    # the bootstrap did not get there. init-sonic-bootstrap.sh runs under
+    # `set -euo pipefail`, so ANY earlier failure aborts it silently -- and the two
+    # steps at the END are the ones that matter: creating the local gNMI user and
+    # having sshd listening (sonic-gnmi authenticates the user through PAM/sshd,
+    # not through CONFIG_DB).
+    #
+    # When that abort happens the failure is invisible and total: no local user
+    # exists, so EVERY gNMI request returns "Unauthenticated". Measured 2026-09-03
+    # on a fresh lab: the creds file and the k8s Secret agreed exactly
+    # (user 75bb9360), the TLS certs were installed, telemetry was listening on
+    # :8080 -- and no node had any uid>=1000 user at all. gnmic could not subscribe,
+    # Prometheus held only scrape metadata, and every Grafana panel read "No data".
+    # The whole observability stack deployed green and showed nothing.
+    docker exec "$c" bash -lc '
+      CREDS=/etc/sonic/bootstrap/gnmi_creds.json
+      U=$(jq -r ".username // empty" "$CREDS" 2>/dev/null)
+      P=$(jq -r ".password // empty" "$CREDS" 2>/dev/null)
+      if [ -n "$U" ] && [ -n "$P" ]; then
+        id -u "$U" >/dev/null 2>&1 || useradd -m -s /bin/bash "$U" 2>/dev/null || true
+        echo "$U:$P" | chpasswd 2>/dev/null || true
+        id -u "$U" >/dev/null 2>&1 || echo "[bootstrap] ERROR: gNMI user $U still missing" >&2
+      fi
+      if ! (exec 3<>/dev/tcp/127.0.0.1/22) 2>/dev/null; then
+        ssh-keygen -A >/dev/null 2>&1 || true; mkdir -p /var/run/sshd
+        supervisorctl start sshd >/dev/null 2>&1 || /usr/sbin/sshd >/dev/null 2>&1 || true
+      fi
+    ' || true
     docker exec "$c" touch /etc/ainetops/.bootstrapped
     echo "[clab] bootstrap: ${node} done"
   done
