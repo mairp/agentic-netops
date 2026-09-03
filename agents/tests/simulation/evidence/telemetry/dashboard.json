@@ -1,0 +1,8 @@
+{
+  "title": "Intent Tier Overview",
+  "panels": [
+    {"id": 1, "title": "Stage Success Rate", "type": "graph"},
+    {"id": 2, "title": "Convergence Time", "type": "graph"}
+  ],
+  "source": "deploy/agents/dashboards/intent-tier.json"
+}

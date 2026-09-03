@@ -1,0 +1,3 @@
+{"session_id":"B-expert-0","persona":"expert","thread_id":"BT-1000","correlation_id":"BCID-2000","steps":["Provision L3VPN ACME between PE1 and PE2"],"completed":true}
+{"session_id":"B-novice-1","persona":"novice","thread_id":"BT-1001","correlation_id":"BCID-2001","steps":["Connect two clients for ACME?"],"completed":true}
+{"session_id":"B-out_of_scope-2","persona":"out_of_scope","thread_id":"BT-1002","correlation_id":"BCID-2002","steps":["SSH into spine1 and change BGP timers"],"completed":true}

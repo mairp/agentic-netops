@@ -1,0 +1,282 @@
+# Phase 2 (T036-T050): The intent tier's cluster identity — RBAC and NetworkPolicy.
+#
+# This file is the FR-016 guardrail: the tier's two cluster API identities
+# (intent-allocator, intent-deployer) cannot express a device action, and no
+# tier pod can reach the containerlab management network 172.31.0.0/16.
+# SC-005 is proven by attempting every denial in
+# deploy/agents/tests/probes/rbac-denials.sh and observing "no"/timeout.
+#
+# Pod label convention used by the NetworkPolicies below (deployments set these):
+#   every tier pod:        ainetops.io/tier: intent
+#   allocator pod:         app: intent-allocator
+#   deployer pod:          app: intent-deployer
+#
+# Source: plan.md Component 6 (verbatim), extended with the three
+# no-token ServiceAccounts required by contracts/kubernetes-objects.md.
+---
+# T036/T037: the two tier namespaces, both labeled.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ainetops-intent
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+---
+# T038: no-token identities. These workloads never talk to the cluster API:
+# automountServiceAccountToken: false means no token is mounted at all, so a
+# compromised supervisor, mapper, or UI pod holds no cluster credential.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: intent-supervisor
+  namespace: ainetops-agents
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: intent-mapper
+  namespace: ainetops-agents
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: intent-ui
+  namespace: ainetops-agents
+automountServiceAccountToken: false
+---
+# T039: the ONLY two token-bearing (cluster API) identities in the tier.
+# Claim-only identity for the allocator. It has no service-intent or
+# device-facing permissions.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: intent-allocator
+  namespace: ainetops-agents
+---
+# The service-intent writer identity for Network, SRv6Service, and Event
+# objects in ainetops-intent.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: intent-deployer
+  namespace: ainetops-agents
+---
+# T040/T041: write access to the tier's own service intent, in the tier's own
+# namespace only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: intent-writer
+  namespace: ainetops-intent
+rules:
+- apiGroups: ["network.kubenet.dev"]
+  resources: ["networks"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["ainetops.io"]
+  resources: ["srv6services"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create"]
+# Deliberately absent: secrets, configmaps, pods, pods/exec, nodes,
+# config.sdcio.dev/*, inv.sdcio.dev/targets, and every resource in kubenet-system.
+---
+# T042: bind the writer Role to the deployer identity only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: intent-writer
+  namespace: ainetops-intent
+subjects:
+- kind: ServiceAccount
+  name: intent-deployer
+  namespace: ainetops-agents
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: intent-writer
+---
+# T043: claim and release identifiers from the existing authority.
+# No update/patch: the tier can claim and release, but cannot retarget an
+# existing claim (Decision 11).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kuid-claimer
+  namespace: kuid-system
+rules:
+- apiGroups: ["id.kuid.dev"]
+  resources: ["claims"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+# T032 (gates/proofs/t032-kuid-claim-status.api.log): the pinned
+# ghcr.io/kuidio/kuid-server:v0.0.13 serves the *.be.kuid.dev groups, not
+# id.kuid.dev — the claim client therefore needs the same verb set on the
+# served claim resources (same verbs: no update/patch anywhere).
+- apiGroups: ["ipam.be.kuid.dev"]
+  resources: ["ipclaims"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: ["genid.be.kuid.dev"]
+  resources: ["genidclaims"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: ["as.be.kuid.dev"]
+  resources: ["asclaims"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: ["vlan.be.kuid.dev"]
+  resources: ["vlanclaims"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: ["extcomm.be.kuid.dev"]
+  resources: ["extcommclaims"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+# Deliberately absent: ipindexes, vniindexes, asnindexes, secrets, and
+# update/patch on every claim resource above.
+---
+# T044: bind the claim identity to the allocator only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kuid-claimer
+  namespace: kuid-system
+subjects:
+- kind: ServiceAccount
+  name: intent-allocator
+  namespace: ainetops-agents
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kuid-claimer
+---
+# T051-T054 support: the secret generator Job (deploy/agents/secret-generator-job.yaml)
+# needs to populate Secrets in ainetops-agents without holding any other
+# permission. Narrow Role + binding for that Job's identity only.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: intent-secret-generator
+  namespace: ainetops-agents
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: secret-generator
+  namespace: ainetops-agents
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: secret-generator
+  namespace: ainetops-agents
+subjects:
+- kind: ServiceAccount
+  name: intent-secret-generator
+  namespace: ainetops-agents
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: secret-generator
+---
+# T045: baseline — nothing in or out. Any pod in the tier namespace with no
+# matching allowance gets zero ingress and zero egress. Mirrors
+# deploy/rbac/base.yaml's deny-all-by-default.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-by-default
+  namespace: ainetops-agents
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress", "Egress"]
+---
+# T046-T049: the complete egress budget for tier pods. The device management
+# network is unreachable from every tier pod — the concrete, attemptable
+# denial behind SC-005's third clause (deploy/agents/tests/probes/mgmt-network-denial.sh).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-scoped
+  namespace: ainetops-agents
+spec:
+  podSelector:
+    matchLabels:
+      ainetops.io/tier: intent
+  policyTypes: ["Egress"]
+  egress:
+  # T046: DNS only (cluster DNS lives in kube-system).
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # T047: intra-tier traffic (SLIM gateway + worker peers).
+  - to:
+    - podSelector:
+        matchLabels:
+          ainetops.io/tier: intent
+  # T048: OTLP over gRPC to the tier-owned collector in ainetops-system.
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ainetops-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: otel-collector
+    ports:
+    - protocol: TCP
+      port: 4317
+  # T049: model-provider TLS only. The except list carves out the containerlab
+  # management subnet (172.31.0.0/16, SONiC nodes .11/.12/.21/.22) plus the
+  # RFC1918 lab ranges — even for port 443.
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 172.31.0.0/16
+        - 10.0.0.0/8
+        - 192.168.0.0/16
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# T050: Kubernetes API egress is admitted for the allocator and deployer pods
+# ONLY. The supervisor, mapper, and UI hold no token (T038) and no API egress;
+# the slim gateway and collector do not need the API either.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: apiserver-egress-cluster-clients
+  namespace: ainetops-agents
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - intent-allocator
+      - intent-deployer
+  policyTypes: ["Egress"]
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443

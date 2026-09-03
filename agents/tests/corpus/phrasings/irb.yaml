@@ -1,0 +1,24 @@
+# T358 — IRB phrasing corpus.
+#
+# Natural-language requests that should map to an IRB (integrated L2+L3) service
+# on the first pass (complete: tenant + two endpoints with attachments) unless noted.
+service_type: IRB
+cases:
+  - id: irb-001
+    text: "provision an IRB between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 100"
+    first_pass: true
+  - id: irb-002
+    text: "set up L2+L3 IRB between leaf01 ethernet3 and leaf02 ethernet4 for tenant acme vlan 200"
+    first_pass: true
+  - id: irb-003
+    text: "create IRB service between leaf01 ethernet5 and leaf02 ethernet6 for tenant acme vlan 300"
+    first_pass: true
+  - id: irb-004
+    text: "IRB between leaf01 ethernet7 and leaf02 ethernet8 for tenant acme vlan 400"
+    first_pass: true
+  - id: irb-005
+    text: "provision IRB between leaf01 ethernet9 and leaf02 ethernet10 for tenant acme"
+    first_pass: true
+  - id: irb-006
+    text: "set up IRB between leaf01 ethernet1 and leaf02 ethernet2"
+    first_pass: false   # missing tenant triggers clarifying question

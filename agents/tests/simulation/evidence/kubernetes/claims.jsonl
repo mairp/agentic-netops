@@ -1,0 +1,12 @@
+{"action": "create", "name": "claim-0", "correlation_id": "CID-8521590"}
+{"action": "create", "name": "claim-1", "correlation_id": "CID-8319493"}
+{"action": "create", "name": "claim-2", "correlation_id": "CID-2556331"}
+{"action": "create", "name": "claim-3", "correlation_id": "CID-1356280"}
+{"action": "create", "name": "claim-4", "correlation_id": "CID-3265888"}
+{"action": "create", "name": "claim-5", "correlation_id": "CID-6573352"}
+{"action": "release", "name": "claim-0", "correlation_id": "CID-8521590"}
+{"action": "release", "name": "claim-1", "correlation_id": "CID-8319493"}
+{"action": "release", "name": "claim-2", "correlation_id": "CID-2556331"}
+{"action": "release", "name": "claim-3", "correlation_id": "CID-1356280"}
+{"action": "release", "name": "claim-4", "correlation_id": "CID-3265888"}
+{"action": "release", "name": "claim-5", "correlation_id": "CID-6573352"}

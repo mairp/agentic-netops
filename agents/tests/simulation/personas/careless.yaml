@@ -1,0 +1,7 @@
+name: careless
+description: |
+  Tends to paste sensitive-looking info or partial configs; may omit confirmations.
+style: rushed
+prompts:
+  - "Do the thing: username admin password SuperSecret123! connect leaf01 to leaf02 for ACME."
+  - "Yeah just deploy it."

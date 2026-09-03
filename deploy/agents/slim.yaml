@@ -1,0 +1,167 @@
+# T075-T077: the SLIM transport gateway — the tier's A2A message transport.
+#
+# Image ghcr.io/agntcy/slim:0.6.1 (digest-pinned in versions.lock.yaml
+# intent_tier.slim). Data plane 46357/TCP (the subject's port, REVERSE.md
+# Finding 1 — NOT the README's :7080); the controller plane 46358 stays
+# loopback-only and unexposed, matching the subject (plan.md Component 1).
+#
+# T075: ConfigMap/slim-config carries the gateway YAML with TLS ENABLED and
+# client-certificate verification — replacing the subject's tls.insecure: true
+# (Decision 6). The key names below were QUALIFIED on the pinned image by
+# running it (gates/proofs/t028-slim-tls-keys.log): the accepted
+# TlsServerConfig fields are insecure / cert_file / key_file / client_ca_file
+# (plus ca_file, ca_pem, cert_pem, key_pem, tls_version, reload_interval,
+# client_ca_pem, reload_client_ca_file in the internal struct).
+#
+# T052/T053: the gateway's PASSWORD and the TLS material come from the
+# generated Secrets slim-gateway and slim-tls (deploy/agents/
+# secret-generator-job.yaml) — no credential literal in this file.
+#
+# FR-024: an unauthenticated worker registration must be refused — the gateway
+# verifies client certificates against the generated CA (client_ca_file) and
+# authenticates on PASSWORD; NetworkPolicy/slim-ingress below admits :46357
+# ONLY from pods labelled ainetops.io/tier: intent (T077).
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slim-config
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+data:
+  server-config.yaml: |
+    tracing:
+      log_level: info
+    runtime:
+      n_cores: 0
+      thread_name: "slim-data-plane"
+      drain_timeout: 10s
+    services:
+      slim/0:
+        dataplane:
+          servers:
+            - endpoint: "0.0.0.0:46357"
+              tls:
+                # Qualified keys for ghcr.io/agntcy/slim:0.6.1 (Decision 6,
+                # gates/proofs/t028-slim-tls-keys.log). NOT insecure: true —
+                # that branch is what REVERSE.md flags on the subject.
+                insecure: false
+                cert_file: /certs/server.crt
+                key_file: /certs/server.key
+                # Client-certificate verification: workers must present a cert
+                # signed by the generated CA (per-agent pairs in slim-tls).
+                client_ca_file: /certs/ca.crt
+          clients: []
+        controller:
+          # Controller plane: loopback-only, never exposed as a Service port
+          # (plan.md Component 1). TLS stays disabled here exactly as the
+          # qualified run did — nothing outside the pod can reach it.
+          servers:
+            - endpoint: "127.0.0.1:46358"
+              tls:
+                insecure: true
+---
+# T076: Deployment/slim — one replica; the gateway holds no cluster identity
+# (no token: it speaks gRPC to workers, not the API server).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slim
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+    app: slim
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: slim
+  template:
+    metadata:
+      labels:
+        ainetops.owner: ainetops
+        ainetops.io/tier: intent
+        app: slim
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: slim
+        image: ghcr.io/agntcy/slim@sha256:12789882e61afb2bc8d12fac4abba18ae7175ffc6c60f35b58a2aa375ccf2fe0
+        args: ["/slim", "--config", "/config/server-config.yaml"]
+        env:
+        # T052: generated gateway password — never a literal (FR-024).
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef: {name: slim-gateway, key: PASSWORD}
+        ports:
+        - {name: dataplane, containerPort: 46357}
+        readinessProbe:
+          tcpSocket: {port: 46357}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket: {port: 46357}
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        volumeMounts:
+        - {name: config, mountPath: /config, readOnly: true}
+        - {name: tls, mountPath: /certs, readOnly: true}
+      volumes:
+      - name: config
+        configMap:
+          name: slim-config
+      - name: tls
+        secret:
+          secretName: slim-tls
+          items:
+          - {key: ca.crt, path: ca.crt}
+          - {key: server.crt, path: server.crt}
+          - {key: server.key, path: server.key}
+---
+# T076: Service/slim — ClusterIP, 46357/TCP. Workers address it as
+# http://slim.ainetops-agents.svc:46357 (TRANSPORT_SERVER_ENDPOINT, the
+# long variable name — config/config.py).
+apiVersion: v1
+kind: Service
+metadata:
+  name: slim
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+    app: slim
+spec:
+  type: ClusterIP
+  selector:
+    app: slim
+  ports:
+  - {name: dataplane, port: 46357, targetPort: 46357, protocol: TCP}
+---
+# T077: admit 46357 ONLY from tier pods. The supervisor and the three workers
+# carry ainetops.io/tier: intent (namespace-rbac.yaml convention); nothing
+# else in the cluster can reach the gateway.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: slim-ingress
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+spec:
+  podSelector:
+    matchLabels:
+      app: slim
+  policyTypes: ["Ingress"]
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          ainetops.io/tier: intent
+    ports:
+    - {protocol: TCP, port: 46357}

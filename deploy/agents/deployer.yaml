@@ -1,0 +1,136 @@
+# deploy/agents/deployer.yaml — the deployer worker agent (US3).
+#
+# T180: Deployment/deployer + Service/deployer on 9093/TCP (the subject's port,
+# contracts/supervisor-http.md), liveness/readiness probes on the deep
+# `GET /v1/health` (a real A2A session probe over SLIM — "alive" means the
+# worker can be reached, not merely that the process is up), and lab-sized
+# resources (requests 50m/128Mi, limits 500m/512Mi) for the kind lab.
+#
+# The worker registers with the SLIM gateway over TRANSPORT_SERVER_ENDPOINT
+# (server.py run_transport); SLIM-only is enforced in code (require_slim).
+# The service account is non-token-bearing (automountServiceAccountToken:
+# false in deploy/agents/namespace-rbac.yaml) — deployer touches no cluster API.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deployer
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+spec:
+  selector:
+    app: deployer
+  ports:
+    - name: http
+      port: 9093
+      targetPort: 9093
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployer
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployer
+  template:
+    metadata:
+      labels:
+        app: deployer
+        ainetops.owner: ainetops
+        ainetops.io/tier: intent
+    spec:
+      serviceAccountName: intent-deployer
+      automountServiceAccountToken: false
+      containers:
+        - name: deployer
+          image: ainetops/intent-deployer:latest
+          imagePullPolicy: IfNotPresent
+          # FR-024: the gateway verifies client certificates; the pinned SDK
+          # cannot present one, so the container front-ends it with a
+          # pod-local mTLS proxy (docker/mtls-proxy.sh) presenting this
+          # agent's certificate from Secret/slim-tls.
+          command: ["/bin/bash", "/app/docker/mtls-proxy.sh"]
+          args: ["python", "provisioning/deployer/server.py"]
+          ports:
+            - name: http
+              containerPort: 9093
+          env:
+            - name: SLIM_TLS_DIR
+              value: /etc/slim/tls
+            - name: SLIM_CLIENT_NAME
+              value: deployer
+            - name: SLIM_UPSTREAM
+              value: slim.ainetops-agents.svc:46357
+            - name: ENABLE_HTTP
+              value: "true"
+            - name: DEFAULT_MESSAGE_TRANSPORT
+              value: "SLIM"
+            # The transport reaches the gateway through the pod-local proxy.
+            - name: TRANSPORT_SERVER_ENDPOINT
+              value: "http://127.0.0.1:46357"
+          # Trivial liveness (process up); a transport outage degrades
+          # /v1/health readiness (named 503) instead of killing the pod.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9093
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /v1/health
+              port: 9093
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: slim-tls
+              mountPath: /etc/slim/tls
+              readOnly: true
+        # contracts/translator-api.md — the Go translator is a sidecar in the
+        # deployer Pod, bound to 127.0.0.1:8090. No Service, no NetworkPolicy
+        # allowance, no cluster-visible surface: the call is always pod-local.
+        # It is the single translation implementation (pkg/migration); no
+        # translation logic is reimplemented in Python (FR-011).
+        - name: intent-translator
+          image: ainetops/intent-translator:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: translator
+              containerPort: 8090
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      volumes:
+        - name: slim-tls
+          secret:
+            secretName: slim-tls
+            items:
+              - key: ca.crt
+                path: ca.crt
+              - key: deployer.crt
+                path: deployer.crt
+              - key: deployer.key
+                path: deployer.key

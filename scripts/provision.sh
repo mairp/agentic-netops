@@ -17,14 +17,20 @@ AINETOPS_TIMEOUT=${AINETOPS_TIMEOUT:-180s}
 
 usage() {
   cat <<EOF
-Usage: $0 [--profile sonic-vs|sonic-vm] [--cluster-name NAME] [--timeout DURATION]
+Usage: $0 [--profile sonic-vs|sonic-vm] [--cluster-name NAME] [--timeout DURATION] [--with-intent-tier]
 
 Flags:
-  --profile       SONiC lab profile (sonic-vs fast, sonic-vm conformance)
-  --cluster-name  Kind cluster name (default: ainetops)
-  --timeout       Rollout wait timeout (default: 180s)
+  --profile           SONiC lab profile (sonic-vs fast, sonic-vm conformance)
+  --cluster-name      Kind cluster name (default: ainetops)
+  --timeout           Rollout wait timeout (default: 180s)
+  --with-intent-tier  Also install the AGNTCY intent tier (supervisor +
+                      mapper/allocator/deployer over SLIM) after the control
+                      plane readiness waits (T185/T186)
 EOF
 }
+
+# Flags
+WITH_INTENT_TIER=${AINETOPS_WITH_INTENT_TIER:-false}
 
 # Parse flags
 while [[ $# -gt 0 ]]; do
@@ -32,12 +38,15 @@ while [[ $# -gt 0 ]]; do
     --profile) shift; AINETOPS_PROFILE=${1:-$AINETOPS_PROFILE} ;;
     --cluster-name) shift; AINETOPS_CLUSTER_NAME=${1:-$AINETOPS_CLUSTER_NAME} ;;
     --timeout) shift; AINETOPS_TIMEOUT=${1:-$AINETOPS_TIMEOUT} ;;
+    --with-intent-tier) WITH_INTENT_TIER=true ;;
     -h|--help) usage; exit 0 ;;
     *) echo "[provision] unknown flag: $1" >&2; usage; exit 2 ;;
   esac
   shift || true
 done
 export AINETOPS_CLUSTER_NAME AINETOPS_PROFILE AINETOPS_TIMEOUT
+# Export the parsed WITH_INTENT_TIER for preflight headroom checks (Phase 10)
+export AINETOPS_WITH_INTENT_TIER="$WITH_INTENT_TIER"
 
 # shellcheck source=./lib/preflight.sh
 if [[ -f "${LIB_DIR}/preflight.sh" ]]; then
@@ -161,6 +170,20 @@ if command -v kubectl >/dev/null 2>&1; then
   kubectl --context "$CTX" -n default wait --for=condition=Ready --timeout="${AINETOPS_TIMEOUT}" srv6service/example-srv6 || true
   # Capture independent observation of applied Network resources
   kubectl --context "$CTX" -n kubenet-system get networkconfigs,networks 2>/dev/null | nl -ba > "${REPO_ROOT}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/kubectl-get-kubenet-networks.txt" || true
+fi
+
+# T185/T186 — optional AGNTCY intent tier, installed AFTER the control-plane
+# readiness waits above (the tier sits on top of the reconciled fabric; a
+# half-ready control plane must never have the tier deployed onto it).
+# Sourced, not executed: the library installs, waits (bounded), and reports
+# under the same cluster context.
+if [[ "$WITH_INTENT_TIER" == "true" ]]; then
+  # shellcheck source=./lib/intent_tier.sh
+  source "${LIB_DIR}/intent_tier.sh"
+  INTENT_TIER_TIMEOUT=${AINETOPS_TIMEOUT}
+  intent::install
+else
+  echo "[provision] skipping intent tier (pass --with-intent-tier to install it)"
 fi
 # Seed SDC schema/profile/discovery
 if command -v kubectl >/dev/null 2>&1; then

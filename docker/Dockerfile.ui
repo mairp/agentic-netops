@@ -1,0 +1,31 @@
+# docker/Dockerfile.ui — operator chat surface (feature 002).
+#
+# Base image: the digest-pinned node:20-alpine recorded under intent_tier.node
+# in versions.lock.yaml (NFR-003: immutable digest; no floating tags).
+# Builds the Vite app from ui/. Build context: repository root.
+ARG NODE_BASE_IMAGE=node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+
+# --- build stage: Vite app from ui/ ---
+FROM ${NODE_BASE_IMAGE} AS build
+WORKDIR /app
+COPY ui/package.json ui/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY ui/ ./
+# Build-time defaults; the ui-env ConfigMap values win at runtime:
+# ui-build-and-serve.sh regenerates .env from pod VITE_* environment and
+# rebuilds before serving (Vite bakes VITE_* into the bundle at build time).
+ARG VITE_SUPERVISOR_API_URL=http://supervisor.ainetops-agents.svc:9090
+ENV VITE_SUPERVISOR_API_URL=${VITE_SUPERVISOR_API_URL}
+RUN npm run build
+
+# --- runtime stage: regenerate .env, rebuild, serve ---
+FROM ${NODE_BASE_IMAGE} AS runtime
+WORKDIR /app
+# Sources + dependencies are carried forward: the runtime .env regeneration
+# triggers a production rebuild before the app is served.
+COPY --from=build /app ./
+COPY docker/ui-build-and-serve.sh ./ui-build-and-serve.sh
+RUN chmod +x ./ui-build-and-serve.sh
+ENV NODE_ENV=production
+EXPOSE 3000
+CMD ["sh", "./ui-build-and-serve.sh"]

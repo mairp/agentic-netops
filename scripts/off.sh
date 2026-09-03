@@ -14,21 +14,34 @@ CAPTURE_EVIDENCE=${AINETOPS_CAPTURE_EVIDENCE:-false}
 
 usage() {
   cat <<EOF
-Usage: $0 [--cluster-name NAME] [--delete-kind true|false] [--capture-evidence true|false]
+Usage: $0 [--cluster-name NAME] [--delete-kind true|false] [--capture-evidence true|false] [--purge-intent-tier]
 EOF
 }
+
+# Flags
+PURGE_INTENT_TIER=${AINETOPS_PURGE_INTENT_TIER:-false}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --cluster-name) shift; AINETOPS_CLUSTER_NAME=${1:-$AINETOPS_CLUSTER_NAME} ;;
     --delete-kind) shift; DELETE_KIND=${1:-$DELETE_KIND} ;;
     --capture-evidence) shift; CAPTURE_EVIDENCE=${1:-$CAPTURE_EVIDENCE} ;;
+    --purge-intent-tier) PURGE_INTENT_TIER=true ;;
     -h|--help) usage; exit 0 ;;
     *) echo "[off] unknown flag: $1" >&2; usage; exit 2 ;;
   esac
   shift || true
 done
 export AINETOPS_CLUSTER_NAME
+
+# T187/T188 — optional intent-tier teardown. ONLY with --purge-intent-tier:
+# the DEFAULT teardown behavior below is untouched (the flag is additive, so
+# an existing off.sh invocation tears down exactly what it always did).
+if [[ "$PURGE_INTENT_TIER" == "true" ]]; then
+  # shellcheck source=./lib/intent_tier.sh
+  source "${LIB_DIR}/intent_tier.sh"
+  intent::uninstall
+fi
 
 # Optional evidence capture
 if [[ "$CAPTURE_EVIDENCE" == "true" ]]; then

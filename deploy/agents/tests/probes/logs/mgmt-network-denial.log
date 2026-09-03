@@ -1,0 +1,5 @@
+pod/mgmt-net-probe created
+waiting for probe pod mgmt-net-probe to finish the connect attempt (bounded 300 s)...
+probe pod phase: Failed
+probe log: connect_rc=124
+PASS: connect to 172.31.0.21:57400 denied (rc=124: timeout/refused/unreachable, as required).

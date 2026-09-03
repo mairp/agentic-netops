@@ -1,0 +1,11 @@
+# Build-context hygiene for the feature-002 intent-tier images (build context: repo root).
+# Host-side virtualenvs and caches must never be baked into the images: the
+# build-time `uv sync --frozen --no-dev` venv created inside the image is the
+# only environment the tier runs on, and a host .venv copied over it would
+# shadow it with dangling symlinks (see agents/README.md "Pins and build").
+agents/.venv/
+agents/.pytest_cache/
+agents/.ruff_cache/
+**/__pycache__/
+ui/node_modules/
+ui/dist/

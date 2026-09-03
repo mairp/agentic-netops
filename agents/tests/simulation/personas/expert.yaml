@@ -1,0 +1,7 @@
+name: expert
+description: |
+  Experienced network engineer providing concise, complete requests with precise intent.
+style: concise
+prompts:
+  - "Provision an L3VPN for tenant ACME between edges PE1 and PE2 with 2 Gbps committed rate."
+  - "Create an E-Line between leaf01:client01 and leaf02:client02 for tenant ACME."

@@ -1,0 +1,7 @@
+name: novice
+description: |
+  New operator who provides vague requests and needs clarifications.
+style: verbose
+prompts:
+  - "I need a network between two sites for ACME, can you set it up?"
+  - "Please connect two clients in the lab, not sure what it's called."

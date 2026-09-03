@@ -34,6 +34,35 @@ preflight::host_resources() {
   (( avail_kb >= min_disk_mb )) || preflight::die "Disk ${avail_kb}MB free < required ${min_disk_mb}MB"
 }
 
+# Phase 10 — additional headroom checks when installing the intent tier.
+# When provision.sh is invoked with --with-intent-tier it exports
+# AINETOPS_WITH_INTENT_TIER=true; enforce extra CPU/memory/storage headroom
+# so tier pods do not evict or starve feature-001 workloads (NFR-007).
+preflight::intent_tier_headroom() {
+  local with="${AINETOPS_WITH_INTENT_TIER:-false}"
+  if [[ "$with" != "true" ]]; then
+    return 0
+  fi
+  local base_cpu=${AINETOPS_MIN_CPU:-4}
+  local base_mem_mb=${AINETOPS_MIN_MEM_MB:-8192}
+  local base_disk_mb=${AINETOPS_MIN_DISK_MB:-20480}
+  local add_cpu=${AINETOPS_INTENT_TIER_CPU_HEADROOM_CORES:-2}
+  local add_mem_mb=${AINETOPS_INTENT_TIER_MEM_HEADROOM_MB:-4096}
+  local add_pvc_mb=${AINETOPS_INTENT_TIER_PVC_TOTAL_MB:-6144}
+  local req_cpu=$(( base_cpu + add_cpu ))
+  local req_mem_mb=$(( base_mem_mb + add_mem_mb ))
+  local req_disk_mb=$(( base_disk_mb + add_pvc_mb ))
+  local cores mem_kb avail_mb
+  cores=$(getconf _NPROCESSORS_ONLN || echo 1)
+  mem_kb=$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
+  avail_mb=$(df -Pm . 2>/dev/null | awk 'NR==2{print $4}' || echo 0)
+  (( cores >= req_cpu )) || preflight::die "CPU cores $cores < required $req_cpu for --with-intent-tier"
+  (( mem_kb/1024 >= req_mem_mb )) || preflight::die "Memory $((${mem_kb}/1024))MB < required ${req_mem_mb}MB for --with-intent-tier"
+  (( avail_mb >= req_disk_mb )) || preflight::die "Disk ${avail_mb}MB free < required ${req_disk_mb}MB for intent tier PVCs"
+  preflight::warn "intent-tier headroom satisfied (CPU>=$req_cpu, Mem>=$req_mem_mb MB, Disk free>=$req_disk_mb MB)"
+}
+
+
 preflight::runtime_privileges() {
   # Require Docker-compatible runtime and privileges for Kind/containerlab
   preflight::require_cmd docker
@@ -188,6 +217,7 @@ preflight::run() {
   preflight::mtu
   preflight::kvm_check
   preflight::tool_versions
+  preflight::intent_tier_headroom
   echo "[preflight] basic host checks passed"
 }
 
