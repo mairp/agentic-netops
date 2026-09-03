@@ -146,10 +146,19 @@ async def handle_stream_prompt(request: PromptRequest):
                 "workflow_status": NetworkProvisioningStatus.RECEIVED_REQUEST.value,
                 "deadline": default_deadline(),
             }
-            last = {}
+            # ``stream_mode=updates`` yields node deltas, not the complete
+            # graph state. Seed this accumulator with the request state so a
+            # node that only adds a message (for example general_info) cannot
+            # erase the known workflow status and produce STATUS_UNKNOWN.
+            last = dict(seed)
+            final_message = ""
             async for update in graph.astream(seed, config=config):
                 for node_name, node_state in update.items():
                     last = {**last, **node_state}
+                    for message in node_state.get("messages") or []:
+                        content = getattr(message, "content", "")
+                        if isinstance(content, str) and content.strip():
+                            final_message = content.strip()
                     status = node_state.get("workflow_status") or last.get("workflow_status")
                     if node_name == "mapper" and status == NetworkProvisioningStatus.MAPPED.value:
                         yield chunk(
@@ -274,11 +283,17 @@ async def handle_stream_prompt(request: PromptRequest):
                     }
                 )
             elif status == NetworkProvisioningStatus.PROVISIONING.value:
-                yield chunk({"type": "final", "status": status})
+                payload = {"type": "final", "status": status}
+                if final_message:
+                    payload["message"] = redact(final_message)
+                yield chunk(payload)
             else:
                 # MAPPED/ALLOCATED awaiting a confirmation, or a completed
                 # informational answer: the thread is resumable.
-                yield chunk({"type": "final", "status": status})
+                payload = {"type": "final", "status": status}
+                if final_message:
+                    payload["message"] = redact(final_message)
+                yield chunk(payload)
         except Exception as exc:  # noqa: BLE001 - the stream must end with a named failure
             logger.exception("stream failed for thread=%s", thread_id)
             yield chunk(

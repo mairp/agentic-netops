@@ -14,7 +14,7 @@ export type AgentEvent =
   | { type: 'confirmation_request'; stage: 'mapper' | 'allocator' | 'deployer'; prompt: string; refusable: boolean; correlation_id: string }
   | { type: 'clarification_request'; stage: 'mapper'; status: string; prompt: string; missing_fields: string[]; correlation_id: string }
   | { type: 'progress'; stage: 'deployer'; status: string; message?: string; details?: any; correlation_id: string }
-  | { type: 'final'; status: string; correlation_id: string }
+  | { type: 'final'; status: string; message?: string; correlation_id: string }
   | { type: 'error'; stage: string; status: string; reason: string; suggestion?: string; correlation_id: string }
 
 export type UseAgentAPI = {

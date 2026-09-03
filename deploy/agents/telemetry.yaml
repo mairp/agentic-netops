@@ -187,6 +187,17 @@ spec:
         - name: CLICKHOUSE_PASSWORD
           valueFrom:
             secretKeyRef: {name: clickhouse-auth, key: password}
+        # Nothing else creates this database. The OTLP exporter below targets
+        # `database: agent_analytics` and fails its pipeline startup without it --
+        # "cannot start pipelines: create database: code: 81, message: Database
+        # agent_analytics does not exist" -- so the collector exits 2 in a
+        # CrashLoopBackOff (observed 2026-09-04 on the rebuilt cluster). The image
+        # creates CLICKHOUSE_DB during first-boot initialization, which is the only
+        # point in the lifecycle that runs before the collector connects.
+        # NOTE: first-boot only -- it is a no-op against an already-populated PVC,
+        # so an existing volume needs the database created by hand once.
+        - name: CLICKHOUSE_DB
+          value: agent_analytics
         volumeMounts:
         - {name: config, mountPath: /etc/otel}
         readinessProbe:

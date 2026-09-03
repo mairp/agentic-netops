@@ -148,6 +148,12 @@ spec:
       labels:
         app.kubernetes.io/name: otel-collector
         app.kubernetes.io/part-of: agentic-netops
+        # Selected by allow-apiserver-egress (deploy/rbac/base.yaml). The
+        # k8sattributes processor lists/watches Pods and ReplicaSets to enrich
+        # spans, so it needs the API server. Without the allowance this pod stays
+        # READY and merely logs "failed to list *v1.Pod ... i/o timeout" -- the
+        # telemetry is silently unenriched rather than visibly broken.
+        agentic-netops.io/needs-apiserver: "true"
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8888"

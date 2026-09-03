@@ -172,16 +172,28 @@ if command -v kubectl >/dev/null 2>&1; then
   kubectl --context "$CTX" -n kubenet-system get networkconfigs,networks 2>/dev/null | nl -ba > "${REPO_ROOT}/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs/kubectl-get-kubenet-networks.txt" || true
 fi
 
-# T185/T186 — optional AGNTCY intent tier, installed AFTER the control-plane
-# readiness waits above (the tier sits on top of the reconciled fabric; a
-# half-ready control plane must never have the tier deployed onto it).
-# Sourced, not executed: the library installs, waits (bounded), and reports
-# under the same cluster context.
 # Seed SDC schema/profile/discovery
 if command -v kubectl >/dev/null 2>&1; then
   CTX="kind-${AGENTIC_NETOPS_CLUSTER_NAME}"
   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/sonic-schema.yaml"
   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/sdc/seed/discovery-rule.yaml"
+fi
+
+# T185/T186 — optional AGNTCY intent tier. Install it after the Kubernetes
+# control plane and tier-owned dependencies are present, but before the SONiC
+# fabric gate. That keeps the operator UI/control tier recoverable even when a
+# data-plane overlay race fails closed later in this script.
+TIER_FAILED=false
+if [[ "$WITH_INTENT_TIER" == "true" ]]; then
+  # shellcheck source=./lib/intent_tier.sh
+  source "${LIB_DIR}/intent_tier.sh"
+  INTENT_TIER_TIMEOUT=${AGENTIC_NETOPS_TIMEOUT}
+  if ! intent::install; then
+    TIER_FAILED=true
+    echo "[provision] WARN: intent tier install failed; continuing to run fabric bootstrap/gate for diagnostics" >&2
+  fi
+else
+  echo "[provision] skipping intent tier (pass --with-intent-tier to install it)"
 fi
 
 # Apply the profile bootstrap (gNMI TLS + TELEMETRY config) to the SONiC nodes
@@ -202,25 +214,9 @@ if [[ -x "${LIB_DIR}/qualify.sh" ]]; then
   fi
 fi
 
-# Intent tier LAST -- after the fabric bootstrap and the capability gate.
-#
-# It used to run BEFORE both, which contradicted its own comment ("the tier sits on
-# top of the reconciled fabric") and had a hard failure mode: intent::install ends in
-# intent::wait, and under `set -euo pipefail` a failed rollout aborts provision.sh
-# right there. Observed 2026-09-03: the agents were crash-looping, intent::wait
-# failed, provision.sh exited 1 -- and because the fabric bootstrap came afterwards,
-# the SONiC nodes were left with no /etc/frr/bgpd.conf, bgpd never started, and the
-# overlay was dead. The provision log contained zero "bootstrap" or "qualify" lines
-# and the failure looked like an overlay regression rather than an install failure.
-#
-# Ordering it last means a tier problem can no longer leave the fabric unconfigured.
-if [[ "$WITH_INTENT_TIER" == "true" ]]; then
-  # shellcheck source=./lib/intent_tier.sh
-  source "${LIB_DIR}/intent_tier.sh"
-  INTENT_TIER_TIMEOUT=${AGENTIC_NETOPS_TIMEOUT}
-  intent::install
-else
-  echo "[provision] skipping intent tier (pass --with-intent-tier to install it)"
+if [[ "$TIER_FAILED" == "true" ]]; then
+  echo "[provision] intent tier failed to install" >&2
+  exit 1
 fi
 
 # Topology asset generation: ensure the ConfigMap is applied now for Grafana Flow

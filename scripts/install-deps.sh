@@ -67,14 +67,23 @@ install_tools() {
     need "$req" || die "required tool missing and not auto-installable: $req"
   done
 
-  if ! need kubectl; then
-    log "installing kubectl $KUBECTL_VERSION"
+  # Version-CHECKED, not merely presence-checked. `need <tool>` alone leaves a
+  # stale binary in place forever: preflight then dies on the mismatch, or worse,
+  # the mismatch is tolerated and the lab runs on an unpinned tool. Observed
+  # 2026-09-03: kubectl stayed at v1.29.4 across a rebuild to a v1.31.6 cluster
+  # -- two minor versions of skew, outside the supported +/-1 -- because it was
+  # merely present. Reinstall whenever the running version is not the pin.
+  local cur
+  cur="$(kubectl version --client -o json 2>/dev/null | grep -o '"gitVersion": *"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')"
+  if ! need kubectl || [[ "$cur" != "$KUBECTL_VERSION" ]]; then
+    log "installing kubectl $KUBECTL_VERSION (found: ${cur:-none})"
     curl -fsSLo /tmp/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${arch}/kubectl"
     install -m 0755 /tmp/kubectl "$BIN_DIR/kubectl" && rm -f /tmp/kubectl
   fi
 
-  if ! need kind; then
-    log "installing kind $KIND_VERSION"
+  cur="$(kind version 2>/dev/null | awk '{print $2}')"
+  if ! need kind || [[ "$cur" != "$KIND_VERSION" ]]; then
+    log "installing kind $KIND_VERSION (found: ${cur:-none})"
     curl -fsSLo /tmp/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${arch}"
     install -m 0755 /tmp/kind "$BIN_DIR/kind" && rm -f /tmp/kind
   fi

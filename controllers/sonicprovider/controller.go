@@ -258,7 +258,13 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// initialize metrics once per manager
 	if r.renderCounter == nil {
 		r.renderCounter = promauto.NewCounter(prometheus.CounterOpts{
-			Namespace: "agentic-netops",
+			// Underscore, not hyphen. A Prometheus metric name must match
+			// [a-zA-Z_:][a-zA-Z0-9_:]*, and Namespace is prefixed onto it verbatim:
+			// "agentic-netops" composes to "agentic-netops_sonicprovider_applies_total",
+			// which MustRegister rejects -- panicking the controller at startup before
+			// it can serve. The ainetops -> agentic-netops rename (f16b27dc) rewrote
+			// this string along with the rest and introduced the hyphen.
+			Namespace: "agentic_netops",
 			Subsystem: "sonicprovider",
 			Name:      "applies_total",
 			Help:      "Number of successful SDC Config apply operations",

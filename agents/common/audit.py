@@ -167,10 +167,31 @@ def _emit_span_event(event: AuditEvent, attributes: dict[str, Any]) -> None:
 class _K8sEventIdentity:
     """Resolved API endpoint + bearer token (or None when identity-less)."""
 
-    def __init__(self, endpoint: str, token: str, verify_tls: bool):
+    def __init__(self, endpoint: str, token: str, verify_tls: bool, ca_bundle: str | None = None):
         self.endpoint = endpoint
         self.token = token
         self.verify_tls = verify_tls
+        self.ca_bundle = ca_bundle
+
+    @property
+    def verify(self) -> bool | str:
+        """What httpx should verify with.
+
+        The in-cluster API server is signed by the cluster CA, which is in
+        the ServiceAccount bundle and in no default trust store — verifying
+        against certifi would fail with CERTIFICATE_VERIFY_FAILED.
+        """
+        if not self.verify_tls:
+            return False
+        return self.ca_bundle or True
+
+
+def _ca_bundle() -> str | None:
+    """The ServiceAccount CA bundle path, when the pod mounts one."""
+    override = os.getenv("AGENTIC_NETOPS_CA_BUNDLE")
+    if override:
+        return override
+    return str(_CACERT_FILE) if _CACERT_FILE.exists() else None
 
 
 def resolve_k8s_identity() -> _K8sEventIdentity | None:
@@ -185,7 +206,7 @@ def resolve_k8s_identity() -> _K8sEventIdentity | None:
     token = os.getenv("AGENTIC_NETOPS_BEARER_TOKEN")
     if endpoint and token:
         verify = os.getenv("AGENTIC_NETOPS_VERIFY_TLS", "1").lower() in ("1", "true", "yes")
-        return _K8sEventIdentity(endpoint, token, verify)
+        return _K8sEventIdentity(endpoint, token, verify, _ca_bundle())
     if _TOKEN_FILE.exists():
         try:
             token = _TOKEN_FILE.read_text(encoding="utf-8").strip()
@@ -193,7 +214,7 @@ def resolve_k8s_identity() -> _K8sEventIdentity | None:
             return None
         if token:
             verify = os.getenv("AGENTIC_NETOPS_VERIFY_TLS", "1").lower() in ("1", "true", "yes")
-            return _K8sEventIdentity(_IN_CLUSTER_API, token, verify)
+            return _K8sEventIdentity(_IN_CLUSTER_API, token, verify, _ca_bundle())
     return None
 
 
@@ -275,7 +296,7 @@ def emit_kubernetes_event(event: AuditEvent, seq: int = 1) -> bool:
             url,
             json=manifest,
             headers={"Authorization": f"Bearer {identity.token}"},
-            verify=identity.verify_tls,
+            verify=identity.verify,
             timeout=10.0,
         )
         if resp.status_code // 100 == 2:

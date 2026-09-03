@@ -15,6 +15,12 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: agentic-netops-srv6-controller
+        # Selected by allow-apiserver-egress (deploy/rbac/base.yaml). This is a
+        # Kubernetes controller: it watches CRDs through the API server, so
+        # deny-all-by-default's blanket egress denial stops it before it can build
+        # its informers ("unable to set up indexes ... dial tcp 10.96.0.1:443:
+        # i/o timeout") and it never reaches Ready.
+        agentic-netops.io/needs-apiserver: "true"
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8081"

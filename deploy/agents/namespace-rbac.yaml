@@ -138,8 +138,13 @@ rules:
 - apiGroups: ["extcomm.be.kuid.dev"]
   resources: ["extcommclaims"]
   verbs: ["get", "list", "watch", "create", "delete"]
-# Deliberately absent: ipindexes, vniindexes, asnindexes, secrets, and
-# update/patch on every claim resource above.
+# Fallback for the pinned kuid-server GENID/EXTCOMM defect on Kubernetes 1.31:
+# one Lease per allocated ID, still scoped to claim/release semantics only.
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+# Deliberately absent: ipindexes, vniindexes, asnindexes, secrets, configmaps,
+# and update/patch on every claim/lease resource above.
 ---
 # T044: bind the claim identity to the allocator only.
 apiVersion: rbac.authorization.k8s.io/v1
@@ -200,6 +205,63 @@ metadata:
 spec:
   podSelector: {}
   policyTypes: ["Ingress", "Egress"]
+---
+# Ingress to the operator UI. deny-all-by-default denies ALL ingress, and the
+# only other Ingress policy in this namespace is slim-ingress (for the gateway),
+# so nothing admitted traffic to the UI at all. Inert while the CNI ignored
+# NetworkPolicy (kind v0.22's kindnetd); under the pinned kindnetd v20250214 the
+# NodePort connection is dropped and the browser reports ERR_EMPTY_RESPONSE with
+# the pod healthy and serving HTML on 127.0.0.1:3000 (observed 2026-09-04).
+#
+# The source is deliberately unrestricted: this is a NodePort service reached
+# from the operator's browser on the host, so the traffic arrives post-SNAT from
+# the node, not from any selectable pod or namespace. The allowance is confined
+# to the UI pod on its single HTTP port.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ui-ingress
+  namespace: agentic-netops-agents
+spec:
+  podSelector:
+    # The UI pod is labelled app.kubernetes.io/name, NOT `app` like the workers
+    # (deploy/agents/ui.yaml). Selecting `app: ui` here matches nothing and the
+    # policy silently admits nothing -- the same failure mode that made
+    # apiserver-egress-cluster-clients a no-op.
+    matchLabels:
+      app.kubernetes.io/name: intent-ui
+  policyTypes: ["Ingress"]
+  ingress:
+  - ports:
+    - protocol: TCP
+      port: 3000
+---
+# Ingress to the supervisor and the workers from inside the tier: the UI calls
+# the supervisor, and the /v1/health readiness probes the supervisor runs against
+# each worker are pod-to-pod. Same reason as above -- without an explicit
+# allowance deny-all-by-default drops them.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tier-intra-ingress
+  namespace: agentic-netops-agents
+spec:
+  podSelector:
+    matchLabels:
+      agentic-netops.io/tier: intent
+  policyTypes: ["Ingress"]
+  ingress:
+  # Unrestricted BETWEEN tier pods, deliberately mirroring T047's intra-tier
+  # egress rule, which is likewise portless. An enumerated port list here is a
+  # maintenance trap: the first version listed only 9090-9093 and silently broke
+  # the agent collector, which needs ClickHouse on 9000/8123 -- the collector
+  # started, failed to reach its exporter and exited 2 with no useful log.
+  # The tier boundary is what deny-all-by-default enforces; inside it, the pods
+  # already talk over SLIM, OTLP and ClickHouse on several ports.
+  - from:
+    - podSelector:
+        matchLabels:
+          agentic-netops.io/tier: intent
 ---
 # T046-T049: the complete egress budget for tier pods. The device management
 # network is unreachable from every tier pod — the concrete, attemptable
@@ -263,20 +325,36 @@ kind: NetworkPolicy
 metadata:
   name: apiserver-egress-cluster-clients
   namespace: agentic-netops-agents
+#
+# REPAIRED 2026-09-03. As written this policy matched nothing and permitted
+# nothing, and both faults were invisible while the CNI ignored NetworkPolicy
+# (kind v0.22's kindnetd); the pinned kindnetd v20250214 enforces it, and the
+# allocator's KUID claims started failing with "dial tcp 10.96.0.1:443:
+# i/o timeout".
+#   1. The selector read `app In (intent-allocator, intent-deployer)`, but the
+#      pods are labelled `app: allocator` / `app: deployer` -- it selected zero
+#      pods. It now selects on an explicit opt-in label instead, so a workload
+#      that needs the API server declares it where the workload is defined.
+#   2. The destination was `namespaceSelector: kube-system` on 443. The API
+#      server is a hostNetwork static pod behind a Service ClusterIP that DNATs
+#      to the node address, so no namespace/pod selector can ever match it, and
+#      the matched port is 6443, not 443. It is now an ipBlock on the two API
+#      ports, minus the pinned containerlab management subnet -- which keeps
+#      SC-005's device-network denial intact (verified: API server 200,
+#      172.31.0.21 still times out).
 spec:
   podSelector:
-    matchExpressions:
-    - key: app
-      operator: In
-      values:
-      - intent-allocator
-      - intent-deployer
+    matchLabels:
+      agentic-netops.io/needs-apiserver: "true"
   policyTypes: ["Egress"]
   egress:
   - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kube-system
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 172.31.0.0/16
     ports:
     - protocol: TCP
       port: 443
+    - protocol: TCP
+      port: 6443

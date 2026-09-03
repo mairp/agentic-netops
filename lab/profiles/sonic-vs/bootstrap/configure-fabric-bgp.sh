@@ -146,6 +146,7 @@ configure_overlay() {
   local c=$1 lo4=$2 svi4=$3
   docker exec "$c" bash -c "
     redis-cli -n 4 hset 'VXLAN_TUNNEL|$VTEP' src_ip '$lo4' >/dev/null
+    redis-cli -n 4 hset 'EVPN_NVO|nvo1' source_vtep '$VTEP' >/dev/null
     redis-cli -n 4 hset 'VLAN|$VLAN' vlanid '${VLAN#Vlan}' >/dev/null
     redis-cli -n 4 hset 'VXLAN_TUNNEL_MAP|$VTEP|map_${L2VNI}_$VLAN' vni '$L2VNI' vlan '$VLAN' >/dev/null
     redis-cli -n 4 hset 'VLAN|$L3VLAN' vlanid '${L3VLAN#Vlan}' >/dev/null
@@ -285,6 +286,20 @@ ensure_overlay_devices() {
     [[ -n "$vtep_dev" ]] && docker exec "$c" bash -c "ip link show $L3VLAN >/dev/null 2>&1" && break
     sleep 2
   done
+  local l2_vtep_dev=""
+  for i in $(seq 1 45); do
+    l2_vtep_dev=""
+    for dev in $(docker exec "$c" bash -c 'ls /sys/class/net/ 2>/dev/null | grep "^vtep" || true'); do
+      id=$(docker exec "$c" bash -c "ip -d link show $dev 2>/dev/null | grep -oE 'vxlan id [0-9]+' | awk '{print \$3}'" 2>/dev/null)
+      [[ "$id" == "$L2VNI" ]] && { l2_vtep_dev=$dev; break; }
+    done
+    [[ -n "$l2_vtep_dev" ]] && break
+    if (( i == 20 )); then
+      echo "[fabric-bgp] $c: waiting for L2 VTEP $L2VNI; restarting orchagent/vxlanmgrd once" >&2
+      docker exec "$c" supervisorctl restart orchagent vxlanmgrd >/dev/null 2>&1 || true
+    fi
+    sleep 2
+  done
   # L3VLAN device fallback (see fabric-init hook comment): create kernel-side
   # if vlanmgrd did not
   docker exec "$c" bash -c "ip link show $L3VLAN >/dev/null 2>&1 || ip link add $L3VLAN link Bridge type vlan id ${L3VLAN#Vlan} 2>/dev/null || true" || true
@@ -332,7 +347,8 @@ ensure_overlay_devices() {
     # This is why restarting bgpd (and even zebra) appeared to \"fix\" adoption
     # intermittently: those restarts only helped when the device happened to be
     # bridged by then. Bridging it directly is the actual fix.
-    vtep_l2=vtep1-${VLAN#Vlan}
+    vtep_l2='$l2_vtep_dev'
+    [ -n \"\$vtep_l2\" ] || vtep_l2=vtep1-${VLAN#Vlan}
     if ip link show \$vtep_l2 >/dev/null 2>&1; then
       m_vtep=\$(ip -d link show \$vtep_l2 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
       [ \"\$m_vtep\" = 'Bridge' ] || ip link set \$vtep_l2 master Bridge 2>/dev/null || true
@@ -514,6 +530,7 @@ install_boot_hook() {
     echo "L2VNI='$L2VNI'"
     echo "ACCESS_IFACE='$ACCESS_IFACE'"
     echo "L2VLAN='$VLAN'"
+    echo "VTEP='$VTEP'"
     echo "SVI4='$svi4'"
     echo "LO4='$lo4'"
     echo "LO6='$lo6'"
@@ -529,6 +546,9 @@ for i in $(seq 1 90); do
   [ -n "$(redis-cli -n 4 hget 'DEVICE_METADATA|localhost' switch_type 2>/dev/null)" ] && break
   sleep 2
 done
+if [ "$ROLE" = leaf ]; then
+  redis-cli -n 4 hset "EVPN_NVO|nvo1" source_vtep "$VTEP" >/dev/null 2>&1 || true
+fi
 # 2) manager daemons (started by start.sh) must be RUNNING before bgpd
 for i in $(seq 1 60); do
   supervisorctl status zebra 2>/dev/null | grep -q RUNNING && \
@@ -649,6 +669,29 @@ if [ "$ROLE" = leaf ]; then
     ip link show Bridge >/dev/null 2>&1 && break
     sleep 2
   done
+  VTEP_L2_DEV=""
+  for i in $(seq 1 60); do
+    for d in /sys/class/net/vtep*; do
+      [ -e "$d" ] || continue
+      dev=$(basename "$d")
+      id=$(ip -d link show "$dev" 2>/dev/null | grep -oE 'vxlan id [0-9]+' | awk '{print $3}')
+      if [ "$id" = "$L2VNI" ]; then VTEP_L2_DEV="$dev"; break; fi
+    done
+    [ -n "$VTEP_L2_DEV" ] && break
+    if [ "$i" -eq 25 ]; then
+      log "waiting for L2 VTEP $L2VNI; restarting orchagent/vxlanmgrd once"
+      supervisorctl restart orchagent vxlanmgrd >/dev/null 2>&1 || true
+    fi
+    sleep 2
+  done
+  if [ -n "$VTEP_L2_DEV" ] && ip link show Bridge >/dev/null 2>&1; then
+    master=$(ip -d link show "$VTEP_L2_DEV" 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
+    [ "$master" = "Bridge" ] || ip link set "$VTEP_L2_DEV" master Bridge 2>/dev/null || true
+    bridge vlan add dev "$VTEP_L2_DEV" vid "${L2VLAN#Vlan}" pvid untagged 2>/dev/null || true
+    ip link set "$VTEP_L2_DEV" up 2>/dev/null || true
+  else
+    log "WARN: no L2 VTEP device carrying vni $L2VNI found"
+  fi
   if ip link show "$ACCESS_IFACE" >/dev/null 2>&1 && ip link show Bridge >/dev/null 2>&1; then
     master=$(ip -d link show "$ACCESS_IFACE" 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
     [ "$master" = "Bridge" ] || ip link set "$ACCESS_IFACE" master Bridge 2>/dev/null || true
@@ -677,7 +720,7 @@ if [ "$ROLE" = leaf ]; then
   for attempt in 1 2 3; do
     adopted=0
     for i in $(seq 1 10); do
-      vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -q "^ \\* $L2VNI " && { adopted=1; break; }
+      vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -qE "^\*?[[:space:]]*$L2VNI[[:space:]]" && { adopted=1; break; }
       sleep 3
     done
     [ "$adopted" -eq 1 ] && { log "bgpd adopted L2 VNI $L2VNI (attempt $attempt)"; break; }
@@ -685,7 +728,7 @@ if [ "$ROLE" = leaf ]; then
     supervisorctl restart bgpd >/dev/null 2>&1 || true
     sleep 10
   done
-  vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -q "^ \\* $L2VNI " || \
+  vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -qE "^\*?[[:space:]]*$L2VNI[[:space:]]" || \
     log "WARN: bgpd still has no L2 VNI $L2VNI after 3 restarts"
 fi
 # 7) nudge peers past connect backoff once, late in the boot window

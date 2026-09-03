@@ -74,6 +74,7 @@ from langgraph.graph.state import CompiledStateGraph
 from pydantic import ValidationError
 
 from common.audit import build_audit_event, emit_audit_event
+from common.errors import provider_unavailable_message
 from common.llm import get_llm, set_current_thread_id
 from common.metrics import get_metrics
 from common.provisioning_states import NetworkProvisioningStatus
@@ -82,6 +83,7 @@ from common.schemas.audit import AuditEvent
 from common.schemas.interpretation import Interpretation
 from common.schemas.normalized_intent import NormalizedServiceIntent
 from common.schemas.refs import ResourceRef
+from config.config import LLM_MODEL
 from supervisors.provisioning.graph.shared import (
     Decision,
     RequestClassification,
@@ -574,6 +576,34 @@ def parse_classification(content: str) -> RequestClassification | None:
     for cls in RequestClassification:
         if re.search(rf"\b{re.escape(cls.value)}\b", low):
             return cls
+    return None
+
+
+_FALLBACK_INFORMATIONAL = re.compile(
+    r"^\s*(?:what|which|who|where|when|why|how|can|could|do|does|is|are|show|list|describe|explain|help)\b",
+    re.I,
+)
+_FALLBACK_PROVISION_ACTION = re.compile(
+    r"\b(?:provision|create|set\s*up|deploy|add|need|want)\b",
+    re.I,
+)
+_FALLBACK_SERVICE_TYPE = re.compile(
+    r"\b(?:vpws|vpls|l3vpn|irb|e-?line|point[- ]to[- ]point|full[- ]mesh)\b",
+    re.I,
+)
+
+
+def fallback_classification(content: str) -> RequestClassification | None:
+    """Classify only unambiguous requests when the model is unavailable.
+
+    Safety and unsupported-feature detectors run before this helper. The
+    fallback deliberately recognizes a narrow vocabulary and returns ``None``
+    for everything else, preserving fail-closed behavior during an outage.
+    """
+    if _FALLBACK_INFORMATIONAL.search(content):
+        return RequestClassification.INFORMATIONAL
+    if _FALLBACK_PROVISION_ACTION.search(content) and _FALLBACK_SERVICE_TYPE.search(content):
+        return RequestClassification.PROVISIONABLE
     return None
 
 
@@ -1149,18 +1179,30 @@ class ProvisioningGraph:
             classification = await self._classify(fenced)
         except Exception as exc:  # noqa: BLE001
             logger.error("classifier (model) unavailable: %s", redact(str(exc)))
+            classification = fallback_classification(user_content)
+            if classification is RequestClassification.PROVISIONABLE:
+                logger.warning("using deterministic provisionable classification while model is unavailable")
+                return {
+                    "next_node": NodeStates.MAPPER,
+                    "classification": classification.value,
+                    "workflow_status": NetworkProvisioningStatus.RECEIVED_REQUEST.value,
+                }
+            if classification is RequestClassification.INFORMATIONAL:
+                logger.warning("using deterministic informational classification while model is unavailable")
+                return {
+                    "next_node": NodeStates.GENERAL_INFO,
+                    "classification": classification.value,
+                }
+            provider_label = LLM_MODEL.partition("/")[0] or "LLM"
+            reason = provider_unavailable_message(provider_label)
             return {
-                "next_node": NodeStates.GENERAL_INFO,
+                "next_node": END,
                 "classification": None,
+                "workflow_status": NetworkProvisioningStatus.FAILED.value,
+                "refusal_reason": reason,
+                "suggestion": "Configure the llm-provider Secret and retry the request.",
                 "messages": [
-                    AIMessage(
-                        content=(
-                            "I'm having trouble understanding your request because the classification "
-                            "model is unavailable. Please rephrase it — for example: 'provision a "
-                            "point-to-point 1G L2 service between leaf01 ethernet1 and leaf02 ethernet2 "
-                            "for tenant acme'."
-                        )
-                    )
+                    AIMessage(content=reason)
                 ],
             }
         if classification is RequestClassification.PROVISIONABLE:
@@ -1516,7 +1558,15 @@ class ProvisioningGraph:
             "I never act directly on devices: every change flows through declarative service "
             "intent and the two-confirmation pipeline."
         )
-        return {"messages": [AIMessage(content=text)]}
+        final_status = (
+            NetworkProvisioningStatus.FAILED.value
+            if status == NetworkProvisioningStatus.FAILED.value
+            else NetworkProvisioningStatus.COMPLETED.value
+        )
+        return {
+            "messages": [AIMessage(content=text)],
+            "workflow_status": final_status,
+        }
 
     async def _reflection_node(self, state: GraphState, config: RunnableConfig) -> dict:
         """After mapper/allocator: pose the confirmation question (or end

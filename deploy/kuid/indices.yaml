@@ -40,5 +40,6 @@ spec:
   # claimed id renders as <FABRIC_ASN>:<id>.
   type: 2byteAS
   subType: target
+  globalID: "65000"
   minID: 1
   maxID: 65535

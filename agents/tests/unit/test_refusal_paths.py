@@ -212,6 +212,29 @@ class TestClassifier:
         assert "could not classify" in all_ai.lower()
         assert state.get("classification") is None
 
+    async def test_unavailable_provider_uses_narrow_informational_fallback(self):
+        class UnavailableLLM:
+            async def ainvoke(self, input, config=None):
+                raise RuntimeError("provider offline")
+
+        transport = StubTransport()
+        state = await _run("what service types can you provision?", UnavailableLLM(), transport)
+        assert state.get("workflow_status") == NetworkProvisioningStatus.COMPLETED.value
+        assert state.get("classification") == RequestClassification.INFORMATIONAL.value
+        assert "I provision declarative network services" in _last_ai(state)
+        assert transport.calls == []
+
+    async def test_unavailable_provider_fails_closed_for_ambiguous_request(self):
+        class UnavailableLLM:
+            async def ainvoke(self, input, config=None):
+                raise RuntimeError("provider offline")
+
+        transport = StubTransport()
+        state = await _run("please handle this request", UnavailableLLM(), transport)
+        assert state.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
+        assert "model provider" in (state.get("refusal_reason") or "").lower()
+        assert transport.calls == []
+
 
 # ---------------------------------------------------------------------------
 # T127 — direct-action refusal tests.

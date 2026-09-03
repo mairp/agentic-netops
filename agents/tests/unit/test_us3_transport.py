@@ -365,7 +365,7 @@ class TestDeployManifests:
 
     def test_supervisor_manifest(self):
         """T175/T176/T177/T170 — Deployment (replicas 1, Recreate),
-        Service 9090, PVC, prompts ConfigMap, llm-provider Secret, probes,
+        Service 9090, PVC, prompts ConfigMap, probes,
         PVC-mounted checkpoint path."""
         docs = {d["kind"]: d for d in self._docs("supervisor.yaml")}
         dep = docs["Deployment"]
@@ -383,22 +383,28 @@ class TestDeployManifests:
         assert docs["Service"]["spec"]["ports"][0]["port"] == 9090
         assert docs["PersistentVolumeClaim"]["metadata"]["name"] == "supervisor-checkpoint"
         assert "suggested_prompts.json" in docs["ConfigMap"]["data"]
-        assert docs["Secret"]["metadata"]["name"] == "llm-provider"
+        secret_docs = self._docs("llm-provider-secret.yaml")
+        assert secret_docs[0]["metadata"]["name"] == "llm-provider"
         # No credential literals or empty placeholder writes in the Secret declaration.
-        assert "data" not in docs["Secret"]
-        assert "stringData" not in docs["Secret"]
+        assert "data" not in secret_docs[0]
+        assert "stringData" not in secret_docs[0]
 
     @pytest.mark.parametrize(
-        ("name", "port", "service_account"),
+        ("name", "port", "service_account", "token_bearing"),
         [
-            ("mapper.yaml", 9092, "intent-mapper"),
-            ("allocator.yaml", 9091, "intent-allocator"),
-            ("deployer.yaml", 9093, "intent-deployer"),
+            ("mapper.yaml", 9092, "intent-mapper", False),
+            # T039: the allocator is one of the only two cluster-API identities
+            # in the tier — it claims identifiers from KUID (FR-013), and the
+            # mount carries both the bearer token and the cluster CA bundle the
+            # KUID client verifies the API server against. Without it every
+            # claim fails with CERTIFICATE_VERIFY_FAILED.
+            ("allocator.yaml", 9091, "intent-allocator", True),
+            ("deployer.yaml", 9093, "intent-deployer", False),
         ],
     )
-    def test_worker_manifest(self, name, port, service_account):
+    def test_worker_manifest(self, name, port, service_account, token_bearing):
         """T178/T179/T180 — Deployment + Service, probes, lab-sized
-        resources, non-token-bearing identity."""
+        resources, and the identity each worker is entitled to."""
         docs = {d["kind"]: d for d in self._docs(name)}
         assert docs["Service"]["spec"]["ports"][0]["port"] == port
         c = docs["Deployment"]["spec"]["template"]["spec"]["containers"][0]
@@ -408,7 +414,7 @@ class TestDeployManifests:
         assert c["resources"]["limits"]["cpu"]
         spec = docs["Deployment"]["spec"]["template"]["spec"]
         assert spec["serviceAccountName"] == service_account
-        assert spec["automountServiceAccountToken"] is False
+        assert spec["automountServiceAccountToken"] is token_bearing
 
     def test_deployer_translator_sidecar(self):
         dep = [d for d in self._docs("deployer.yaml") if d["kind"] == "Deployment"][0]

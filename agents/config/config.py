@@ -53,12 +53,19 @@ ENABLE_HTTP = os.getenv("ENABLE_HTTP", "true").lower() in ("true", "1", "yes")
 MAPPER_ENDPOINT = os.getenv("MAPPER_ENDPOINT", "http://mapper.agentic-netops-agents.svc:9092")
 ALLOCATOR_ENDPOINT = os.getenv("ALLOCATOR_ENDPOINT", "http://allocator.agentic-netops-agents.svc:9091")
 DEPLOYER_ENDPOINT = os.getenv("DEPLOYER_ENDPOINT", "http://deployer.agentic-netops-agents.svc:9093")
-# KUID allocation authority (Decision 11 — qualified: served groups + the
-# aggregated API on svc/kuid-server:6443).
-KUID_API_ENDPOINT = os.getenv("KUID_API_ENDPOINT", "https://kuid-server.kuid-system.svc:6443")
+# KUID allocation authority (Decision 11 — qualified: the served groups are
+# reached through the Kubernetes aggregation layer, not by dialing
+# svc/kuid-server directly. kuid-server presents a fixed placeholder serving
+# certificate (CN=basic.default.svc, SANs localhost/basic.default.svc/127.0.0.1)
+# that verifies for no name it is actually reached by — which is why its own
+# APIServices are registered with insecureSkipTLSVerify. The aggregated path
+# is served by the cluster API server, whose certificate DOES verify against
+# the ServiceAccount CA bundle, so the allocator keeps TLS verification on.
+KUID_API_ENDPOINT = os.getenv("KUID_API_ENDPOINT", "https://kubernetes.default.svc:443")
 # The index each claim draws from. These are the KUID index objects the
-# fabric deploys (deploy/kuid/indices.yaml); the allocator never invents an
-# identifier, it claims one from the index named here (FR-013).
+# fabric deploys (deploy/kuid/indices.yaml). The allocator never invents an
+# identifier locally; if a pinned KUID pool is broken it claims the same range
+# from the Lease fallback named below.
 L2VNI_INDEX = os.getenv("KUID_L2VNI_INDEX", "evpn-vni")
 L3VNI_INDEX = os.getenv("KUID_L3VNI_INDEX", "evpn-vni")
 VLAN_INDEX = os.getenv("KUID_VLAN_INDEX", "fabric-vlan")
@@ -66,3 +73,16 @@ EXTCOMM_INDEX = os.getenv("KUID_EXTCOMM_INDEX", "rt-index")
 # The ASN half of a route-target / route-distinguisher; the claimed
 # extended-community id supplies the number half.
 FABRIC_ASN = os.getenv("FABRIC_ASN", "65000")
+# The pinned aggregated kuid-server accepts VLANIndex but rejects GENIDIndex and
+# EXTCOMMIndex on Kubernetes 1.31 (uint64/spec-conversion defects). Until an
+# upstream image fixes those served groups, the allocator can fall back to
+# atomic Kubernetes Lease objects in kuid-system for the broken pools.
+KUID_ALLOCATION_FALLBACK = os.getenv("KUID_ALLOCATION_FALLBACK", "lease").lower()
+KUID_L2VNI_MIN = int(os.getenv("KUID_L2VNI_MIN", "10000"))
+KUID_L2VNI_MAX = int(os.getenv("KUID_L2VNI_MAX", "20000"))
+KUID_L3VNI_MIN = int(os.getenv("KUID_L3VNI_MIN", "10000"))
+KUID_L3VNI_MAX = int(os.getenv("KUID_L3VNI_MAX", "20000"))
+KUID_EXTCOMM_MIN = int(os.getenv("KUID_EXTCOMM_MIN", "1"))
+KUID_EXTCOMM_MAX = int(os.getenv("KUID_EXTCOMM_MAX", "65535"))
+KUID_VLAN_MIN = int(os.getenv("KUID_VLAN_MIN", "100"))
+KUID_VLAN_MAX = int(os.getenv("KUID_VLAN_MAX", "4000"))

@@ -21,8 +21,8 @@ Implements:
 Notes
 -----
 The allocator receives the Interpretation as JSON fenced by the supervisor.
-It never generates identifiers locally (FR-013): it allocates via KUID
-(agents/provisioning/allocator/kuid.py).
+It never generates identifiers locally: it allocates through the cluster
+allocation client (KUID first, with a Lease fallback for pinned KUID defects).
 """
 
 from __future__ import annotations
@@ -92,7 +92,7 @@ class AllocatorAgent:
             endpoints.append(Endpoint(node=ep.site_or_node, attachment=ep.attachment, vlan=ep.vlan))
         endpoints = _deterministic_endpoints(endpoints)  # T224
 
-        # Claim identifiers (FR-013): never generate locally — prefer trace-derived correlation id if present
+        # Claim identifiers from the cluster allocation authority; never generate locally.
         correlation_id = correlation_id or get_trace_correlation_id() or uuid4().hex
         if st in ("VPLS", "VPWS", "IRB"):
             l2vni = self.kuid.allocate_l2vni(correlation_id)

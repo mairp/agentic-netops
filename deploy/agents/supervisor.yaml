@@ -5,8 +5,9 @@
 # two replicas can never share it, and a Recreate (never RollingUpdate)
 # guarantees the old pod released the SQLite file before the new one starts.
 # T176: Service/supervisor (9090), PVC/supervisor-checkpoint,
-# ConfigMap/supervisor-prompts, Secret/llm-provider (no credential literals;
-# the LLM provider keys are materialized at provision time).
+# ConfigMap/supervisor-prompts. Secret/llm-provider is declared separately in
+# llm-provider-secret.yaml so applying this workload can never erase populated
+# provider credentials; its keys are materialized at provision time.
 # T177: liveness probe on the trivial `GET /health` (never touches the
 # transport — a worker outage must not restart the supervisor into amnesia)
 # and readiness on the deep `GET /v1/health` (probe every worker, name the
@@ -16,19 +17,6 @@
 # (graph.py CHECKPOINT_DB_PATH), so LangGraph checkpoints survive a restart.
 #
 # Lab-sized resources (requests 100m/256Mi, limits 1/1Gi) fit the kind lab.
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: llm-provider
-  namespace: agentic-netops-agents
-  labels:
-    agentic-netops.owner: agentic-netops
-    agentic-netops.io/tier: intent
-  annotations:
-    agentic-netops.io/populated-by: "provision-time (LLM provider credentials; never committed)"
-type: Opaque
----
 apiVersion: v1
 kind: ConfigMap
 metadata:

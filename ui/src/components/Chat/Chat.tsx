@@ -87,7 +87,12 @@ function EventFeed({ events, agent }: { events: AgentEvent[]; agent: UseAgentAPI
         if (event.type === 'error') return <FailureCard evt={event} key={index} />
         if (event.type === 'progress') return <div className="feed-line" key={index}><LoaderCircle size={13} />{event.message || JSON.stringify(event.details || {})}</div>
         if (event.type === 'status') return <div className="feed-line muted" key={index}>{event.status}{event.stage ? ` · ${event.stage}` : ''}</div>
-        return <div className="feed-line final" key={index}><Check size={13} />{event.status}</div>
+        return (
+          <div className="feed-line final" key={index}>
+            <Check size={13} />
+            <span>{event.message || event.status}</span>
+          </div>
+        )
       })}
     </div>
   )

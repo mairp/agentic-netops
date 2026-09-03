@@ -50,6 +50,53 @@ spec:
   podSelector: {}
   policyTypes: ["Ingress", "Egress"]
 ---
+# Egress to the Kubernetes API server, for the pods in this namespace that must
+# reach it. deny-all-by-default above denies ALL egress, API server included --
+# which was inert until the CNI started enforcing NetworkPolicy (kind v0.22's
+# kindnetd ignored policies; the pinned kindnetd v20250214 enforces them). On the
+# rebuilt cluster it blocked the secret-generator Job outright: every kubectl call
+# died with "dial tcp 10.96.0.1:443: i/o timeout" and provision.sh aborted at the
+# RBAC phase (2026-09-03).
+#
+# The destination is expressed as an ipBlock, not a namespace/pod selector: the
+# API server is a hostNetwork static pod reached through a Service ClusterIP that
+# DNATs to the node address, and selectors match neither. Scoped to the API
+# endpoints only -- the service ClusterIP and the control-plane node on 6443.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-apiserver-egress
+  namespace: agentic-netops-system
+spec:
+  podSelector:
+    matchLabels:
+      agentic-netops.io/needs-apiserver: "true"
+  policyTypes: ["Egress"]
+  egress:
+  # The destination must be written host-independently. kindnetd evaluates egress
+  # against the POST-DNAT address, so allowing only the Service ClusterIP
+  # (10.96.0.1/32:443) does NOT work -- verified: the packet is matched as
+  # <control-plane-node-IP>:6443. And the node address cannot be hardcoded: kind's
+  # docker network takes a Docker-assigned IPv4 subnet (172.30.0.0/16 on one host,
+  # something else on the next), so a literal node CIDR silently stops matching on
+  # a rebuild elsewhere and this whole failure returns.
+  #
+  # So: any address, but only on the two API-server ports, minus the containerlab
+  # management subnet. That subnet IS pinned (kind.sh AGENTIC_NETOPS_MGMT_SUBNET,
+  # lab/topology.clab.yml mgmt.ipv4-subnet), and excepting it keeps SC-005's
+  # device-network denial intact -- verified: the API server answers 200 while
+  # 172.31.0.21 still times out.
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 172.31.0.0/16
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 6443
+---
 apiVersion: v1
 kind: Secret
 metadata:

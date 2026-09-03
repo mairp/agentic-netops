@@ -20,9 +20,9 @@ Strictness parity with the Go side (T068-T070):
   ``L2L3-IRB`` (``pkg/migration/input.go:29``), not ``IRB``.
 
 No identifier in this model may be locally generated: every ``l2vni``,
-``l3vni``, and ``rd``/RT value traces to a ``ClaimRef`` in
-``ServiceRequest.claimed_ids`` (FR-013, Decision 11 — qualified: the value
-is read back from the KUID API's entry objects, never the claim status).
+``l3vni``, and ``rd``/RT value must trace to the cluster allocation authority
+(KUID where the pinned server works; Kubernetes Lease fallback for the broken
+GENID/EXTCOMM pools).
 """
 
 from __future__ import annotations

@@ -62,6 +62,42 @@ intent::manifest() {
   echo "${base}/deploy/agents/${f}"
 }
 
+intent::configure_llm_provider() {
+  local model="${AGENTIC_NETOPS_LLM_MODEL:-${LLM_MODEL:-}}"
+  local api_key="${AGENTIC_NETOPS_LLM_API_KEY:-${OPENAI_API_KEY:-}}"
+  local base_url="${AGENTIC_NETOPS_LLM_BASE_URL:-${OPENAI_BASE_URL:-}}"
+  local -a secret_args
+
+  if ! intent::kubectl -n "$INTENT_TIER_NAMESPACE" get secret llm-provider >/dev/null 2>&1; then
+    intent::kubectl apply -f "$(intent::manifest llm-provider-secret.yaml)"
+  fi
+
+  if [[ -z "$model" && -z "$api_key" ]]; then
+    intent::log "WARN: LLM provider is not configured; set AGENTIC_NETOPS_LLM_MODEL and AGENTIC_NETOPS_LLM_API_KEY"
+    return 0
+  fi
+  if [[ -z "$model" || -z "$api_key" ]]; then
+    echo "[intent-tier] ERROR: both AGENTIC_NETOPS_LLM_MODEL and AGENTIC_NETOPS_LLM_API_KEY are required" >&2
+    return 1
+  fi
+
+  secret_args=(
+    --from-literal="LLM_MODEL=$model"
+    --from-literal="OPENAI_API_KEY=$api_key"
+  )
+  if [[ -n "$base_url" ]]; then
+    secret_args+=(--from-literal="OPENAI_BASE_URL=$base_url")
+  fi
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" create secret generic llm-provider \
+    "${secret_args[@]}" --dry-run=client -o yaml | intent::kubectl apply -f - >/dev/null
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" label secret llm-provider \
+    agentic-netops.owner=agentic-netops agentic-netops.io/tier=intent --overwrite >/dev/null
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" annotate secret llm-provider \
+    agentic-netops.io/populated-by="provision-time (LLM provider credentials; never committed)" \
+    --overwrite >/dev/null
+  intent::log "configured LLM provider model $model"
+}
+
 # T181 — install the tier in dependency order:
 #   1. generated Secrets (SLIM gateway password + TLS material) via the
 #      tier secret generator Job (deploy/agents/secret-generator-job.yaml);
@@ -72,24 +108,48 @@ intent::install() {
 
   local root="${INTENT_TIER_ROOT:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)}"
 
-  # Load the locally built tier images so digest/lab images resolve without
-  # a registry (air-gapped lab friendly; best-effort — a preloaded node
-  # image is fine too).
+  # Build (when missing) and load the tier images. These images exist ONLY on
+  # the build host -- `agentic-netops/intent-*:latest` is not published to any
+  # registry -- so a missing one is not a warning, it is a guaranteed
+  # ImagePullBackOff and a tier that never comes up. Warning and continuing is
+  # what made a from-scratch provision produce a half-dead tier (2026-09-03):
+  # the pods were scheduled against images that had never been built on the host.
+  #
+  # Build is idempotent and skipped when the image is already in the local cache,
+  # so repeat provisions stay fast. Set INTENT_TIER_REBUILD=true to force a
+  # rebuild after changing agent source.
   if command -v kind >/dev/null 2>&1 && command -v docker >/dev/null 2>&1; then
     local cluster="${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
-    for img in agentic-netops/intent-supervisor:latest agentic-netops/intent-mapper:latest \
-               agentic-netops/intent-allocator:latest agentic-netops/intent-deployer:latest \
-               agentic-netops/intent-translator:latest agentic-netops/intent-ui:latest; do
-      if docker image inspect "$img" >/dev/null 2>&1; then
-        kind load docker-image "$img" --name "$cluster" >/dev/null 2>&1 \
-          && intent::log "loaded $img" || intent::log "WARN: kind load failed for $img (pull will be attempted)"
-      else
-        intent::log "WARN: image not in local cache: $img"
+    local rebuild="${INTENT_TIER_REBUILD:-false}"
+    # image:dockerfile pairs (build context is the repository root)
+    local spec img dockerfile
+    for spec in \
+      "agentic-netops/intent-supervisor:latest=docker/Dockerfile.supervisor" \
+      "agentic-netops/intent-mapper:latest=docker/Dockerfile.mapper" \
+      "agentic-netops/intent-allocator:latest=docker/Dockerfile.allocator" \
+      "agentic-netops/intent-deployer:latest=docker/Dockerfile.deployer" \
+      "agentic-netops/intent-translator:latest=docker/Dockerfile.intent-translator" \
+      "agentic-netops/intent-ui:latest=docker/Dockerfile.ui"; do
+      img="${spec%%=*}"
+      dockerfile="${spec#*=}"
+      if [[ "$rebuild" == "true" ]] || ! docker image inspect "$img" >/dev/null 2>&1; then
+        intent::log "building $img (${dockerfile})"
+        if ! docker build -q -f "${root}/${dockerfile}" -t "$img" "${root}" >/dev/null; then
+          echo "[intent-tier] ERROR: failed to build $img from ${dockerfile}" >&2
+          return 1
+        fi
       fi
+      kind load docker-image "$img" --name "$cluster" >/dev/null 2>&1 \
+        && intent::log "loaded $img" \
+        || { echo "[intent-tier] ERROR: kind load failed for $img into cluster $cluster" >&2; return 1; }
     done
+  else
+    echo "[intent-tier] ERROR: docker and kind are required to build/load the tier images" >&2
+    return 1
   fi
 
   intent::kubectl apply -f "${root}/deploy/agents/namespace-rbac.yaml"
+  intent::configure_llm_provider
 
   # The generator Job must complete before the gateway starts: the gateway
   # mounts the generated TLS material and password.
@@ -118,6 +178,14 @@ intent::install() {
   intent::kubectl apply -f "$(intent::manifest deployer.yaml)"
   intent::kubectl apply -f "$(intent::manifest ui-configmap.yaml)"
   intent::kubectl apply -f "$(intent::manifest ui.yaml)"
+
+  # Local images use a mutable :latest tag. Applying an unchanged Deployment
+  # does not create a new ReplicaSet, so a rebuilt image would otherwise sit
+  # unused in the Kind node cache. Restart after every load; first installs are
+  # unaffected, while repeat installs reliably consume rebuilt code and newly
+  # populated Secret values.
+  intent::kubectl -n "$INTENT_TIER_NAMESPACE" rollout restart \
+    deployment/supervisor deployment/mapper deployment/allocator deployment/deployer deployment/ui
 
   # T339 — Mount the intent-tier dashboards into Grafana via a reversible patch
   # We keep dashboards in the agents tree (ConfigMap grafana-dashboards-agents, namespace agentic-netops-agents)

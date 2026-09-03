@@ -72,6 +72,7 @@ for id in "${IDENTITIES[@]}"; do
   can_i_must_be_no "$id" update ipclaims -n kuid-system
   can_i_must_be_no "$id" update genidclaims -n kuid-system
   can_i_must_be_no "$id" update asclaims -n kuid-system
+  can_i_must_be_no "$id" update leases.coordination.k8s.io -n kuid-system
   # --- the tier must not read other namespaces' intent or the control plane
   can_i_must_be_no "$id" get networks -n agentic-netops-agents
   can_i_must_be_no "$id" get secrets -n agentic-netops-agents
@@ -82,7 +83,8 @@ done
 
 # --- positive sanity checks: the guardrail is scoped, not total --------------
 # intent-deployer MAY write service intent in agentic-netops-intent (otherwise the
-# tier cannot do its job); intent-allocator MAY create/delete claims.
+# tier cannot do its job); intent-allocator MAY create/delete claims and the
+# Lease fallback used for KUID pools broken by the pinned server.
 deployer_may() {
   local got
   got=$(K auth can-i --as="system:serviceaccount:${NS_AGENTS}:intent-deployer" "$@" 2>/dev/null) || true
@@ -106,6 +108,8 @@ deployer_may create srv6services.agentic-netops.io -n agentic-netops-intent
 deployer_may create events -n agentic-netops-intent
 allocator_may create claims -n kuid-system
 allocator_may delete claims -n kuid-system
+allocator_may create leases.coordination.k8s.io -n kuid-system
+allocator_may delete leases.coordination.k8s.io -n kuid-system
 
 echo
 echo "rbac-denials: ${pass} assertions passed, ${fail} failed"

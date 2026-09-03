@@ -105,7 +105,19 @@ if kubectl --context "${KIND_CONTEXT}" -n kuid-system rollout status deploy/kuid
       echo "[kubenet-install] kuid-server serving; allocation indices applied"
       break
     fi
-    [[ "$i" == "30" ]] && echo "[kubenet-install] WARN: kuid-server did not accept index writes; allocation will fail" >&2
+    if [[ "$i" == "30" ]]; then
+      echo "[kubenet-install] WARN: pinned kuid-server rejects GENID/EXTCOMM indices; ensuring VLAN index and using allocator Lease fallback for VNI/RT pools" >&2
+      kubectl --context "${KIND_CONTEXT}" apply -f - <<'YAML'
+apiVersion: vlan.be.kuid.dev/v1alpha1
+kind: VLANIndex
+metadata:
+  name: fabric-vlan
+  namespace: kuid-system
+spec:
+  minID: 100
+  maxID: 4000
+YAML
+    fi
     sleep 5
   done
 else

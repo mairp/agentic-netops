@@ -52,7 +52,7 @@ Use these checks to attribute and remediate failures:
 - SLIM gateway: kubectl -n agentic-netops-agents get deploy slim; ensure Service on 46357/TCP; inspect slim logs for TLS/auth issues.
 
 2) Classifier/model provider issues
-- The supervisor falls back to general_info with a message indicating model unavailability; verify llm-provider Secret and LLM_MODEL prefix.
+- During a provider outage, explicit supported service requests and clear informational questions use a narrow deterministic classifier. Ambiguous requests return a named FAILED event with a provider-unavailable message; verify llm-provider Secret and LLM_MODEL prefix.
 - Check agents/common/errors.py provider_unavailable_message patterns and supervisor logs for actionable messages.
 
 3) Mapper stage rejections and clarifications

@@ -8,8 +8,14 @@
 #
 # The worker registers with the SLIM gateway over TRANSPORT_SERVER_ENDPOINT
 # (server.py run_transport); SLIM-only is enforced in code (require_slim).
-# The service account is non-token-bearing (automountServiceAccountToken:
-# false in deploy/agents/namespace-rbac.yaml) — allocator touches no cluster API.
+# The service account IS token-bearing: T039 names intent-allocator one of the
+# only two cluster-API identities in the tier, because the allocator claims its
+# identifiers from KUID rather than inventing them (FR-013). The mount carries
+# both halves of that identity — the bearer token AND the cluster CA bundle the
+# client verifies the API server against. Turning the mount off leaves the
+# allocator with no credential and no trust anchor, and every claim fails with
+# CERTIFICATE_VERIFY_FAILED. The RoleBinding (kuid-claimer, in kuid-system)
+# holds the blast radius: claim and release, no update/patch, nothing else.
 ---
 apiVersion: v1
 kind: Service
@@ -46,9 +52,13 @@ spec:
         app: allocator
         agentic-netops.owner: agentic-netops
         agentic-netops.io/tier: intent
+        # Selected by allow-apiserver-egress (namespace-rbac.yaml): the allocator
+        # claims identifiers from KUID through the API server's aggregation layer,
+        # so it needs egress past deny-all-by-default. It is the only worker that does.
+        agentic-netops.io/needs-apiserver: "true"
     spec:
       serviceAccountName: intent-allocator
-      automountServiceAccountToken: false
+      automountServiceAccountToken: true
       containers:
         - name: allocator
           image: agentic-netops/intent-allocator:latest
