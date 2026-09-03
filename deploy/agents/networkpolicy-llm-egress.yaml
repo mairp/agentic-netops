@@ -2,7 +2,7 @@
 #
 # The namespace runs deny-all-by-default, which is correct: an agent tier that can
 # open arbitrary connections is exactly what FR-016/FR-029 exist to prevent. The
-# supervisor's classifier needs one thing the cluster cannot otherwise reach -- the
+# The classifier needs exactly one destination the cluster cannot otherwise reach:
 # LiteLLM/Compass gateway on the host -- and without it every prompt fails at
 # "classifier (model) unavailable: LLM Provider NOT provided".
 #
@@ -25,7 +25,7 @@ spec:
   egress:
     - to:
         - ipBlock:
-            cidr: 172.30.0.1/32
+            cidr: 172.30.0.4/32
       ports:
         - protocol: TCP
           port: 4000

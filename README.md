@@ -50,9 +50,17 @@ Prometheus scrapes gnmic directly, Grafana renders it.
 
 ![Intent tier UI](docs/images/agent-ui.png)
 
-The intent tier's chat surface. **Note:** the chat itself is still a stub — the page
-states "Chat streaming arrives in a later phase" — so intent is driven through the
-supervisor API for now, not this box.
+The intent tier's console, wired to the live supervisor: workers reachable over SLIM,
+Compass `gpt-5` reached through the LiteLLM gateway. The scenario cards are the
+service types the supervisor itself advertises on `GET /suggested-prompts` — VPWS,
+VPLS, L3VPN, L2L3-IRB — not a separate hard-coded list.
+
+**What works and what does not:** a prompt reaches the classifier and comes back with
+a real, domain-aware answer. A single-shot `POST /agent/prompt/stream` then stops at
+the supervisor's own iteration bound, because the graph is built to provision only
+"after your two explicit confirmations" and a one-shot request cannot supply them.
+The refusal is logged as `audit refuse ... reason=request bound` — the tier declining
+to act, not failing.
 
 Live gNMI telemetry: gnmic subscribes to each SONiC node's DBs, Prometheus scrapes
 gnmic directly, Grafana renders it.
