@@ -30,6 +30,15 @@ data:
         scrape_interval: 15s
         evaluation_interval: 15s
       scrape_configs:
+        # Scrape gnmic directly. The OTLP hop (gnmic -> otel-collector -> prometheus)
+        # silently dropped everything: gnmic's otlp output takes `endpoint`, not
+        # `url`, so it failed to initialise and discarded every sample while the
+        # collector reported itself healthy. gnmic's native Prometheus output is the
+        # reference shape and is one hop shorter, so it is the primary path now.
+        - job_name: 'gnmic'
+          scrape_interval: 15s
+          static_configs:
+            - targets: ['gnmic.ainetops-system.svc.cluster.local:9273']
         - job_name: 'otel-collector'
           static_configs:
             - targets: ['otel-collector.ainetops-system.svc.cluster.local:9464']

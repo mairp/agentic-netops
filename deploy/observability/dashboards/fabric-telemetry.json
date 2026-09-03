@@ -1,0 +1,82 @@
+{
+  "title": "AINETOPS Fabric Telemetry",
+  "uid": "ainetops-fabric-telemetry",
+  "tags": ["ainetops", "fabric", "gnmi"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Fabric nodes reporting telemetry",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" },
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "red", "value": null }, { "color": "orange", "value": 1 },
+          { "color": "green", "value": 4 } ] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [ { "expr": "count(count by (source) ({__name__=~\"PORT_TABLE_.*_mtu\"}))",
+                     "legendFormat": "nodes", "refId": "A" } ]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Interfaces discovered",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [ { "expr": "count({__name__=~\"PORT_TABLE_.*_mtu\"})", "legendFormat": "ifaces", "refId": "A" } ]
+    },
+    {
+      "id": 3, "type": "stat", "title": "BGP neighbors configured",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "purple" } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [ { "expr": "count({__name__=~\"BGP_NEIGHBOR_.*_asn\"})", "legendFormat": "neighbors", "refId": "A" } ]
+    },
+    {
+      "id": 4, "type": "stat", "title": "gNMI collector",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "fieldConfig": { "defaults": { "mappings": [ { "type": "value", "options": {
+          "1": { "text": "UP", "color": "green" }, "0": { "text": "DOWN", "color": "red" } } } ],
+        "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [
+          { "color": "red", "value": null }, { "color": "green", "value": 1 } ] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [ { "expr": "up{job=\"gnmic\"}", "legendFormat": "gnmic", "refId": "A" } ]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Interface MTU by node (jumbo underlay = 9100+)",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 5 },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 8,
+        "showPoints": "never" }, "unit": "bytes" }, "overrides": [] },
+      "targets": [ { "expr": "avg by (source) ({__name__=~\"PORT_TABLE_.*_mtu\"})",
+                     "legendFormat": "{{source}}", "refId": "A" } ]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Interface link speed by node",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 5 },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 8,
+        "showPoints": "never" }, "unit": "Kbits" }, "overrides": [] },
+      "targets": [ { "expr": "avg by (source) ({__name__=~\"PORT_TABLE_.*_speed\"})",
+                     "legendFormat": "{{source}}", "refId": "A" } ]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Interface flap count (cumulative, per node)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 12,
+        "showPoints": "never" } }, "overrides": [] },
+      "targets": [ { "expr": "sum by (source) ({__name__=~\"PORT_TABLE_.*_flap_count\"})",
+                     "legendFormat": "{{source}}", "refId": "A" } ]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "BGP hold time / keepalive (per node)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 0,
+        "showPoints": "never" }, "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "expr": "avg by (source) ({__name__=~\"BGP_NEIGHBOR_.*_holdtime\"})",
+          "legendFormat": "{{source}} holdtime", "refId": "A" },
+        { "expr": "avg by (source) ({__name__=~\"BGP_NEIGHBOR_.*_keepalive\"})",
+          "legendFormat": "{{source}} keepalive", "refId": "B" }
+      ]
+    }
+  ]
+}

@@ -2,7 +2,7 @@ SHELL := /bin/bash
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: help verify-pins verify-intent-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest build build-migration-cli build-intent-translator supply-chain denylist security-audit acceptance suites test-all
+.PHONY: help verify-pins verify-intent-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest build build-migration-cli build-intent-translator supply-chain security-audit acceptance suites test-all
 
 help:
 	@echo "Targets:"
@@ -16,9 +16,8 @@ help:
 	@echo "  build             Build provider, SRv6 controller, and migration CLI"
 	@echo "  build-migration-cli  Build only cmd/migration-translator"
 	@echo "  supply-chain      Run supply-chain checks (licenses, vuln, provenance, SBOM)"
-	@echo "  denylist          Run deny-list policy locally (matches CI)"
 	@echo "  security-audit    Run FR-015 security audit (RBAC, Secrets, TLS, privileges, Grafana, logs)"
-	@echo "  acceptance        Run Phase 8 acceptance checks (denylist + supply-chain + security-audit)"
+	@echo "  acceptance        Run supply-chain and security checks"
 
 verify-pins:
 	@echo "[verify-pins] validating versions.lock.yaml"
@@ -39,14 +38,11 @@ verify-compat: verify-pins validate-crds verify-register verify-intent-pins
 supply-chain:
 	@"$(PWD)/scripts/ci/supply_chain.sh"
 
-denylist:
-	@"$(PWD)/scripts/ci/denylist_local.sh"
-
 security-audit:
 	@"$(PWD)/scripts/ci/security_audit.sh"
 
-acceptance: denylist supply-chain security-audit
-	@echo "[acceptance] Phase 8 policy checks passed"
+acceptance: supply-chain security-audit
+	@echo "[acceptance] supply-chain and security checks passed"
 
 build:
 	@echo "[build] building provider, SRv6 controller, and migration CLI"

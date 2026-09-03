@@ -107,7 +107,7 @@ runtime_inventory() {
   if command -v docker >/dev/null 2>&1; then
     docker ps -a --format "{{.ID}} {{.Image}} {{.Names}} {{.Labels}}" 2>/dev/null | tee "$PROOFS/runtime-inventory-docker-$idx.log" || true
   fi
-  ( cd "$ROOT_DIR" && ./scripts/ci/denylist_runtime_scan.sh ) >"$PROOFS/runtime-scan-runtime-$idx.log" 2>&1
+  ( cd "$ROOT_DIR" && ./scripts/ci/runtime_workload_scan.sh ) >"$PROOFS/runtime-scan-runtime-$idx.log" 2>&1
   echo "[cycles] runtime-scan-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
 }
 
@@ -147,7 +147,7 @@ run_provision "$PROOFS/provision-conformance.log" sonic-vm
 run_off "$PROOFS/off-conformance.log"
 
 # --- Final runtime scan -------------------------------------------------------
-( cd "$ROOT_DIR" && ./scripts/ci/denylist_runtime_scan.sh ) >"$PROOFS/runtime-scan-runtime.log" 2>&1
+( cd "$ROOT_DIR" && ./scripts/ci/runtime_workload_scan.sh ) >"$PROOFS/runtime-scan-runtime.log" 2>&1
 echo "[cycles] final runtime-scan exit=$?" | tee -a "$PROOFS/cycles.run.log"
 echo "[cycles] end $(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a "$PROOFS/cycles.run.log"
 echo "CYCLES_DONE"

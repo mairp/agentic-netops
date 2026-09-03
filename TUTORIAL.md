@@ -144,7 +144,6 @@ state and unrelated claims survive untouched.
 ```bash
 ./tests/integration/fabric_verify.sh run   # control plane + data path, fails closed
 make verify-pins                           # every image/binary matches versions.lock.yaml
-make denylist                              # vendor neutrality
 ```
 
 `fabric_verify.sh` fails closed by design: an assertion it cannot *prove* fails rather

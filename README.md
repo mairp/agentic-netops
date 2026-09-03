@@ -1,19 +1,44 @@
 # AINETOPS — SONiC EVPN/VXLAN fabric with an agentic intent tier
 
 [![CI](https://github.com/mairp/ainetops/actions/workflows/ci.yaml/badge.svg)](https://github.com/mairp/ainetops/actions/workflows/ci.yaml)
-[![Denylist Scan](https://github.com/mairp/ainetops/actions/workflows/denylist.yml/badge.svg)](https://github.com/mairp/ainetops/actions/workflows/denylist.yml)
 [![SONiC](https://img.shields.io/badge/SONiC-202605-blue)](versions.lock.yaml)
 [![FRR](https://img.shields.io/badge/FRR-10.5.4-blue)](versions.lock.yaml)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.29.4-326ce5)](versions.lock.yaml)
 [![containerlab](https://img.shields.io/badge/containerlab-sonic--vs-0a7bbb)](lab/topology.clab.yml)
 [![Tutorial](https://img.shields.io/badge/docs-TUTORIAL.md-green)](TUTORIAL.md)
 
-A reproducible, vendor-neutral reference platform: a containerlab SONiC fabric driven by
-Kubernetes controllers, with an optional multi-agent "intent tier" that turns a plain-language
-service request into declarative resources.
+[![AGNTCY](https://img.shields.io/badge/AGNTCY-intent%20tier-6f42c1)](agents/README.md)
+[![LangGraph](https://img.shields.io/badge/LangGraph-supervisor-1c3c3c)](agents/supervisors/provisioning)
+[![A2A](https://img.shields.io/badge/A2A-agent%20to%20agent-0b8043)](agents/README.md)
+[![SLIM](https://img.shields.io/badge/SLIM-message%20bus-e37400)](deploy/agents/slim.yaml)
+[![gNMI](https://img.shields.io/badge/gNMI-telemetry-00b3a4)](deploy/gnmi/gnmic.yaml)
+[![Prometheus](https://img.shields.io/badge/Prometheus-metrics-e6522c)](deploy/observability/prometheus.yaml)
+[![Grafana](https://img.shields.io/badge/Grafana-dashboards-f46800)](deploy/observability/dashboards)
+
+An autonomous network demo. You state intent in plain language; a multi-agent tier
+decomposes it, allocates identifiers and submits declarative resources; Kubernetes
+controllers reconcile them onto a live SONiC EVPN/VXLAN fabric and *keep* them that
+way -- repairing drift, surviving component failure, and releasing what it claimed
+when intent is withdrawn.
+
+The agent tier is not an add-on. It is how the network is driven: the fabric, the
+controllers and the agents are three parts of one closed loop, with gNMI telemetry
+feeding back into it.
 
 Everything below is self-contained. The `specs/` directory is intentionally untracked
 (spec-kit working material), so this README carries the instructions rather than pointing at it.
+
+## The lab
+
+![Fabric topology](docs/images/lab-topology.png)
+
+Two spines, two leaves and four clients in containerlab, wired as a Clos with a
+dual-stack eBGP underlay and an EVPN/VXLAN overlay.
+
+![Fabric telemetry](docs/images/grafana-fabric-telemetry.png)
+
+Live gNMI telemetry: gnmic subscribes to each SONiC node's DBs, Prometheus scrapes
+gnmic directly, Grafana renders it.
 
 ## What you get
 
@@ -92,11 +117,6 @@ versions.lock.yaml  every image and binary pin; enforced by `make verify-pins`
 ```
 
 ## Policies enforced in CI
-
-**Deny-list** — keeps the platform vendor-neutral. No SR Linux runtime artifacts, no proprietary
-NED references outside research citations, no Compose/standalone platform-app placements under
-`controllers/`, `config/`, `scripts/`, `examples/`, `tests/`. Reproduce locally with
-`make denylist`; see `.github/workflows/denylist.yml`.
 
 **Jumbo MTU** — the lab standardises on underlay MTU 9216. VXLAN effective payload is 9166 (IPv4)
 and 9162 (IPv6); with 3 SRv6 SIDs it is ~9120. Acceptance tests size packets to avoid
