@@ -63,6 +63,15 @@ spec:
             - name: http
               containerPort: 9092
           env:
+            # Point the OpenTelemetry SDK at the tier-owned collector. Its default is
+            # localhost:4318, which does not exist in the pod -- the agents export on
+            # startup and treat a failed export as FATAL, so every one of them sat in
+            # CrashLoopBackOff (mapper/allocator at 29 restarts, deployer 31) with
+            # ConnectionError to localhost:4318, while their own /v1/health returned 200.
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://agent-otel-collector.ainetops-agents.svc:4318
+            - name: AGENT_OTLP_HTTP_ENDPOINT
+              value: http://agent-otel-collector.ainetops-agents.svc:4318
             - name: SLIM_TLS_DIR
               value: /etc/slim/tls
             - name: SLIM_CLIENT_NAME
@@ -99,8 +108,14 @@ spec:
               cpu: 50m
               memory: 128Mi
             limits:
-              cpu: 500m
-              memory: 512Mi
+              cpu: 1000m
+              # 512Mi -> 1Gi. These agents load LangGraph, the OpenTelemetry SDK and
+              # an LLM client at import time; the startup peak does not fit in 512Mi
+              # and every one of them was OOMKilled (exit 137) on a loop --
+              # mapper/allocator reached 29 restarts and deployer 31, while their own
+              # /v1/health returned 200 right up to the kill, so the pods looked alive
+              # and the supervisor only reported "readiness degraded" (2026-09-03).
+              memory: 1Gi
           volumeMounts:
             - name: slim-tls
               mountPath: /etc/slim/tls

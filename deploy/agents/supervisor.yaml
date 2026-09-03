@@ -125,6 +125,15 @@ spec:
             - name: http
               containerPort: 9090
           env:
+            # Point the OpenTelemetry SDK at the tier-owned collector. Its default is
+            # localhost:4318, which does not exist in the pod -- the agents export on
+            # startup and treat a failed export as FATAL, so every one of them sat in
+            # CrashLoopBackOff (mapper/allocator at 29 restarts, deployer 31) with
+            # ConnectionError to localhost:4318, while their own /v1/health returned 200.
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://agent-otel-collector.ainetops-agents.svc:4318
+            - name: AGENT_OTLP_HTTP_ENDPOINT
+              value: http://agent-otel-collector.ainetops-agents.svc:4318
             - name: SLIM_TLS_DIR
               value: /etc/slim/tls
             - name: SLIM_CLIENT_NAME
