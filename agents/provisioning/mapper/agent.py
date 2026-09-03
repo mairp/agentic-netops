@@ -50,7 +50,7 @@ from pydantic import ValidationError
 from common.redaction import redact_model_response
 from common.schemas.interpretation import EndpointIntent, Interpretation, ServiceType
 
-logger = logging.getLogger("devnet.network_mapping.agent")
+logger = logging.getLogger("agentic_netops.network_mapping.agent")
 
 CATALOGUE_PATH = Path(__file__).resolve().parent / "catalogue.json"
 MAPPER_MARKER = "MAPPED_JSON"

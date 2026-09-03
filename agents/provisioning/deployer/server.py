@@ -4,7 +4,7 @@ Same structure as the mapper/allocator servers:
 ``A2AStarletteApplication`` + ``DefaultRequestHandler`` +
 ``InMemoryTaskStore`` + the ``/v1/health`` route, uvicorn on port 9093
 (contracts/supervisor-http.md), routable card id
-``devnet/provisioning/network-deployer`` (contracts/a2a-transport.md).
+``agentic-netops/provisioning/network-deployer`` (contracts/a2a-transport.md).
 
 US3 wiring carried here:
 
@@ -43,9 +43,9 @@ from provisioning.deployer.card import AGENT_CARD
 from config.telemetry import init_telemetry
 init_telemetry(app_name="intent-deployer")
 
-factory = AgntcyFactory("devnet.network_deployer", enable_tracing=True)
+factory = AgntcyFactory("agentic_netops.network_deployer", enable_tracing=True)
 
-logger = logging.getLogger("devnet.network_deployer.server")
+logger = logging.getLogger("agentic_netops.network_deployer.server")
 logging.basicConfig(level=logging.INFO)
 
 WORKER = "deployer"

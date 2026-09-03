@@ -18,7 +18,7 @@ from a2a.utils.errors import ServerError
 
 from provisioning.mapper.agent import MappingAgent
 
-logger = logging.getLogger("devnet.network_mapping.agent_executor")
+logger = logging.getLogger("agentic_netops.network_mapping.agent_executor")
 
 WORKER_NAME = "mapper"
 

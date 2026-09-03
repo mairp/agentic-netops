@@ -19,7 +19,7 @@ from typing import Any
 
 import httpx
 
-logger = logging.getLogger("devnet.network_deployer.tools")
+logger = logging.getLogger("agentic_netops.network_deployer.tools")
 
 TRANSLATOR_ENDPOINT = "http://127.0.0.1:8090"
 

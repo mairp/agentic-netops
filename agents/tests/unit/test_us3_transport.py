@@ -3,7 +3,7 @@
 Phase 4 tasks covered here (the rest of the phase is exercised by the live
 probes under deploy/agents/tests/probes/):
 
-* T135-T138  card metadata + normalized ``devnet/provisioning/...`` ids.
+* T135-T138  card metadata + normalized ``agentic-netops/provisioning/...`` ids.
 * T139-T141  capability-to-card registry, call-time topic resolution via
   ``A2AProtocol.create_agent_topic``, and NO hardcoded worker topic lists.
 * T142-T150  SLIM-only validation, ``TRANSPORT_SERVER_ENDPOINT``
@@ -55,9 +55,9 @@ class TestCards:
     @pytest.mark.parametrize(
         ("module", "card_id"),
         [
-            (mapper_server, "devnet/provisioning/network-mapping"),
-            (allocator_server, "devnet/provisioning/network-allocator"),
-            (deployer_server, "devnet/provisioning/network-deployer"),
+            (mapper_server, "agentic-netops/provisioning/network-mapping"),
+            (allocator_server, "agentic-netops/provisioning/network-allocator"),
+            (deployer_server, "agentic-netops/provisioning/network-deployer"),
         ],
         ids=["mapper", "allocator", "deployer"],
     )

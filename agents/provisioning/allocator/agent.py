@@ -45,7 +45,7 @@ from common.schemas.normalized_intent import AddressFamilies, Endpoint, IRBGatew
 from provisioning.allocator.kuid import KUIDClient
 from common.telemetry import get_trace_correlation_id
 
-logger = logging.getLogger("devnet.network_allocator.agent")
+logger = logging.getLogger("agentic_netops.network_allocator.agent")
 
 ALLOCATOR_MARKER = "DEPLOYMENT_JSON"
 

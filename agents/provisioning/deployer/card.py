@@ -39,7 +39,7 @@ DEPLOY_SERVICE_SKILL = AgentSkill(
 AGENT_CARD = AgentCard(
     name="Network Deployer Agent",
     # NOTE: id must be a valid routable name: org/namespace/local_name
-    id="devnet/provisioning/network-deployer",
+    id="agentic-netops/provisioning/network-deployer",
     description=(
         "An AI agent that deploys network services to the fabric using allocated "
         "technical parameters. Handles service provisioning, configuration deployment, "

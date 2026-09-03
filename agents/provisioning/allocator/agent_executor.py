@@ -26,7 +26,7 @@ from a2a.types import (
 from a2a.utils import new_task
 from a2a.utils.errors import ServerError
 
-logger = logging.getLogger("devnet.network_allocator.agent_executor")
+logger = logging.getLogger("agentic_netops.network_allocator.agent_executor")
 
 WORKER_NAME = "allocator"
 

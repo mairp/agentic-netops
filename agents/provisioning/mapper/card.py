@@ -29,7 +29,7 @@ AGENT_CARD = AgentCard(
     name="Network Mapping Agent",
     # NOTE: id must be a valid routable name: org/namespace/local_name
     # This is used by A2AProtocol.create_agent_topic to build the topic.
-    id="devnet/provisioning/network-mapping",
+    id="agentic-netops/provisioning/network-mapping",
     description="An AI agent that maps natural language network service requests into structured technical parameters.",
     url="",
     version="1.0.0",

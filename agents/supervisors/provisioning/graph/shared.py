@@ -110,5 +110,5 @@ def get_factory() -> AgntcyFactory:
     """The supervisor's Agntcy factory (created on first use)."""
     global _factory
     if _factory is None:
-        _factory = AgntcyFactory("devnet.provisioning_supervisor", enable_tracing=True)
+        _factory = AgntcyFactory("agentic_netops.provisioning_supervisor", enable_tracing=True)
     return _factory

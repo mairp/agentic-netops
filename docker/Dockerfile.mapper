@@ -29,7 +29,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Mapper card id devnet/provisioning/network-mapping (contracts/a2a-transport.md)
+# Mapper card id agentic-netops/provisioning/network-mapping (contracts/a2a-transport.md)
 EXPOSE 9092
 # Entrypoint module lands with the mapper implementation phase.
 CMD ["python", "provisioning/mapper/server.py"]

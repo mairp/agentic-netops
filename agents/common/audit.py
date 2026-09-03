@@ -49,7 +49,7 @@ from pydantic import BaseModel, ValidationError
 from common.redaction import redact
 from common.schemas.audit import AuditEvent
 
-logger = logging.getLogger("devnet.common.audit")
+logger = logging.getLogger("agentic_netops.common.audit")
 
 # ---------------------------------------------------------------------------
 # Kubernetes Event emission (T104) — endpoint / identity resolution.

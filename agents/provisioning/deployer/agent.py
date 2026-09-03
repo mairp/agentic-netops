@@ -46,7 +46,7 @@ from common.schemas.normalized_intent import NormalizedServiceIntent
 from common.schemas.refs import ResourceRef
 from provisioning.deployer.tools import deployer_tools
 
-logger = logging.getLogger("devnet.network_deployer.agent")
+logger = logging.getLogger("agentic_netops.network_deployer.agent")
 
 DEPLOYER_MARKER = "SUBMISSION_JSON"
 

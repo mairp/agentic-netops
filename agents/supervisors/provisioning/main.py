@@ -51,7 +51,7 @@ from supervisors.provisioning.graph.graph import (
 
 # -------------------- Logging --------------------
 setup_logging()
-logger = logging.getLogger("devnet.provision.supervisor.main")
+logger = logging.getLogger("agentic_netops.provision.supervisor.main")
 
 # -------------------- Telemetry --------------------
 from config.telemetry import init_telemetry

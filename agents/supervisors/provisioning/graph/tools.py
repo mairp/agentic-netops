@@ -43,7 +43,7 @@ from provisioning.deployer.card import AGENT_CARD as DEPLOYER_CARD
 from provisioning.mapper.card import AGENT_CARD as MAPPER_CARD
 from supervisors.provisioning.graph.shared import get_factory
 
-logger = logging.getLogger("devnet.provisioning.supervisor.tools")
+logger = logging.getLogger("agentic_netops.provisioning.supervisor.tools")
 
 # FR-025: per-call timeout + bounded retry with backoff.
 WORKER_CALL_TIMEOUT_SECONDS = float(os.getenv("WORKER_CALL_TIMEOUT_SECONDS", "60"))

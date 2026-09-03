@@ -27,7 +27,7 @@ from __future__ import annotations
 import logging
 from enum import Enum
 
-logger = logging.getLogger("devnet.common.logistics_states")
+logger = logging.getLogger("agentic_netops.common.logistics_states")
 
 
 class NetworkProvisioningStatus(Enum):

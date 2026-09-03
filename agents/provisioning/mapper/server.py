@@ -49,9 +49,9 @@ from provisioning.mapper.card import AGENT_CARD
 from config.telemetry import init_telemetry
 init_telemetry(app_name="intent-mapper")
 
-factory = AgntcyFactory("devnet.network_mapping", enable_tracing=True)
+factory = AgntcyFactory("agentic_netops.network_mapping", enable_tracing=True)
 
-logger = logging.getLogger("devnet.network_mapping.server")
+logger = logging.getLogger("agentic_netops.network_mapping.server")
 logging.basicConfig(level=logging.INFO)
 
 WORKER = "mapper"

@@ -33,7 +33,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Deployer card id devnet/provisioning/network-deployer (contracts/a2a-transport.md)
+# Deployer card id agentic-netops/provisioning/network-deployer (contracts/a2a-transport.md)
 EXPOSE 9093
 # Entrypoint module lands with the deployer implementation phase.
 CMD ["python", "provisioning/deployer/server.py"]

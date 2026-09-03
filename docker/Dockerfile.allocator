@@ -29,7 +29,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Allocator card id devnet/provisioning/network-allocator (contracts/a2a-transport.md)
+# Allocator card id agentic-netops/provisioning/network-allocator (contracts/a2a-transport.md)
 EXPOSE 9091
 # Entrypoint module lands with the allocator implementation phase.
 CMD ["python", "provisioning/allocator/server.py"]

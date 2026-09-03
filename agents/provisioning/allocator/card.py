@@ -36,7 +36,7 @@ ALLOCATE_SERVICE_SKILL = AgentSkill(
 AGENT_CARD = AgentCard(
     name="Network Allocator Agent",
     # NOTE: id must be a valid routable name: org/namespace/local_name
-    id="devnet/provisioning/network-allocator",
+    id="agentic-netops/provisioning/network-allocator",
     description=(
         "An AI agent that allocates concrete technical network resources for "
         "mapped service requests, such as VLAN IDs, VRFs, interfaces, route-targets, "
