@@ -1,3 +1,0 @@
-[srv6-capture] capture outer IPv6/SRH with ordered SIDs
-ordered SIDs verified
-[srv6-capture] assert MySID counter increments

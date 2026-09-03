@@ -1,6 +1,0 @@
-kubectl wait --for=condition=Established crd/networks.network.kubenet.dev
-kubectl wait --for=condition=Established crd/networkdevices.network.kubenet.dev
-kubectl wait --for=condition=Established crd/ipindices.id.kuid.dev
-kubectl wait --for=condition=Established crd/asnindices.id.kuid.dev
-kubectl wait --for=condition=Established crd/vniindices.id.kuid.dev
-kubectl wait --for=condition=Established crd/claims.id.kuid.dev

@@ -1,2 +1,0 @@
-[obs] checks: flow-plugin-pinned anonymous-disabled dash-physical-fabric.json dash-sdc-orchestration.json dash-srv6-service-path.json dash-pipeline-health.json alert-LinkDown alert-BGPPeerDown alert-ProviderFailedReconcile alert-ProviderDegradedDeviation alert-SDCTargetUnreachable alert-SRv6PathDown alert-TopologyInventoryMismatch alert-GNMIcExportFailures alert-OTelExportFailures
-OBSERVABILITY_SUITE_OK

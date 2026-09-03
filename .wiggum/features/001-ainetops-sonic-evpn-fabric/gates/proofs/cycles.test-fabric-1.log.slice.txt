@@ -1,1 +1,0 @@
-     1	FABRIC_VERIFY_SKIPPED: SONiC gNMI endpoints unreachable — selected profile is not SRv6-qualified (capability gate, scripts/lib/qualify.sh, is the source of truth); live fabric verification not applicable

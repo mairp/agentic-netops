@@ -1,1 +1,0 @@
-17:	TranslatorName    = "ainetops-migration-translator"

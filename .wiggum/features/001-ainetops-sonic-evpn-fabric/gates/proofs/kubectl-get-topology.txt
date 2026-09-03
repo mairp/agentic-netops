@@ -1,2 +1,0 @@
-NAMESPACE        NAME                   READY   AGE
-kubenet-system  topology/ainetops-topology   True    3m

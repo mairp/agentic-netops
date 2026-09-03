@@ -1,9 +1,0 @@
-2:# Assert installed AINETOPS-owned CRDs (T079a): exactly SRv6Service.ainetops.io
-5:# while the success criterion names the Kind.Group form "SRv6Service.ainetops.io".
-10:# Allowed (only if T060 enables it): MigrationPlan.ainetops.io (plural: migrationplans.ainetops.io)
-27:# If MigrationPlan was explicitly enabled by T060 in future, allow it; otherwise enforce single CRD
-73:  echo "[assert-crds] ERROR: Found duplicate/conflicting fabric/device-config CRDs:" >&2
-79:  echo "[assert-crds] ERROR: AINETOPS-owned CRD set invalid: ${owned_found[*]:-<none>}" >&2
-83:echo "[assert-crds] OK: AINETOPS-owned CRDs = ${owned_found[*]} and no duplicate/conflicting fabric/device-config CRDs detected"
-3:# T079 contract: this runner is STRICT. Every suite records its real exit code;
-4:# the script prints a PASS/FAIL/SKIP summary and exits non-zero if any suite

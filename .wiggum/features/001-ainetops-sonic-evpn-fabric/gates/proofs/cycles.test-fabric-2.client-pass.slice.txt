@@ -1,7 +1,0 @@
-     1	15:[clab-ainetops-fabric-leaf01] assertion passed: L2VPN EVPN AF negotiated with an Established peer
-     2	16:[clab-ainetops-fabric-leaf02] assertion passed: L2VPN EVPN AF negotiated with an Established peer
-     3	20:[client01→client02] assertion passed: bridged Vlan100 reachability (3 packets transmitted, 3 received, 0% packet loss, time 2007ms)
-     4	22:[clab-ainetops-fabric-leaf01] assertion passed: EVPN Type-2 route present
-     5	23:[clab-ainetops-fabric-leaf01] assertion passed: EVPN Type-3 route present
-     6	25:[clab-ainetops-fabric-leaf02] assertion passed: EVPN Type-2 route present
-     7	26:[clab-ainetops-fabric-leaf02] assertion passed: EVPN Type-3 route present

@@ -1,3 +1,0 @@
-SC-005 — Monitoring stack pins and provenance
-- Evidence: versions.lock.yaml (grafana, grafana_flow_plugin, prom/prometheus digests); deploy/observability/grafana.yaml; deploy/observability/prometheus.yaml
-- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/T073.grafana.yaml.slice.txt

@@ -15,7 +15,7 @@ GNMI_KEY=${GNMI_KEY:-./secrets/gnmi.key}
 GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
 LEAF1=${LEAF1:-172.31.0.21:8080}
 
-_args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --insecure --encoding "$GNMI_ENCODING" --cacert "$GNMI_CACERT" --cert "$GNMI_CERT" --key "$GNMI_KEY")
+_args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --encoding "$GNMI_ENCODING" --tls-ca "$GNMI_CACERT" --tls-cert "$GNMI_CERT" --tls-key "$GNMI_KEY")
 
 # Verify effective MTU across the overlay accommodates VXLAN overhead
 vxlan_mtu_test() {
@@ -40,7 +40,7 @@ ecmp_hashing_test() {
   pre_a=$(_read_counter "$IF_A"); pre_b=$(_read_counter "$IF_B")
   # Send a burst of UDP flows with varying src ports to exercise ECMP hashing (overlay)
   for p in 10000 10001 10002 11000 11001 11002 12000 12001 12002; do
-    docker exec "$SRC" bash -lc "timeout 0.2 bash -c '>/dev/udp/${DST_IP}/$p' || true"
+    docker exec "$SRC" sh -lc "timeout 0.2 sh -c '>/dev/udp/${DST_IP}/$p' || true"
   done
   sleep 1
   post_a=$(_read_counter "$IF_A"); post_b=$(_read_counter "$IF_B")

@@ -1,2 +1,0 @@
-11:// DisallowUnknownFields to ensure unknown properties are rejected.
-45:	dec.DisallowUnknownFields()

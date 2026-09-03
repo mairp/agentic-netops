@@ -34,12 +34,12 @@ _capture_text_host="$PROOF_DIR/srv6_outer_srh.txt"
 
 start_capture() {
   echo "[srv6-capture] capture outer IPv6/SRH with ordered SIDs"
-  docker exec -d "$SRC" bash -lc "tcpdump -i eth1 -w $_capture_file_container ip6 and dst ${DST_IP6} and srh"
+  docker exec -d "$SRC" tcpdump -i eth1 -w $_capture_file_container ip6 and dst ${DST_IP6} and srh
 }
 
 stop_capture() {
   echo "[srv6-capture] stopping capture and copying proof"
-  docker exec "$SRC" bash -lc "pkill -f 'tcpdump -i eth1' || true"
+  docker exec "$SRC" sh -lc "pkill -f 'tcpdump -i eth1' || true"
   docker cp "$SRC:$_capture_file_container" "$_capture_file_host" || true
   if [[ -f "$_capture_file_host" ]]; then
     # textual summary for proof and inspection
@@ -50,7 +50,7 @@ stop_capture() {
 
 send_srv6_traffic() {
   echo "[srv6-capture] generating SRv6 traffic"
-  docker exec "$SRC" bash -lc "ping -6 -c 5 -W 1 ${DST_IP6} || true"
+  docker exec "$SRC" ping -6 -c 5 -W 1 ${DST_IP6} || true
 }
 
 mysid_counter() {

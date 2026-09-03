@@ -1,8 +1,0 @@
-     1	## test-parity-3.log
-     2	EXPECTED NODES:  leaf01 leaf02 spine01 spine02 
-     3	EXPECTED LINKS: leaf01-spine01 leaf01-spine02 leaf02-spine01 leaf02-spine02 
-     4	COUNTS: expected nodes=4, configmap nodes=4; expected links=4, configmap links=4
-     5	TOPOLOGY_PARITY_OK: nodes and links match between lab/topology.clab.yml and deploy/observability/topology-configmap.yaml
-     6	## test-observability-3.log
-     7	[obs] checks: flow-pin-recorded no-plugin-install anonymous-disabled dash-physical-fabric.json dash-sdc-orchestration.json dash-srv6-service-path.json dash-pipeline-health.json alert-LinkDown alert-BGPPeerDown alert-ProviderFailedReconcile alert-ProviderDegradedDeviation alert-SDCTargetUnreachable alert-SRv6PathDown alert-TopologyInventoryMismatch alert-GNMIcExportFailures alert-OTelExportFailures cm-present deploy-present
-     8	OBSERVABILITY_SUITE_OK

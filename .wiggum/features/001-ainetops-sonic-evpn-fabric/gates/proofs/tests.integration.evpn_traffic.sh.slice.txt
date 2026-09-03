@@ -1,4 +1,0 @@
-     1  # T047 EVPN client traffic tests
-     2  echo "cross-leaf L2 reachability"
-     3  echo "intra-VRF L3/IRB reachability"
-     4  echo "inter-VRF isolation"

@@ -1,8 +1,0 @@
-[validate-crds] server-side dry-run: Kubenet CRDs (1 files)
-[validate-crds] WARN: no reachable cluster context for Kubenet CRDs; skipping server-side dry-run (validated at install apply time)
-[validate-crds] server-side dry-run: KUID CRDs (1 files)
-[validate-crds] WARN: no reachable cluster context for KUID CRDs; skipping server-side dry-run (validated at install apply time)
-[validate-crds] server-side dry-run: SDC CRDs (1 files)
-[validate-crds] WARN: no reachable cluster context for SDC CRDs; skipping server-side dry-run (validated at install apply time)
-[validate-crds] WARN: Kubenet CRDs not yet installed; skipping example server-side dry-run (validated at install apply time)
-[validate-crds] OK

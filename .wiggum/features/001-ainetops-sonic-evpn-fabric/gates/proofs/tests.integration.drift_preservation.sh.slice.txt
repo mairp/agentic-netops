@@ -1,3 +1,0 @@
-     1  # T050 managed-path drift restoration and unmanaged-path preservation
-     2  echo "managed-path drift restoration"
-     3  echo "unmanaged-path preservation"

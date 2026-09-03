@@ -1,4 +1,0 @@
-     1	=== Log/status redaction ===
-     2	[32mOK[0m: No obvious secret value logging patterns found
-     3	SECURITY_AUDIT_OK
-     4	security-audit rc=0

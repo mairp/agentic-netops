@@ -1,1 +1,0 @@
-nl -ba deploy/gnmi/gnmic.yaml | sed -n '29,37p'

@@ -1,9 +1,0 @@
-14: // Deterministic CLI: reads a JSON array or object from stdin or --file, validates all-or-nothing,
-15: // then emits a single concatenated YAML stream of Kubenet Network resources in stable order.
-16: // No cluster interaction occurs in this phase.
-17: func main() {
-18: 	var file string
-19: 	flag.StringVar(&file, "file", "", "Path to normalized service input JSON (object or array); default stdin")
-20: 	flag.Parse()
-21: 
-22: 	var data []byte

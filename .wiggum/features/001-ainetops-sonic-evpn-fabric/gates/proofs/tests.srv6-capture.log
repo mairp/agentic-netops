@@ -1,2 +1,0 @@
-[run] srv6-capture: /root/ainetops-demo/tests/integration/srv6_capture_counters.sh run
-SKIP-LIVE: SRv6 capture/counter suite requires a provisioned lab (clab-ainetops-fabric-srv6-client01 not present); capability gate (scripts/lib/qualify.sh) is the source of truth

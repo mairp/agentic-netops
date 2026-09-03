@@ -1,1 +1,0 @@
-nl -ba deploy/kubenet/install.sh | sed -n '41,58p'

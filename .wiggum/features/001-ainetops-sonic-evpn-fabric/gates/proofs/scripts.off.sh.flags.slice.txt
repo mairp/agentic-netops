@@ -1,9 +1,0 @@
-    17	Usage: $0 [--cluster-name NAME] [--delete-kind true|false] [--capture-evidence true|false]
-    18	EOF
-    19	}
-    20	
-    21	while [[ $# -gt 0 ]]; do
-    22	  case "$1" in
-    23	    --cluster-name) shift; AINETOPS_CLUSTER_NAME=${1:-$AINETOPS_CLUSTER_NAME} ;;
-    24	    --delete-kind) shift; DELETE_KIND=${1:-$DELETE_KIND} ;;
-    25	    --capture-evidence) shift; CAPTURE_EVIDENCE=${1:-$CAPTURE_EVIDENCE} ;;

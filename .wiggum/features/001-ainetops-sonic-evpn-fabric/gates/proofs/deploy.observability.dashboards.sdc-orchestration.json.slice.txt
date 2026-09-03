@@ -1,7 +1,0 @@
-     1  Path: deploy/observability/dashboards/sdc-orchestration.json
-     2  -- BEGIN EXCERPT --
-     3    {"type": "stat", "title": "SDC Targets Reachable", "targets": [{"expr": "sum(sdc_target_reachable)"}]},
-     4    {"type": "graph", "title": "SDC Config Applies", "targets": [{"expr": "rate(sdc_config_apply_total[5m])"}]},
-     5    {"type": "graph", "title": "SDC Deviations", "targets": [{"expr": "sum by(target) (sdc_deviation_total)"}]},
-     6    {"type": "stat", "title": "Provider Applies", "targets": [{"expr": "increase(ainetops_sonicprovider_applies_total[15m])"}]},
-     7  -- END EXCERPT --

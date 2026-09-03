@@ -1,4 +1,0 @@
-Error in configuration: context was not found for specified context: kind-ainetops
-Error in configuration: context was not found for specified context: kind-ainetops
-[off] WARN: containerlab helper not found; skipping lab teardown
-[off] Teardown complete (idempotent).

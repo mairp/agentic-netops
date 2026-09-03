@@ -1,4 +1,0 @@
-api rc=0
-unit rc=0
-golden rc=0
-sdc-validation rc=0

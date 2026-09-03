@@ -1,8 +1,0 @@
-     1	ainetops-system
-     2	kubenet-system
-     3	kube-system
-     4	kuid-system
-     5	local-path-storage
-     6	monitoring
-     7	sdc-system
-     8	RUNTIME_SCAN_NO_STANDALONE

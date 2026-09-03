@@ -1,2 +1,0 @@
-[run] srv6-failover: /root/ainetops-demo/tests/integration/srv6_failover_path_change.sh run
-SKIP-LIVE: SRv6 failover/path-change suite requires a provisioned lab and Kind cluster (clab-ainetops-fabric-spine01 or cluster absent); capability gate (scripts/lib/qualify.sh) is the source of truth

@@ -1,4 +1,0 @@
-     1	== verify-pins 2026-09-01T07:30:08Z
-     2	[verify-pins] validating versions.lock.yaml
-     3	[verify-pins] versions.lock.yaml pins and compatibility are consistent
-     4	verify-pins rc=0

@@ -1,9 +1,0 @@
->> shell syntax
->> yaml parses
->> pins are immutable and resolvable
-[1;34m==>[0m all pins resolved and immutable
->> containerlab topology is valid
->> required tooling present
->> pinned SONiC image present locally
-SONiC VS image not loaded — run: docker pull localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
-make: *** [Makefile:59: test-static] Error 1

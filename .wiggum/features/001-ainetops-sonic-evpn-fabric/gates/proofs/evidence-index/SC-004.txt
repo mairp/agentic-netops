@@ -1,3 +1,0 @@
-SC-004 — SONiC schema/YANG paths supported
-- Evidence: pkg/sdc/validate.go; pkg/register/oc_vs_sonic.yaml; tests/unit/register_guard_test.go
-- Proofs: .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/yang-paths.txt.proof.txt

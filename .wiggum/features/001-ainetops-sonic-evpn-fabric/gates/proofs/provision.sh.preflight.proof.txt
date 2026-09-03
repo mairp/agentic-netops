@@ -1,6 +1,0 @@
-11\t# shellcheck source=./lib/preflight.sh
-12\tif [[ -f "${LIB_DIR}/preflight.sh" ]]; then
-13\t  # Preflight validates versions.lock.yaml, host resources, privileges, MTU, address overlaps, KVM
-14\t  source "${LIB_DIR}/preflight.sh"
-15\t  preflight::run "$@"
-16\tfi

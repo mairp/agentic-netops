@@ -1,6 +1,0 @@
-     1	386:[clab] no bootstrap dir for profile sonic-vm; nothing to bootstrap
-     2	390:[gnmi-suite] FAIL: Set 172.31.0.21:8080: GCU apply-patch of SRv6 locator+SID failed
-     3	392:[gnmi-suite] FAIL: 172.31.0.21:8080: subscribe returned no DEVICE_METADATA content
-     4	394:[gnmi-suite] FAIL: sonic-srv6 172.31.0.21:8080: GCU locator write failed
-     5	395:[qualify] FAILED: core capability failure; not running EVPN/SRv6 or YANG path suites
-     6	396:[provision] capability gate failed for profile sonic-vm

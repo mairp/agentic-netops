@@ -1,6 +1,0 @@
-config.sdc.sdcio.dev/leaf01-bgp
-config.sdc.sdcio.dev/leaf01-vxlan
-config.sdc.sdcio.dev/leaf02-bgp
-config.sdc.sdcio.dev/leaf02-vxlan
-config.sdc.sdcio.dev/spine01-bgp
-config.sdc.sdcio.dev/spine02-bgp

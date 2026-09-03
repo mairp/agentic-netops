@@ -1,1 +1,0 @@
-[runtime-inventory] helm list -A (no helm releases in CI runner)

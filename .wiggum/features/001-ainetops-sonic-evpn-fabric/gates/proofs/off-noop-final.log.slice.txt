@@ -1,5 +1,0 @@
-     1	[clab] destroying /root/ainetops-demo/lab/topology.clab.yml
-     2	19:24:42 INFO Parsing & checking topology file=topology.clab.yml
-     3	19:24:42 INFO no containerlab containers found
-     4	[clab] destroy complete
-     5	[off] Teardown complete (idempotent).

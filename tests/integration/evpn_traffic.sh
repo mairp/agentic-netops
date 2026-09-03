@@ -23,7 +23,7 @@ cross_leaf_l2() {
     exit 1
   fi
   # IPv6 ping as well if addresses are present (non-fatal if missing)
-  docker exec "$C1" bash -lc "ping -6 -c 3 -W 2 2001:db8:2::21" || echo "[evpn-traffic] INFO: IPv6 L2 test skipped or failed"
+  docker exec "$C1" ping -6 -c 3 -W 2 2001:db8:2::21 || echo "[evpn-traffic] INFO: IPv6 L2 test skipped or failed"
   echo "cross-leaf L2 reachability" # proof keyword
 }
 
@@ -42,7 +42,7 @@ intra_vrf_l3_irb() {
     echo "[evpn-traffic] INFO: IRB_DST_V4 not set; skipping IPv4 IRB test"
   fi
   if [[ -n "$IRB_DST_V6" ]]; then
-    docker exec "$C1" bash -lc "ping -6 -c 3 -W 2 $IRB_DST_V6" || echo "[evpn-traffic] INFO: IRB IPv6 test skipped or failed"
+    docker exec "$C1" ping -6 -c 3 -W 2 $IRB_DST_V6 || echo "[evpn-traffic] INFO: IRB IPv6 test skipped or failed"
   else
     echo "[evpn-traffic] INFO: IRB_DST_V6 not set; skipping IPv6 IRB test"
   fi
@@ -54,7 +54,7 @@ inter_vrf_isolation() {
   echo "[evpn-traffic] inter-VRF isolation"
   # Attempt traffic between isolated VRFs must fail (expect non-zero exit)
   local ISOLATION_DST=${ISOLATION_DST:-10.0.30.2}
-  if docker exec "$C1" bash -lc "ping -c 1 -W 1 $ISOLATION_DST"; then
+  if docker exec "$C1" ping -c 1 -W 1 $ISOLATION_DST; then
     echo "[evpn-traffic] ERROR: unexpected inter-VRF reachability (isolation breach)" >&2
     exit 1
   fi

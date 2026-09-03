@@ -1,6 +1,0 @@
-NAME                                     READY   STATUS     AGE   CONDITIONS
-networkconfig.network.kubenet.dev/schema-mismatch  False   Error      1m    Type=Ready Status=False Reason=SchemaMismatch Message="unsupportedField: Additional property unsupportedField is not allowed"
-EVENTS:
-  Type     Reason            Age   From                  Message
-  ----     ------            ----  ----                  -------
-  Warning  SchemaMismatch    60s   kubenet-controller    spec.unsupportedField is not permitted by pinned API

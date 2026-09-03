@@ -1,1 +1,0 @@
-153:	if u.PseudowireOAM != nil { causes = append(causes, "unsupported: pseudowireOAM") }

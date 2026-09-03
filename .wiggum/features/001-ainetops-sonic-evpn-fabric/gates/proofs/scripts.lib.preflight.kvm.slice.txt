@@ -1,8 +1,0 @@
-     1	preflight::kvm_check() {
-     2	  local profile=${AINETOPS_PROFILE:-sonic-vs}
-     3	  if [[ "$profile" == "sonic-vm" ]]; then
-     4	    # Require KVM when sonic-vm profile selected
-     5	    [[ -e /dev/kvm ]] || preflight::die "/dev/kvm not present for sonic-vm profile"
-     6	  fi
-     7	}
-     8	

@@ -1,5 +1,0 @@
-104\tnotes:
-105\t  redistribution: >
-106\t    SONiC images must be acquired by the operator under upstream terms and are
-107\t    not redistributed here. All other artifacts are pinned by immutable digest
-108\t    or tag-resolved commit SHA.

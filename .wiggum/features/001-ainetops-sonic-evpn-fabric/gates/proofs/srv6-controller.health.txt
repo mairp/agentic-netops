@@ -1,3 +1,0 @@
-ainetops-srv6-controller: GET /healthz -> 200 OK
-ainetops-srv6-controller: GET /readyz -> 200 OK
-Notes: Probed via 'kubectl -n ainetops-system port-forward deploy/ainetops-srv6-controller 18082:8082' and curl, prior to running SRv6 tests.

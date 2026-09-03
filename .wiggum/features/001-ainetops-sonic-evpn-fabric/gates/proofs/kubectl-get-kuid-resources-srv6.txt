@@ -1,7 +1,0 @@
-NAMESPACE       NAME                                  READY/STATUS   AGE
-kuid-system    ipindex/srv6-locator-v6                True           2m
-kuid-system    claim/srv6-locator-claim               Bound          1m
-kuid-system    ipindex/srv6-sids-v6                   True           2m
-kuid-system    claim/srv6-sid-claim                   Bound          1m
-kuid-system    vniindex/srv6-service-ids              True           2m
-kuid-system    claim/srv6-service-id-claim            Bound          1m

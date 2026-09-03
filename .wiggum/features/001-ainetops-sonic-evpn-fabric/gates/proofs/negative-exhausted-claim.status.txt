@@ -1,6 +1,0 @@
-NAME                           READY   STATUS     AGE
-claim.id.kuid.dev/asn-too-many False   Exhausted  1m
-EVENTS:
-  Type     Reason         Age   From           Message
-  ----     ------         ----  ----           -------
-  Warning  PoolExhausted  60s   kuid-controller  requested count=2 exceeds index tight-asn range (1 alloc total)

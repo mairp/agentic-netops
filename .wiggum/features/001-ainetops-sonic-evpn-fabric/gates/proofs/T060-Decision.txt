@@ -1,4 +1,0 @@
-# tests/unit/migration_annotations_test.go — audit annotations present; opting out of MigrationPlan CRD
-9:func TestAnnotationsPresent(t *testing.T) {
-24:		"ainetops.io/translator-version:",
-26:		"ainetops.io/migration-input-hash:",

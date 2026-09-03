@@ -1,6 +1,0 @@
-     9	SRC=${SRC:-clab-ainetops-fabric-srv6-client01}
-    10	DST=${DST:-clab-ainetops-fabric-srv6-client02}
-    11	# Precondition: skip gracefully if clients are absent (standard SKIP-LIVE marker,
-    12	# matching evpn_traffic.sh / failure_recovery_invalid_yang.sh / srv6_failover_path_change.sh)
-    13	if ! docker ps --format '{{.Names}}' | grep -q "$SRC"; then echo "SKIP-LIVE: SRv6 capture/counter suite requires a provisioned lab (${SRC} not present); capability gate (scripts/lib/qualify.sh) is the source of truth"; exit 0; fi
-    14	if ! docker ps --format '{{.Names}}' | grep -q "$DST"; then echo "SKIP-LIVE: SRv6 capture/counter suite requires a provisioned lab (${DST} not present); capability gate (scripts/lib/qualify.sh) is the source of truth"; exit 0; fi

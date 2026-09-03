@@ -1,5 +1,0 @@
-NAMESPACE    NAME                              READY   STATUS    RESTARTS   AGE
-sdc-system  sdc-schema-6f7c9d7f69-aaaaa        1/1     Running   0          2m
-sdc-system  sdc-config-6f7c9d7f69-bbbbb        1/1     Running   0          2m
-sdc-system  sdc-data-6f7c9d7f69-ccccc          1/1     Running   0          2m
-sdc-system  sdc-cache-6f7c9d7f69-ddddd         1/1     Running   0          2m

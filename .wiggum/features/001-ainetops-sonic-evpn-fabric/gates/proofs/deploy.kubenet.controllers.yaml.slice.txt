@@ -1,5 +1,0 @@
-     1	# Kubenet/KUID controllers minimal Deployments and Services (T020)
-    10	kind: Deployment
-    11	metadata:
-    12	  name: kubenet-controller
-    13	  namespace: kubenet-system

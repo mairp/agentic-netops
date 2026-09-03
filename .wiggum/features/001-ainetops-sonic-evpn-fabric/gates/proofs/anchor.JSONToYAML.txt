@@ -1,5 +1,0 @@
-pkg/migration/yaml.go:10:	return yaml.JSONToYAML(j)
-vendor/sigs.k8s.io/yaml/yaml.go:30:// Marshal marshals obj into JSON using stdlib json.Marshal, and then converts JSON to YAML using JSONToYAML (see that method for more reference)
-vendor/sigs.k8s.io/yaml/yaml.go:37:	return JSONToYAML(jsonBytes)
-vendor/sigs.k8s.io/yaml/yaml.go:100:// JSONToYAML converts JSON to YAML. Notable implementation details:
-vendor/sigs.k8s.io/yaml/yaml.go:105:func JSONToYAML(j []byte) ([]byte, error) {

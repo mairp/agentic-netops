@@ -85,6 +85,15 @@ run_tests() {
   echo "[cycles] test-parity-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
   ( cd "$ROOT_DIR" && AINETOPS_CLUSTER_NAME=ainetops ./tests/integration/observability_suite.sh ) >"$PROOFS/test-observability-$idx.log" 2>&1
   echo "[cycles] test-observability-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
+  # Additional Phase 8 required suites in the live lab window
+  ( cd "$ROOT_DIR" && ./tests/integration/evpn_traffic.sh run ) >"$PROOFS/test-traffic-$idx.log" 2>&1
+  echo "[cycles] test-traffic-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
+  ( cd "$ROOT_DIR" && ./tests/integration/srv6_capture_counters.sh run ) >"$PROOFS/test-srv6-capture-$idx.log" 2>&1
+  echo "[cycles] test-srv6-capture-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
+  ( cd "$ROOT_DIR" && ./tests/integration/srv6_failover_path_change.sh run ) >"$PROOFS/test-srv6-failover-$idx.log" 2>&1
+  echo "[cycles] test-srv6-failover-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
+  ( cd "$ROOT_DIR" && ./tests/integration/failure_recovery_invalid_yang.sh run ) >"$PROOFS/test-failure-$idx.log" 2>&1
+  echo "[cycles] test-failure-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
 }
 
 runtime_inventory() {

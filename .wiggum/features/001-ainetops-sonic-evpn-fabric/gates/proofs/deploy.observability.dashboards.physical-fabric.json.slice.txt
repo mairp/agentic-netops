@@ -1,5 +1,0 @@
-     1  Path: deploy/observability/dashboards/physical-fabric.json
-     2  -- BEGIN EXCERPT --
-     3    {"type": "graph", "title": "Link Packet Rate", "targets": [{"expr": "sum by(device,interface) (rate(sonic_interface_packets_total[5m]))"}]},
-     4    {"type": "graph", "title": "Link Utilization (bytes)", "targets": [{"expr": "sum by(device,interface) (rate(sonic_interface_octets_total[5m]))"}]}
-     5  -- END EXCERPT --

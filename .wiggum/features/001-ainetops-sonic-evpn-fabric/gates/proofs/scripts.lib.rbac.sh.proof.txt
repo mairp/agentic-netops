@@ -1,3 +1,0 @@
-     1	#!/usr/bin/env bash
-     2	# Install least-privilege namespaces/RBAC/NetworkPolicies via Kubernetes (Phase 3)
-     3	kubectl --context kind-ainetops apply -f deploy/rbac/base.yaml

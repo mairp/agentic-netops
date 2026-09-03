@@ -1,1 +1,0 @@
-     1	controllers/sonicprovider/controller.go: metric counter name ainetops_sonicprovider_applies_total bounded (no user labels); OTel tracer ainetops/sonicprovider spans ReconcileNetworkDevice

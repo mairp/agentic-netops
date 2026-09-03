@@ -1,8 +1,0 @@
-17:Usage: $0 [--cluster-name NAME] [--delete-kind true|false] [--capture-evidence true|false]
-23:    --cluster-name) shift; AINETOPS_CLUSTER_NAME=${1:-$AINETOPS_CLUSTER_NAME} ;;
-24:    --delete-kind) shift; DELETE_KIND=${1:-$DELETE_KIND} ;;
-25:    --capture-evidence) shift; CAPTURE_EVIDENCE=${1:-$CAPTURE_EVIDENCE} ;;
-46:# the lifecycle-owned removal must happen first (the test phase may have
-65:# Cleanup owned network and generated Secrets (safe, scoped)
-68:    # Do not remove if foreign label
-72:      echo "[off] preserving non-owned network ainetops-mgmt" >&2

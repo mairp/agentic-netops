@@ -1,8 +1,0 @@
-     1	package version
-     2	
-     3	// Pinned controller-runtime compatible versions (kept in sync with versions.lock.yaml)
-     4	const (
-     5		ControllerRuntime = "v0.17.5"
-     6		KubernetesMinor   = "v1.29.4"
-     7		GoToolchain       = "1.22.5"
-     8	)

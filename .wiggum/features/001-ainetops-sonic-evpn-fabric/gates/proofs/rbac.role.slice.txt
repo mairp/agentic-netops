@@ -1,1 +1,0 @@
-nl -ba config/rbac/role.yaml | sed -n '1,28p'

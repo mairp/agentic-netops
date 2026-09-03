@@ -1,3 +1,0 @@
-39:	flag.StringVar(&metricsAddr, "metrics-bind", ":8081", "The address the metric endpoint binds to.")
-40:	flag.StringVar(&probeAddr, "health-probe-bind", ":8082", "The address the probe endpoint binds to.")
-56:		LeaderElectionID:       "ainetops-srv6-controller",

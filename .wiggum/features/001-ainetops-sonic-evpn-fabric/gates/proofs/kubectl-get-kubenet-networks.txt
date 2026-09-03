@@ -1,8 +1,0 @@
-     1	NAME                                                 AGE
-     2	networkconfig.network.kubenet.dev/ainetops-default   3m2s
-     3	
-     4	NAME                                              AGE
-     5	network.network.kubenet.dev/default-fabric        3m2s
-     6	network.network.kubenet.dev/tenant-a-l2-bridged   3m2s
-     7	network.network.kubenet.dev/tenant-a-l3-routed    3m1s
-     8	network.network.kubenet.dev/tenant-b-irb          3m1s

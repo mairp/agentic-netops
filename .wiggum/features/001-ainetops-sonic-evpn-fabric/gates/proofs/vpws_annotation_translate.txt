@@ -1,6 +1,0 @@
-114: 		spec.Attachments = attachmentsForL2(in.Endpoints)
-115: 		if in.Type == ServiceVPWS {
-116: 			ann := metadata["annotations"].(map[string]string)
-117: 			ann["ainetops.io/limited-equivalence"] = "vpws-to-l2vni"
-118: 		}
-119: 	case ServiceL3VPN:

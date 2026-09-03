@@ -1,8 +1,0 @@
-[supply-chain] Checking SR Linux absence in go.mod/go.sum, Dockerfiles, and Kubernetes manifests
-No SR Linux artifacts detected in dependency graph/manifests
-[supply-chain] Verifying platform images are pinned by immutable digests
-[supply-chain] govulncheck not installed; skipping (advisory)
-[supply-chain] syft not installed; skipping SBOM generation (advisory)
-[supply-chain] go-licenses not installed; skipping license report (advisory)
-[supply-chain] Supply-chain checks passed (enforced: SR Linux absence, image digests; advisory: others)
-supply_chain exit=0

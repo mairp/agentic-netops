@@ -1,6 +1,0 @@
-     1	::group::Visualization reference repository exception (srl-telemetry-lab only in allowed contexts)
-     2	::endgroup::
-     3	All deny-list checks passed
-     4	up::
-     5	All deny-list checks passed
-     6	denylist rc=0

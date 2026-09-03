@@ -1,2 +1,0 @@
-[run] failure: /root/ainetops-demo/tests/integration/failure_recovery_invalid_yang.sh run
-SKIP-LIVE: failure/recovery suite requires a provisioned lab and Kind cluster (containerlab nodes or context kind-ainetops absent); capability gate (scripts/lib/qualify.sh) is the source of truth

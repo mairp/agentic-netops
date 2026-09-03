@@ -1,7 +1,0 @@
-1: #!/usr/bin/env bash
-2: # T051 [US2] Update/delete lifecycle: shared fabric state and unrelated claims survive EVPN/SRv6 changes; SRv6-owned claims released
-21:   kubectl --context "$CTX" -n kubenet-system get network default-fabric -o name | tee "$PROOF_DIR/update.default-fabric.txt" >/dev/null
-22:   kubectl --context "$CTX" -n sdc get config -o name | sort > "$PROOF_DIR/update.sdc-configs.after.txt"
-31:   echo "[lifecycle] delete SRv6 service; release SRv6-owned claims and SDC Configs without removing shared IPv6 underlay"
-42:   echo "$before" > "$PROOF_DIR/delete.srv6-configs.count.before.txt"
-43:   echo "$after" > "$PROOF_DIR/delete.srv6-configs.count.after.txt"

@@ -1,5 +1,0 @@
-     1	[supply-chain] govulncheck not installed; skipping (advisory)
-     2	[supply-chain] syft not installed; skipping SBOM generation (advisory)
-     3	[supply-chain] go-licenses not installed; skipping license report (advisory)
-     4	[supply-chain] Supply-chain checks passed (enforced: SR Linux absence, image digests; advisory: others)
-     5	supply-chain rc=0

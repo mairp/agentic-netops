@@ -1,9 +1,0 @@
-controllers/srv6service/controller.go — reconciler scaffolding
-24: func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-25:   var svc ainetopsv1alpha1.SRv6Service
-30:   // Handle deletion early
-36:   updated := svc.DeepCopy()
-41:   condReady := metav1.Condition{ Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: svc.Generation, ... }
-60:   set := compat.FromAnnotations(svc.Annotations)
-63:   if err := compat.FullValidate(set, svc.Labels, discovered); err != nil { /* patch status & requeue */ }
-73:   if err := r.Status().Patch(ctx, updated, client.MergeFrom(&svc)); err != nil { /* ... */ }

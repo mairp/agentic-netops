@@ -1,2 +1,0 @@
-[run] traffic: /root/ainetops-demo/tests/integration/evpn_traffic.sh run
-SKIP-LIVE: EVPN traffic suite requires a provisioned lab (clab-ainetops-fabric-client01 absent); capability gate (scripts/lib/qualify.sh) is the source of truth

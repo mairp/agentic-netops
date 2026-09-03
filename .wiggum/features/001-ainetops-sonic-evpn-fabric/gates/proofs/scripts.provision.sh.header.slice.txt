@@ -1,9 +1,0 @@
-     4	# AINETOPS SONiC EVPN/VXLAN Fabric — provision script (Phase 8)
-     5	# Sole implementation of environment creation/convergence per contracts/crd-api.md
-     6	# Ordered workflow: preflight → network → Kind → containerlab → in-cluster apps → SDC/fabric intent
-     7	# → generated topology assets → SRv6 service → readiness
-     8	
-     9	SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
-    10	REPO_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
-    11	LIB_DIR="${SCRIPT_DIR}/lib"
-    12	
