@@ -88,6 +88,19 @@ node_role() { case "$1" in leaf*) echo leaf ;; *) echo spine ;; esac; }
 # usable standalone on a node booted before those defaults existed.
 start_daemons() {
   local c=$1 role=$2 progs="zebra bgpd fpmsyncd vrfmgrd intfmgrd"
+  # IPv6 forwarding is OFF by default in these containers while IPv4 forwarding is
+  # on, so every node could originate and terminate IPv6 but not TRANSIT it. The
+  # underlay is dual-stack and fabric_verify.sh asserts Loopback0 IPv6 reachability
+  # between the leaves, which goes leaf -> spine -> leaf: each leaf could reach the
+  # spine's loopback fine, and the spine could reach each leaf, but leaf-to-leaf
+  # failed 100% because the spine dropped the transit packet.
+  #
+  # Measured 2026-09-03 on a clean provision: net.ipv6.conf.all.forwarding=0 with
+  # net.ipv4.ip_forward=1 on all four nodes; leaf01 <-> leaf02 Loopback0 at 100%
+  # packet loss, both directions 0% immediately after enabling it. Set on spines as
+  # well as leaves -- the spines are the transit nodes, so they are the ones that
+  # actually need it.
+  docker exec "$c" sysctl -qw net.ipv6.conf.all.forwarding=1 2>/dev/null || true
   [[ "$role" == leaf ]] && progs="$progs vlanmgrd vxlanmgrd"
   local p
   for p in $progs; do
@@ -303,6 +316,31 @@ ensure_overlay_devices() {
       sleep 2
     done
     ip link show Bridge >/dev/null 2>&1 || exit 0
+    # The L2 VTEP must be a bridge port too. vxlanmgrd normally enslaves
+    # vtep1-<L2VNI> itself, but it does not always win the race against Bridge
+    # creation, and when it loses there is no retry. zebra then cannot classify the
+    # VNI, so bgpd reports \"Number of L2 VNIs: 0\" even with advertise-all-vni
+    # enabled, no remote VTEP is ever installed from the peer's IMET, and the
+    # overlay silently forwards nothing.
+    #
+    # Measured 2026-09-03 on a clean provision: leaf02 had vtep1-100 master=Bridge
+    # and 1 L2 VNI; leaf01 had vtep1-100 with NO master and 0 L2 VNIs, while both
+    # had identical running configs and zebra on both listed VNI 100. Enslaving it
+    # on leaf01 took bgpd 0 -> 1 L2 VNIs, remote VTEPs 0 -> 1 on both leaves, and
+    # client01 -> client02 from 100% packet loss to 0%.
+    #
+    # This is why restarting bgpd (and even zebra) appeared to \"fix\" adoption
+    # intermittently: those restarts only helped when the device happened to be
+    # bridged by then. Bridging it directly is the actual fix.
+    vtep_l2=vtep1-${VLAN#Vlan}
+    if ip link show \$vtep_l2 >/dev/null 2>&1; then
+      m_vtep=\$(ip -d link show \$vtep_l2 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
+      [ \"\$m_vtep\" = 'Bridge' ] || ip link set \$vtep_l2 master Bridge 2>/dev/null || true
+      bridge vlan add dev \$vtep_l2 vid ${VLAN#Vlan} pvid untagged 2>/dev/null || true
+      ip link set \$vtep_l2 up 2>/dev/null || true
+      ip -d link show \$vtep_l2 2>/dev/null | grep -q 'master Bridge' \
+        && echo '[fabric-bgp] L2 VTEP '\$vtep_l2' bridged into vlan ${VLAN#Vlan}'
+    fi
     ip link set $ACCESS_IFACE up 2>/dev/null || true
     master_acc=\$(ip -d link show $ACCESS_IFACE 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
     [ \"\$master_acc\" = 'Bridge' ] || ip link set $ACCESS_IFACE master Bridge 2>/dev/null || true
@@ -380,6 +418,35 @@ apply_frr() {
       # NOTHING while leaf01 listed both VNIs, and the overlay was at 100% packet
       # loss. Restarting zebra (then bgpd) on leaf02 brought back "100 L2 vtep1-100
       # 2 MACs 1 Remote VTEP" on both leaves and the client ping went to 0% loss.
+      # Cheapest remediation first: re-toggle advertise-all-vni. bgpd learns its VNIs
+      # by querying zebra once, and FRR has long-standing bugs where that state is
+      # lost or never loaded -- #4044 (type-5 not re-advertised after a bgpd
+      # restart), #6082 (VNI definitions not loaded from the config on start),
+      # #17430 (EVPN routes lost on reload). The documented workaround for all three
+      # is to unconfigure and reconfigure advertise-all-vni, which forces bgpd to
+      # re-read zebra's table WITHOUT dropping sessions the way a restart does.
+      #
+      # Ordering matters: this runs BEFORE the zebra/bgpd restarts below because a
+      # restart tears down established peerings and re-triggers the very race that
+      # loses the VNI. Measured 2026-09-03: on its own the toggle did NOT recover a
+      # leaf whose vtep1-100 was missing from the Bridge -- that is a different fault
+      # with its own fix in configure_overlay -- so it is a first, cheap attempt
+      # here, not a replacement for the escalation.
+      if [ "$adopted" -ne 1 ]; then
+        docker exec "$c" vtysh \
+          -c 'configure terminal' -c "router bgp $asn" \
+          -c 'address-family l2vpn evpn' -c 'no advertise-all-vni' -c 'end' >/dev/null 2>&1 || true
+        sleep 2
+        docker exec "$c" vtysh \
+          -c 'configure terminal' -c "router bgp $asn" \
+          -c 'address-family l2vpn evpn' -c 'advertise-all-vni' -c 'end' >/dev/null 2>&1 || true
+        sleep 8
+        if docker exec "$c" bash -c "vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -qE '^\\*?[[:space:]]*$L2VNI[[:space:]]'"; then
+          adopted=1
+          echo "[fabric-bgp] $node: bgpd adopted L2 VNI $L2VNI after advertise-all-vni toggle (attempt $attempt, no restart needed)"
+          break
+        fi
+      fi
       if ! docker exec "$c" bash -c "vtysh -c 'show evpn vni' 2>/dev/null | grep -qE '^[[:space:]]*$L2VNI[[:space:]]'"; then
         echo "[fabric-bgp] $node: zebra has no VNI $L2VNI (attempt $attempt) — restarting zebra then bgpd"
         docker exec "$c" supervisorctl restart zebra >/dev/null 2>&1 || true
@@ -452,6 +519,11 @@ install_boot_hook() {
     echo "LO6='$lo6'"
     echo "PEERS='$peers'"
     cat <<'EOS'
+# 0) IPv6 forwarding: OFF by default in this container while IPv4 forwarding is on,
+#    and a sysctl does not survive a restart -- so it must be re-applied here or the
+#    dual-stack underlay loses leaf->spine->leaf transit after the persistence
+#    restart even though each hop is individually reachable (2026-09-03).
+sysctl -qw net.ipv6.conf.all.forwarding=1 2>/dev/null || true
 # 1) CONFIG_DB must be loaded (start.sh/configdb-load.sh) before anything else
 for i in $(seq 1 90); do
   [ -n "$(redis-cli -n 4 hget 'DEVICE_METADATA|localhost' switch_type 2>/dev/null)" ] && break
