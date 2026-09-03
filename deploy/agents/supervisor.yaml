@@ -151,6 +151,24 @@ spec:
               value: /state/supervisor-checkpoint/checkpoints.sqlite
             # LLM provider selection is the LLM_MODEL prefix alone
             # (common/llm.py); the credentials come from Secret/llm-provider.
+            # The classifier runs through LiteLLM, which for an `openai/` LLM_MODEL prefix
+            # reads OPENAI_API_KEY and OPENAI_BASE_URL from the environment. Only LLM_MODEL
+            # and the OAUTH2_* keys were mapped, so LiteLLM resolved the model
+            # (model=gpt-5, provider=openai) and then failed with "Missing credentials" on
+            # every prompt. Both come from the same provision-time Secret; neither is ever
+            # committed.
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: llm-provider
+                  key: OPENAI_API_KEY
+                  optional: true
+            - name: OPENAI_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: llm-provider
+                  key: OPENAI_BASE_URL
+                  optional: true
             - name: LLM_MODEL
               valueFrom:
                 secretKeyRef:

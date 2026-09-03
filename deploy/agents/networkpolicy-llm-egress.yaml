@@ -1,0 +1,31 @@
+# Scoped egress for the intent tier to reach the LLM gateway.
+#
+# The namespace runs deny-all-by-default, which is correct: an agent tier that can
+# open arbitrary connections is exactly what FR-016/FR-029 exist to prevent. The
+# supervisor's classifier needs one thing the cluster cannot otherwise reach -- the
+# LiteLLM/Compass gateway on the host -- and without it every prompt fails at
+# "classifier (model) unavailable: LLM Provider NOT provided".
+#
+# This grants that ONE destination and nothing else: a single /32, a single port, and
+# only to pods in the intent tier. It deliberately does not widen egress to the host
+# network, the internet, or other namespaces. Change the ipBlock if the gateway moves.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-llm-gateway
+  namespace: ainetops-agents
+  labels:
+    ainetops.owner: ainetops
+    ainetops.io/tier: intent
+spec:
+  podSelector:
+    matchLabels:
+      ainetops.io/tier: intent
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 172.30.0.1/32
+      ports:
+        - protocol: TCP
+          port: 4000
