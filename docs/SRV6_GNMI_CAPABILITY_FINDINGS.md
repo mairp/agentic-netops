@@ -338,9 +338,6 @@ whose CONFIG_DB an investigation has already written to.
 
 ## Appendix B — related records
 
-- `/root/wiggum/INCIDENT-2026-08-31-agentic-netops-phase8.md` — the loop-side incident (why phase 8 burned
-  passes; issues #9/#10/#11), including the finding that the missing gNMI capability gated
-  everything downstream.
 - `lab/images/sonic-vs-gnmi/README.md` — image provenance and rebuild steps.
 - `versions.lock.yaml` — `sonic_vs` (capable image) and `sonic_vs_base` (2022 base, kept for
   provenance).

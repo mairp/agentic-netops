@@ -1,4 +1,4 @@
-# Agentic NetOps SONiC EVPN/VXLAN — Operator and Developer Guide (T075)
+# Agentic NetOps SONiC EVPN/VXLAN — Operator and Developer Guide
 
 This guide covers operator/developer documentation for Phase 8 acceptance: compatibility matrix, resource sizing, image acquisition, EVPN/SRv6 mapping limitations, telemetry pipeline, topology presentation, recovery, and the break-glass finalizer procedure.
 

@@ -70,11 +70,10 @@ The automation loop was wedged at phase 8 because this gate was red. Pending dec
 
 ## Pending
 
-1. **Resume the loop**: `wiggum resume` (workdir `/root/agentic-netops`). The orchestrator
-   consumed its stop flag at 19:55 and is stopped; the stale old-pins cycles_runner was killed so
-   skip-if-fresh cannot reuse failing evidence. On resume, ensure_long_job re-runs
-   `tests/integration/cycles_runner.sh` fresh with the new pins; provision now re-generates the
-   green `qualify.report.json` as gate evidence. Expect the full 3-cycle run (~90 min).
+1. **Re-run the acceptance cycles**: `tests/integration/cycles_runner.sh` (workdir
+   `/root/agentic-netops`). The stale old-pins run was killed so that skip-if-fresh cannot reuse
+   failing evidence; re-run it fresh against the new pins. Provision now re-generates the green
+   `qualify.report.json` as gate evidence. Expect the full 3-cycle run (~90 min).
 2. Optional hygiene before final evidence capture: `agentic-netops-smoke-sonic` still runs the v1 image
    and its CONFIG_DB is dirty from the earlier investigation — treat as scratch or remove it.
 3. Known cosmetic gap (non-blocking): SONiC intent application leaves leaf `eth0` admin-down; the
@@ -87,5 +86,4 @@ docker build -f lab/images/sonic-vs-gnmi/Dockerfile.v2 -t localhost:5000/sonic-v
 bash scripts/lib/verify_pins.sh                      # pin consistency → OK
 ./scripts/lib/qualify.sh                             # capability gate → OK, 17/17 pass
 ./scripts/provision.sh --profile sonic-vs            # full ordered workflow incl. gate
-wiggum resume                                        # restart the loop at phase 8
 ```

@@ -30,3 +30,6 @@ lab/clab-agentic-netops-fabric/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# Generated verification plans -- derived from spec task lists, not source
+testautomation/
