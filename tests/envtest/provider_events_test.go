@@ -10,12 +10,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/mairp/ainetops/controllers/sonicprovider"
-	"github.com/mairp/ainetops/pkg/kubenet"
-	"github.com/mairp/ainetops/pkg/sdc"
+	"github.com/mairp/agentic-netops/controllers/sonicprovider"
+	"github.com/mairp/agentic-netops/pkg/kubenet"
+	"github.com/mairp/agentic-netops/pkg/sdc"
 )
 
 type capturingRecorder struct{ events []string }
@@ -46,7 +46,10 @@ func TestProvider_EmitsDeviationObservedEvent(t *testing.T) {
 	}
 	found := false
 	for _, r := range cr.events {
-		if r == "DeviationObserved" { found = true; break }
+		if r == "DeviationObserved" {
+			found = true
+			break
+		}
 	}
 	if !found {
 		t.Fatalf("expected DeviationObserved event, got %v", cr.events)

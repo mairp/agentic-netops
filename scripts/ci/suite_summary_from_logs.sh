@@ -5,7 +5,7 @@
 # with STATUS first (PASS|FAIL|SKIP-LIVE) followed by the suite name.
 set -euo pipefail
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
 SUMMARY="$PROOFS_DIR/tests.summary.txt"
 mkdir -p "$PROOFS_DIR"
 

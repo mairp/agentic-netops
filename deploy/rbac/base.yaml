@@ -2,24 +2,24 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ainetops-system
+  name: agentic-netops-system
   labels:
-    ainetops.owner: ainetops
+    agentic-netops.owner: agentic-netops
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: ainetops-controller
-  namespace: ainetops-system
+  name: agentic-netops-controller
+  namespace: agentic-netops-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: ainetops-controller
-  namespace: ainetops-system
+  name: agentic-netops-controller
+  namespace: agentic-netops-system
 rules:
 - apiGroups: [""]
-  # The secret-generator Job (serviceAccountName ainetops-controller) must read and
+  # The secret-generator Job (serviceAccountName agentic-netops-controller) must read and
   # (re)create the runtime gnmi-lab-creds / gnmi-lab-tls Secrets in this namespace.
   resources: ["configmaps", "events", "secrets"]
   verbs: ["get", "list", "watch", "create", "update", "patch"]
@@ -30,22 +30,22 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: ainetops-controller
-  namespace: ainetops-system
+  name: agentic-netops-controller
+  namespace: agentic-netops-system
 subjects:
 - kind: ServiceAccount
-  name: ainetops-controller
-  namespace: ainetops-system
+  name: agentic-netops-controller
+  namespace: agentic-netops-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: ainetops-controller
+  name: agentic-netops-controller
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: deny-all-by-default
-  namespace: ainetops-system
+  namespace: agentic-netops-system
 spec:
   podSelector: {}
   policyTypes: ["Ingress", "Egress"]
@@ -54,11 +54,11 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: gnmi-lab-ca
-  namespace: ainetops-system
+  namespace: agentic-netops-system
   annotations:
-    ainetops.generated: "true"
+    agentic-netops.generated: "true"
   labels:
-    ainetops.owner: ainetops
+    agentic-netops.owner: agentic-netops
 type: Opaque
 stringData:
   note: "Generated at runtime; placeholder manifest proves API surface. No real credential committed."
@@ -66,12 +66,12 @@ stringData:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: ainetops-srv6-controller
-  namespace: ainetops-system
+  name: agentic-netops-srv6-controller
+  namespace: agentic-netops-system
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: ainetops-sonic-provider
-  namespace: ainetops-system
+  name: agentic-netops-sonic-provider
+  namespace: agentic-netops-system
 

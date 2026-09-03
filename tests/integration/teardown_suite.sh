@@ -7,8 +7,8 @@ set -euo pipefail
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 OFF_SH="$ROOT_DIR/scripts/off.sh"
 PROV_SH="$ROOT_DIR/scripts/provision.sh"
-CLUSTER=${AINETOPS_CLUSTER_NAME:-ainetops}
-PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+CLUSTER=${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}
+PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
 mkdir -p "$PROOFS_DIR/cycles"
 
 log(){ echo "[teardown] $*"; }

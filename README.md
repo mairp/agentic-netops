@@ -1,6 +1,6 @@
-# AINETOPS — SONiC EVPN/VXLAN fabric with an agentic intent tier
+# agentic-netops - Autonomous intent-to-fabric operations.
 
-[![CI](https://github.com/mairp/ainetops/actions/workflows/ci.yaml/badge.svg)](https://github.com/mairp/ainetops/actions/workflows/ci.yaml)
+[![CI](https://github.com/mairp/agentic-netops/actions/workflows/ci.yaml/badge.svg)](https://github.com/mairp/agentic-netops/actions/workflows/ci.yaml)
 [![SONiC](https://img.shields.io/badge/SONiC-202605-blue)](versions.lock.yaml)
 [![FRR](https://img.shields.io/badge/FRR-10.5.4-blue)](versions.lock.yaml)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.29.4-326ce5)](versions.lock.yaml)
@@ -15,7 +15,7 @@
 [![Prometheus](https://img.shields.io/badge/Prometheus-metrics-e6522c)](deploy/observability/prometheus.yaml)
 [![Grafana](https://img.shields.io/badge/Grafana-dashboards-f46800)](deploy/observability/dashboards)
 
-An autonomous network demo. You state intent in plain language; a multi-agent tier
+Autonomous intent-to-fabric operations. You state intent in plain language; a multi-agent tier
 decomposes it, allocates identifiers and submits declarative resources; Kubernetes
 controllers reconcile them onto a live SONiC EVPN/VXLAN fabric and *keep* them that
 way -- repairing drift, surviving component failure, and releasing what it claimed
@@ -25,14 +25,14 @@ The agent tier is not an add-on. It is how the network is driven: the fabric, th
 controllers and the agents are three parts of one closed loop, with gNMI telemetry
 feeding back into it.
 
-Everything below is self-contained. The `specs/` directory is intentionally untracked
-(spec-kit working material), so this README carries the instructions rather than pointing at it.
+Everything below is self-contained: the instructions live here rather than in
+a separate specification.
 
 ## Walkthrough
 
-![AINETOPS demo](docs/images/ainetops-demo.gif)
+![Agentic NetOps demo](docs/images/agentic-netops-demo.gif)
 
-*35s walkthrough — [MP4](docs/images/ainetops-demo.mp4). Every frame is real: the
+*35s walkthrough — [MP4](docs/images/agentic-netops-demo.mp4). Every frame is real: the
 topology is rendered from the running lab, the dashboard shows live gNMI telemetry,
 and the pod/series counts are captured values, not mock-ups.*
 
@@ -72,7 +72,7 @@ gnmic directly, Grafana renders it.
 | SONiC fabric | 2 spines, 2 leaves, 4 clients in containerlab; BGP underlay, EVPN/VXLAN overlay |
 | Controllers | SRv6Service CRD + provider, built from vendored Go source |
 | Observability | OpenTelemetry collector, Prometheus, Grafana with fabric dashboards |
-| Intent tier *(branch `002-agntcy-intent-tier`)* | AGNTCY supervisor + mapper/allocator/deployer agents, chat UI |
+| Intent tier | AGNTCY supervisor + mapper/allocator/deployer agents, chat UI |
 
 ## Prerequisites
 
@@ -91,22 +91,22 @@ For a guided walk-through — including driving the agents from plain language �
 
 ```bash
 # bring the fabric up (~30-40 min on first run: image pulls + controller build)
-./scripts/provision.sh --profile sonic-vs --cluster-name ainetops
+./scripts/provision.sh --profile sonic-vs --cluster-name agentic-netops
 
 # verify
 ./tests/integration/fabric_verify.sh      # BGP sessions, EVPN routes, overlay data path
 make verify-pins                          # every image/binary matches versions.lock.yaml
-kubectl --context kind-ainetops get pods -A
+kubectl --context kind-agentic-netops get pods -A
 
 # tear down (idempotent; safe to re-run)
 ./scripts/off.sh --delete-kind true
 ```
 
-Add the agent tier (from the `002-agntcy-intent-tier` branch):
+Add the agent tier:
 
 ```bash
-./scripts/provision.sh --profile sonic-vs --cluster-name ainetops --with-intent-tier
-kubectl --context kind-ainetops -n ainetops-agents get deploy
+./scripts/provision.sh --profile sonic-vs --cluster-name agentic-netops --with-intent-tier
+kubectl --context kind-agentic-netops -n agentic-netops-agents get deploy
 # UI on http://localhost:30000
 ```
 
@@ -120,9 +120,9 @@ These are real, reproduced, and documented rather than hidden:
 - **`vlanmgrd` can crash on startup** (AddressSanitizer), leaving a leaf with no overlay devices,
   so the fabric cannot forward. Provisioning fails closed by design. To continue past it and have
   the defect reported rather than block the run:
-  `AINETOPS_WAIVE_L2VNI_ADOPTION=1 ./scripts/provision.sh …` — see D-A3.
+  `AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1 ./scripts/provision.sh …` — see D-A3.
 - **Two pinned images have no local build step** (`grafana/flow-plugin`,
-  `ghcr.io/ainetops/topology-generator`). Provisioning warns rather than fails; the dependent
+  `ghcr.io/agentic-netops/topology-generator`). Provisioning warns rather than fails; the dependent
   workload ends in `ImagePullBackOff`. `deployment/ui` is the observed case.
 - **`docs/INTENT_TIER_OPS_READINESS.md` contains resource figures that were never measured.**
   They were produced before a cluster existed and before metrics-server was installed; real

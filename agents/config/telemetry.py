@@ -4,7 +4,7 @@ Implements:
 - T314: one OTLP endpoint per agent process — each process calls
   ``init_telemetry(app_name=...)`` exactly once at startup.
 - T315: points the OTLP endpoint to
-  ``http://agent-otel-collector.ainetops-agents.svc:4318`` (OTLP/HTTP).
+  ``http://agent-otel-collector.agentic-netops-agents.svc:4318`` (OTLP/HTTP).
 
 This module configures the ioa-observe SDK to export OpenTelemetry traces and
 metrics to the tier-owned collector. The collector performs the single fan-out
@@ -22,9 +22,9 @@ from ioa_observe.sdk import Observe
 
 
 # Single OTLP endpoint for every agent process (T314/T315): the tier-owned
-# collector in namespace ainetops-agents, OTLP/HTTP on 4318.
+# collector in namespace agentic-netops-agents, OTLP/HTTP on 4318.
 OTLP_HTTP_ENDPOINT = os.getenv(
-    "AGENT_OTLP_HTTP_ENDPOINT", "http://agent-otel-collector.ainetops-agents.svc:4318"
+    "AGENT_OTLP_HTTP_ENDPOINT", "http://agent-otel-collector.agentic-netops-agents.svc:4318"
 )
 
 
@@ -37,8 +37,8 @@ def init_telemetry(app_name: str, resource_attributes: dict[str, Any] | None = N
             attributes to attach to every span/metric (e.g. tier labels).
     """
     attrs: dict[str, Any] = {
-        "ainetops.owner": "ainetops",
-        "ainetops.io/tier": "intent",
+        "agentic-netops.owner": "agentic-netops",
+        "agentic-netops.io/tier": "intent",
     }
     if resource_attributes:
         attrs.update(resource_attributes)

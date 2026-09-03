@@ -2,7 +2,7 @@
 
 The real flow — the APPROVED + confirmation-2 invariant check (data-model.md
 §1), the translator dry-run, the declarative ``network.kubenet.dev/networks``
-+ ``ainetops.io/srv6services`` submission into ``ainetops-intent``, the
++ ``agentic-netops.io/srv6services`` submission into ``agentic-netops-intent``, the
 convergence watch, and rollback (Decision 10) — lands in Phase 3. The stub
 submits nothing: it completes with an explicit skeleton answer.
 """

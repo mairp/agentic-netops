@@ -1,20 +1,20 @@
 """Intent-tier metrics helpers (US5 — Phase 8).
 
 This module defines a stable, opinionated metrics surface for the intent tier.
-All instruments are named with the ainetops_agent_* prefix (T329) so the
+All instruments are named with the agentic_netops_agent_* prefix (T329) so the
 feature-001 collector's filter keeps them without changes.
 
 Provided counters/histograms:
-- ainetops_agent_stage_requests_total{stage}
-- ainetops_agent_stage_success_total{stage}
-- ainetops_agent_stage_failures_total{stage}
-- ainetops_agent_stage_latency_seconds{stage} (histogram)
-- ainetops_agent_confirm_total
-- ainetops_agent_decline_total
-- ainetops_agent_refused_unsafe_total
-- ainetops_agent_model_calls_total{model}
-- ainetops_agent_model_tokens_total{model,kind="input|output"}
-- ainetops_agent_model_cost_usd_total{model}
+- agentic_netops_agent_stage_requests_total{stage}
+- agentic_netops_agent_stage_success_total{stage}
+- agentic_netops_agent_stage_failures_total{stage}
+- agentic_netops_agent_stage_latency_seconds{stage} (histogram)
+- agentic_netops_agent_confirm_total
+- agentic_netops_agent_decline_total
+- agentic_netops_agent_refused_unsafe_total
+- agentic_netops_agent_model_calls_total{model}
+- agentic_netops_agent_model_tokens_total{model,kind="input|output"}
+- agentic_netops_agent_model_cost_usd_total{model}
 
 The helpers are side-effect free when no OpenTelemetry metrics provider is
 initialized: they construct instruments on first use and no-op on failure.
@@ -28,7 +28,7 @@ from opentelemetry import metrics
 from opentelemetry.metrics import Counter, Histogram
 
 
-_PREFIX = "ainetops_agent_"
+_PREFIX = "agentic_netops_agent_"
 
 
 def _enforce_name(name: str) -> str:
@@ -48,57 +48,57 @@ class _StageInstruments:
 class Metrics:
     def __init__(self) -> None:
         mp = metrics.get_meter_provider()
-        self._meter = metrics.get_meter("ainetops.intent_tier")
+        self._meter = metrics.get_meter("agentic-netops.intent_tier")
         # Stage instruments (per stage label)
         self._stage_req = self._meter.create_counter(
-            name=_enforce_name("ainetops_agent_stage_requests_total"),
+            name=_enforce_name("agentic_netops_agent_stage_requests_total"),
             description="Per-stage request count",
             unit="1",
         )
         self._stage_ok = self._meter.create_counter(
-            name=_enforce_name("ainetops_agent_stage_success_total"),
+            name=_enforce_name("agentic_netops_agent_stage_success_total"),
             description="Per-stage successful request count",
             unit="1",
         )
         self._stage_fail = self._meter.create_counter(
-            name=_enforce_name("ainetops_agent_stage_failures_total"),
+            name=_enforce_name("agentic_netops_agent_stage_failures_total"),
             description="Per-stage failed request count",
             unit="1",
         )
         self._stage_lat = self._meter.create_histogram(
-            name=_enforce_name("ainetops_agent_stage_latency_seconds"),
+            name=_enforce_name("agentic_netops_agent_stage_latency_seconds"),
             description="Per-stage request latency (seconds)",
             unit="s",
         )
         # Confirmation / decline / refusal
         self._confirm = self._meter.create_counter(
-            name=_enforce_name("ainetops_agent_confirm_total"),
+            name=_enforce_name("agentic_netops_agent_confirm_total"),
             description="Confirmation decisions recorded",
             unit="1",
         )
         self._decline = self._meter.create_counter(
-            name=_enforce_name("ainetops_agent_decline_total"),
+            name=_enforce_name("agentic_netops_agent_decline_total"),
             description="Decline decisions recorded",
             unit="1",
         )
         self._refused_unsafe = self._meter.create_counter(
-            name=_enforce_name("ainetops_agent_refused_unsafe_total"),
+            name=_enforce_name("agentic_netops_agent_refused_unsafe_total"),
             description="Refusals due to unsupported/unsafe requests",
             unit="1",
         )
         # Model usage
         self._model_calls = self._meter.create_counter(
-            name=_enforce_name("ainetops_agent_model_calls_total"),
+            name=_enforce_name("agentic_netops_agent_model_calls_total"),
             description="Model call count",
             unit="1",
         )
         self._model_tokens = self._meter.create_counter(
-            name=_enforce_name("ainetops_agent_model_tokens_total"),
+            name=_enforce_name("agentic_netops_agent_model_tokens_total"),
             description="Token usage",
             unit="1",
         )
         self._model_cost = self._meter.create_counter(
-            name=_enforce_name("ainetops_agent_model_cost_usd_total"),
+            name=_enforce_name("agentic_netops_agent_model_cost_usd_total"),
             description="Estimated model cost (USD)",
             unit="USD",
         )

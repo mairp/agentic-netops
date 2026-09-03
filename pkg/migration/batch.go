@@ -24,7 +24,9 @@ func RenderBatch(inputs []ServiceInput) ([]string, error) {
 	for i := range inputs {
 		in := inputs[i]
 		dup := false
-		if idx, ok := ids[in.ServiceID]; ok && idx == -1 { dup = true }
+		if idx, ok := ids[in.ServiceID]; ok && idx == -1 {
+			dup = true
+		}
 		if err := in.ValidateAllOrNothing(i, dup); err != nil {
 			if ve, ok := err.(*ValidationError); ok {
 				causes = append(causes, ve.Causes...)
@@ -40,7 +42,9 @@ func RenderBatch(inputs []ServiceInput) ([]string, error) {
 	for i := range inputs {
 		in := inputs[i]
 		bundle, err := Translate(&in)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		out = append(out, bundle.NetworkYAML)
 	}
 	return out, nil
@@ -50,7 +54,9 @@ func RenderBatch(inputs []ServiceInput) ([]string, error) {
 // It disables HTML escaping so comparison substrings like ">=1" remain readable
 // and stable in tests and CLI output.
 func MarshalError(err error) string {
-	if err == nil { return "" }
+	if err == nil {
+		return ""
+	}
 	m := map[string]any{"error": "validation"}
 	if ve, ok := err.(*ValidationError); ok {
 		m["causes"] = ve.Causes
@@ -66,12 +72,16 @@ func MarshalError(err error) string {
 	_ = enc.Encode(m)
 	// json.Encoder adds a trailing newline; trim it for stable output.
 	out := buf.String()
-	if len(out) > 0 && out[len(out)-1] == '\n' { out = out[:len(out)-1] }
+	if len(out) > 0 && out[len(out)-1] == '\n' {
+		out = out[:len(out)-1]
+	}
 	return out
 }
 
 // DescribeInput produces a canonical description for provenance/testing.
 func DescribeInput(in *ServiceInput) string {
-	if in == nil { return "<nil>" }
+	if in == nil {
+		return "<nil>"
+	}
 	return fmt.Sprintf("%s/%s", in.Tenant, in.ServiceID)
 }

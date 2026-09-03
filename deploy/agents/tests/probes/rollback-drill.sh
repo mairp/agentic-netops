@@ -9,7 +9,7 @@ CTX="${1:-}"
 ACTION="${2:-}"
 DEPLOY="${3:-supervisor}"
 IMAGE="${4:-}"
-NS=ainetops-agents
+NS=agentic-netops-agents
 kc() { if [[ -n "$CTX" ]]; then kubectl --context "$CTX" "$@"; else kubectl "$@"; fi }
 log() { echo "[rollback] $*"; }
 

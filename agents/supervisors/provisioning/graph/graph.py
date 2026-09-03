@@ -1221,6 +1221,13 @@ class ProvisioningGraph:
             }
 
         payload, worker_text = extract_payload_and_text(result, MAPPER_MARKER)  # T096/T097
+        if payload is None:
+            # Diagnostics: the reply arrived but carried no contract payload.
+            try:
+                dump = result.model_dump(mode="json", by_alias=True) if hasattr(result, "model_dump") else repr(result)
+                logger.error("[Mapper] out-of-contract reply diagnostic: type=%s dump=%s", type(result).__name__, str(dump)[:800])
+            except Exception as diag_exc:  # noqa: BLE001
+                logger.error("[Mapper] out-of-contract reply diagnostic failed: %s", diag_exc)
         interpretation, error = validate_mapper_payload(payload)  # T100/T102
         if error is not None or interpretation is None:
             try:
@@ -1526,6 +1533,8 @@ class ProvisioningGraph:
                 "'decline' to cancel (any claimed identifiers will be released)."
             )
             return {"next_node": END, "messages": [AIMessage(content=question)]}
+        if state.get("awaiting_confirmation") and state.get("pending_action") == "clarify":
+            return {"next_node": END}
         if state.get("workflow_status") in (
             NetworkProvisioningStatus.FAILED.value,
             NetworkProvisioningStatus.COMPLETED.value,

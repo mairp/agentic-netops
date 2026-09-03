@@ -2,7 +2,7 @@
 apiVersion: network.kubenet.dev/v1alpha1
 kind: Topology
 metadata:
-  name: ainetops-topology
+  name: agentic-netops-topology
   namespace: kubenet-system
 spec:
   # Simplified node list; actual provider consumes NetworkDevice derived by Kubenet

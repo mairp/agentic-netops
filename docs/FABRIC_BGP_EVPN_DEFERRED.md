@@ -14,11 +14,11 @@ verified live; Type-5 blocked by an image build defect (D-A2); D-B resolved; D-C
 - **client01 (192.0.2.11, leaf01) ↔ client02 (192.0.2.21, leaf02): 3/3 pings, 0% loss across the
   VxLAN overlay** — remote VTEPs learned via IMET, MACs learned via Type-2 (extern_learn on vtep1-100)
 - `BGP_NEIGHBOR` + `LOOPBACK_INTERFACE` read back over sonic-db on all four nodes (D-B resolved)
-- spines carry no VTEP and no tenant VRF, preserving the FR-004 negative assertion
+- spines carry no VTEP and no tenant VRF, preserving that negative assertion
 
 ## Why this work happened
 
-`tests/integration/fabric_verify.sh` (T043 [US3], FR-004) asserted a live underlay with the
+`tests/integration/fabric_verify.sh` asserted a live underlay with the
 L2VPN EVPN AF negotiated, but **nothing in provision ever configured routing**. On a freshly
 provisioned node `bgpd` was not running and CONFIG_DB carried no `BGP_NEIGHBOR` or
 `LOOPBACK_INTERFACE`. The suite additionally queried OpenConfig translib paths that this build
@@ -34,7 +34,7 @@ and `configure-fabric-bgp.sh` builds the fabric during bootstrap.
 - `vxlanmgrd` builds the kernel VTEP; zebra learns **VNI 100**
 - **Type-3 (IMET) route originated**: `[3]:[0]:[32]:[10.0.0.21]`, RD `10.0.0.21:2`, RT `65101:100`
 - `BGP_NEIGHBOR` + `LOOPBACK_INTERFACE` written to CONFIG_DB through GCU
-- spines carry no VTEP and no tenant VRF, preserving the FR-004 negative assertion
+- spines carry no VTEP and no tenant VRF, preserving that negative assertion
 
 ## Deferred — fix later
 
@@ -61,7 +61,7 @@ across ~10 controlled restarts since, including clean supervisord sessions with 
 with a message pointing here — fail-closed.
 
 **OPERATOR DECISION (2026-09-01, recorded by the reconciliation operator under the session's
-pre-authorized autonomous-decision mandate — precedent: SC-013 fail-closed witness acceptance):**
+pre-authorized autonomous-decision mandate — precedent: the earlier fail-closed witness acceptance):**
 Type-5 origination is accepted as NOT PROVEN on the current `sonic-vs-gnmi:202605-v2` image, with the
 defect analysis above as the recorded evidence. The scope note is: Type-2 (MAC/IP) and Type-3 (IMET)
 are proven live including the bridged data path; Type-5 is configured per the documented recipe and
@@ -69,7 +69,7 @@ verified up to zebra L3VNI classification, with origination blocked inside the i
 fabric_verify Type-5 assertion REMAINS and continues to fail closed — it is NOT weakened, removed, or
 waived in code. Follow-up that would close it for real: a sonic-vs image with a fixed FRR build
 (re-verify with `show bgp l2vpn evpn vni` showing `1000 L3 … VrfBlue` in bgpd + a `[5]` route in the
-RIB). GATE8 evidence should cite this decision verbatim rather than treating Type-5 as an open
+RIB). Gate evidence should cite this decision verbatim rather than treating Type-5 as an open
 question.
 
 ### D-B. ~~The sonic-db assertions are not yet proven end-to-end~~ → RESOLVED 2026-09-01
@@ -96,9 +96,9 @@ gate's EVPN witness may be able to assert more than it currently does.
 
 ```bash
 ./lab/profiles/sonic-vs/bootstrap/configure-fabric-bgp.sh   # idempotent, safe to re-run
-docker exec clab-ainetops-fabric-leaf01 vtysh -c 'show bgp summary json'
-docker exec clab-ainetops-fabric-leaf01 vtysh -c 'show evpn vni'
-docker exec clab-ainetops-fabric-leaf01 vtysh -c 'show bgp l2vpn evpn'
+docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show bgp summary json'
+docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show evpn vni'
+docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show bgp l2vpn evpn'
 ./tests/integration/fabric_verify.sh run
 ```
 
@@ -193,11 +193,11 @@ support is being engaged, and the fabric will be re-qualified on a different SON
 remaining gate scope should not be blocked behind it in the meantime.
 
 Mechanics of the waiver, so it can never be mistaken for a passing fabric:
-- Provisioning continues **only** under an explicit `AINETOPS_WAIVE_L2VNI_ADOPTION=1`, which logs a
+- Provisioning continues **only** under an explicit `AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1`, which logs a
   `[fabric-bgp] WAIVED:` line naming this section. Default behaviour remains fail-closed.
 - `fabric_verify` is **NOT** weakened. The peer-arrival assertion (remote-VTEP count on the L2 VNI)
   and the client-traffic assertion both REMAIN and continue to fail closed, exactly as Type-5 does.
-- `test-fabric` will therefore still exit 1. GATE8 evidence must cite this decision verbatim and
+- `test-fabric` will therefore still exit 1. Gate evidence must cite this decision verbatim and
   present the overlay data path as an accepted, documented image defect — never as passing.
 - What would close it for real: a SONiC image on which `show evpn vni` reports a non-zero remote
   VTEP count for VNI 100 on both leaves, and client01→client02 pings across the overlay succeed.

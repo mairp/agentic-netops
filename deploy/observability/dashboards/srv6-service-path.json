@@ -4,10 +4,10 @@
   "graphTooltip": 0,
   "panels": [
     {"type": "graph", "title": "SRv6 MySID Counters by Endpoint/Behavior", "targets": [{"expr": "sum by(endpoint,behavior,sid) (rate(sonic_srv6_mysid_packets_total[5m]))"}]},
-    {"type": "stat", "title": "Active Path State by Endpoint", "targets": [{"expr": "max by(path,endpoint) (ainetops_srv6_active_path{path=~'primary|alternate'})"}]},
+    {"type": "stat", "title": "Active Path State by Endpoint", "targets": [{"expr": "max by(path,endpoint) (agentic_netops_srv6_active_path{path=~'primary|alternate'})"}]},
     {"type": "graph", "title": "Path Utilization by Endpoint/Behavior", "targets": [{"expr": "sum by(path,endpoint,behavior) (rate(sonic_srv6_mysid_packets_total[5m]))"}]}
   ],
   "schemaVersion": 39,
-  "title": "AINETOPS SRv6 Service Path",
+  "title": "Agentic NetOps SRv6 Service Path",
   "version": 2
 }

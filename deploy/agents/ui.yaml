@@ -3,12 +3,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ui
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
     app.kubernetes.io/name: intent-ui
     app.kubernetes.io/component: ui
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 spec:
   replicas: 1
   strategy:
@@ -21,14 +21,14 @@ spec:
       labels:
         app.kubernetes.io/name: intent-ui
         app.kubernetes.io/component: ui
-        ainetops.owner: ainetops
-        ainetops.io/tier: intent
+        agentic-netops.owner: agentic-netops
+        agentic-netops.io/tier: intent
     spec:
       automountServiceAccountToken: false  # T301
       serviceAccountName: intent-ui
       containers:
       - name: ui
-        image: ainetops/intent-ui:latest
+        image: agentic-netops/intent-ui:latest
         imagePullPolicy: IfNotPresent
         envFrom:
         - configMapRef:
@@ -62,12 +62,12 @@ apiVersion: v1
 kind: Service
 metadata:
   name: ui
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
     app.kubernetes.io/name: intent-ui
     app.kubernetes.io/component: ui
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 spec:
   type: NodePort
   selector:

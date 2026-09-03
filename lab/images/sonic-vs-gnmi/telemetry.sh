@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AINETOPS lab telemetry service wrapper (SONiC 202605 gNMI stack).
+# Agentic NetOps lab telemetry service wrapper (SONiC 202605 gNMI stack).
 # Reads the TELEMETRY table from /etc/sonic/config_db.json (file-based, so the
 # service can start before redis is ready) and execs /usr/sbin/telemetry.
 # Shape of TELEMETRY (sonic-gnmi 202605):

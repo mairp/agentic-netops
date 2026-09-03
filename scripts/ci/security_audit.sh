@@ -34,7 +34,7 @@ rbac_dirs=(config/rbac deploy/rbac)
 found_wildcards=$(search_ci '\\bverbs\\s*:\\s*(\\[[^]]*\\*[^]]*\\]|$)|^-\\s*\"?\*\"?$' "${rbac_dirs[@]}")
 cluster_admin_bindings=$(search_ci 'cluster-admin' config/rbac deploy/rbac)
 if [[ -n "$found_wildcards" ]]; then err "Wildcard verbs detected:\n$found_wildcards"; else ok "No wildcard verbs in RBAC"; fi
-if [[ -n "$cluster_admin_bindings" ]]; then err "cluster-admin binding detected:\n$cluster_admin_bindings"; else ok "No cluster-admin bindings in AINETOPS manifests"; fi
+if [[ -n "$cluster_admin_bindings" ]]; then err "cluster-admin binding detected:\n$cluster_admin_bindings"; else ok "No cluster-admin bindings in Agentic NetOps manifests"; fi
 
 section "Secret use"
 static_secret_data=$(search_ci '^\s*(data|stringData):' deploy/rbac | grep -vE 'secret-generator|example|test' || true)

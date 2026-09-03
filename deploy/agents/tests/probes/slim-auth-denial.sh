@@ -10,7 +10,7 @@
 # certificate and NO password must never establish a registration/session
 # on the data plane port 46357.
 #
-# Method: run a throwaway pod in ainetops-agents (tier-labelled, no token,
+# Method: run a throwaway pod in agentic-netops-agents (tier-labelled, no token,
 # kindest/node image) that opens a raw TCP connection to slim:46357 and
 # sends a TLS ClientHello WITHOUT a client certificate (the unauthenticated
 # registration attempt), then tries to read the server's response. The
@@ -38,7 +38,7 @@ set -euo pipefail
 CTX="${1:-}"
 K() { if [[ -n "$CTX" ]]; then kubectl --context "$CTX" "$@"; else kubectl "$@"; fi; }
 
-NS=ainetops-agents
+NS=agentic-netops-agents
 POD=slim-auth-probe
 GW=slim
 PORT=46357
@@ -63,8 +63,8 @@ metadata:
   name: ${POD}
   namespace: ${NS}
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
     app: intent-probe
 spec:
   restartPolicy: Never

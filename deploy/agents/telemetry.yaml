@@ -1,10 +1,10 @@
 # T035: tier telemetry pipeline — one emission, two sinks (research.md Decision 8).
 #
 # Agents emit OTLP exactly ONCE, to this tier-owned collector
-# (http://agent-otel-collector.ainetops-agents.svc:4318, OTLP/HTTP). This collector
+# (http://agent-otel-collector.agentic-netops-agents.svc:4318, OTLP/HTTP). This collector
 # is the single fan-out point: a clickhouse exporter into the tier's agent-analytics
 # store, and an otlp exporter forwarding to feature 001's unmodified collector at
-# otel-collector.ainetops-system:4317. No feature-001 file changes.
+# otel-collector.agentic-netops-system:4317. No feature-001 file changes.
 #
 # ---------------------------------------------------------------------------
 # QUALIFIED OTLP SHAPE (T034) — captured live from the pinned
@@ -48,8 +48,8 @@
 #   - the pipeline carries TRACES (the SDK's decorated path emits spans, not
 #     metrics, in the qualified run); a metrics pipeline is configured too,
 #     because the SDK's MetricsWrapper can emit standard OTLP metrics and the
-#     plan names them ainetops_agent_* so they pass feature 001's filter
-#     processor regexp (.*sonic_.*, .*srv6.*, .*ainetops.*) unchanged.
+#     plan names them agentic_netops_agent_* so they pass feature 001's filter
+#     processor regexp (.*sonic_.*, .*srv6.*, .*agentic-netops.*) unchanged.
 #   - the clickhouse exporter needs the generated Secret clickhouse-auth
 #     (T054) — never admin/admin (REVERSE.md Finding 4).
 # ---------------------------------------------------------------------------
@@ -57,10 +57,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: agent-otel-config
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 data:
   config.yaml: |
     receivers:
@@ -80,7 +80,7 @@ data:
     # The single fan-out point (Decision 8): two exporters, one emission.
     exporters:
       clickhouse:
-        endpoint: "tcp://clickhouse.ainetops-agents.svc:9000"
+        endpoint: "tcp://clickhouse.agentic-netops-agents.svc:9000"
         database: agent_analytics
         traces_table_name: traces
         metrics_table_name: metrics
@@ -105,9 +105,9 @@ data:
       otlp/feature001:
         # Forward to feature 001's collector, which already accepts OTLP on
         # :4317 and exports to Prometheus. Its filter processor keeps
-        # metrics matching .*sonic_.*|.*srv6.*|.*ainetops.*, so every tier
-        # metric is named ainetops_agent_* (plan.md Component 8).
-        endpoint: otel-collector.ainetops-system.svc:4317
+        # metrics matching .*sonic_.*|.*srv6.*|.*agentic-netops.*, so every tier
+        # metric is named agentic_netops_agent_* (plan.md Component 8).
+        endpoint: otel-collector.agentic-netops-system.svc:4317
         tls:
           insecure: true
         # T352: queue/retry for upstream OTLP outages
@@ -149,10 +149,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: agent-otel-collector
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
     app: agent-otel-collector
 spec:
   replicas: 1
@@ -162,11 +162,11 @@ spec:
   template:
     metadata:
       labels:
-        # ainetops.io/tier: intent — the pod is addressed by the
+        # agentic-netops.io/tier: intent — the pod is addressed by the
         # allow-egress-scoped and apiserver-egress-cluster-clients policies
         # in namespace-rbac.yaml like every other tier pod.
-        ainetops.owner: ainetops
-        ainetops.io/tier: intent
+        agentic-netops.owner: agentic-netops
+        agentic-netops.io/tier: intent
         app: agent-otel-collector
     spec:
       # The collector talks to the 001 collector and ClickHouse, not the API
@@ -204,10 +204,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: agent-otel-collector
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 spec:
   selector:
     app: agent-otel-collector
@@ -222,10 +222,10 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: clickhouse
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
     app: clickhouse
 spec:
   replicas: 1
@@ -236,8 +236,8 @@ spec:
   template:
     metadata:
       labels:
-        ainetops.owner: ainetops
-        ainetops.io/tier: intent
+        agentic-netops.owner: agentic-netops
+        agentic-netops.io/tier: intent
         app: clickhouse
     spec:
       automountServiceAccountToken: false
@@ -276,10 +276,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: clickhouse
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 spec:
   selector:
     app: clickhouse
@@ -293,10 +293,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-dashboards-agents
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
     app.kubernetes.io/name: intent-grafana-dashboards
   annotations:
     description: Intent-tier Grafana dashboards published by the agents feature

@@ -14,7 +14,9 @@ type RegisterError struct {
 	MissingPaths []string
 }
 
-func (e *RegisterError) Error() string { return fmt.Sprintf("unregistered rendered paths: %v", e.MissingPaths) }
+func (e *RegisterError) Error() string {
+	return fmt.Sprintf("unregistered rendered paths: %v", e.MissingPaths)
+}
 
 // IsRegisterError returns true when err is a RegisterError.
 func IsRegisterError(err error) bool {
@@ -27,13 +29,15 @@ func IsRegisterError(err error) bool {
 // SDC schema validation is integrated later.
 func ValidateSpecAgainstRegister(spec map[string]any, registerYAML []byte) error {
 	paths := make([]string, 0, len(spec))
-	for p := range spec { paths = append(paths, p) }
+	for p := range spec {
+		paths = append(paths, p)
+	}
 	sort.Strings(paths)
-	reg := struct{
-		Entries []struct{
-			Path         string `yaml:"path"`
-			Prefer       string `yaml:"prefer"`
-			NativePath   string `yaml:"native_path"`
+	reg := struct {
+		Entries []struct {
+			Path          string `yaml:"path"`
+			Prefer        string `yaml:"prefer"`
+			NativePath    string `yaml:"native_path"`
 			Justification string `yaml:"justification"`
 		} `yaml:"entries"`
 	}{}
@@ -41,11 +45,19 @@ func ValidateSpecAgainstRegister(spec map[string]any, registerYAML []byte) error
 	var err error
 	if registerYAML == nil || len(registerYAML) == 0 {
 		data, err = defaultRegister()
-		if err != nil { return fmt.Errorf("load default register: %w", err) }
-	} else { data = registerYAML }
-	if err := yaml.Unmarshal(data, &reg); err != nil { return fmt.Errorf("parse register: %w", err) }
+		if err != nil {
+			return fmt.Errorf("load default register: %w", err)
+		}
+	} else {
+		data = registerYAML
+	}
+	if err := yaml.Unmarshal(data, &reg); err != nil {
+		return fmt.Errorf("parse register: %w", err)
+	}
 	byPath := map[string]string{}
-	for _, e := range reg.Entries { byPath[e.Path] = e.Prefer }
+	for _, e := range reg.Entries {
+		byPath[e.Path] = e.Prefer
+	}
 	missing := []string{}
 	for _, p := range paths {
 		if _, ok := byPath[p]; !ok {

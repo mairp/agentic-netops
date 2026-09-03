@@ -7,15 +7,15 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/mairp/ainetops/pkg/compat"
-	"github.com/mairp/ainetops/pkg/kubenet"
-	"github.com/mairp/ainetops/pkg/reasons"
-	"github.com/mairp/ainetops/pkg/render"
-	"github.com/mairp/ainetops/pkg/sdc"
+	"github.com/mairp/agentic-netops/pkg/compat"
+	"github.com/mairp/agentic-netops/pkg/kubenet"
+	"github.com/mairp/agentic-netops/pkg/reasons"
+	"github.com/mairp/agentic-netops/pkg/render"
+	"github.com/mairp/agentic-netops/pkg/sdc"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,16 +47,16 @@ type recordEventer interface {
 }
 
 const (
-	finalizerName   = "ainetops.dev/finalizer"
-	fieldManager    = "ainetops-sonic-provider"
-	annotationHash  = "ainetops.dev/config-hash"
-	ownerKind       = "NetworkDevice"
+	finalizerName  = "agentic-netops.dev/finalizer"
+	fieldManager   = "agentic-netops-sonic-provider"
+	annotationHash = "agentic-netops.dev/config-hash"
+	ownerKind      = "NetworkDevice"
 )
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// OTel span
 	if r.tracer == nil {
-		r.tracer = otel.Tracer("ainetops/sonicprovider")
+		r.tracer = otel.Tracer("agentic-netops/sonicprovider")
 	}
 	ctx, span := r.tracer.Start(ctx, "ReconcileNetworkDevice")
 	defer span.End()
@@ -87,8 +87,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 		// It's gone; add finalized-at evidence and remove finalizer
 		anno := nd.Annotations
-		if anno == nil { anno = map[string]string{} }
-		anno["ainetops.dev/finalized-at"] = time.Now().UTC().Format(time.RFC3339)
+		if anno == nil {
+			anno = map[string]string{}
+		}
+		anno["agentic-netops.dev/finalized-at"] = time.Now().UTC().Format(time.RFC3339)
 		nd.Annotations = anno
 		nd.Finalizers = removeString(nd.Finalizers, finalizerName)
 		if err := r.Update(ctx, &nd); err != nil {
@@ -127,14 +129,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: nd.Namespace}, cfg); err == nil {
 			if len(cfg.Status.Deviation) > 0 {
 				// Emit an event even if later gates will block downstream changes.
-				if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", name) }
+				if r.Recorder != nil {
+					r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", name)
+				}
 			}
 		}
 	}
 
 	// Compatibility-set validation gates downstream mutations
 	set := compat.FromAnnotations(nd.Annotations)
-	discovered := map[string]bool{"sai.srv6": nd.Labels["ainetops.dev/cap.sai.srv6"] == "true"}
+	discovered := map[string]bool{"sai.srv6": nd.Labels["agentic-netops.dev/cap.sai.srv6"] == "true"}
 	if err := compat.FullValidate(set, nd.Labels, discovered); err != nil {
 		// Set SchemaMismatch/CapabilityMissing and requeue with terminal backoff, no downstream change
 		reason := compat.ReasonFor(err)
@@ -156,7 +160,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				patched := nd
 				patched.Status = upsertConditionGeneric(nd.Status, cond)
 				_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
-				if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", name) }
+				if r.Recorder != nil {
+					r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", name)
+				}
 				return resultWithBackoff(false), nil
 			}
 			if cfg.Status.Ready {
@@ -191,11 +197,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// Compute canonical hash and apply via SSA with dedicated field manager and minimal policy fields
 	hash, _ := render.CanonicalHash(spec)
-	obj := &sdc.Config{ObjectMeta: metav1.ObjectMeta{Name: ownedConfigName(nd.Name), Namespace: nd.Namespace, Labels: map[string]string{"ainetops.dev/ownerKind": ownerKind}}, Spec: map[string]any{}}
+	obj := &sdc.Config{ObjectMeta: metav1.ObjectMeta{Name: ownedConfigName(nd.Name), Namespace: nd.Namespace, Labels: map[string]string{"agentic-netops.dev/ownerKind": ownerKind}}, Spec: map[string]any{}}
 	// seed spec with policy block and rendered fragments (T037)
 	obj.Spec["$policy"] = sdc.BuildPolicy(100, "replace", true, "retain")
-	for k, v := range spec { obj.Spec[k] = v }
-	if obj.Annotations == nil { obj.Annotations = map[string]string{} }
+	for k, v := range spec {
+		obj.Spec[k] = v
+	}
+	if obj.Annotations == nil {
+		obj.Annotations = map[string]string{}
+	}
 	obj.Annotations[annotationHash] = hash
 	// propagate compatibility annotations (T035)
 	copyCompatAnnotations(nd.Annotations, obj.Annotations)
@@ -212,8 +222,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
 		return resultWithBackoff(true), nil
 	}
-	if r.renderCounter != nil { r.renderCounter.Inc() }
-	if r.Recorder != nil { r.Recorder.Eventf(&nd, "Normal", reasons.ReasonApplySucceeded, "Applied SDC Config %s with hash %s", obj.Name, hash) }
+	if r.renderCounter != nil {
+		r.renderCounter.Inc()
+	}
+	if r.Recorder != nil {
+		r.Recorder.Eventf(&nd, "Normal", reasons.ReasonApplySucceeded, "Applied SDC Config %s with hash %s", obj.Name, hash)
+	}
 
 	// Observe SDC Config status to update aggregate conditions and events
 	cfg := &sdc.Config{}
@@ -230,7 +244,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			patched := nd
 			patched.Status = upsertConditionGeneric(nd.Status, cond)
 			_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))
-			if r.Recorder != nil { r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", obj.Name) }
+			if r.Recorder != nil {
+				r.Recorder.Eventf(&nd, "Warning", "DeviationObserved", "SDC reported deviations on %s", obj.Name)
+			}
 		}
 	}
 
@@ -242,7 +258,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// initialize metrics once per manager
 	if r.renderCounter == nil {
 		r.renderCounter = promauto.NewCounter(prometheus.CounterOpts{
-			Namespace: "ainetops",
+			Namespace: "agentic-netops",
 			Subsystem: "sonicprovider",
 			Name:      "applies_total",
 			Help:      "Number of successful SDC Config apply operations",
@@ -271,18 +287,22 @@ func ignoreNonNetworkDevice() predicate.Predicate {
 
 // propagate selected compatibility annotations from source to destination
 func copyCompatAnnotations(src, dst map[string]string) {
-	if src == nil || dst == nil { return }
+	if src == nil || dst == nil {
+		return
+	}
 	keys := []string{
-		"ainetops.dev/sonic-image",
-		"ainetops.dev/openconfig-commit",
-		"ainetops.dev/sonic-native-commit",
-		"ainetops.dev/mapping-version",
-		"ainetops.dev/kubenet-commit",
-		"ainetops.dev/kuid-commit",
-		"ainetops.dev/sdc-release",
+		"agentic-netops.dev/sonic-image",
+		"agentic-netops.dev/openconfig-commit",
+		"agentic-netops.dev/sonic-native-commit",
+		"agentic-netops.dev/mapping-version",
+		"agentic-netops.dev/kubenet-commit",
+		"agentic-netops.dev/kuid-commit",
+		"agentic-netops.dev/sdc-release",
 	}
 	for _, k := range keys {
-		if v, ok := src[k]; ok && v != "" { dst[k] = v }
+		if v, ok := src[k]; ok && v != "" {
+			dst[k] = v
+		}
 	}
 }
 
@@ -291,13 +311,19 @@ var _ = fmt.Sprintf
 
 func containsString(list []string, s string) bool {
 	for _, i := range list {
-		if i == s { return true }
+		if i == s {
+			return true
+		}
 	}
 	return false
 }
 func removeString(list []string, s string) []string {
 	out := make([]string, 0, len(list))
-	for _, i := range list { if i != s { out = append(out, i) } }
+	for _, i := range list {
+		if i != s {
+			out = append(out, i)
+		}
+	}
 	return out
 }
 func ownedConfigName(owner string) string { return fmt.Sprintf("nd-%s", owner) }
@@ -309,6 +335,8 @@ func resultWithBackoff(transient bool) ctrl.Result {
 		base = 20 * time.Second
 	}
 	j := time.Duration(rand.Intn(3000)) * time.Millisecond
-	if j > 5*time.Second { j = 5 * time.Second }
+	if j > 5*time.Second {
+		j = 5 * time.Second
+	}
 	return ctrl.Result{RequeueAfter: base + j}
 }

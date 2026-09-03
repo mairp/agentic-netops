@@ -11,7 +11,7 @@
 The lab was pinned to `netreplica/docker-sonic-vs:20220111` (kept as
 `sonic_vs_base` in `versions.lock.yaml`). That build ships **no gNMI server at
 all**, so `scripts/lib/qualify.sh` had nothing to talk to and the capability gate
-failed closed — correct behaviour, but it made SRv6 conformance (SC-013)
+failed closed — correct behaviour, but it made SRv6 conformance
 unprovable in this environment. The gap is a property of a build frozen since
 January 2022, not a misconfiguration.
 
@@ -51,7 +51,7 @@ So this image layers a `sonic-gnmi` telemetry server onto the pinned base.
 
 The build stages the telemetry binary out of a builder container that has the
 base image's libraries, then assembles this Dockerfile. The full driver script
-is `.wiggum/features/001-ainetops-sonic-evpn-fabric/build-gnmi/build5i.sh`;
+is not part of this repo;
 `docker build` here needs `telemetry`, `schema/` and `boost-libs/` staged
 alongside the Dockerfile first.
 

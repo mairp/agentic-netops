@@ -14,7 +14,7 @@ COPY ui/ ./
 # Build-time defaults; the ui-env ConfigMap values win at runtime:
 # ui-build-and-serve.sh regenerates .env from pod VITE_* environment and
 # rebuilds before serving (Vite bakes VITE_* into the bundle at build time).
-ARG VITE_SUPERVISOR_API_URL=http://supervisor.ainetops-agents.svc:9090
+ARG VITE_SUPERVISOR_API_URL=http://supervisor.agentic-netops-agents.svc:9090
 ENV VITE_SUPERVISOR_API_URL=${VITE_SUPERVISOR_API_URL}
 RUN npm run build
 

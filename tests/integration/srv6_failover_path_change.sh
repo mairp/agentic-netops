@@ -15,13 +15,13 @@ GNMI_CERT=${GNMI_CERT:-./secrets/gnmi.crt}
 GNMI_KEY=${GNMI_KEY:-./secrets/gnmi.key}
 GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
 _args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --encoding "$GNMI_ENCODING" --tls-ca "$GNMI_CACERT" --tls-cert "$GNMI_CERT" --tls-key "$GNMI_KEY")
-PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs}
 mkdir -p "$PROOF_DIR"
 
 # containerlab 0.7x has no `link down/up` subcommand; we drive the interface via
-# docker exec on the spine01 container (clab-ainetops-fabric-spine01).
+# docker exec on the spine01 container (clab-agentic-netops-fabric-spine01).
 FAIL_IF=${FAIL_IF:-eth1}
-SPINE01_CONTAINER=${SPINE01_CONTAINER:-clab-ainetops-fabric-spine01}
+SPINE01_CONTAINER=${SPINE01_CONTAINER:-clab-agentic-netops-fabric-spine01}
 
 fail_link() {
   echo "[srv6-failover] force primary failure (down ${FAIL_IF} on ${SPINE01_CONTAINER})"
@@ -33,7 +33,7 @@ assert_alert() {
   # Alerts are Prometheus state, not a Kubernetes resource: query the Prometheus
   # HTTP API through a port-forward and look for an active SRv6PathDown alert.
   local pf_port=19095 pf_pid
-  kubectl --context "${CTX:-kind-ainetops}" -n monitoring port-forward svc/prometheus "${pf_port}":9090 >/dev/null 2>&1 &
+  kubectl --context "${CTX:-kind-agentic-netops}" -n monitoring port-forward svc/prometheus "${pf_port}":9090 >/dev/null 2>&1 &
   pf_pid=$!
   # Wait for the port-forward to come up
   local i
@@ -101,7 +101,7 @@ case "${1:-run}" in
   run)
     # Clean skip when no provisioned lab/cluster exists (absent-state runs, post-teardown).
     if ! docker ps --format '{{.Names}}' | grep -q "${SPINE01_CONTAINER}" \
-      || ! kubectl --context kind-ainetops get nodes --request-timeout=5s >/dev/null 2>&1; then
+      || ! kubectl --context kind-agentic-netops get nodes --request-timeout=5s >/dev/null 2>&1; then
       echo "SKIP-LIVE: SRv6 failover/path-change suite requires a provisioned lab and Kind cluster (${SPINE01_CONTAINER} or cluster absent); capability gate (scripts/lib/qualify.sh) is the source of truth"
       exit 0
     fi

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-REPORT_DIR="${ROOT_DIR}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+REPORT_DIR="${ROOT_DIR}/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
 mkdir -p "$REPORT_DIR"
 
 # Accumulators for machine-readable report (visible to helpers)
@@ -52,7 +52,7 @@ main() {
   # Materialize lab credentials/TLS locally before any gNMI capability test (T076)
   # shellcheck source=lab_secrets.sh
   source "${ROOT_DIR}/scripts/lib/lab_secrets.sh"
-  lab_secrets::ensure "kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
+  lab_secrets::ensure "kind-${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
   # gNMI core tests (always run all in this block, then gate downstream on any failure)
   for t in Capabilities Get Set Subscribe sonic-srv6; do
     if run_test "$t"; then

@@ -20,16 +20,16 @@
 # FR-024: an unauthenticated worker registration must be refused — the gateway
 # verifies client certificates against the generated CA (client_ca_file) and
 # authenticates on PASSWORD; NetworkPolicy/slim-ingress below admits :46357
-# ONLY from pods labelled ainetops.io/tier: intent (T077).
+# ONLY from pods labelled agentic-netops.io/tier: intent (T077).
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: slim-config
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 data:
   server-config.yaml: |
     tracing:
@@ -69,10 +69,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: slim
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
     app: slim
 spec:
   replicas: 1
@@ -84,8 +84,8 @@ spec:
   template:
     metadata:
       labels:
-        ainetops.owner: ainetops
-        ainetops.io/tier: intent
+        agentic-netops.owner: agentic-netops
+        agentic-netops.io/tier: intent
         app: slim
     spec:
       automountServiceAccountToken: false
@@ -124,16 +124,16 @@ spec:
           - {key: server.key, path: server.key}
 ---
 # T076: Service/slim — ClusterIP, 46357/TCP. Workers address it as
-# http://slim.ainetops-agents.svc:46357 (TRANSPORT_SERVER_ENDPOINT, the
+# http://slim.agentic-netops-agents.svc:46357 (TRANSPORT_SERVER_ENDPOINT, the
 # long variable name — config/config.py).
 apiVersion: v1
 kind: Service
 metadata:
   name: slim
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
     app: slim
 spec:
   type: ClusterIP
@@ -143,16 +143,16 @@ spec:
   - {name: dataplane, port: 46357, targetPort: 46357, protocol: TCP}
 ---
 # T077: admit 46357 ONLY from tier pods. The supervisor and the three workers
-# carry ainetops.io/tier: intent (namespace-rbac.yaml convention); nothing
+# carry agentic-netops.io/tier: intent (namespace-rbac.yaml convention); nothing
 # else in the cluster can reach the gateway.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: slim-ingress
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 spec:
   podSelector:
     matchLabels:
@@ -162,6 +162,6 @@ spec:
   - from:
     - podSelector:
         matchLabels:
-          ainetops.io/tier: intent
+          agentic-netops.io/tier: intent
     ports:
     - {protocol: TCP, port: 46357}

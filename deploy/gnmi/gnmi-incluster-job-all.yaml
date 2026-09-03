@@ -3,7 +3,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: gnmi-incluster-check-all
-  namespace: ainetops-system
+  namespace: agentic-netops-system
 spec:
   template:
     spec:

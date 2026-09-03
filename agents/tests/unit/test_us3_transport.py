@@ -286,7 +286,7 @@ class TestSupervisorHttp:
             assert resp.status_code == 200
             body = resp.json()
             assert body["transport"] == "SLIM"
-            assert body["endpoint"] == "http://slim.ainetops-agents.svc:46357"
+            assert body["endpoint"] == "http://slim.agentic-netops-agents.svc:46357"
 
     def test_suggested_prompts_file(self):
         """T160 — four prompts covering VPLS, VPWS/E-Line, L3VPN, IRB."""
@@ -384,8 +384,9 @@ class TestDeployManifests:
         assert docs["PersistentVolumeClaim"]["metadata"]["name"] == "supervisor-checkpoint"
         assert "suggested_prompts.json" in docs["ConfigMap"]["data"]
         assert docs["Secret"]["metadata"]["name"] == "llm-provider"
-        # No credential literal in the Secret declaration.
-        assert all(v in ("", None) for v in docs["Secret"]["stringData"].values())
+        # No credential literals or empty placeholder writes in the Secret declaration.
+        assert "data" not in docs["Secret"]
+        assert "stringData" not in docs["Secret"]
 
     @pytest.mark.parametrize(
         ("name", "port", "service_account"),

@@ -3,11 +3,11 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: gnmic-tls-config
-  namespace: ainetops-system
+  namespace: agentic-netops-system
   labels:
     app.kubernetes.io/name: gnmic
   annotations:
-    ainetops.dev/spec-version: "v1"
+    agentic-netops.dev/spec-version: "v1"
 data:
   ca_path: "/etc/gnmic/tls/ca.crt"
   cert_path: "/etc/gnmic/tls/tls.crt"

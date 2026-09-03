@@ -1,5 +1,5 @@
 # Owners for envtest suite related to SRv6Service and provider finalization
 approvers:
-- ainetops-dev-ci
+- agentic-netops-dev-ci
 reviewers:
-- ainetops-dev-ci
+- agentic-netops-dev-ci

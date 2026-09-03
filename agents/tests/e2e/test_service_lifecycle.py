@@ -34,7 +34,7 @@ class StubTransport:
         if action == "status":
             payload = {"status": {"serviceId": obj.get("serviceId", ""), "correlationId": obj.get("correlationId", ""), "phase": "Unknown"}}
         else:
-            payload = {"removed": {"selector": f"ainetops.io/correlation-id={obj.get('correlationId','')}", "deleted": 0}}
+            payload = {"removed": {"selector": f"agentic-netops.io/correlation-id={obj.get('correlationId','')}", "deleted": 0}}
         # Return a DataPart-first dict, plus a marker-compatible text
         return {
             "parts": [

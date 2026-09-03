@@ -15,13 +15,13 @@
 set -u
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-PROOFS="$ROOT_DIR/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/cycles"
+PROOFS="$ROOT_DIR/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs/cycles"
 mkdir -p "$PROOFS"
 
 # --- Skip-if-fresh: reuse a just-completed, still-valid prior pass's evidence
 # wiggum's ensure_long_job() launches this command fresh on EVERY orchestrator
 # restart — it scopes done-markers by run-id with no concept of "recent and
-# still valid" (see INCIDENT-2026-08-31-ainetops-phase8.md, issue #9). Without
+# still valid" (see INCIDENT-2026-08-31-agentic-netops-phase8.md, issue #9). Without
 # this check, a restart mid-phase-8 unconditionally overwrites a fully
 # verified ~90-minute pass sitting untouched on disk, at the very next write
 # below (the `tee` that truncates cycles.run.log). This check must run before
@@ -55,7 +55,7 @@ run_provision() {
   # $1=log-file  $2=profile
   local log=$1 profile=$2
   echo "[cycles] provision profile=$profile log=$log" >>"$PROOFS/cycles.run.log"
-  ( cd "$ROOT_DIR" && ./scripts/provision.sh --profile "$profile" --cluster-name ainetops --timeout 120s ) >"$log" 2>&1
+  ( cd "$ROOT_DIR" && ./scripts/provision.sh --profile "$profile" --cluster-name agentic-netops --timeout 120s ) >"$log" 2>&1
   local rc=$?
   echo "[cycles] provision profile=$profile exit=$rc" | tee -a "$PROOFS/cycles.run.log"
   return 0
@@ -64,7 +64,7 @@ run_provision() {
 run_off() {
   local log=$1
   echo "[cycles] off log=$log" >>"$PROOFS/cycles.run.log"
-  ( cd "$ROOT_DIR" && ./scripts/off.sh --cluster-name ainetops --delete-kind true --capture-evidence true ) >"$log" 2>&1
+  ( cd "$ROOT_DIR" && ./scripts/off.sh --cluster-name agentic-netops --delete-kind true --capture-evidence true ) >"$log" 2>&1
   local rc=$?
   echo "[cycles] off exit=$rc" | tee -a "$PROOFS/cycles.run.log"
   return 0
@@ -72,18 +72,18 @@ run_off() {
 
 run_off_noop() {
   local log=$1
-  ( cd "$ROOT_DIR" && ./scripts/off.sh --cluster-name ainetops --delete-kind true ) >"$log" 2>&1
+  ( cd "$ROOT_DIR" && ./scripts/off.sh --cluster-name agentic-netops --delete-kind true ) >"$log" 2>&1
   echo "[cycles] off-noop log=$(basename "$log") exit=$?" | tee -a "$PROOFS/cycles.run.log"
   return 0
 }
 
 run_tests() {
   local idx=$1
-  ( cd "$ROOT_DIR" && AINETOPS_CLUSTER_NAME=ainetops ./tests/integration/fabric_verify.sh run ) >"$PROOFS/test-fabric-$idx.log" 2>&1
+  ( cd "$ROOT_DIR" && AGENTIC_NETOPS_CLUSTER_NAME=agentic-netops ./tests/integration/fabric_verify.sh run ) >"$PROOFS/test-fabric-$idx.log" 2>&1
   echo "[cycles] test-fabric-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
   ( cd "$ROOT_DIR" && ./tests/integration/topology_parity.sh ) >"$PROOFS/test-parity-$idx.log" 2>&1
   echo "[cycles] test-parity-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
-  ( cd "$ROOT_DIR" && AINETOPS_CLUSTER_NAME=ainetops ./tests/integration/observability_suite.sh ) >"$PROOFS/test-observability-$idx.log" 2>&1
+  ( cd "$ROOT_DIR" && AGENTIC_NETOPS_CLUSTER_NAME=agentic-netops ./tests/integration/observability_suite.sh ) >"$PROOFS/test-observability-$idx.log" 2>&1
   echo "[cycles] test-observability-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
   # Additional Phase 8 required suites in the live lab window
   ( cd "$ROOT_DIR" && ./tests/integration/evpn_traffic.sh run ) >"$PROOFS/test-traffic-$idx.log" 2>&1
@@ -98,10 +98,10 @@ run_tests() {
 
 runtime_inventory() {
   local idx=$1
-  if command -v kubectl >/dev/null 2>&1 && kubectl --context kind-ainetops cluster-info >/dev/null 2>&1; then
-    kubectl --context kind-ainetops get pods -A -o wide 2>/dev/null | tee "$PROOFS/runtime-inventory-kubectl-$idx.log" || true
+  if command -v kubectl >/dev/null 2>&1 && kubectl --context kind-agentic-netops cluster-info >/dev/null 2>&1; then
+    kubectl --context kind-agentic-netops get pods -A -o wide 2>/dev/null | tee "$PROOFS/runtime-inventory-kubectl-$idx.log" || true
   else
-    echo "no live kind-ainetops context at inventory time" >"$PROOFS/runtime-inventory-kubectl-$idx.log"
+    echo "no live kind-agentic-netops context at inventory time" >"$PROOFS/runtime-inventory-kubectl-$idx.log"
   fi
   helm list -A 2>/dev/null | tee "$PROOFS/runtime-inventory-helm-$idx.log" || true
   if command -v docker >/dev/null 2>&1; then
@@ -126,7 +126,7 @@ done
 echo "[cycles] ===== second-provision idempotence =====" | tee -a "$PROOFS/cycles.run.log"
 run_provision "$PROOFS/idempotence-provision-1.log" sonic-vs
 run_provision "$PROOFS/idempotence-provision-2.log" sonic-vs
-( cd "$ROOT_DIR" && ./scripts/off.sh --cluster-name ainetops --delete-kind true ) >"$PROOFS/idempotence-off.log" 2>&1
+( cd "$ROOT_DIR" && ./scripts/off.sh --cluster-name agentic-netops --delete-kind true ) >"$PROOFS/idempotence-off.log" 2>&1
 echo "[cycles] idempotence-off exit=$?" | tee -a "$PROOFS/cycles.run.log"
 
 # --- Off from partial state (provision aborted at the capability gate) -------

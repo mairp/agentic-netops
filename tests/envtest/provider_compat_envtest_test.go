@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/mairp/ainetops/pkg/compat"
+	"github.com/mairp/agentic-netops/pkg/compat"
 )
 
 func TestCompat_ReasonFor(t *testing.T) {

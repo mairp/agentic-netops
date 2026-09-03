@@ -43,9 +43,9 @@ from tests.corpus.adversarial.runner import StubClassifierLLM, StubTransport
 
 pytestmark = pytest.mark.e2e
 
-NS = "ainetops-intent"
-NS_AGENTS = "ainetops-agents"
-CORR_LABEL = "ainetops.io/correlation-id"
+NS = "agentic-netops-intent"
+NS_AGENTS = "agentic-netops-agents"
+CORR_LABEL = "agentic-netops.io/correlation-id"
 REQUEST = (
     "provision a point-to-point 1Gbps VPWS service between leaf01 ethernet1 "
     "and leaf02 ethernet2 for tenant acme, vlan 100"
@@ -121,9 +121,9 @@ def cluster() -> Cluster:
 
 def _set_audit_identity(monkeypatch: pytest.MonkeyPatch, cluster: Cluster) -> None:
     """Point audit.py's k8s Event emission at this cluster/identity."""
-    monkeypatch.setenv("AINETOPS_API_ENDPOINT", cluster.base)
-    monkeypatch.setenv("AINETOPS_BEARER_TOKEN", cluster.token)
-    monkeypatch.setenv("AINETOPS_VERIFY_TLS", "0")
+    monkeypatch.setenv("AGENTIC_NETOPS_API_ENDPOINT", cluster.base)
+    monkeypatch.setenv("AGENTIC_NETOPS_BEARER_TOKEN", cluster.token)
+    monkeypatch.setenv("AGENTIC_NETOPS_VERIFY_TLS", "0")
 
 
 # ---------------------------------------------------------------------------
@@ -156,7 +156,7 @@ class SubmittingDeployerTransport(StubTransport):
             "metadata": {
                 "name": ref["name"],
                 "namespace": NS,
-                "labels": {CORR_LABEL: self.correlation_id, "ainetops.io/tier": "intent"},
+                "labels": {CORR_LABEL: self.correlation_id, "agentic-netops.io/tier": "intent"},
             },
             "spec": {"source": "intent-tier", "serviceId": ref["name"]},
         }

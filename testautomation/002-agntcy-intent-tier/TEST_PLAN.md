@@ -7,8 +7,8 @@
 - Plan content hash: `0586f6f69cffc1142a299e094e1bd331785c615170b321d4f1da58cbf8bc79ca`
 - Source bundle ID: `0FWY15XWWHR621MMPM9X9SWMMK`
 - Source semantic hash: `9176150fabdbeed953166fee5a6523f150c95ba5b924c1e1beb7e8ee454115bc`
-- Source specification: `/root/ainetops-002/specs/002-agntcy-intent-tier/tasks.md`
-- Absolute workdir: `/root/ainetops-002`
+- Source specification: `/root/agentic-netops-002/specs/002-agntcy-intent-tier/tasks.md`
+- Absolute workdir: `/root/agentic-netops-002`
 - Project fingerprint: `e612837039de22c20872cc8831b1fa43957b0dc4510c8b3a91e8e38129e9960a`
 
 ## Coverage obligations
@@ -18,7 +18,7 @@
 | VO-fcbd54c026d7d87e05f7 | T001 Create `agents/` directory skeleton with `agents/common/`, `agents/config/`, `agents/provisioning/`, `agents/supervisors/`, and `agents/tests/` | integration | effect-witness | planned | 1 |
 | VO-da08ac9abdb15fe88fd7 | T002 Create `agents/provisioning/mapper/`, `agents/provisioning/allocator/`, and `agents/provisioning/deployer/tools/` package directories with `__init__.py` files | integration | effect-witness | planned | 1 |
 | VO-717593f0b366766c62c3 | T003 Create `agents/supervisors/provisioning/graph/` package directory with `__init__.py` files | integration | effect-witness | planned | 1 |
-| VO-01d484456339ce347fd1 | T004 Create `ui/`, `cmd/intent-translator/`, `docker/`, and `deploy/agents/` directories without moving existing `pkg/`, `controllers/`, or `deploy/ainetops/` | integration | effect-witness | planned | 1 |
+| VO-01d484456339ce347fd1 | T004 Create `ui/`, `cmd/intent-translator/`, `docker/`, and `deploy/agents/` directories without moving existing `pkg/`, `controllers/`, or `deploy/agentic-netops/` | integration | effect-witness | planned | 1 |
 | VO-2be84947db7295ddaf44 | T005 Author `agents/pyproject.toml` with `requires-python = ">=3.13,<4.0"` | contract | positive | planned | 1 |
 | VO-9ffa73f82774bb540a20 | T006 Add AGNTCY and A2A pins to `agents/pyproject.toml`: `agntcy-app-sdk==0.4.5`, `a2a-sdk==0.3.0`, and `agntcy-identity-service-sdk==0.0.7` | contract | positive | planned | 1 |
 | VO-b8f14b3fe7d343d3d319 | T007 Add model/orchestration pins to `agents/pyproject.toml`: `litellm[proxy]==1.75.3`, `langgraph>=0.4.1`, `langgraph-supervisor`, `langchain-litellm>=0.3.0`, and `langgraph-checkpoint-sqlite` | contract | positive | planned | 1 |
@@ -44,25 +44,25 @@
 | VO-f7c27fc3fcde2cda12b0 | T027 Add `agents/README.md` documenting the read-only subject tree, the three `REVERSE.md` corrections, and the `pkg/migration` single-translator rule | contract | positive | planned | 1 |
 | VO-a6bb49d9bfbd1dc62189 | T028 Qualify TLS key names accepted by `ghcr.io/agntcy/slim:0.6.1` in `services.slim/0.dataplane.servers[].tls` and record the command output in `specs/002-agntcy-intent-tier/research.md` | contract | positive | planned | 2 |
 | VO-52e5aa744d18e1fb114e | T029 Update `specs/002-agntcy-intent-tier/research.md` Decision 6 with the verified SLIM TLS config keys or the named fallback | integration | effect-witness | planned | 2 |
-| VO-9175eed772413e1d7a73 | T030 Qualify whether pinned Kubenet and `ainetops-srv6-controller` controllers reconcile `ainetops-intent` resources and record the command output in `specs/002-agntcy-intent-tier/research.md` | contract | positive | planned | 2 |
-| VO-e14d4146dd96e1bf43f4 | T031 Update `specs/002-agntcy-intent-tier/research.md` Decision 12 with any watch-namespace setting required for `ainetops-intent` | integration | effect-witness | planned | 2 |
+| VO-9175eed772413e1d7a73 | T030 Qualify whether pinned Kubenet and `agentic-netops-srv6-controller` controllers reconcile `agentic-netops-intent` resources and record the command output in `specs/002-agntcy-intent-tier/research.md` | contract | positive | planned | 2 |
+| VO-e14d4146dd96e1bf43f4 | T031 Update `specs/002-agntcy-intent-tier/research.md` Decision 12 with any watch-namespace setting required for `agentic-netops-intent` | integration | effect-witness | planned | 2 |
 | VO-29435c362fc0920ceb86 | T032 [P] Qualify that `id.kuid.dev/v1alpha1 Claim` status reports allocated values at pinned KUID `v0.0.13` using `deploy/kubenet/claims.yaml` | integration | effect-witness | planned | 2 |
 | VO-21503301ff71d7eae57f | T033 [P] Record the verified KUID Claim status path in `specs/002-agntcy-intent-tier/research.md` Decision 11 | contract | positive | planned | 2 |
 | VO-4fe374615c4a7f36aa24 | T034 [P] Qualify the OTLP resource and attribute shape emitted by `ioa-observe-sdk==1.0.24` | contract | positive | planned | 2 |
 | VO-181ba7a0a72856d9f350 | T035 [P] Record the observed OTLP shape in comments in `deploy/agents/telemetry.yaml` | integration | effect-witness | planned | 2 |
-| VO-687d47426c5f42a60034 | T036 Author namespaces `ainetops-agents` and `ainetops-intent` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
-| VO-1dfb028ad97c0806c1a9 | T037 Add labels `ainetops.owner: ainetops` and `ainetops.io/tier: intent` to both namespaces in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
+| VO-687d47426c5f42a60034 | T036 Author namespaces `agentic-netops-agents` and `agentic-netops-intent` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
+| VO-1dfb028ad97c0806c1a9 | T037 Add labels `agentic-netops.owner: agentic-netops` and `agentic-netops.io/tier: intent` to both namespaces in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
 | VO-7aef58f056e0f5ee8304 | T038 Add ServiceAccounts `intent-supervisor`, `intent-mapper`, and `intent-ui` with `automountServiceAccountToken: false` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
 | VO-be64b28e662e290d6484 | T039 Add token-bearing ServiceAccounts `intent-allocator` and `intent-deployer` as the only cluster API identities in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
-| VO-840d722dc6f2cc12685a | T040 Add `Role/intent-writer` for `network.kubenet.dev/networks` in namespace `ainetops-intent` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
-| VO-094b666c62fd2babdfb7 | T041 Add `Role/intent-writer` rules for `ainetops.io/srv6services` and core `events` in namespace `ainetops-intent` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
-| VO-eaea302928e6f31405f4 | T042 Add `RoleBinding/intent-writer` from `ainetops-agents/intent-deployer` to `Role/intent-writer` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
+| VO-840d722dc6f2cc12685a | T040 Add `Role/intent-writer` for `network.kubenet.dev/networks` in namespace `agentic-netops-intent` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
+| VO-094b666c62fd2babdfb7 | T041 Add `Role/intent-writer` rules for `agentic-netops.io/srv6services` and core `events` in namespace `agentic-netops-intent` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
+| VO-eaea302928e6f31405f4 | T042 Add `RoleBinding/intent-writer` from `agentic-netops-agents/intent-deployer` to `Role/intent-writer` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
 | VO-c198916132fff3b499cd | T043 Add `Role/kuid-claimer` for `id.kuid.dev/claims` verbs `get,list,watch,create,delete` in namespace `kuid-system` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
-| VO-457dd4211d46f0a59da3 | T044 Add `RoleBinding/kuid-claimer` from `ainetops-agents/intent-allocator` to `Role/kuid-claimer` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
-| VO-5a4425d46bee6e6ebc32 | T045 Add `NetworkPolicy/deny-all-by-default` for namespace `ainetops-agents` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
+| VO-457dd4211d46f0a59da3 | T044 Add `RoleBinding/kuid-claimer` from `agentic-netops-agents/intent-allocator` to `Role/kuid-claimer` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
+| VO-5a4425d46bee6e6ebc32 | T045 Add `NetworkPolicy/deny-all-by-default` for namespace `agentic-netops-agents` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
 | VO-35dd4746ce3f0685631b | T046 Add DNS egress allowance to `NetworkPolicy/allow-egress-scoped` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
 | VO-7f2e1a4498e1736d3772 | T047 Add intra-tier pod egress allowance to `NetworkPolicy/allow-egress-scoped` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
-| VO-4bc3c4aeddbc340313ee | T048 Add OTel collector egress allowance to `ainetops-system` port `4317` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
+| VO-4bc3c4aeddbc340313ee | T048 Add OTel collector egress allowance to `agentic-netops-system` port `4317` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
 | VO-73a83fb2bed928e84603 | T049 Add model-provider TCP/443 egress allowance excluding `172.31.0.0/16`, `10.0.0.0/8`, and `192.168.0.0/16` in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
 | VO-c1588768717b0280ddec | T050 Add `NetworkPolicy/apiserver-egress-cluster-clients` admitting Kubernetes API egress from allocator and deployer pods only in `deploy/agents/namespace-rbac.yaml` | integration | effect-witness | planned | 2 |
 | VO-f985344ed837642f19e9 | T051 Author `deploy/agents/secret-generator-job.yaml` job scaffold reusing the pattern from `deploy/rbac/secret-generator-job.yaml` | integration | effect-witness | planned | 2 |
@@ -76,7 +76,7 @@
 | VO-711aa3b050771549f10c | T059 [P] Port `common/llm.py` to `agents/common/llm.py` using the `LLM_MODEL` prefix provider selection | contract | positive | planned | 2 |
 | VO-235633d625b3ea4b797c | T060 [P] Create `agents/common/exceptions.py` defining `AuthError` | integration | effect-witness | planned | 2 |
 | VO-27ed7350715787907faa | T061 [P] Port `config/config.py` to `agents/config/config.py` with `DEFAULT_MESSAGE_TRANSPORT=SLIM` | contract | positive | planned | 2 |
-| VO-57e6849dc74f42cd4cf8 | T062 [P] Set `TRANSPORT_SERVER_ENDPOINT` default to `http://slim.ainetops-agents.svc:46357` in `agents/config/config.py` | contract | positive | planned | 2 |
+| VO-57e6849dc74f42cd4cf8 | T062 [P] Set `TRANSPORT_SERVER_ENDPOINT` default to `http://slim.agentic-netops-agents.svc:46357` in `agents/config/config.py` | contract | positive | planned | 2 |
 | VO-af8cc367f33c80d43edf | T063 [P] Port `config/logging_config.py` to `agents/config/logging_config.py` | contract | positive | planned | 2 |
 | VO-15a182b12a269e7b085d | T064 [P] Add credential redaction wiring to `agents/config/logging_config.py` | contract | positive | planned | 2 |
 | VO-b589b456429431e12a14 | T065 Implement `ServiceType` and endpoint models in `agents/common/schemas/interpretation.py` | contract | positive | planned | 2 |
@@ -228,7 +228,7 @@
 | VO-5be2b7a404e05f86c41e | T211 [US1] Implement KUID API client construction in `agents/provisioning/allocator/kuid.py` | contract | positive | planned | 5 |
 | VO-87992fcf5a0e1777a771 | T212 [US1] Implement Claim object creation in namespace `kuid-system` in `agents/provisioning/allocator/kuid.py` | contract | positive | planned | 5 |
 | VO-c99fe237b244cf9602d2 | T213 [US1] Implement Claim status wait and timeout handling in `agents/provisioning/allocator/kuid.py` | contract | positive | planned | 5 |
-| VO-9f080d50da826333a9c1 | T214 [US1] Stamp Claims with `ainetops.io/correlation-id` in `agents/provisioning/allocator/kuid.py` | contract | positive | planned | 5 |
+| VO-9f080d50da826333a9c1 | T214 [US1] Stamp Claims with `agentic-netops.io/correlation-id` in `agents/provisioning/allocator/kuid.py` | contract | positive | planned | 5 |
 | VO-e915a0a51abec7f89664 | T215 [US1] Surface KUID collision and exhaustion errors with conflicting values in `agents/provisioning/allocator/kuid.py` | contract | positive | planned | 5 |
 | VO-a34c581b228a6df65326 | T216 [US1] Implement claim release by correlation-id on decline in `agents/provisioning/allocator/kuid.py` | contract | positive | planned | 5 |
 | VO-adaed1c5c301280ad1ff | T217 [US1] Implement claim release by correlation-id on rollback in `agents/provisioning/allocator/kuid.py` | contract | positive | planned | 5 |
@@ -329,10 +329,10 @@
 | VO-91549e17ab70cdf25795 | T312 [US5] Add `@tool` instrumentation to deployer tools in `agents/provisioning/deployer/tools/deployer_tools.py` | contract | positive | planned | 8 |
 | VO-be73d0896d19dc9c693b | T313 [US5] Add `session_start()` instrumentation to `agents/supervisors/provisioning/main.py` | contract | positive | planned | 8 |
 | VO-11a65569d9b26b846522 | T314 [US5] Configure one OTLP endpoint per agent process in `agents/config/telemetry.py` | contract | positive | planned | 8 |
-| VO-3c773eaeedd4c69d1742 | T315 [US5] Point the OTLP endpoint to `http://agent-otel-collector.ainetops-agents.svc:4318` in `agents/config/telemetry.py` | contract | positive | planned | 8 |
+| VO-3c773eaeedd4c69d1742 | T315 [US5] Point the OTLP endpoint to `http://agent-otel-collector.agentic-netops-agents.svc:4318` in `agents/config/telemetry.py` | contract | positive | planned | 8 |
 | VO-7dc1a6baaeaec3bd96a9 | T316 [US5] Add OTLP receiver config to `deploy/agents/telemetry.yaml` | integration | effect-witness | planned | 8 |
 | VO-24bcc407370eaf7f0373 | T317 [US5] Add ClickHouse exporter config to `deploy/agents/telemetry.yaml` | integration | effect-witness | planned | 8 |
-| VO-8ac72185f8d52eeb74e8 | T318 [US5] Add OTLP exporter forwarding to `otel-collector.ainetops-system:4317` in `deploy/agents/telemetry.yaml` | integration | effect-witness | planned | 8 |
+| VO-8ac72185f8d52eeb74e8 | T318 [US5] Add OTLP exporter forwarding to `otel-collector.agentic-netops-system:4317` in `deploy/agents/telemetry.yaml` | integration | effect-witness | planned | 8 |
 | VO-3659ed0fce12718c156b | T319 [US5] Add `Deployment/agent-otel-collector` and `Service/agent-otel-collector` to `deploy/agents/telemetry.yaml` | integration | effect-witness | planned | 8 |
 | VO-07afc674df4c85463e2a | T320 [US5] Add ClickHouse StatefulSet to `deploy/agents/telemetry.yaml` | integration | effect-witness | planned | 8 |
 | VO-25d5eb730fbc0ca72e39 | T321 [US5] Add ClickHouse Service and PVC to `deploy/agents/telemetry.yaml` | integration | effect-witness | planned | 8 |
@@ -343,7 +343,7 @@
 | VO-6fe0b28500b8a62a9bcd | T326 [US5] Implement confirmation and decline counters in `agents/common/metrics.py` | contract | positive | planned | 8 |
 | VO-de76970f0347edd751e1 | T327 [US5] Implement `refused_unsafe_total` in `agents/common/metrics.py` | contract | positive | planned | 8 |
 | VO-c8c0284e411d7586dce4 | T328 [US5] Implement model call count, token usage, and cost metrics in `agents/common/metrics.py` | contract | positive | planned | 8 |
-| VO-87c8457d60ececdfce25 | T329 [US5] Enforce `ainetops_agent_*` metric naming in `agents/common/metrics.py` | contract | positive | planned | 8 |
+| VO-87c8457d60ececdfce25 | T329 [US5] Enforce `agentic_netops_agent_*` metric naming in `agents/common/metrics.py` | contract | positive | planned | 8 |
 | VO-a51d799ea00ecfde2833 | T330 [US5] Implement trace-id-to-correlation-id binding in `agents/common/telemetry.py` | contract | positive | planned | 8 |
 | VO-6f5d48de42de9c6f53cb | T331 [US5] Stamp trace-derived correlation id on resources through `agents/provisioning/deployer/stamp.py` | contract | positive | planned | 8 |
 | VO-fe905dd07f821fce804c | T332 [US5] Stamp trace-derived correlation id on Claims through `agents/provisioning/allocator/kuid.py` | contract | positive | planned | 8 |
@@ -572,7 +572,7 @@ A mutation response is never sufficient evidence. Observe resulting state throug
 ### Run Go tests
 
 - Command ID: `CMD-e73e2ef77075f58a8933`
-- Absolute working directory: `/root/ainetops-002`
+- Absolute working directory: `/root/agentic-netops-002`
 
 ```bash
 /usr/lib/go-1.24/bin/go test ./...

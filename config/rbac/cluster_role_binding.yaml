@@ -1,25 +1,25 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: ainetops-sonic-provider
+  name: agentic-netops-sonic-provider
 subjects:
 - kind: ServiceAccount
-  name: ainetops-sonic-provider
-  namespace: ainetops-system
+  name: agentic-netops-sonic-provider
+  namespace: agentic-netops-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: ainetops-sonic-provider
+  name: agentic-netops-sonic-provider
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: ainetops-srv6-controller
+  name: agentic-netops-srv6-controller
 subjects:
 - kind: ServiceAccount
-  name: ainetops-srv6-controller
-  namespace: ainetops-system
+  name: agentic-netops-srv6-controller
+  namespace: agentic-netops-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: ainetops-srv6-controller
+  name: agentic-netops-srv6-controller

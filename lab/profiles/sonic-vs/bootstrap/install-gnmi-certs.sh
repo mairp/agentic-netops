@@ -3,7 +3,7 @@
 set -euo pipefail
 
 dst=/etc/sonic/telemetry
-src=${GNMI_CERT_SRC_DIR:-/etc/ainetops/gnmi}
+src=${GNMI_CERT_SRC_DIR:-/etc/agentic-netops/gnmi}
 mkdir -p "$dst"
 # NOTE: .cer suffixes are mandatory — sonic-telemetry YANG validates cert paths
 # against "(/[a-zA-Z0-9_-]+)*/([a-zA-Z0-9_-]+).cer", and GCU validates the ENTIRE

@@ -25,7 +25,7 @@ Save the extracted material into `/root/ai-champion` as one markdown file per ex
 ## Installed / Available Dependencies
 
 - Node.js is available.
-- Playwright is not installed in the current repo at `/root/ainetops-demo`.
+- Playwright is not installed in the current repo at `/root/agentic-netops`.
 - Playwright is not installed globally in Node.
 - Python Playwright is not installed.
 - A usable Node Playwright installation exists at:
@@ -42,7 +42,7 @@ Save the extracted material into `/root/ai-champion` as one markdown file per ex
   - `FATAL:content/browser/sandbox_host_linux.cc:41`
   - `shutdown: Operation not permitted`
 - Playwright commands need elevated execution in this environment.
-- Writing final files directly to `/root/ai-champion` also needs elevated execution because the writable workspace root is `/root/ainetops-demo`.
+- Writing final files directly to `/root/ai-champion` also needs elevated execution because the writable workspace root is `/root/agentic-netops`.
 
 ## Confirmed Site State
 

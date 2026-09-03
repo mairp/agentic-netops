@@ -37,7 +37,7 @@ class ClaimRef(BaseModel):
     not the claim status. ``released_at`` is set when the claim is deleted
     on decline or rollback (FR-007, SC-014).
 
-    Every claim carries the ``ainetops.io/correlation-id`` label, which is
+    Every claim carries the ``agentic-netops.io/correlation-id`` label, which is
     what makes SC-014's check a single label-selector query.
     """
 

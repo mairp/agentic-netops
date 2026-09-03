@@ -4,7 +4,7 @@ Implements:
 - T211: client construction against KUID_API_ENDPOINT with bearer token
 - T212: Claim object creation in namespace `kuid-system`
 - T213: Claim status wait and timeout handling
-- T214: Claim stamping with `ainetops.io/correlation-id`
+- T214: Claim stamping with `agentic-netops.io/correlation-id`
 - T215: Collision and exhaustion error surfacing (typed)
 - T216: claim release by correlation-id on decline
 - T217: claim release by correlation-id on rollback
@@ -19,8 +19,8 @@ and resource plural explicitly.
 
 Authentication mirrors the audit Kubernetes-Event emission seam: a bearer
 service-account token is discovered in-cluster, or may be provided via the
-`AINETOPS_BEARER_TOKEN` env for tests. TLS verification is configurable via
-`AINETOPS_VERIFY_TLS` (default on).
+`AGENTIC_NETOPS_BEARER_TOKEN` env for tests. TLS verification is configurable via
+`AGENTIC_NETOPS_VERIFY_TLS` (default on).
 
 This module does not invent identifiers: it creates KUID Claims, stamps them
 with the correlation-id label, and (best-effort) waits for status. The
@@ -69,14 +69,14 @@ class KUIDIdentity:
 
 def _resolve_identity() -> KUIDIdentity:
     endpoint = os.getenv("KUID_API_ENDPOINT", KUID_API_ENDPOINT)
-    token = os.getenv("AINETOPS_BEARER_TOKEN") or None
+    token = os.getenv("AGENTIC_NETOPS_BEARER_TOKEN") or None
     if token is None:
         try:
             with open("/var/run/secrets/kubernetes.io/serviceaccount/token", "r", encoding="utf-8") as fh:
                 token = fh.read().strip() or None
         except OSError:
             token = None
-    verify = os.getenv("AINETOPS_VERIFY_TLS", "1").lower() in ("1", "true", "yes")
+    verify = os.getenv("AGENTIC_NETOPS_VERIFY_TLS", "1").lower() in ("1", "true", "yes")
     return KUIDIdentity(endpoint=endpoint, token=token, verify_tls=verify)
 
 
@@ -125,7 +125,7 @@ class KUIDClient:
     ) -> dict[str, Any]:
         """Create a claim object in namespace `kuid-system` (T212/T214).
 
-        Stamps the claim with `ainetops.io/correlation-id`.
+        Stamps the claim with `agentic-netops.io/correlation-id`.
         """
         meta_labels = dict(labels or {})
         meta_labels[CORRELATION_LABEL] = correlation_id

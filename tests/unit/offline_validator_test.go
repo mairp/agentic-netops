@@ -3,7 +3,7 @@ package unit
 import (
 	"testing"
 
-	"github.com/mairp/ainetops/pkg/sdc"
+	"github.com/mairp/agentic-netops/pkg/sdc"
 )
 
 func TestOfflineValidateRejectsNonPathKeys(t *testing.T) {

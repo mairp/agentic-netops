@@ -5,7 +5,7 @@ set -uo pipefail
 # Defer set -e until after preconditions
 
 
-CLAB_PREFIX=${CLAB_PREFIX:-clab-ainetops-fabric-}
+CLAB_PREFIX=${CLAB_PREFIX:-clab-agentic-netops-fabric-}
 C1=${C1:-${CLAB_PREFIX}client01}
 C2=${C2:-${CLAB_PREFIX}client02}
 

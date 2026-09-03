@@ -2,7 +2,7 @@ groups:
 - name: intent-tier
   rules:
   - alert: IntentTierStageErrorRateHigh
-    expr: sum by(stage) (rate(ainetops_agent_stage_failures_total[5m])) / clamp_min(sum by(stage) (rate(ainetops_agent_stage_success_total[5m])) + sum by(stage) (rate(ainetops_agent_stage_failures_total[5m])), 1) > 0.2
+    expr: sum by(stage) (rate(agentic_netops_agent_stage_failures_total[5m])) / clamp_min(sum by(stage) (rate(agentic_netops_agent_stage_success_total[5m])) + sum by(stage) (rate(agentic_netops_agent_stage_failures_total[5m])), 1) > 0.2
     for: 10m
     labels:
       severity: warning
@@ -20,7 +20,7 @@ groups:
       description: "The intent-tier OTLP collector is not reporting to Prometheus."
 
   - alert: IntentTierProviderUnavailable
-    expr: sum(rate(ainetops_agent_model_calls_total[5m])) > 0 and sum(rate(ainetops_agent_stage_failures_total{stage="supervisor"}[5m])) > 0
+    expr: sum(rate(agentic_netops_agent_model_calls_total[5m])) > 0 and sum(rate(agentic_netops_agent_stage_failures_total{stage="supervisor"}[5m])) > 0
     for: 10m
     labels:
       severity: warning
@@ -29,7 +29,7 @@ groups:
       description: "Supervisor receives requests but model responses are failing."
 
   - alert: IntentTierConvergenceTimeouts
-    expr: sum(rate(ainetops_agent_stage_failures_total{stage="deployer"}[15m])) > 0
+    expr: sum(rate(agentic_netops_agent_stage_failures_total{stage="deployer"}[15m])) > 0
     for: 15m
     labels:
       severity: warning

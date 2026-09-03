@@ -10,7 +10,7 @@ GNMI_CERT=${GNMI_CERT:-./secrets/gnmi.crt}
 GNMI_KEY=${GNMI_KEY:-./secrets/gnmi.key}
 GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
 LEAF1=${LEAF1:-172.31.0.21:8080}
-PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs}
 mkdir -p "$PROOF_DIR"
 
 _args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --insecure --encoding "$GNMI_ENCODING" --cacert "$GNMI_CACERT" --cert "$GNMI_CERT" --key "$GNMI_KEY")

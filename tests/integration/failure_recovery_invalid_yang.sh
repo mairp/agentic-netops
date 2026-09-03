@@ -4,8 +4,8 @@ set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 TOPO=${TOPO:-$ROOT_DIR/lab/topology.clab.yml}
-CTX=${CTX:-kind-ainetops}
-PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+CTX=${CTX:-kind-agentic-netops}
+PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs}
 mkdir -p "$PROOF_DIR"
 
 assert_aggregate_not_ready() {
@@ -40,8 +40,8 @@ provider_restart_mid_transaction() {
   echo "[failure] provider restart mid-transaction"
   # Trigger a harmless change (annotate a network) and restart provider
   kubectl --context "$CTX" -n kubenet-system annotate network default-fabric test-restart=$(date +%s) --overwrite || true
-  kubectl --context "$CTX" -n ainetops-system rollout restart deploy/ainetops-sonic-provider
-  kubectl --context "$CTX" -n ainetops-system rollout status deploy/ainetops-sonic-provider --timeout=120s || true
+  kubectl --context "$CTX" -n agentic-netops-system rollout restart deploy/agentic-netops-sonic-provider
+  kubectl --context "$CTX" -n agentic-netops-system rollout status deploy/agentic-netops-sonic-provider --timeout=120s || true
   echo "provider restart mid-transaction" # proof keyword
 }
 
@@ -87,7 +87,7 @@ partial_srv6_endpoint_programming() {
     exit 1
   fi
   # Restore by reapplying sample
-  kubectl --context "$CTX" apply -f config/samples/ainetops_v1alpha1_srv6service.yaml || true
+  kubectl --context "$CTX" apply -f config/samples/agentic-netops_v1alpha1_srv6service.yaml || true
 }
 
 prohibit_false_aggregate_ready() {
@@ -109,7 +109,7 @@ prohibit_false_aggregate_ready() {
 case "${1:-run}" in
   run)
     # Clean skip when no provisioned lab/cluster exists (absent-state runs, post-teardown).
-    if ! docker ps --format '{{.Names}}' | grep -q "clab-ainetops-fabric-spine01" \
+    if ! docker ps --format '{{.Names}}' | grep -q "clab-agentic-netops-fabric-spine01" \
       || ! kubectl --context "$CTX" get nodes --request-timeout=5s >/dev/null 2>&1; then
       echo "SKIP-LIVE: failure/recovery suite requires a provisioned lab and Kind cluster (containerlab nodes or context ${CTX} absent); capability gate (scripts/lib/qualify.sh) is the source of truth"
       exit 0

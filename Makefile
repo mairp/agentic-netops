@@ -25,8 +25,8 @@ verify-pins:
 
 validate-crds:
 	@echo "[validate-crds] server-side validating CRDs and examples"
-	@mkdir -p .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs
-	@"$(PWD)/scripts/lib/validate_crds.sh" 2>&1 | tee .wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log
+	@mkdir -p .wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs
+	@"$(PWD)/scripts/lib/validate_crds.sh" 2>&1 | tee .wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log
 
 verify-intent-pins:
 	@echo "[verify-intent-pins] validating intent_tier: image digests in versions.lock.yaml"
@@ -61,7 +61,7 @@ build-intent-translator:
 
 # Lifecycle wrappers (do not reimplement phases): call scripts directly
 PROF ?= sonic-vs
-CLUSTER ?= ainetops
+CLUSTER ?= agentic-netops
 TIMEOUT ?= 180s
 
 # T078: quickstart wrappers
@@ -73,7 +73,7 @@ provision:
 	@"$(PWD)/scripts/provision.sh" --profile $(PROF) --cluster-name $(CLUSTER) --timeout $(TIMEOUT)
 
 off:
-	@AINETOPS_DELETE_KIND=$(DELETE_KIND) AINETOPS_CAPTURE_EVIDENCE=$(CAPTURE) "$(PWD)/scripts/off.sh" --cluster-name $(CLUSTER)
+	@AGENTIC_NETOPS_DELETE_KIND=$(DELETE_KIND) AGENTIC_NETOPS_CAPTURE_EVIDENCE=$(CAPTURE) "$(PWD)/scripts/off.sh" --cluster-name $(CLUSTER)
 
 lab-qualify:
 	@echo "[lab-qualify] Running capability gate"

@@ -33,12 +33,12 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/mairp/ainetops/pkg/migration"
+	"github.com/mairp/agentic-netops/pkg/migration"
 )
 
 const (
-	defaultAddr   = "127.0.0.1:8090" // pod-local only; never cluster-visible
-	translatorID  = "intent-translator"
+	defaultAddr  = "127.0.0.1:8090" // pod-local only; never cluster-visible
+	translatorID = "intent-translator"
 )
 
 // translateResponse is the 200 body (contracts/translator-api.md).

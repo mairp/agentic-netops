@@ -6,7 +6,7 @@
 set -euo pipefail
 
 WORKDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FEATURE="001-ainetops-sonic-evpn-fabric"
+FEATURE="001-agentic-netops-sonic-evpn-fabric"
 SPEC="$WORKDIR/specs/$FEATURE/tasks.md"
 ORCH="${ORCH:-/root/wiggum/orchestrator.sh}"
 

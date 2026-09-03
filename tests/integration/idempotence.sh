@@ -2,13 +2,13 @@
 # T048 [US2] Repeat-apply proof: unchanged intent produces zero SDC spec writes and zero gNMI Sets
 set -euo pipefail
 
-CTX=${CTX:-kind-ainetops}
-PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+CTX=${CTX:-kind-agentic-netops}
+PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs}
 mkdir -p "$PROOF_DIR"
 
 get_config_hashes() {
   kubectl --context "$CTX" get config -A -o json 2>/dev/null \
-    | jq -r '.items[]|select(.metadata.annotations["ainetops.dev/config-hash"])|[.metadata.namespace,.metadata.name,.metadata.annotations["ainetops.dev/config-hash"]]|@tsv' \
+    | jq -r '.items[]|select(.metadata.annotations["agentic-netops.dev/config-hash"])|[.metadata.namespace,.metadata.name,.metadata.annotations["agentic-netops.dev/config-hash"]]|@tsv' \
     | sort -u
 }
 
@@ -24,7 +24,7 @@ noop_apply() {
   kubectl --context "$CTX" apply -f deploy/kubenet/networks/tenants/l2-bridged.yaml >/dev/null 2>&1 || true
   kubectl --context "$CTX" apply -f deploy/kubenet/networks/tenants/l3-routed.yaml >/dev/null 2>&1 || true
   kubectl --context "$CTX" apply -f deploy/kubenet/networks/tenants/irb-symmetric.yaml >/dev/null 2>&1 || true
-  kubectl --context "$CTX" apply -f config/samples/ainetops_v1alpha1_srv6service.yaml >/dev/null 2>&1 || true
+  kubectl --context "$CTX" apply -f config/samples/agentic-netops_v1alpha1_srv6service.yaml >/dev/null 2>&1 || true
 }
 
 assert_no_new_sets() {

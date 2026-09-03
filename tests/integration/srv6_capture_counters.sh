@@ -3,11 +3,11 @@
 # Capture outer IPv6/SRH with ordered SIDs, verify egress decapsulation into the intended VRF, and assert MySID counter increments
 set -euo pipefail
 
-PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs}
 mkdir -p "$PROOF_DIR"
 
-SRC=${SRC:-clab-ainetops-fabric-srv6-client01}
-DST=${DST:-clab-ainetops-fabric-srv6-client02}
+SRC=${SRC:-clab-agentic-netops-fabric-srv6-client01}
+DST=${DST:-clab-agentic-netops-fabric-srv6-client02}
 # Precondition: skip gracefully if clients are absent (standard SKIP-LIVE marker,
 # matching evpn_traffic.sh / failure_recovery_invalid_yang.sh / srv6_failover_path_change.sh)
 if ! docker ps --format '{{.Names}}' | grep -q "$SRC"; then echo "SKIP-LIVE: SRv6 capture/counter suite requires a provisioned lab (${SRC} not present); capability gate (scripts/lib/qualify.sh) is the source of truth"; exit 0; fi

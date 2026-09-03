@@ -1,8 +1,8 @@
-# AINETOPS Operators Guide
+# Agentic NetOps Operators Guide
 
-Applies to: specs/001-ainetops-sonic-evpn-fabric
+Applies to: the Agentic NetOps SONiC EVPN/VXLAN fabric managed by this repository.
 
-This document provides operator-facing procedures and acceptance expectations for the AINETOPS SONiC EVPN/VXLAN Fabric reference.
+This document provides operator-facing procedures and acceptance expectations for the Agentic NetOps SONiC EVPN/VXLAN Fabric reference.
 
 Contents:
 - Compatibility matrix and pins
@@ -53,14 +53,14 @@ Preflight enforces minimal CPU/RAM/disk and tool versions.
 
 - gNMIc runs in-cluster and subscribes to SONiC targets; it exports OTLP to the OTel Collector
 - OTel Collector normalizes and exports to Prometheus (in-cluster metrics store)
-- Grafana consumes Prometheus and the generated topology ConfigMap (monitoring/ainetops-topology) to render orchestration, pipeline health, and topology views
+- Grafana consumes Prometheus and the generated topology ConfigMap (monitoring/agentic-netops-topology) to render orchestration, pipeline health, and topology views
 
 See manifests under deploy/observability/ and deploy/gnmi/
 
 ## Operator quickstart and lifecycle commands
 
-- Provision: ./scripts/provision.sh --profile sonic-vs --cluster-name ainetops
-- Teardown: ./scripts/off.sh --cluster-name ainetops [--delete-kind true] [--capture-evidence true]
+- Provision: ./scripts/provision.sh --profile sonic-vs --cluster-name agentic-netops
+- Teardown: ./scripts/off.sh --cluster-name agentic-netops [--delete-kind true] [--capture-evidence true]
 - Capability gate: make lab-qualify (blocks downstream on failure)
 
 ## Recovery procedures
@@ -71,7 +71,7 @@ See manifests under deploy/observability/ and deploy/gnmi/
 
 ## Break-glass finalizer procedure
 
-Controllers add ainetops.dev/finalizer to owned resources to delete downstream SDC intent first. If a controller or the API becomes permanently broken, an operator may break-glass:
+Controllers add agentic-netops.dev/finalizer to owned resources to delete downstream SDC intent first. If a controller or the API becomes permanently broken, an operator may break-glass:
 
 1) Inspect finalizers:
    kubectl get networkdevices.network.kubenet.dev -A -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name} {.metadata.finalizers}\n{end}'

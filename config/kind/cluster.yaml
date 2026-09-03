@@ -1,12 +1,12 @@
 # Declarative Kind cluster configuration (Phase 3 foundation)
-# - Stable cluster name: ainetops
+# - Stable cluster name: agentic-netops
 # - Pinned node image from versions.lock.yaml
 # - Non-overlapping pod/service CIDRs
 # - Extra port mappings for observability access from host
 # - Extra mounts for local diagnostics (no secrets)
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
-name: ainetops
+name: agentic-netops
 networking:
   podSubnet: 10.244.0.0/16
   serviceSubnet: 10.96.0.0/12
@@ -14,9 +14,9 @@ nodes:
 - role: control-plane
   image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
   labels:
-    ainetops.owner: "ainetops"
-    ainetops.kind.role: "control-plane"
-    ainetops.mgmt.attached: "false"
+    agentic-netops.owner: "agentic-netops"
+    agentic-netops.kind.role: "control-plane"
+    agentic-netops.mgmt.attached: "false"
   extraPortMappings:
   - containerPort: 30090   # Prometheus NodePort
     hostPort: 30090
@@ -34,18 +34,18 @@ nodes:
     hostPort: 30000
     protocol: TCP
   extraMounts:
-  - hostPath: /var/local/ainetops
-    containerPath: /var/local/ainetops
+  - hostPath: /var/local/agentic-netops
+    containerPath: /var/local/agentic-netops
     readOnly: false
 - role: worker
   image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
   labels:
-    ainetops.owner: "ainetops"
-    ainetops.kind.role: "worker"
-    ainetops.mgmt.attached: "false"
+    agentic-netops.owner: "agentic-netops"
+    agentic-netops.kind.role: "worker"
+    agentic-netops.mgmt.attached: "false"
   extraMounts:
-  - hostPath: /var/local/ainetops
-    containerPath: /var/local/ainetops
+  - hostPath: /var/local/agentic-netops
+    containerPath: /var/local/agentic-netops
     readOnly: false
 containerdConfigPatches:
 - |-

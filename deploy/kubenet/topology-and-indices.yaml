@@ -2,7 +2,7 @@
 apiVersion: network.kubenet.dev/v1alpha1
 kind: NetworkConfig
 metadata:
-  name: ainetops-default
+  name: agentic-netops-default
   namespace: kubenet-system
 spec:
   # Placeholder for default underlay and EVPN networks

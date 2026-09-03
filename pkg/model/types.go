@@ -4,16 +4,16 @@ package model
 
 // Interface represents a physical or logical interface with optional L3 addresses.
 type Interface struct {
-	Name      string
-	MTU       int
-	IPv4CIDR  string // allow /31 for point-to-point
-	IPv6CIDR  string // required for SRv6 underlay
-	Loopback  bool
+	Name     string
+	MTU      int
+	IPv4CIDR string // allow /31 for point-to-point
+	IPv6CIDR string // required for SRv6 underlay
+	Loopback bool
 }
 
 // Loopback represents a loopback interface by name.
 type Loopback struct {
-	Name string
+	Name     string
 	IPv4CIDR string
 	IPv6CIDR string
 }
@@ -75,9 +75,9 @@ type SRv6Locator struct {
 
 // MySID represents a MySID behavior at a node.
 type MySID struct {
-	SID       string // IPv6 SID
-	Behavior  string // e.g., End, End.DT46, End.DT6, End.DT4
-	VRF       string // for End.DT46/VRF
+	SID      string // IPv6 SID
+	Behavior string // e.g., End, End.DT46, End.DT6, End.DT4
+	VRF      string // for End.DT46/VRF
 }
 
 // SIDList represents an ordered list of SIDs for steering.

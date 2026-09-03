@@ -397,7 +397,7 @@ class StubTransport:
         ref = {
             "apiVersion": "network.kubenet.dev/v1alpha1",
             "kind": "Network",
-            "namespace": "ainetops-intent",
+            "namespace": "agentic-netops-intent",
             "name": intent["serviceId"],
         }
         if self.stage == "deployer":

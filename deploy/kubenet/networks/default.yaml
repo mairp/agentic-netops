@@ -7,7 +7,7 @@ metadata:
   name: default-fabric
   namespace: kubenet-system
   labels:
-    ainetops.owner: ainetops
+    agentic-netops.owner: agentic-netops
 spec:
   description: Default dual-stack leaf-spine routed underlay with EVPN overlay and leaf VTEPs
   underlay:

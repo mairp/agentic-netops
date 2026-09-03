@@ -58,7 +58,7 @@ def remove_service(*, correlation_id: str | None, service_id: str | None = None,
     """
     if not confirmed:
         raise ValueError("remove_service requires explicit confirmation")
-    selector = f"ainetops.io/correlation-id={correlation_id or ''}"
+    selector = f"agentic-netops.io/correlation-id={correlation_id or ''}"
     # Phase 5 stub: pretend we deleted 0 objects deterministically.
     return {"selector": selector, "deleted": 0}
 

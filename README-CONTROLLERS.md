@@ -1,4 +1,4 @@
-AINETOPS Controllers: SONiC Provider and SRv6Service
+Agentic NetOps Controllers: SONiC Provider and SRv6Service
 
 This repository contains two controller binaries built with a pinned Go toolchain and dependencies:
 
@@ -7,7 +7,7 @@ This repository contains two controller binaries built with a pinned Go toolchai
 - controllers/sonicprovider/: provider reconciler
 - controllers/srv6service/: SRv6 reconciler scaffold
 - api/v1alpha1/: Go types for SRv6Service
-- config/crd/bases/ainetops.io_srv6services.yaml: Structural CRD
+- config/crd/bases/agentic-netops.io_srv6services.yaml: Structural CRD
 
 Pinned dependency set (shared by both binaries, see go.mod):
 - Go: go 1.22 (go.mod line 3)

@@ -1,0 +1,63 @@
+# Agentic NetOps SONiC provider placeholder Deployment and Service (T023)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentic-netops-sonic-provider
+  namespace: agentic-netops-system
+  labels:
+    app.kubernetes.io/name: agentic-netops-sonic-provider
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentic-netops-sonic-provider
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentic-netops-sonic-provider
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: agentic-netops-sonic-provider
+      containers:
+      - name: provider
+        image: ghcr.io/agentic-netops/agentic-netops-sonic-provider@sha256:9999999999999999999999999999999999999999999999999999999999999999
+        args: ["--metrics-bind=:8080", "--health-probe-bind=:8081"]
+        ports:
+        - name: http
+          containerPort: 8080
+        env:
+        - name: OTEL_SERVICE_NAME
+          value: agentic-netops-sonic-provider
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://otel-collector.agentic-netops-system:4318
+        readinessProbe:
+          httpGet: { path: /readyz, port: 8081 }
+          initialDelaySeconds: 5
+        livenessProbe:
+          httpGet: { path: /healthz, port: 8081 }
+          initialDelaySeconds: 10
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+      # Annotate for Prometheus scrape discovery
+      # Prometheus job 'controllers' selects pods with these annotations
+      # and scrapes the metrics endpoint
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentic-netops-sonic-provider
+  namespace: agentic-netops-system
+spec:
+  selector:
+    app.kubernetes.io/name: agentic-netops-sonic-provider
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080

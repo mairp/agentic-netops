@@ -1,24 +1,24 @@
 == US2 structural denials (FR-016): identity cannot express the action
-PASS  intent-supervisor can-i create networks -n ainetops-intent  -> no
-PASS  intent-supervisor can-i create events -n ainetops-intent  -> no
-PASS  intent-supervisor can-i get secrets -n ainetops-agents  -> no
-PASS  intent-mapper    can-i create networks -n ainetops-intent  -> no
-PASS  intent-mapper    can-i create events -n ainetops-intent  -> no
-PASS  intent-mapper    can-i get secrets -n ainetops-agents  -> no
-PASS  intent-ui        can-i create networks -n ainetops-intent  -> no
-PASS  intent-ui        can-i create events -n ainetops-intent  -> no
-PASS  intent-ui        can-i get secrets -n ainetops-agents  -> no
-PASS  intent-allocator can-i create networks -n ainetops-intent  -> no
-PASS  intent-allocator can-i create events -n ainetops-intent  -> no
-PASS  intent-deployer  can-i create networks -n ainetops-agents  -> no
+PASS  intent-supervisor can-i create networks -n agentic-netops-intent  -> no
+PASS  intent-supervisor can-i create events -n agentic-netops-intent  -> no
+PASS  intent-supervisor can-i get secrets -n agentic-netops-agents  -> no
+PASS  intent-mapper    can-i create networks -n agentic-netops-intent  -> no
+PASS  intent-mapper    can-i create events -n agentic-netops-intent  -> no
+PASS  intent-mapper    can-i get secrets -n agentic-netops-agents  -> no
+PASS  intent-ui        can-i create networks -n agentic-netops-intent  -> no
+PASS  intent-ui        can-i create events -n agentic-netops-intent  -> no
+PASS  intent-ui        can-i get secrets -n agentic-netops-agents  -> no
+PASS  intent-allocator can-i create networks -n agentic-netops-intent  -> no
+PASS  intent-allocator can-i create events -n agentic-netops-intent  -> no
+PASS  intent-deployer  can-i create networks -n agentic-netops-agents  -> no
 PASS  intent-deployer  can-i create networks -n default  -> no
-PASS  intent-deployer  can-i create secrets -n ainetops-intent  -> no
-PASS  intent-deployer  can-i create pods -n ainetops-intent  -> no
-PASS  intent-deployer  can-i create pods -n ainetops-agents  -> no
+PASS  intent-deployer  can-i create secrets -n agentic-netops-intent  -> no
+PASS  intent-deployer  can-i create pods -n agentic-netops-intent  -> no
+PASS  intent-deployer  can-i create pods -n agentic-netops-agents  -> no
 PASS  intent-supervisor automountServiceAccountToken=false (no token to use)
 PASS  intent-mapper    automountServiceAccountToken=false (no token to use)
 PASS  intent-ui        automountServiceAccountToken=false (no token to use)
-PASS  intent-deployer  can-i create networks -n ainetops-intent  -> yes
-PASS  intent-deployer  can-i create events -n ainetops-intent  -> yes
+PASS  intent-deployer  can-i create networks -n agentic-netops-intent  -> yes
+PASS  intent-deployer  can-i create events -n agentic-netops-intent  -> yes
 
 us2-denials: 21 passed, 0 failed

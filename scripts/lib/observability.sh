@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-CTX="kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
+CTX="kind-${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
 
 obs::install() {
   echo "[obs] applying OTel Collector, gNMIc, Prometheus, Grafana"
@@ -11,28 +11,28 @@ obs::install() {
   kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/gnmi/gnmic.yaml"
   kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/prometheus.yaml"
   kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/topology-configmap.yaml"
-  kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/rules/ainetops.rules.yaml" || true
+  kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/rules/agentic-netops.rules.yaml" || true
   # Generate Grafana admin Secret with random credentials and apply Grafana
   kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/grafana-secret-generator-rbac.yaml"
   kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/grafana-secret-generator-job.yaml"
   kubectl --context "$CTX" -n monitoring wait --for=condition=Complete --timeout=30s job/grafana-admin-secret-generator || true
   kubectl --context "$CTX" apply -f "$ROOT_DIR/deploy/observability/grafana.yaml"
   # Wait for pods
-  kubectl --context "$CTX" -n ainetops-system rollout status deploy/otel-collector --timeout=60s || true
-  kubectl --context "$CTX" -n ainetops-system rollout status deploy/gnmic --timeout=60s || true
+  kubectl --context "$CTX" -n agentic-netops-system rollout status deploy/otel-collector --timeout=60s || true
+  kubectl --context "$CTX" -n agentic-netops-system rollout status deploy/gnmic --timeout=60s || true
   kubectl --context "$CTX" -n monitoring rollout status deploy/prometheus --timeout=60s || true
   kubectl --context "$CTX" -n monitoring rollout status deploy/grafana --timeout=60s || true
   # Capture independent observation proof files
-  local proofs="$ROOT_DIR/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+  local proofs="$ROOT_DIR/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
   mkdir -p "$proofs"
-  kubectl --context "$CTX" -n ainetops-system get deploy,po,svc -o wide | nl -ba > "$proofs/kubectl-get-observability-ainetops-system.txt"
+  kubectl --context "$CTX" -n agentic-netops-system get deploy,po,svc -o wide | nl -ba > "$proofs/kubectl-get-observability-agentic-netops-system.txt"
   kubectl --context "$CTX" -n monitoring get deploy,po,svc,pvc -o wide | nl -ba > "$proofs/kubectl-get-observability-monitoring.txt"
 }
 
 # Validate no duplicate device time series: ensure only gNMIc collector deployment exists
 obs::assert_single_device_collector() {
   local count
-  count=$(kubectl --context "$CTX" -n ainetops-system get deploy -l app.kubernetes.io/name=gnmic --no-headers 2>/dev/null | wc -l | tr -d ' ')
+  count=$(kubectl --context "$CTX" -n agentic-netops-system get deploy -l app.kubernetes.io/name=gnmic --no-headers 2>/dev/null | wc -l | tr -d ' ')
   if [[ "${count:-0}" -ne 1 ]]; then
     echo "[obs] ERROR: expected exactly one gNMIc deployment, found $count" >&2
     return 1

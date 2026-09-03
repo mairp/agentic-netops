@@ -23,7 +23,9 @@ func CanonicalJSON(spec map[string]any) (string, error) {
 // CanonicalHash returns a hex-encoded SHA-256 of the canonical JSON.
 func CanonicalHash(spec map[string]any) (string, error) {
 	j, err := CanonicalJSON(spec)
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 	s := sha256.Sum256([]byte(j))
 	return hex.EncodeToString(s[:]), nil
 }
@@ -33,12 +35,16 @@ func marshalCanonical(v any) ([]byte, error) {
 	switch x := v.(type) {
 	case map[string]any:
 		keys := make([]string, 0, len(x))
-		for k := range x { keys = append(keys, k) }
+		for k := range x {
+			keys = append(keys, k)
+		}
 		sort.Strings(keys)
 		parts := make([]string, 0, len(keys))
 		for _, k := range keys {
 			vb, err := marshalCanonical(x[k])
-			if err != nil { return nil, err }
+			if err != nil {
+				return nil, err
+			}
 			kb, _ := json.Marshal(k)
 			parts = append(parts, string(kb)+":"+string(vb))
 		}
@@ -47,7 +53,9 @@ func marshalCanonical(v any) ([]byte, error) {
 		parts := make([]string, 0, len(x))
 		for _, e := range x {
 			b, err := marshalCanonical(e)
-			if err != nil { return nil, err }
+			if err != nil {
+				return nil, err
+			}
 			parts = append(parts, string(b))
 		}
 		return []byte("[" + strings.Join(parts, ",") + "]"), nil
@@ -55,7 +63,9 @@ func marshalCanonical(v any) ([]byte, error) {
 		parts := make([]string, 0, len(x))
 		for _, e := range x {
 			b, err := marshalCanonical(e)
-			if err != nil { return nil, err }
+			if err != nil {
+				return nil, err
+			}
 			parts = append(parts, string(b))
 		}
 		return []byte("[" + strings.Join(parts, ",") + "]"), nil

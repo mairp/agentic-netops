@@ -5,9 +5,8 @@
 # two replicas can never share it, and a Recreate (never RollingUpdate)
 # guarantees the old pod released the SQLite file before the new one starts.
 # T176: Service/supervisor (9090), PVC/supervisor-checkpoint,
-# ConfigMap/supervisor-prompts, Secret/llm-provider (no credential literals —
-# the LLM provider keys are materialized at provision time; an empty
-# stringData here only declares the object and its keys).
+# ConfigMap/supervisor-prompts, Secret/llm-provider (no credential literals;
+# the LLM provider keys are materialized at provision time).
 # T177: liveness probe on the trivial `GET /health` (never touches the
 # transport — a worker outage must not restart the supervisor into amnesia)
 # and readiness on the deep `GET /v1/health` (probe every worker, name the
@@ -22,46 +21,39 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: llm-provider
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
   annotations:
-    ainetops.io/populated-by: "provision-time (LLM provider credentials; never committed)"
+    agentic-netops.io/populated-by: "provision-time (LLM provider credentials; never committed)"
 type: Opaque
-stringData:
-  LLM_MODEL: ""
-  OAUTH2_CLIENT_ID: ""
-  OAUTH2_CLIENT_SECRET: ""
-  OAUTH2_TOKEN_URL: ""
-  OAUTH2_BASE_URL: ""
-  OAUTH2_APPKEY: ""
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: supervisor-prompts
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 data:
   suggested_prompts.json: |
     [
-      "Deploy a VPLS for tenant ACME between leaf01 client01 and leaf02 client02",
-      "Provision a VPWS point-to-point 1Gbps link for tenant GLOBEX connecting leaf01 and leaf02",
-      "Create an L3VPN for tenant INITECH with route distinguisher from the fabric index between site A and site B",
-      "Set up an L2L3-IRB service for tenant UMBRELLA with both L2 access and an L3 gateway between two sites"
+      "Provision a point-to-point 1G VPWS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme",
+      "Create a full-mesh VPLS between leaf01 ethernet3 and leaf02 ethernet4 for tenant blue vlan 100",
+      "Create an L3VPN between site-a wan1 and site-b wan1 for tenant initech",
+      "Set up an IRB service between leaf01 ethernet5 and leaf02 ethernet6 for tenant umbrella vlan 200"
     ]
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: supervisor-checkpoint
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 spec:
   accessModes:
     - ReadWriteOnce
@@ -73,10 +65,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: supervisor
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 spec:
   selector:
     app: supervisor
@@ -89,10 +81,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: supervisor
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 spec:
   # T175: single writer on the checkpoint SQLite file; Recreate, never
   # RollingUpdate (two pods would fight over the RWO-mounted SQLite file).
@@ -106,21 +98,25 @@ spec:
     metadata:
       labels:
         app: supervisor
-        ainetops.owner: ainetops
-        ainetops.io/tier: intent
+        agentic-netops.owner: agentic-netops
+        agentic-netops.io/tier: intent
     spec:
       serviceAccountName: intent-supervisor
       automountServiceAccountToken: false
       containers:
         - name: supervisor
-          image: ainetops/intent-supervisor:latest
+          image: agentic-netops/intent-supervisor:latest
           imagePullPolicy: IfNotPresent
           # FR-024: the gateway verifies client certificates; the pinned SDK
           # cannot present one, so the container front-ends it with a
           # pod-local mTLS proxy (docker/mtls-proxy.sh) presenting the
           # supervisor's certificate from Secret/slim-tls.
           command: ["/bin/bash", "/app/docker/mtls-proxy.sh"]
-          args: ["uv", "run", "python", "supervisors/provisioning/main.py"]
+          # Run the baked-in venv directly: `uv run` re-syncs the environment
+          # (dev deps included) from PyPI at every boot, which pod egress
+          # policy does not guarantee — a slow/blocked sync blows the
+          # liveness budget and crash-loops the pod before uvicorn binds.
+          args: ["/app/.venv/bin/python", "supervisors/provisioning/main.py"]
           ports:
             - name: http
               containerPort: 9090
@@ -131,15 +127,15 @@ spec:
             # CrashLoopBackOff (mapper/allocator at 29 restarts, deployer 31) with
             # ConnectionError to localhost:4318, while their own /v1/health returned 200.
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://agent-otel-collector.ainetops-agents.svc:4318
+              value: http://agent-otel-collector.agentic-netops-agents.svc:4318
             - name: AGENT_OTLP_HTTP_ENDPOINT
-              value: http://agent-otel-collector.ainetops-agents.svc:4318
+              value: http://agent-otel-collector.agentic-netops-agents.svc:4318
             - name: SLIM_TLS_DIR
               value: /etc/slim/tls
             - name: SLIM_CLIENT_NAME
               value: supervisor
             - name: SLIM_UPSTREAM
-              value: slim.ainetops-agents.svc:46357
+              value: slim.agentic-netops-agents.svc:46357
             - name: ENABLE_HTTP
               value: "true"
             - name: DEFAULT_MESSAGE_TRANSPORT
@@ -207,6 +203,13 @@ spec:
                   optional: true
           # T177: trivial liveness on /health (no transport touch);
           # deep readiness on /v1/health (probes every worker).
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 9090
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 36
           livenessProbe:
             httpGet:
               path: /health
@@ -229,7 +232,10 @@ spec:
               memory: 256Mi
             limits:
               cpu: "1"
-              memory: 1Gi
+              # 1Gi proved marginal: the graph + SLIM runtime + streaming
+              # LLM response together OOM-killed the pod (exit 137) during
+              # a mapper round-trip.
+              memory: 2Gi
           volumeMounts:
             # T170: the SQLite checkpoint file lives on the PVC.
             - name: checkpoint

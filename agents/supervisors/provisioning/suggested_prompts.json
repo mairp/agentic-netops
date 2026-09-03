@@ -1,6 +1,6 @@
 [
-  "Deploy a VPLS for tenant ACME between leaf01 client01 and leaf02 client02",
-  "Provision a VPWS point-to-point 1Gbps link for tenant GLOBEX connecting leaf01 and leaf02",
-  "Create an L3VPN for tenant INITECH with route distinguisher from the fabric index between site A and site B",
-  "Set up an L2L3-IRB service for tenant UMBRELLA with both L2 access and an L3 gateway between two sites"
+  "Provision a point-to-point 1G VPWS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme",
+  "Create a full-mesh VPLS between leaf01 ethernet3 and leaf02 ethernet4 for tenant blue vlan 100",
+  "Create an L3VPN between site-a wan1 and site-b wan1 for tenant initech",
+  "Set up an IRB service between leaf01 ethernet5 and leaf02 ethernet6 for tenant umbrella vlan 200"
 ]

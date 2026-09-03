@@ -1,9 +1,9 @@
-# ainetops-agents namespace — the intent tier's workloads (feature 002).
+# agentic-netops-agents namespace — the intent tier's workloads (feature 002).
 # See specs/002-agntcy-intent-tier/contracts/kubernetes-objects.md.
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ainetops-agents
+  name: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent

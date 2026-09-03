@@ -21,21 +21,21 @@ lab_secrets::ensure() {
   # generator job/secrets (created during provision), then verify the files.
   local try
   for try in 1 2 3 4 5 6; do
-    if kubectl "${kargs[@]}" -n ainetops-system get secret gnmi-lab-tls >/dev/null 2>&1; then
+    if kubectl "${kargs[@]}" -n agentic-netops-system get secret gnmi-lab-tls >/dev/null 2>&1; then
       break
     fi
-    kubectl "${kargs[@]}" -n ainetops-system wait --for=condition=complete job/ainetops-secret-generator --timeout=30s >/dev/null 2>&1 || true
+    kubectl "${kargs[@]}" -n agentic-netops-system wait --for=condition=complete job/agentic-netops-secret-generator --timeout=30s >/dev/null 2>&1 || true
     sleep 2
   done
-  if kubectl "${kargs[@]}" -n ainetops-system get secret gnmi-lab-creds >/dev/null 2>&1; then
-    GNMI_USER=${GNMI_USER:-$(kubectl "${kargs[@]}" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.username}' | base64 -d)}
-    GNMI_PASS=${GNMI_PASS:-$(kubectl "${kargs[@]}" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.password}' | base64 -d)}
+  if kubectl "${kargs[@]}" -n agentic-netops-system get secret gnmi-lab-creds >/dev/null 2>&1; then
+    GNMI_USER=${GNMI_USER:-$(kubectl "${kargs[@]}" -n agentic-netops-system get secret gnmi-lab-creds -o jsonpath='{.data.username}' | base64 -d)}
+    GNMI_PASS=${GNMI_PASS:-$(kubectl "${kargs[@]}" -n agentic-netops-system get secret gnmi-lab-creds -o jsonpath='{.data.password}' | base64 -d)}
     export GNMI_USER GNMI_PASS
   fi
-  if kubectl "${kargs[@]}" -n ainetops-system get secret gnmi-lab-tls >/dev/null 2>&1; then
-    kubectl "${kargs[@]}" -n ainetops-system get secret gnmi-lab-tls -o jsonpath='{.data.ca\.crt}' | base64 -d > "$ca"
-    kubectl "${kargs[@]}" -n ainetops-system get secret gnmi-lab-tls -o jsonpath='{.data.tls\.crt}' | base64 -d > "$crt"
-    kubectl "${kargs[@]}" -n ainetops-system get secret gnmi-lab-tls -o jsonpath='{.data.tls\.key}' | base64 -d > "$key"
+  if kubectl "${kargs[@]}" -n agentic-netops-system get secret gnmi-lab-tls >/dev/null 2>&1; then
+    kubectl "${kargs[@]}" -n agentic-netops-system get secret gnmi-lab-tls -o jsonpath='{.data.ca\.crt}' | base64 -d > "$ca"
+    kubectl "${kargs[@]}" -n agentic-netops-system get secret gnmi-lab-tls -o jsonpath='{.data.tls\.crt}' | base64 -d > "$crt"
+    kubectl "${kargs[@]}" -n agentic-netops-system get secret gnmi-lab-tls -o jsonpath='{.data.tls\.key}' | base64 -d > "$key"
   fi
   if [[ ! -s "$ca" || ! -s "$crt" || ! -s "$key" ]]; then
     echo "[lab-secrets] FAILED to materialize ${ca} ${crt} ${key} from gnmi-lab-tls" >&2

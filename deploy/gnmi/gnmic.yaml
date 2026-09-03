@@ -2,15 +2,15 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ainetops-system
+  name: agentic-netops-system
   labels:
-    app.kubernetes.io/part-of: ainetops
+    app.kubernetes.io/part-of: agentic-netops
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: gnmic
-  namespace: ainetops-system
+  namespace: agentic-netops-system
   labels:
     app.kubernetes.io/name: gnmic
 ---
@@ -18,13 +18,13 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: gnmic-config
-  namespace: ainetops-system
+  namespace: agentic-netops-system
   labels:
     app.kubernetes.io/name: gnmic
   annotations:
-    ainetops.dev/spec-version: "v1"
-    ainetops.dev/export: "otlp"
-    ainetops.dev/role: "device-metrics"
+    agentic-netops.dev/spec-version: "v1"
+    agentic-netops.dev/export: "otlp"
+    agentic-netops.dev/role: "device-metrics"
 data:
   gnmic.yaml: |
       username: ${GNMIC_USERNAME}
@@ -117,10 +117,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gnmic
-  namespace: ainetops-system
+  namespace: agentic-netops-system
   labels:
     app.kubernetes.io/name: gnmic
-    ainetops.dev/component: observability
+    agentic-netops.dev/component: observability
 spec:
   replicas: 1
   selector:
@@ -130,7 +130,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: gnmic
-        ainetops.dev/component: observability
+        agentic-netops.dev/component: observability
     spec:
       serviceAccountName: gnmic
       containers:
@@ -179,10 +179,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: gnmic
-  namespace: ainetops-system
+  namespace: agentic-netops-system
   labels:
     app.kubernetes.io/name: gnmic
-    app.kubernetes.io/part-of: ainetops
+    app.kubernetes.io/part-of: agentic-netops
 spec:
   selector:
     app.kubernetes.io/name: gnmic

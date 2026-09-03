@@ -6,7 +6,7 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-CTX="kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
+CTX="kind-${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
 
 checks=()
 
@@ -46,16 +46,16 @@ done
 
 # 3) Prometheus rules contain required alerts
 for a in LinkDown BGPPeerDown ProviderFailedReconcile ProviderDegradedDeviation SDCTargetUnreachable SRv6PathDown TopologyInventoryMismatch GNMIcExportFailures OTelExportFailures; do
-  if grep -q "alert: $a" "$ROOT_DIR/deploy/observability/rules/ainetops.rules.yaml"; then checks+=("alert-$a"); else echo "[obs] FAIL: missing alert $a" >&2; exit 1; fi
+  if grep -q "alert: $a" "$ROOT_DIR/deploy/observability/rules/agentic-netops.rules.yaml"; then checks+=("alert-$a"); else echo "[obs] FAIL: missing alert $a" >&2; exit 1; fi
 done
 
 # 4) If kubectl available, validate resources applied and deployments Ready (best-effort)
 if command -v kubectl >/dev/null 2>&1; then
   kubectl --context "$CTX" -n monitoring get configmap grafana-dashboards grafana-provisioning >/dev/null 2>&1 && checks+=("cm-present") || true
-  kubectl --context "$CTX" -n monitoring get prometheusrule ainetops-alerts >/dev/null 2>&1 && checks+=("rules-present") || true
+  kubectl --context "$CTX" -n monitoring get prometheusrule agentic-netops-alerts >/dev/null 2>&1 && checks+=("rules-present") || true
   kubectl --context "$CTX" -n monitoring get deploy grafana prometheus >/dev/null 2>&1 && checks+=("deploy-present") || true
   # Alert evaluation spot check (requires Prometheus up): verify rules are loaded
-  kubectl --context "$CTX" -n monitoring get prometheusrule -o jsonpath='{.items[*].metadata.name}' 2>/dev/null | grep -q 'ainetops-alerts' && checks+=("alerts-loaded") || true
+  kubectl --context "$CTX" -n monitoring get prometheusrule -o jsonpath='{.items[*].metadata.name}' 2>/dev/null | grep -q 'agentic-netops-alerts' && checks+=("alerts-loaded") || true
 fi
 
 echo "[obs] checks: ${checks[*]}"

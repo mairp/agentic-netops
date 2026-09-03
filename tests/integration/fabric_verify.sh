@@ -13,7 +13,7 @@ GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
 # SONiC targets (management gNMI endpoints from lab/topology.clab.yml)
 LEAVES=${LEAVES:-"172.31.0.21:8080,172.31.0.22:8080"}
 SPINES=${SPINES:-"172.31.0.11:8080,172.31.0.12:8080"}
-CLAB_PREFIX=${CLAB_PREFIX:-clab-ainetops-fabric-}
+CLAB_PREFIX=${CLAB_PREFIX:-clab-agentic-netops-fabric-}
 # Node names parallel to LEAVES/SPINES. BGP session state is FRR state, not
 # CONFIG_DB state, so it is read through vtysh over docker exec — the same route
 # evpn_srv6_suite.sh and mtu_ecmp.sh already use.
@@ -23,15 +23,15 @@ LEAF_NODES=${LEAF_NODES:-"${CLAB_PREFIX}leaf01,${CLAB_PREFIX}leaf02"}
 # drive_client_traffic (previously hardcoded as 100 in the latter).
 L2VNI=${L2VNI:-100}
 SPINE_NODES=${SPINE_NODES:-"${CLAB_PREFIX}spine01,${CLAB_PREFIX}spine02"}
-AINETOPS_CLUSTER_NAME=${AINETOPS_CLUSTER_NAME:-ainetops}
-KUBE_CTX=${KUBE_CTX:-kind-${AINETOPS_CLUSTER_NAME}}
+AGENTIC_NETOPS_CLUSTER_NAME=${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}
+KUBE_CTX=${KUBE_CTX:-kind-${AGENTIC_NETOPS_CLUSTER_NAME}}
 
 # Common args for gnmic
 _args_common=(--timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" --encoding "$GNMI_ENCODING" --tls-ca "$GNMI_CACERT" --tls-cert "$GNMI_CERT" --tls-key "$GNMI_KEY")
 
 ensure_lab_secrets() {
   # Ensure local ./secrets/* files and GNMI_USER/PASS are available.
-  # If absent, try to fetch from in-cluster Secrets (ainetops-system: gnmi-lab-creds, gnmi-lab-tls).
+  # If absent, try to fetch from in-cluster Secrets (agentic-netops-system: gnmi-lab-creds, gnmi-lab-tls).
   local need_fetch=0
   [[ -f "$GNMI_CACERT" && -f "$GNMI_CERT" && -f "$GNMI_KEY" ]] || need_fetch=1
   if [[ -z "${GNMI_USER:-}" || -z "${GNMI_PASS:-}" ]]; then need_fetch=1; fi
@@ -45,18 +45,18 @@ ensure_lab_secrets() {
   echo "[fabric-verify] fetching lab credentials/TLS from cluster secrets into ./secrets"
   mkdir -p ./secrets
   # Credentials
-  if kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds >/dev/null 2>&1; then
-    GNMI_USER=$(kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.username}' | base64 -d || true)
-    GNMI_PASS=$(kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.password}' | base64 -d || true)
+  if kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-creds >/dev/null 2>&1; then
+    GNMI_USER=$(kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-creds -o jsonpath='{.data.username}' | base64 -d || true)
+    GNMI_PASS=$(kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-creds -o jsonpath='{.data.password}' | base64 -d || true)
     export GNMI_USER GNMI_PASS
   else
     echo "[fabric-verify] WARN: secret gnmi-lab-creds not found" >&2
   fi
   # TLS bundle
-  if kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-tls >/dev/null 2>&1; then
-    kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-tls -o jsonpath='{.data.ca\.crt}' | base64 -d > "$GNMI_CACERT" || true
-    kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-tls -o jsonpath='{.data.tls\.crt}' | base64 -d > "$GNMI_CERT" || true
-    kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-tls -o jsonpath='{.data.tls\.key}' | base64 -d > "$GNMI_KEY" || true
+  if kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-tls >/dev/null 2>&1; then
+    kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-tls -o jsonpath='{.data.ca\.crt}' | base64 -d > "$GNMI_CACERT" || true
+    kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-tls -o jsonpath='{.data.tls\.crt}' | base64 -d > "$GNMI_CERT" || true
+    kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-tls -o jsonpath='{.data.tls\.key}' | base64 -d > "$GNMI_KEY" || true
   else
     echo "[fabric-verify] WARN: secret gnmi-lab-tls not found" >&2
   fi
@@ -67,17 +67,17 @@ ensure_lab_secrets() {
     # Apply placeholders and generator job; wait briefly for completion
     kubectl --context "$KUBE_CTX" apply -f deploy/rbac/secrets.yaml || true
     kubectl --context "$KUBE_CTX" apply -f deploy/rbac/secret-generator-job.yaml || true
-    kubectl --context "$KUBE_CTX" -n ainetops-system wait --for=condition=Complete --timeout=30s job/ainetops-secret-generator || true
+    kubectl --context "$KUBE_CTX" -n agentic-netops-system wait --for=condition=Complete --timeout=30s job/agentic-netops-secret-generator || true
     # Retry fetch
-    if kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds >/dev/null 2>&1; then
-      GNMI_USER=$(kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.username}' | base64 -d || true)
-      GNMI_PASS=$(kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.password}' | base64 -d || true)
+    if kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-creds >/dev/null 2>&1; then
+      GNMI_USER=$(kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-creds -o jsonpath='{.data.username}' | base64 -d || true)
+      GNMI_PASS=$(kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-creds -o jsonpath='{.data.password}' | base64 -d || true)
       export GNMI_USER GNMI_PASS
     fi
-    if kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-tls >/dev/null 2>&1; then
-      kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-tls -o jsonpath='{.data.ca\.crt}' | base64 -d > "$GNMI_CACERT" || true
-      kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-tls -o jsonpath='{.data.tls\.crt}' | base64 -d > "$GNMI_CERT" || true
-      kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-tls -o jsonpath='{.data.tls\.key}' | base64 -d > "$GNMI_KEY" || true
+    if kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-tls >/dev/null 2>&1; then
+      kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-tls -o jsonpath='{.data.ca\.crt}' | base64 -d > "$GNMI_CACERT" || true
+      kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-tls -o jsonpath='{.data.tls\.crt}' | base64 -d > "$GNMI_CERT" || true
+      kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-tls -o jsonpath='{.data.tls\.key}' | base64 -d > "$GNMI_KEY" || true
     fi
   fi
 
@@ -184,8 +184,8 @@ sdb_body() {
       local attempt backoff u2 p2
       for attempt in 1 2 3; do
         backoff=$(( 8 * attempt + (attempt - 1) * 2 ))  # 8s, 18s, 28s
-        u2=$(kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.username}' 2>/dev/null | base64 -d 2>/dev/null || true)
-        p2=$(kubectl --context "$KUBE_CTX" -n ainetops-system get secret gnmi-lab-creds -o jsonpath='{.data.password}' 2>/dev/null | base64 -d 2>/dev/null || true)
+        u2=$(kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-creds -o jsonpath='{.data.username}' 2>/dev/null | base64 -d 2>/dev/null || true)
+        p2=$(kubectl --context "$KUBE_CTX" -n agentic-netops-system get secret gnmi-lab-creds -o jsonpath='{.data.password}' 2>/dev/null | base64 -d 2>/dev/null || true)
         if [[ -z "$u2" || -z "$p2" ]]; then break; fi
         sleep "$backoff"
         out=$("$GNMIC_BIN" --address "$t" --timeout 10s --username "$u2" --password "$p2" --tls-ca "$GNMI_CACERT" --tls-cert "$GNMI_CERT" --tls-key "$GNMI_KEY" --encoding "$GNMI_ENCODING" get --path "/$table" --target CONFIG_DB 2>&1)
@@ -366,8 +366,8 @@ verify_evpn_overlay() {
           # every cycle is marked failed, and T080's "three clean provision/test/off
           # cycles" is structurally unreachable rather than merely unmet. The waiver
           # keeps the gap loud and attributable instead of weakening the check silently.
-          if [[ "${AINETOPS_WAIVE_TYPE5_ORIGINATION:-0}" == "1" ]]; then
-            echo "[$n] WAIVED: no EVPN Type-5 route in the RIB -- L3VNI origination defect of the sonic-vs FRR 10.5.4 build (docs/FABRIC_BGP_EVPN_DEFERRED.md D-A2). Continuing under AINETOPS_WAIVE_TYPE5_ORIGINATION=1 (operator-recorded); Type-5/L3 routing is NOT verified by this run."
+          if [[ "${AGENTIC_NETOPS_WAIVE_TYPE5_ORIGINATION:-0}" == "1" ]]; then
+            echo "[$n] WAIVED: no EVPN Type-5 route in the RIB -- L3VNI origination defect of the sonic-vs FRR 10.5.4 build (docs/FABRIC_BGP_EVPN_DEFERRED.md D-A2). Continuing under AGENTIC_NETOPS_WAIVE_TYPE5_ORIGINATION=1 (operator-recorded); Type-5/L3 routing is NOT verified by this run."
             continue
           fi
           echo "[$n] ASSERTION FAILED: no EVPN Type-5 route in the RIB (L3VNI origination defect of the sonic-vs FRR 10.5.4 build — see docs/FABRIC_BGP_EVPN_DEFERRED.md and gates evidence)" >&2
@@ -501,7 +501,7 @@ verify_loopback_reachability() {
       # addresses are discovered via gNMI just above and were then discarded: the
       # probe used "$dst", a clab container name, so it exercised Docker's
       # embedded DNS on the management network rather than the underlay, and could
-      # never pass at all -- `ping -6 clab-ainetops-fabric-leaf02` answers
+      # never pass at all -- `ping -6 clab-agentic-netops-fabric-leaf02` answers
       # "Address family for hostname not supported" and exits immediately with no
       # statistics line, which is why the failure logged an EMPTY "(last: )".
       # Verified 2026-09-03 on a live lab. Loopback0 IPv6 reachability is what

@@ -30,13 +30,13 @@ var GroupVersion = schema.GroupVersion{Group: "network.kubenet.dev", Version: "v
 // NOTE: This type is intentionally loose — controllers read metadata and labels and do
 // not modify upstream status directly.
 //
+// We implement only the minimal fields needed to act as a client.Object.
+// Spec/Status remain untyped to avoid drift.
+//
 //nolint:tagliatelle // external API shape
 //nolint:revive // external API shape
 //nolint:stylecheck // external API shape
 //nolint:godox
-//
-// We implement only the minimal fields needed to act as a client.Object.
-// Spec/Status remain untyped to avoid drift.
 type NetworkDevice struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

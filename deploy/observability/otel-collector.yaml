@@ -2,15 +2,15 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ainetops-system
+  name: agentic-netops-system
   labels:
-    app.kubernetes.io/part-of: ainetops
+    app.kubernetes.io/part-of: agentic-netops
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: otel-collector
-  namespace: ainetops-system
+  namespace: agentic-netops-system
   labels:
     app.kubernetes.io/name: otel-collector
 ---
@@ -34,25 +34,25 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: otel-collector
-    namespace: ainetops-system
+    namespace: agentic-netops-system
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: otel-collector-config
-  namespace: ainetops-system
+  namespace: agentic-netops-system
   labels:
     app.kubernetes.io/name: otel-collector
-    ainetops.dev/component: observability
-    ainetops.dev/config: otel
+    agentic-netops.dev/component: observability
+    agentic-netops.dev/config: otel
   annotations:
-    ainetops.dev/spec-version: "v1"
-    ainetops.dev/pipeline: "gnmic -> otel -> prometheus"
-    ainetops.dev/receivers: "otlphttp, otlpgrpc"
-    ainetops.dev/exporters: "prometheus"
-    ainetops.dev/processors: "k8sattributes, attributes, memory_limiter, batch, transform, resourcedetection, filter"
-    ainetops.dev/queue-retry: "enabled"
-    ainetops.dev/telemetry: "enabled"
+    agentic-netops.dev/spec-version: "v1"
+    agentic-netops.dev/pipeline: "gnmic -> otel -> prometheus"
+    agentic-netops.dev/receivers: "otlphttp, otlpgrpc"
+    agentic-netops.dev/exporters: "prometheus"
+    agentic-netops.dev/processors: "k8sattributes, attributes, memory_limiter, batch, transform, resourcedetection, filter"
+    agentic-netops.dev/queue-retry: "enabled"
+    agentic-netops.dev/telemetry: "enabled"
 data:
   otel-collector-config.yaml: |
       receivers:
@@ -84,7 +84,7 @@ data:
             metadata: ["k8s.namespace.name","k8s.pod.name","k8s.pod.uid","k8s.deployment.name","k8s.node.name"]
         attributes:
           actions:
-            - key: ainetops.pipeline
+            - key: agentic-netops.pipeline
               value: gnmic→otel→prom
               action: upsert
             - key: service.namespace
@@ -106,12 +106,12 @@ data:
               metric_names:
                 - ".*sonic_.*"
                 - ".*srv6.*"
-                - ".*ainetops.*"
+                - ".*agentic-netops.*"
       exporters:
         prometheus:
           endpoint: 0.0.0.0:9464
           const_labels:
-            ainetops.dev/metrics_store: prometheus
+            agentic-netops.dev/metrics_store: prometheus
         debug:
           verbosity: basic
       extensions:
@@ -133,11 +133,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: otel-collector
-  namespace: ainetops-system
+  namespace: agentic-netops-system
   labels:
     app.kubernetes.io/name: otel-collector
-    app.kubernetes.io/part-of: ainetops
-    ainetops.dev/component: observability
+    app.kubernetes.io/part-of: agentic-netops
+    agentic-netops.dev/component: observability
 spec:
   replicas: 1
   selector:
@@ -147,7 +147,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: otel-collector
-        app.kubernetes.io/part-of: ainetops
+        app.kubernetes.io/part-of: agentic-netops
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8888"
@@ -183,7 +183,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: otel-collector
-  namespace: ainetops-system
+  namespace: agentic-netops-system
   labels:
     app.kubernetes.io/name: otel-collector
 spec:

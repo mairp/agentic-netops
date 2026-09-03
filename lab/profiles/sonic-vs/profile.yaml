@@ -1,4 +1,4 @@
-# AINETOPS SONiC lab profile: sonic-vs
+# Agentic NetOps SONiC lab profile: sonic-vs
 profile: sonic-vs
 kind: sonic-vs
 image: localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e
@@ -10,7 +10,7 @@ bootstrap:
     - lab/profiles/sonic-vs/bootstrap/install-gnmi-certs.sh
     - lab/profiles/sonic-vs/bootstrap/gnmi_config_db.json
 persistence:
-  etc_sonic_volume: ainetops-${clab-node-name}-etc-sonic
+  etc_sonic_volume: agentic-netops-${clab-node-name}-etc-sonic
 notes: |
   This immutable profile is used for fast qualification. No underlay or overlay control-plane
   is configured by bootstrap; only gNMI/TLS is enabled and /etc/sonic persists across restarts.

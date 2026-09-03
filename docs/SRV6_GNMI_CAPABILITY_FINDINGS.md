@@ -1,6 +1,6 @@
 # SRv6 + gNMI capability findings
 
-**Feature:** `001-ainetops-sonic-evpn-fabric`, phase 8 (SC-013 and related SRv6 conformance)
+**Scope:** phase 8 — SRv6 conformance and related gNMI capability checks
 **Date:** 2026-08-31
 **Status:** gNMI read path **working and verified**; gNMI write path **resolved to the D1-B
 witness** (GCU write → gNMI read-back, with the gNMI→GCU Set bridge recorded as a build
@@ -47,8 +47,8 @@ localhost:5000/sonic-vs-gnmi:202605@sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb4
 ### Why not the previously pinned image, and why not upstream
 
 - **The old pin** (`sonic_vs_base`, frozen since 2022-01) ships **no gNMI server at all**. The
-  capability gate failing closed against it was correct behaviour, not a misconfiguration — SC-013
-  was simply unprovable with it.
+  capability gate failing closed against it was correct behaviour, not a misconfiguration — the
+  SRv6 criteria were simply unprovable with it.
 - **Upstream community `docker-sonic-vs`** (sonic.software, branches 202405/202411/202505/202511) does
   **not** close the gap either. Downloaded and audited the 202505 build (build 1207609):
   `sonic-srv6.yang` present, but `/usr/sbin/telemetry` **absent** and zero `program:telemetry`
@@ -149,7 +149,7 @@ Any conversion must therefore add **content assertions**, not just new paths.
 
 ### 5.1 Set is the exception, and that makes it valuable
 
-Unlike Get, `Set` is YANG-validated: writing to `AINETOPS_PROBE` is rejected with
+Unlike Get, `Set` is YANG-validated: writing to `AGENTIC_NETOPS_PROBE` is rejected with
 `Data Loading Failed`, while a schema-valid SRv6 write is accepted. A write→read-back→delete cycle is
 therefore the one gNMI operation that **cannot** pass vacuously, which is why the Set decision in §7
 matters more than it looks.
@@ -217,9 +217,9 @@ Re-express each behaviour against a witness that exists:
 | Ordered SID-list steering | FRR: segment-list / policy output (BGP/pathd programmed, not a CONFIG_DB table) |
 | Counters | `COUNTERS_DB` (`COUNTERS_SRV6_NAME_MAP`) over gNMI |
 
-This changes what FR-003 asserts — from "these table paths answer" to "these behaviours are
-present and observable" — which is a stronger claim, but it is a spec-level edit and needs your
-sign-off.
+This changes what the capability gate asserts — from "these table paths answer" to "these
+behaviours are present and observable" — which is a stronger claim, but it is a spec-level edit
+and needs your sign-off.
 
 ### D3 — EVPN Type2/3/5 *(recommend: FRR witness)*
 
@@ -265,7 +265,7 @@ Additional as-built changes required by the above:
   read-back). No test decides pass/fail on gnmic's exit code alone.
 - `tests/integration/evpn_srv6_suite.sh` — rewritten as above; every test cleans up its witness.
 - `scripts/lib/persistence.sh` — persistence witness moved from the (broken) gNMI Set path to the
-  GCU write → restart → gNMI read-back cycle, still exercising T014's restart semantics.
+  GCU write → restart → gNMI read-back cycle, still exercising the documented restart semantics.
 - `tests/integration/yang_paths_suite.sh` + `lab/requirements/yang-paths.txt` — required YANG
   paths re-mapped to their sonic-db CONFIG_DB tables (translib forms are unavailable, §4.2);
   `DEVICE_METADATA` and `TELEMETRY` are asserted non-empty, the rest assert well-formed replies
@@ -281,8 +281,8 @@ Additional as-built changes required by the above:
 4. **Re-run the capability gate** (`scripts/lib/qualify.sh`) against the lab and capture
    `qualify.report.json` as phase-8 evidence. — executed via a full `scripts/provision.sh`
    validation run on 2026-08-31.
-5. ~~**Decide FR-003/SC-013 wording**~~ — resolved: the re-expressed witnesses are accepted
-   (operator sign-off 2026-08-31); FR-003's "capability gate" is understood as the §7bis
+5. ~~**Decide the capability-gate wording**~~ — resolved: the re-expressed witnesses are accepted
+   (operator sign-off 2026-08-31); the "capability gate" is understood as the §7bis
    witness set, with route-exchange content covered by the configured-fabric suites.
 
 Steps 1–3 are engineering. Step 5 is the only one that genuinely needs a human decision.
@@ -296,7 +296,7 @@ mgmt IP first — the commands read `$NODE`, so they work against a lab node or 
 
 ```bash
 NODE=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \
-       clab-ainetops-fabric-leaf01)
+       clab-agentic-netops-fabric-leaf01)
 ```
 
 ```bash
@@ -327,7 +327,7 @@ gnmic -a $NODE:8080 --skip-verify -u admin -p admin --encoding JSON_IETF set --u
 ```
 
 **Note on scratch nodes:** the container these commands were originally run against
-(`ainetops-smoke-sonic`) was mutated during this investigation — host service installed and started,
+(`agentic-netops-smoke-sonic`) was mutated during this investigation — host service installed and started,
 `switch_type` corrected, one locator and one SID written — and was **removed on 2026-08-31** as
 dirty scratch. It also still ran the v1 image. Any clean measurement needs a fresh node from the
 pinned image: either a lab node from `./scripts/provision.sh --profile sonic-vs`, or a throwaway
@@ -338,7 +338,7 @@ whose CONFIG_DB an investigation has already written to.
 
 ## Appendix B — related records
 
-- `/root/wiggum/INCIDENT-2026-08-31-ainetops-phase8.md` — the loop-side incident (why phase 8 burned
+- `/root/wiggum/INCIDENT-2026-08-31-agentic-netops-phase8.md` — the loop-side incident (why phase 8 burned
   passes; issues #9/#10/#11), including the finding that the missing gNMI capability gated
   everything downstream.
 - `lab/images/sonic-vs-gnmi/README.md` — image provenance and rebuild steps.

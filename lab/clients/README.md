@@ -16,8 +16,8 @@ Deterministic dual-stack addressing plan for containerlab endpoints:
   - eth1: 2001:db8:4::41/127 <-> leaf02:eth4 2001:db8:4::40/127
 
 Images:
-- ghcr.io/ainetops/linux-net (pinned by digest in topology.clab.yml) with iproute2, ping, curl, tcpdump
-- ghcr.io/ainetops/linux-srv6 (pinned below) with iproute2 SRv6 tools
+- ghcr.io/agentic-netops/linux-net (pinned by digest in topology.clab.yml) with iproute2, ping, curl, tcpdump
+- ghcr.io/agentic-netops/linux-srv6 (pinned below) with iproute2 SRv6 tools
 
 Pinned digests (example placeholders, must match versions.lock.yaml if added there):
 - linux-net: sha256:4444... (see topology.clab.yml)

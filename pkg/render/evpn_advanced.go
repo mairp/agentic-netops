@@ -4,7 +4,7 @@ package render
 import (
 	"sort"
 
-	"github.com/mairp/ainetops/pkg/model"
+	"github.com/mairp/agentic-netops/pkg/model"
 )
 
 // RenderL3VNI renders a VRF-bound L3VNI association.
@@ -28,8 +28,8 @@ func RenderIRB(vrf model.NetworkInstance, vlan int, irb model.IRB) map[string]an
 	res := map[string]any{}
 	base := "/network-instances/network-instance/bridges/irb"
 	res[base] = map[string]any{
-		"vrf": vrf.Name,
-		"vlan": vlan,
+		"vrf":     vrf.Name,
+		"vlan":    vlan,
 		"gateway": map[string]any{"ipv4": irb.GatewayIPv4, "ipv6": irb.GatewayIPv6},
 	}
 	return res
@@ -56,7 +56,7 @@ func RenderSIDList(name string, sids []string) map[string]any {
 func RenderSRPolicy(pol model.SRPolicy) map[string]any {
 	res := map[string]any{}
 	res["/sonic-srv6:sonic-srv6/POLICY"] = []map[string]any{{
-		"name": pol.Name,
+		"name":     pol.Name,
 		"selector": pol.Selector,
 		"sid-list": pol.SIDListRef,
 	}}

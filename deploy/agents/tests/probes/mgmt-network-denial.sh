@@ -7,14 +7,14 @@
 #
 # Mechanism under test: NetworkPolicy/allow-egress-scoped in
 # deploy/agents/namespace-rbac.yaml admits egress from tier pods (label
-# ainetops.io/tier: intent) ONLY to the scoped budget (DNS, intra-tier,
+# agentic-netops.io/tier: intent) ONLY to the scoped budget (DNS, intra-tier,
 # otel-collector:4317, model-provider TCP/443 with 172.31.0.0/16 EXCLUDED via
 # ipBlock except). The mgmt subnet is therefore unreachable from every tier
 # pod — the denial the probe asserts. "gNMI dial to any SONiC node -> timeout"
 # (contracts/kubernetes-objects.md) is the same policy, so this one concrete
 # endpoint is the attemptable proof for the whole class.
 #
-# The probe runs as a THROWAWAY pod in ainetops-agents carrying the tier label
+# The probe runs as a THROWAWAY pod in agentic-netops-agents carrying the tier label
 # (so the NetworkPolicies apply) and no token (automountServiceAccountToken:
 # false). It attempts one TCP connect with a 5 s cap; a SUCCESSFUL connect is
 # a probe failure, a timeout/refused/unreachable is the expected denial.
@@ -40,7 +40,7 @@ set -euo pipefail
 CTX="${1:-}"
 K() { if [[ -n "$CTX" ]]; then kubectl --context "$CTX" "$@"; else kubectl "$@"; fi; }
 
-NS=ainetops-agents
+NS=agentic-netops-agents
 POD=mgmt-net-probe
 TARGET=172.31.0.21
 PORT=57400
@@ -59,8 +59,8 @@ metadata:
   name: ${POD}
   namespace: ${NS}
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
     app: intent-probe
 spec:
   restartPolicy: Never

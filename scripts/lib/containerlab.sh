@@ -4,8 +4,8 @@ set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 TOPO_FILE="${ROOT_DIR}/lab/topology.clab.yml"
-MGMT_NET="ainetops-mgmt"
-LABEL_OWNER="ainetops"
+MGMT_NET="agentic-netops-mgmt"
+LABEL_OWNER="agentic-netops"
 
 clab::require() { command -v containerlab >/dev/null 2>&1 || { echo "missing containerlab" >&2; exit 1; }; }
 
@@ -25,7 +25,7 @@ clab::deploy() {
   sleep 2
   local node c
   for node in spine01 spine02 leaf01 leaf02; do
-    c="clab-ainetops-fabric-${node}"
+    c="clab-agentic-netops-fabric-${node}"
     docker ps --format '{{.Names}}' | grep -qx "$c" || continue
     docker exec "$c" bash -c 'supervisorctl status >/dev/null 2>&1 || (nohup /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf >/var/log/supervisord-restart.log 2>&1 &)' || true
   done
@@ -42,7 +42,7 @@ clab::inspect() {
 # runtime-generated credentials) into /etc/sonic/config_db.json, reload, and
 # restart the telemetry service. Idempotent per node via a marker file.
 clab::bootstrap() {
-  local profile=${1:-${AINETOPS_PROFILE:-sonic-vs}}
+  local profile=${1:-${AGENTIC_NETOPS_PROFILE:-sonic-vs}}
   local bdir="${ROOT_DIR}/lab/profiles/${profile}/bootstrap"
   if [[ ! -d "$bdir" ]]; then
     echo "[clab] no bootstrap dir for profile ${profile}; nothing to bootstrap" >&2
@@ -51,24 +51,24 @@ clab::bootstrap() {
   # Materialize lab TLS + credentials from the in-cluster generator Secrets
   # shellcheck source=lab_secrets.sh
   source "${ROOT_DIR}/scripts/lib/lab_secrets.sh"
-  lab_secrets::ensure "kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
+  lab_secrets::ensure "kind-${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
 
   local node c
   for node in spine01 spine02 leaf01 leaf02; do
-    c="clab-ainetops-fabric-${node}"
+    c="clab-agentic-netops-fabric-${node}"
     if ! docker ps --format '{{.Names}}' | grep -qx "$c"; then
       echo "[clab] bootstrap: node container ${c} not running; skipping" >&2
       continue
     fi
-    if docker exec "$c" test -f /etc/ainetops/.bootstrapped 2>/dev/null; then
+    if docker exec "$c" test -f /etc/agentic-netops/.bootstrapped 2>/dev/null; then
       echo "[clab] bootstrap: ${node} already bootstrapped (marker present)"
       continue
     fi
     echo "[clab] bootstrap: ${node}"
-    docker exec "$c" mkdir -p /etc/ainetops/gnmi /etc/sonic/bootstrap /etc/sonic/telemetry
-    docker cp "${ROOT_DIR}/secrets/ca.crt"  "$c:/etc/ainetops/gnmi/ca.crt"
-    docker cp "${ROOT_DIR}/secrets/gnmi.crt" "$c:/etc/ainetops/gnmi/gnmi.crt"
-    docker cp "${ROOT_DIR}/secrets/gnmi.key" "$c:/etc/ainetops/gnmi/gnmi.key"
+    docker exec "$c" mkdir -p /etc/agentic-netops/gnmi /etc/sonic/bootstrap /etc/sonic/telemetry
+    docker cp "${ROOT_DIR}/secrets/ca.crt"  "$c:/etc/agentic-netops/gnmi/ca.crt"
+    docker cp "${ROOT_DIR}/secrets/gnmi.crt" "$c:/etc/agentic-netops/gnmi/gnmi.crt"
+    docker cp "${ROOT_DIR}/secrets/gnmi.key" "$c:/etc/agentic-netops/gnmi/gnmi.key"
     docker cp "$bdir/install-gnmi-certs.sh"  "$c:/etc/sonic/bootstrap/install-gnmi-certs.sh"
     docker cp "$bdir/init-sonic-bootstrap.sh" "$c:/etc/sonic/bootstrap/init-sonic-bootstrap.sh"
     # Inject runtime-generated credentials (not static; generated per lab).
@@ -121,7 +121,7 @@ clab::bootstrap() {
         supervisorctl start sshd >/dev/null 2>&1 || /usr/sbin/sshd >/dev/null 2>&1 || true
       fi
     ' || true
-    docker exec "$c" touch /etc/ainetops/.bootstrapped
+    docker exec "$c" touch /etc/agentic-netops/.bootstrapped
     echo "[clab] bootstrap: ${node} done"
   done
 
@@ -153,21 +153,21 @@ clab::destroy() {
   # does not always reclaim topology-declared named volumes, so we drop them
   # explicitly by their deterministic names (only the ones this lab owns).
   local v
-  for v in ainetops-spine01-etc-sonic ainetops-spine02-etc-sonic ainetops-leaf01-etc-sonic ainetops-leaf02-etc-sonic; do
+  for v in agentic-netops-spine01-etc-sonic agentic-netops-spine02-etc-sonic agentic-netops-leaf01-etc-sonic agentic-netops-leaf02-etc-sonic; do
     docker volume rm "$v" >/dev/null 2>&1 || true
   done
   # Verify teardown leaves no owned lab containers or volumes
   local leftovers
-  leftovers=$(docker ps -a --format '{{.Names}} {{.Labels}}' | awk '/ainetops.owner=ainetops/ {print $1}') || true
+  leftovers=$(docker ps -a --format '{{.Names}} {{.Labels}}' | awk '/agentic-netops.owner=agentic-netops/ {print $1}') || true
   if [[ -n "$leftovers" ]]; then
-    echo "[clab] WARN: leftover AINETOPS containers not removed:\n$leftovers" >&2
+    echo "[clab] WARN: leftover Agentic NetOps containers not removed:\n$leftovers" >&2
     exit 1
   fi
   # Check for owned volumes (persistent /etc/sonic)
   local vol_left
-  vol_left=$(docker volume ls -q | grep -E '^ainetops-.*-etc-sonic$' || true)
+  vol_left=$(docker volume ls -q | grep -E '^agentic-netops-.*-etc-sonic$' || true)
   if [[ -n "$vol_left" ]]; then
-    echo "[clab] WARN: leftover AINETOPS volumes not removed:\n$vol_left" >&2
+    echo "[clab] WARN: leftover Agentic NetOps volumes not removed:\n$vol_left" >&2
     exit 1
   fi
   # Check for generated lab credentials under repo secrets/

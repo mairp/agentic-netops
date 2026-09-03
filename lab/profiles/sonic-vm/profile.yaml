@@ -1,4 +1,4 @@
-# AINETOPS SONiC lab profile: sonic-vm (conformance overlay)
+# Agentic NetOps SONiC lab profile: sonic-vm (conformance overlay)
 profile: sonic-vm
 kind: linux
 image: ghcr.io/sonic-net/sonic:202405@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb

@@ -8,7 +8,7 @@
 #   /usr/local/yang-models/sonic-srv6.yang
 # v2 layers ONLY the supervisord programs that start dbus + the GCU host service,
 # so the gNMI→GCU bridge finds org.SONiC.HostService.gcu on the system bus.
-# Reproduction of v1 itself: see .wiggum/features/001-ainetops-sonic-evpn-fabric/build-gnmi/
+# Reproduction of v1 itself: see .wiggum/features/001-agentic-netops-sonic-evpn-fabric/build-gnmi/
 # (build4.sh) and lab/images/sonic-vs-gnmi/README.md.
 FROM localhost:5000/sonic-vs-gnmi:202605@sha256:c04b9edd49bb0037ac9d01fde8715d4c37eb45d7a68710ba9d64ac27b1870768
 COPY hostserver.conf /etc/supervisor/conf.d/hostserver.conf

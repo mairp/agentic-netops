@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Utility waits for resources readiness and counts (Phase 3)
 set -euo pipefail
-CTX="kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
+CTX="kind-${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
 require(){ command -v "$1" >/dev/null 2>&1 || { echo "missing $1" >&2; exit 1; }; }
 require kubectl
 

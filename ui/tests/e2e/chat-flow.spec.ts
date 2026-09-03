@@ -114,7 +114,7 @@ test('remove-service completion and failure states render', async ({ page }) => 
   await page.goto('http://localhost:3000')
   await page.evaluate(() => (window as any).__injectEvents([
     { type: 'status', status: 'RECEIVED_REQUEST', thread_id: 't5', correlation_id: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' },
-    { type: 'stage', stage: 'deployer-tools', status: 'TOOLS', tool: 'remove', result: { removed: { selector: 'ainetops.io/correlation-id=eeeeeeeeeeeeeeee', deleted: 2 } }, correlation_id: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' },
+    { type: 'stage', stage: 'deployer-tools', status: 'TOOLS', tool: 'remove', result: { removed: { selector: 'agentic-netops.io/correlation-id=eeeeeeeeeeeeeeee', deleted: 2 } }, correlation_id: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' },
     { type: 'error', stage: 'deployer', status: 'FAILED', reason: 'remove failed on cluster permission', correlation_id: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' },
     { type: 'final', status: 'FAILED', correlation_id: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' }
   ]))

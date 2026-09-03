@@ -1,8 +1,8 @@
 package unit
 
 import (
+	"github.com/mairp/agentic-netops/pkg/migration"
 	"testing"
-	"github.com/mairp/ainetops/pkg/migration"
 )
 
 func TestParseStrictRejectsUnknown(t *testing.T) {

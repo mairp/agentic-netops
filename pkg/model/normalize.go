@@ -13,7 +13,9 @@ type ValidationError struct {
 	Message string
 }
 
-func (e *ValidationError) Error() string { return fmt.Sprintf("%s: %s (%s)", e.Field, e.Reason, e.Message) }
+func (e *ValidationError) Error() string {
+	return fmt.Sprintf("%s: %s (%s)", e.Field, e.Reason, e.Message)
+}
 
 // NormalizeInterfaces validates and normalizes interface definitions.
 func NormalizeInterfaces(ifs []Interface) ([]Interface, error) {

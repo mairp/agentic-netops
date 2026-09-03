@@ -156,6 +156,16 @@ class DeployerAgent:
         if not msg:
             return {"result_text": "no input", "payload": {}}
         content = str(msg.content)
+        # The supervisor fences worker-returned payloads (T095): extract the
+        # <<<DATA worker_text ... >>> block before JSON parsing; fall back to
+        # the raw content for an unfenced caller.
+        fence = re.search(
+            r"<<<DATA worker_text[^>]*>>>\n(.*?)\n<<<END_DATA worker_text[^>]*>>>",
+            content,
+            re.DOTALL,
+        )
+        if fence:
+            content = fence.group(1)
         # Try a normalized intent first (submission path)
         try:
             obj = json.loads(content)
@@ -190,7 +200,7 @@ class DeployerAgent:
             if isinstance(m, dict):
                 meta = m.get("metadata") or {}
                 name = meta.get("name") or "unknown"
-                ns = meta.get("namespace") or "ainetops-intent"
+                ns = meta.get("namespace") or "agentic-netops-intent"
                 kind = str(m.get("kind") or "Network")
                 resources.append({"kind": kind, "name": name, "namespace": ns})
         resources.sort(key=lambda r: (r["kind"], r["name"]))

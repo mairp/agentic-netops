@@ -1,19 +1,18 @@
-# deploy/agents — feature-002 intent-tier Kubernetes manifests
+# deploy/agents — intent-tier Kubernetes manifests
 
-Kubernetes objects for the AGNTCY intent tier (namespace `ainetops-agents`).
-The tier sits **above** the feature-001 control plane: no agent configures a
+Kubernetes objects for the AGNTCY intent tier (namespace `agentic-netops-agents`).
+The tier sits **above** the fabric control plane: no agent configures a
 device, and every agent-originated change reaches the fabric only as a
 declarative resource submitted to the cluster API.
 
 ## Contents (Phase 1)
 
-- `namespace.yaml` — the `ainetops-agents` namespace.
+- `namespace.yaml` — the `agentic-netops-agents` namespace.
 
 The workload manifests (slim gateway, supervisor, mapper, allocator, deployer
 with its translator sidecar, ui, otel collector, clickhouse, RBAC,
-NetworkPolicies) land in later phases per
-`specs/002-agntcy-intent-tier/plan.md` Component 6 and
-`specs/002-agntcy-intent-tier/contracts/kubernetes-objects.md`.
+NetworkPolicies) land in later phases. The manifests follow the supervisor's
+contract for the Kubernetes objects it submits.
 
 ## Credential policy
 

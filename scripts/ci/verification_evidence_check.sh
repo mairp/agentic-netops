@@ -4,7 +4,7 @@
 # Emits human-readable status and returns non-zero on missing artifacts.
 set -euo pipefail
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-RUN_DIR="$ROOT_DIR/.wiggum/features/001-ainetops-sonic-evpn-fabric/runs/20260829-215525-414436/verification"
+RUN_DIR="$ROOT_DIR/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/runs/20260829-215525-414436/verification"
 PLAN="$RUN_DIR/verification-plan.json"
 EVID="$RUN_DIR/phase-8-attempt-5.json"
 

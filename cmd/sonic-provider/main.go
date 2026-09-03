@@ -1,4 +1,4 @@
-//go:build ainetops_k8s
+//go:build agentic_netops_k8s
 
 package main
 
@@ -24,9 +24,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	"github.com/mairp/ainetops/controllers/sonicprovider"
-	"github.com/mairp/ainetops/pkg/kubenet"
-	"github.com/mairp/ainetops/pkg/sdc"
+	"github.com/mairp/agentic-netops/controllers/sonicprovider"
+	"github.com/mairp/agentic-netops/pkg/kubenet"
+	"github.com/mairp/agentic-netops/pkg/sdc"
 )
 
 var (
@@ -54,16 +54,16 @@ func main() {
 	defer cancel()
 
 	options := manager.Options{
-		Scheme:                 scheme,
-		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "ainetops-sonic-provider",
+		Scheme:                        scheme,
+		Metrics:                       metricsserver.Options{BindAddress: metricsAddr},
+		HealthProbeBindAddress:        probeAddr,
+		LeaderElection:                enableLeaderElection,
+		LeaderElectionID:              "agentic-netops-sonic-provider",
 		LeaderElectionReleaseOnCancel: true,
-		LeaseDuration:          ptrDuration(50 * time.Second),
-		RenewDeadline:          ptrDuration(40 * time.Second),
-		RetryPeriod:            ptrDuration(15 * time.Second),
-		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+		LeaseDuration:                 ptrDuration(50 * time.Second),
+		RenewDeadline:                 ptrDuration(40 * time.Second),
+		RetryPeriod:                   ptrDuration(15 * time.Second),
+		LeaderElectionResourceLock:    resourcelock.LeasesResourceLock,
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
@@ -90,7 +90,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	reconciler := &sonicprovider.Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), Log: setupLog.WithName("sonicprovider"), Recorder: mgr.GetEventRecorderFor("ainetops-sonic-provider")}
+	reconciler := &sonicprovider.Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), Log: setupLog.WithName("sonicprovider"), Recorder: mgr.GetEventRecorderFor("agentic-netops-sonic-provider")}
 	if err := reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NetworkDevice")
 		os.Exit(1)

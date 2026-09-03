@@ -12,7 +12,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/mairp/ainetops/pkg/kubenet"
+	"github.com/mairp/agentic-netops/pkg/kubenet"
 )
 
 func TestKubenetNetworkDeviceCreateGet(t *testing.T) {

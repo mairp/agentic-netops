@@ -1,4 +1,4 @@
-//go:build ainetops_k8s
+//go:build agentic_netops_k8s
 
 package main
 
@@ -21,8 +21,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	ainetopsv1alpha1 "github.com/mairp/ainetops/api/v1alpha1"
-	"github.com/mairp/ainetops/controllers/srv6service"
+	agenticnetopsv1alpha1 "github.com/mairp/agentic-netops/api/v1alpha1"
+	"github.com/mairp/agentic-netops/controllers/srv6service"
 )
 
 var (
@@ -31,7 +31,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(ainetopsv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(agenticnetopsv1alpha1.AddToScheme(scheme))
 }
 
 func main() {
@@ -50,15 +50,15 @@ func main() {
 	defer cancel()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), manager.Options{
-		Scheme:                 scheme,
-		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "ainetops-srv6-controller",
+		Scheme:                        scheme,
+		Metrics:                       metricsserver.Options{BindAddress: metricsAddr},
+		HealthProbeBindAddress:        probeAddr,
+		LeaderElection:                enableLeaderElection,
+		LeaderElectionID:              "agentic-netops-srv6-controller",
 		LeaderElectionReleaseOnCancel: true,
-		LeaseDuration:          ptrDuration(50 * time.Second),
-		RenewDeadline:          ptrDuration(40 * time.Second),
-		RetryPeriod:            ptrDuration(15 * time.Second),
+		LeaseDuration:                 ptrDuration(50 * time.Second),
+		RenewDeadline:                 ptrDuration(40 * time.Second),
+		RetryPeriod:                   ptrDuration(15 * time.Second),
 	})
 	if err != nil {
 		log.Error(err, "unable to start manager")

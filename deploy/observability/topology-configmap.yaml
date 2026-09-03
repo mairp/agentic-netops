@@ -2,15 +2,15 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ainetops-topology
+  name: agentic-netops-topology
   namespace: monitoring
   labels:
-    ainetops.dev/component: topology
+    agentic-netops.dev/component: topology
   annotations:
-    ainetops.dev/source: containerlab
-    ainetops.dev/version: v1
-    ainetops.dev/schema: grafana-flow-topology
-    ainetops.dev/description: "Fabric nodes and links matching containerlab inventory"
+    agentic-netops.dev/source: containerlab
+    agentic-netops.dev/version: v1
+    agentic-netops.dev/schema: grafana-flow-topology
+    agentic-netops.dev/description: "Fabric nodes and links matching containerlab inventory"
 data:
   topology.json: |
     {

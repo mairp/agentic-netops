@@ -269,7 +269,7 @@ def test_resource_ref_shape():
     ref = ResourceRef(
         apiVersion="network.kubenet.dev/v1alpha1",
         kind="Network",
-        namespace="ainetops-intent",
+        namespace="agentic-netops-intent",
         name="svc1",
     )
     assert ref.ready is None  # convergence watch open
@@ -299,7 +299,7 @@ def test_audit_event_shapes():
             ResourceRef(
                 apiVersion="network.kubenet.dev/v1alpha1",
                 kind="Network",
-                namespace="ainetops-intent",
+                namespace="agentic-netops-intent",
                 name="svc1",
             )
         ],
@@ -327,7 +327,7 @@ def test_audit_event_shapes():
             ResourceRef(
                 apiVersion="network.kubenet.dev/v1alpha1",
                 kind="Network",
-                namespace="ainetops-intent",
+                namespace="agentic-netops-intent",
                 name="svc1",
             )
         ],

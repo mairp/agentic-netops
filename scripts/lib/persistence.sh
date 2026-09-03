@@ -28,7 +28,7 @@ GNMI_CACERT=${GNMI_CACERT:-./secrets/ca.crt}
 GNMI_CERT=${GNMI_CERT:-./secrets/gnmi.crt}
 GNMI_KEY=${GNMI_KEY:-./secrets/gnmi.key}
 GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
-CLAB_PREFIX=${CLAB_PREFIX:-clab-ainetops-fabric-}
+CLAB_PREFIX=${CLAB_PREFIX:-clab-agentic-netops-fabric-}
 WITNESS_TAG=${WITNESS_TAG:-$(date +%s)}
 LOC_NAME="persist-loc-${WITNESS_TAG}"
 LOC_PREFIX="fc00:0:73::"
@@ -124,12 +124,12 @@ wait_for_gnmi() {
 # node comes back with only lo+eth0, start.sh exits 1 on missing ports and
 # the whole fabric is gone — observed 2026-09-01). Restarting supervisord
 # instead exercises the same persistence surface (configdb-load from the
-# saved /etc/sonic/config_db.json, manager daemons, ainetops-fabric-init
+# saved /etc/sonic/config_db.json, manager daemons, agentic-netops-fabric-init
 # boot hook, durable /etc/frr/bgpd.conf) while keeping the network namespace
 # and topology links intact.
 restart_sonic_containers() {
   local ids; ids=$(docker ps -q --filter "name=${CLAB_PREFIX}") || true
-  if [[ -z "$ids" ]]; then echo "[persist] no AINETOPS fabric containers found" >&2; return 1; fi
+  if [[ -z "$ids" ]]; then echo "[persist] no Agentic NetOps fabric containers found" >&2; return 1; fi
   local c
   # stop supervisord cleanly inside every node: all programs (redis, swss,
   # bgpd, telemetry) go down — this is the destructive part of the restart.
@@ -141,7 +141,7 @@ restart_sonic_containers() {
     docker exec "$c" bash -c 'supervisorctl shutdown >/dev/null 2>&1 || true; for i in $(seq 1 30); do pgrep -x supervisord >/dev/null 2>&1 || break; sleep 1; done; pgrep -x supervisord >/dev/null 2>&1 && pkill -x supervisord; sleep 2' || true
   done
   # bring supervisord back: start.sh re-runs (configdb-load + daemons) and the
-  # ainetops-fabric-init boot hook restores the fabric
+  # agentic-netops-fabric-init boot hook restores the fabric
   for c in $(docker ps -q --filter "name=${CLAB_PREFIX}"); do
     docker exec "$c" bash -c 'supervisorctl status >/dev/null 2>&1 || (nohup /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf >/var/log/supervisord-restart.log 2>&1 &)' || true
     # sshd: sonic-gnmi's user_auth path (UserPwAuth) dials 127.0.0.1:22; sshd is
@@ -154,7 +154,7 @@ restart_sonic_containers() {
 main() {
   # shellcheck source=lab_secrets.sh
   source "${ROOT_DIR}/scripts/lib/lab_secrets.sh"
-  lab_secrets::ensure "kind-${AINETOPS_CLUSTER_NAME:-ainetops}" || die "could not materialize lab credentials/TLS"
+  lab_secrets::ensure "kind-${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}" || die "could not materialize lab credentials/TLS"
 
   IFS=',' read -ra tgts <<<"$TARGETS"
   echo "[persist] writing SRv6 witness (${LOC_NAME}) via GCU on all targets"

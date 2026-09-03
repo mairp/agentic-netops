@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: ainetops-sonic-provider
+  name: agentic-netops-sonic-provider
 rules:
 - apiGroups: [""]
   resources: ["events"]
@@ -20,11 +20,11 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: ainetops-srv6-controller
+  name: agentic-netops-srv6-controller
 rules:
 - apiGroups: [""]
   resources: ["events"]
   verbs: ["create", "patch"]
-- apiGroups: ["ainetops.io"]
+- apiGroups: ["agentic-netops.io"]
   resources: ["srv6services", "srv6services/status"]
   verbs: ["get", "list", "watch", "patch", "update"]

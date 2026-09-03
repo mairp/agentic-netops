@@ -7,7 +7,7 @@
 set -u
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-PROOFS="$ROOT_DIR/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+PROOFS="$ROOT_DIR/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
 mkdir -p "$PROOFS"
 
 IMAGE=${SONIC_IMAGE:-$(awk '/^  sonic_vs:/{f=1} f && /image:/{print $2; exit}' "$ROOT_DIR/versions.lock.yaml")}

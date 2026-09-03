@@ -1,4 +1,4 @@
-# T062 Metrics Inventory and Labels
+# Metrics Inventory and Labels
 
 This document inventories metrics from the pinned SONiC schema, SDC, provider, Kubernetes, containerlab, and SRv6 MySID counters. It defines bounded labels, topology joins, and required dashboards/alerts.
 
@@ -14,7 +14,7 @@ Sources and examples (series names are indicative; exporters must label consiste
   - sdc_config_apply_total{target,result}
   - sdc_deviation_total{target,path}
 - Provider (Go Prom client):
-  - ainetops_sonicprovider_applies_total{}
+  - agentic_netops_sonicprovider_applies_total{}
   - controller_runtime_reconcile_errors_total{controller}
 - Kubernetes:
   - up{job}
@@ -42,4 +42,4 @@ Dashboards/alerts mapping:
 - Physical fabric view (Grafana Flow): rate/utilization using sonic_interface_* metrics; node/link status bound to up and sonic_* state counters.
 - SRv6 Service Path: MySID packet counters and active primary/alternate path state.
 - Pipeline health: receiver/exporter health, queue fill, dropped/refused points, subscribe errors.
-- Alerts: See deploy/observability/rules/ainetops.rules.yaml and prometheus.yaml rules.
+- Alerts: See deploy/observability/rules/agentic-netops.rules.yaml and prometheus.yaml rules.

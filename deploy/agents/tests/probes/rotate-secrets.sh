@@ -7,7 +7,7 @@
 set -euo pipefail
 CTX="${1:-}"
 TARGET="${2:-}"
-NS=ainetops-agents
+NS=agentic-netops-agents
 kc() { if [[ -n "$CTX" ]]; then kubectl --context "$CTX" "$@"; else kubectl "$@"; fi }
 log() { echo "[rotate] $*"; }
 rand() { head -c 12 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16; }
@@ -22,7 +22,7 @@ case "$TARGET" in
     BEFORE=$(kc -n "$NS" get secret "$SEC" -o jsonpath='{.metadata.resourceVersion}')
     log "llm-provider before resourceVersion=$BEFORE"
     PATCH=$(cat <<EOF
-{"metadata": {"annotations": {"ainetops.io/rotated-at": "$(date -u +%FT%TZ)"}},
+{"metadata": {"annotations": {"agentic-netops.io/rotated-at": "$(date -u +%FT%TZ)"}},
  "stringData": {"OAUTH2_APPKEY": "$(rand)"}}
 EOF
 )
@@ -43,7 +43,7 @@ EOF
     BEFORE=$(kc -n "$NS" get secret "$SEC" -o jsonpath='{.metadata.resourceVersion}')
     log "clickhouse-auth before resourceVersion=$BEFORE"
     PATCH=$(cat <<EOF
-{"metadata": {"annotations": {"ainetops.io/rotated-at": "$(date -u +%FT%TZ)"}},
+{"metadata": {"annotations": {"agentic-netops.io/rotated-at": "$(date -u +%FT%TZ)"}},
  "stringData": {"password": "$(rand)"}}
 EOF
 )
@@ -62,7 +62,7 @@ EOF
     BEFORE=$(kc -n "$NS" get secret "$SEC" -o jsonpath='{.metadata.resourceVersion}')
     log "slim-gateway before resourceVersion=$BEFORE"
     PATCH=$(cat <<EOF
-{"metadata": {"annotations": {"ainetops.io/rotated-at": "$(date -u +%FT%TZ)"}},
+{"metadata": {"annotations": {"agentic-netops.io/rotated-at": "$(date -u +%FT%TZ)"}},
  "stringData": {"PASSWORD": "$(rand)"}}
 EOF
 )

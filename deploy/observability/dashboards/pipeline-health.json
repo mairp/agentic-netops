@@ -11,6 +11,6 @@
     {"type": "graph", "title": "gNMI Subscribe Errors", "targets": [{"expr": "increase(gnmic_subscribe_errors_total[5m])"}]}
   ],
   "schemaVersion": 39,
-  "title": "AINETOPS Pipeline Health",
+  "title": "Agentic NetOps Pipeline Health",
   "version": 1
 }

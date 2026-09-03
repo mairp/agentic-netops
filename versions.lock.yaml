@@ -62,7 +62,7 @@ tooling:
   # presentation reference only (FR-032): records the upstream visualization
   # pattern; NOT installed by the lab Grafana (built-in panels only).
   grafana_flow_plugin: grafana/flow-plugin@sha256:5c9d6b4d6b899be4a3f3c728b3acb0a8f8c3e6a46c9f5b07d705e8ca3c1a2c44
-  topology_generator: ghcr.io/ainetops/topology-generator@sha256:9a0b2b0d57a4c2b2b5c78a7d34c8a0c1f9a3b7d6e2c4e5f6a7b8c9d0e1f2a3b4
+  topology_generator: ghcr.io/agentic-netops/topology-generator@sha256:9a0b2b0d57a4c2b2b5c78a7d34c8a0c1f9a3b7d6e2c4e5f6a7b8c9d0e1f2a3b4
 
 # ---------------------------------------------------------------------------
 # SONiC images

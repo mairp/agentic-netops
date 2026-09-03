@@ -1,4 +1,4 @@
-# T071 Telemetry outage/recovery test plan
+# Telemetry outage/recovery test plan
 
 - Simulate OTel Collector outage by scaling deployment to 0; verify:
   - Provider and SDC reconciliation continue to function (no dependency on collector health for device state).

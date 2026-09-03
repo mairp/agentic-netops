@@ -24,8 +24,8 @@ import (
 // +kubebuilder:validation:XValidation:message="locator must be IPv6 prefix",rule="self.spec.locatorPrefix.matches('^([0-9a-fA-F:]+)/[0-9]+$')"
 // +kubebuilder:validation:XValidation:message="waypoints must be SONiC device refs",rule="size(self.spec.transitWaypoints) >= 0"
 // +kubebuilder:validation:XValidation:message="vrf is immutable",rule="!has(oldSelf) || self.spec.vrf == oldSelf.spec.vrf"
-// +kubebuilder:validation:XValidation:message="topologyRef must be non-empty",rule="self.spec.topologyRef != ''"
-// +kubebuilder:validation:XValidation:message="path must name a primary route",rule="self.spec.path.primary != ''"
+// +kubebuilder:validation:XValidation:message="topologyRef must be non-empty",rule="self.spec.topologyRef != ”"
+// +kubebuilder:validation:XValidation:message="path must name a primary route",rule="self.spec.path.primary != ”"
 // +kubebuilder:validation:XValidation:message="endpoints must be IPv6",rule="self.spec.client.ip.matches('^([0-9a-fA-F:]+)/[0-9]+$') && self.spec.server.ip.matches('^([0-9a-fA-F:]+)/[0-9]+$')"
 // +kubebuilder:validation:XValidation:message="SRv6 requires IPv6",rule="self.spec.underlay == 'ipv6'"
 // +kubebuilder:validation:XValidation:message="attachments must be unique",rule="self.spec.attachments[0].node != self.spec.attachments[1].node"
@@ -77,7 +77,7 @@ type Attachment struct {
 
 // PathSelection identifies named waypoint routes.
 type PathSelection struct {
-	Primary string `json:"primary"`
+	Primary   string `json:"primary"`
 	Alternate string `json:"alternate,omitempty"`
 }
 

@@ -24,7 +24,7 @@
 #     script, exits 0, and the write silently no-ops (root cause of the
 #     "BGP_NEIGHBOR is empty" fabric_verify failures of 2026-08-30/31).
 #   * fabric-init boot hook — /etc/sonic/bootstrap/fabric-init.sh registered in
-#     /etc/supervisor/conf.d/ainetops-fabric.conf (autostart=true). The
+#     /etc/supervisor/conf.d/agentic-netops-fabric.conf (autostart=true). The
 #     capability gate's persistence check (T014) restarts every lab container
 #     mid-provision; start.sh restarts zebra/fpmsyncd/vrfmgrd/... but NOT bgpd.
 #     The hook waits for the manager daemons and the VRF device, then starts
@@ -52,7 +52,7 @@
 #     carry admin_status up and interfaces are brought up explicitly.
 set -euo pipefail
 
-CLAB_PREFIX=${CLAB_PREFIX:-clab-ainetops-fabric-}
+CLAB_PREFIX=${CLAB_PREFIX:-clab-agentic-netops-fabric-}
 
 # node|asn|lo4|lo6|svi4|peer-spec(iface,local-ip,peer-ip,peer-asn,local-v6,peer-v6;...)
 # Underlay is eBGP over /31 p2p links, ASNs per lab/topology.clab.yml
@@ -471,8 +471,8 @@ apply_frr() {
       # observability, idempotence, teardown, supply chain) can still be
       # exercised on an image whose overlay is known-broken. It does NOT weaken
       # fabric_verify: the peer-arrival assertion still fails closed.
-      if [ "${AINETOPS_WAIVE_L2VNI_ADOPTION:-0}" = "1" ]; then
-        echo "[fabric-bgp] WAIVED: $node: bgpd never adopted L2 VNI $L2VNI after 3 restarts. Continuing under AINETOPS_WAIVE_L2VNI_ADOPTION=1 (operator decision, docs/FABRIC_BGP_EVPN_DEFERRED.md D-A3). THE OVERLAY CANNOT FORWARD — client traffic and remote-VTEP assertions WILL fail and must be cited as this documented defect, not as a passing fabric." >&2
+      if [ "${AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION:-0}" = "1" ]; then
+        echo "[fabric-bgp] WAIVED: $node: bgpd never adopted L2 VNI $L2VNI after 3 restarts. Continuing under AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1 (operator decision, docs/FABRIC_BGP_EVPN_DEFERRED.md D-A3). THE OVERLAY CANNOT FORWARD — client traffic and remote-VTEP assertions WILL fail and must be cited as this documented defect, not as a passing fabric." >&2
       else
         echo "[fabric-bgp] ERROR: $node: bgpd never adopted L2 VNI $L2VNI after 3 restarts — overlay cannot forward; failing provision" >&2
         return 1
@@ -480,8 +480,8 @@ apply_frr() {
     fi
   fi
   docker exec "$c" bash -c 'pgrep -x bgpd >/dev/null' 2>/dev/null || {
-    if [ "${AINETOPS_WAIVE_L2VNI_ADOPTION:-0}" = "1" ] && [ "$role" = "leaf" ]; then
-      echo "[fabric-bgp] WARN: bgpd not running on $node — continuing under AINETOPS_WAIVE_L2VNI_ADOPTION=1 (overlay will not forward)"
+    if [ "${AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION:-0}" = "1" ] && [ "$role" = "leaf" ]; then
+      echo "[fabric-bgp] WARN: bgpd not running on $node — continuing under AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1 (overlay will not forward)"
     else
       echo "[fabric-bgp] ERROR: bgpd did not start on $node" >&2; return 1
     fi
@@ -503,7 +503,7 @@ install_boot_hook() {
   # node-specific values, baked in at generation time
   {
     echo "#!/usr/bin/env bash"
-    echo "# AINETOPS fabric init for $node (role=$role) — generated at bootstrap"
+    echo "# Agentic NetOps fabric init for $node (role=$role) — generated at bootstrap"
     echo "# by lab/profiles/sonic-vs/bootstrap/configure-fabric-bgp.sh."
     echo "set -u"
     echo "log() { echo \"[fabric-init] \$*\"; }"
@@ -695,9 +695,9 @@ log "fabric init done (role=$ROLE)"
 exit 0
 EOS
   } | docker exec -i "$c" tee /etc/sonic/bootstrap/fabric-init.sh >/dev/null
-  docker exec "$c" bash -c "mkdir -p /etc/ainetops; echo '$role' > /etc/ainetops/role; chmod +x /etc/sonic/bootstrap/fabric-init.sh"
-  docker exec -i "$c" tee /etc/supervisor/conf.d/ainetops-fabric.conf >/dev/null <<'EOS'
-[program:ainetops-fabric-init]
+  docker exec "$c" bash -c "mkdir -p /etc/agentic-netops; echo '$role' > /etc/agentic-netops/role; chmod +x /etc/sonic/bootstrap/fabric-init.sh"
+  docker exec -i "$c" tee /etc/supervisor/conf.d/agentic-netops-fabric.conf >/dev/null <<'EOS'
+[program:agentic-netops-fabric-init]
 command=/etc/sonic/bootstrap/fabric-init.sh
 priority=25
 autostart=true
@@ -705,7 +705,7 @@ autorestart=false
 startsecs=0
 exitcodes=0
 redirect_stderr=true
-stdout_logfile=/var/log/ainetops-fabric-init.log
+stdout_logfile=/var/log/agentic-netops-fabric-init.log
 stdout_logfile_maxbytes=2MB
 EOS
   log "$node: boot hook installed (role=$role)"

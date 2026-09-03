@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	ainetopsv1alpha1 "github.com/mairp/ainetops/api/v1alpha1"
-	"github.com/mairp/ainetops/pkg/compat"
-	"github.com/mairp/ainetops/pkg/reasons"
+	agenticnetopsv1alpha1 "github.com/mairp/agentic-netops/api/v1alpha1"
+	"github.com/mairp/agentic-netops/pkg/compat"
+	"github.com/mairp/agentic-netops/pkg/reasons"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -17,12 +17,12 @@ import (
 
 type Reconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	Log      logr.Logger
+	Scheme *runtime.Scheme
+	Log    logr.Logger
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var svc ainetopsv1alpha1.SRv6Service
+	var svc agenticnetopsv1alpha1.SRv6Service
 	if err := r.Get(ctx, req.NamespacedName, &svc); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -59,7 +59,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// Integrate compatibility-set validation
 	set := compat.FromAnnotations(svc.Annotations)
-	discovered := map[string]bool{"sai.srv6": svc.Labels["ainetops.dev/cap.sai.srv6"] == "true"}
+	discovered := map[string]bool{"sai.srv6": svc.Labels["agentic-netops.dev/cap.sai.srv6"] == "true"}
 	if err := compat.FullValidate(set, svc.Labels, discovered); err != nil {
 		reason := compat.ReasonFor(err)
 		cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: svc.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reason, Message: err.Error()}
@@ -80,7 +80,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&ainetopsv1alpha1.SRv6Service{}).
+		For(&agenticnetopsv1alpha1.SRv6Service{}).
 		Complete(r)
 }
 

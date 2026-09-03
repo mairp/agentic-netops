@@ -2,7 +2,7 @@
 # T047a [US3] MTU and ECMP tests: verify maximum effective MTU accommodates VXLAN overhead and ECMP hashing
 set -euo pipefail
 
-CLAB_PREFIX=${CLAB_PREFIX:-clab-ainetops-fabric-}
+CLAB_PREFIX=${CLAB_PREFIX:-clab-agentic-netops-fabric-}
 SRC=${SRC:-${CLAB_PREFIX}client01}
 DST_IP=${DST_IP:-192.0.2.21}
 

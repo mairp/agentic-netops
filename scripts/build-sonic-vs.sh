@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-ROOT=${1:-/root/ainetops-demo/vendor}
+ROOT=${1:-/root/agentic-netops/vendor}
 BRANCH=${BRANCH:-202405}
 JOBS=${SONIC_BUILD_JOBS:-4}
 PREFIX="$ROOT/sonic-buildimage"

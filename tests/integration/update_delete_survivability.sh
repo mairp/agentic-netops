@@ -2,14 +2,14 @@
 # T051 [US2] Update/delete lifecycle: shared fabric state and unrelated claims survive EVPN/SRv6 changes; SRv6-owned claims released
 set -euo pipefail
 
-CTX=${CTX:-kind-ainetops}
-PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs}
+CTX=${CTX:-kind-agentic-netops}
+PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs}
 mkdir -p "$PROOF_DIR"
 
 count_sdc_srv6_configs() {
   # Count SDC Configs owned by SRv6 (by label/annotation convention)
   kubectl --context "$CTX" -n sdc get config -o json \
-    | jq '[.items[] | select(.metadata.labels["ainetops.dev/owner"]=="srv6" or (.metadata.annotations["ainetops.dev/owner"]//"")=="srv6")] | length'
+    | jq '[.items[] | select(.metadata.labels["agentic-netops.dev/owner"]=="srv6" or (.metadata.annotations["agentic-netops.dev/owner"]//"")=="srv6")] | length'
 }
 
 list_sdc_configs() {
@@ -42,7 +42,7 @@ update_service() {
   echo "[lifecycle] update EVPN and SRv6 services; shared IPv6 underlay preserved"
   # Update a tenant RT and SRv6 policy description (no functional change)
   kubectl --context "$CTX" -n kubenet-system patch network tenant-a-l3-routed --type merge -p '{"spec":{"routers":[{"name":"vrf-tenant-a","routeTargets":{"import":["65000:100"],"export":["65000:100"]}}]}}' || true
-  kubectl --context "$CTX" -n default patch srv6service example-srv6 --type merge -p '{"metadata":{"annotations":{"ainetops.dev/description":"update"}}}' || true
+  kubectl --context "$CTX" -n default patch srv6service example-srv6 --type merge -p '{"metadata":{"annotations":{"agentic-netops.dev/description":"update"}}}' || true
 
   echo "[lifecycle] snapshot after update"
   list_sdc_configs | tee "$PROOF_DIR/update.sdc-configs.after.txt" >/dev/null
@@ -73,7 +73,7 @@ delete_service() {
   echo "[lifecycle] snapshot before delete"
   list_sdc_configs | tee "$PROOF_DIR/delete.sdc-configs.before.txt" >/dev/null
   kubectl --context "$CTX" -n sdc get config -o json \
-    | jq -r '.items[] | select(.metadata.labels["ainetops.dev/owner"]=="srv6" or (.metadata.annotations["ainetops.dev/owner"]//"")=="srv6") | .metadata.name' \
+    | jq -r '.items[] | select(.metadata.labels["agentic-netops.dev/owner"]=="srv6" or (.metadata.annotations["agentic-netops.dev/owner"]//"")=="srv6") | .metadata.name' \
     | sort -u | tee "$PROOF_DIR/delete.srv6-configs.list.before.txt" >/dev/null
   hash_default_fabric | tee "$PROOF_DIR/delete.default-fabric.hash.before.txt" >/dev/null
 
@@ -92,7 +92,7 @@ delete_service() {
   echo "$before" > "$PROOF_DIR/delete.srv6-configs.count.before.txt"
   echo "$after" > "$PROOF_DIR/delete.srv6-configs.count.after.txt"
   kubectl --context "$CTX" -n sdc get config -o json \
-    | jq -r '.items[] | select(.metadata.labels["ainetops.dev/owner"]=="srv6" or (.metadata.annotations["ainetops.dev/owner"]//"")=="srv6") | .metadata.name' \
+    | jq -r '.items[] | select(.metadata.labels["agentic-netops.dev/owner"]=="srv6" or (.metadata.annotations["agentic-netops.dev/owner"]//"")=="srv6") | .metadata.name' \
     | sort -u | tee "$PROOF_DIR/delete.srv6-configs.list.after.txt" >/dev/null
   # Removed names list (durable identity)
   comm -23 "$PROOF_DIR/delete.srv6-configs.list.before.txt" "$PROOF_DIR/delete.srv6-configs.list.after.txt" \

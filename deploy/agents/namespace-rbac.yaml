@@ -7,7 +7,7 @@
 # deploy/agents/tests/probes/rbac-denials.sh and observing "no"/timeout.
 #
 # Pod label convention used by the NetworkPolicies below (deployments set these):
-#   every tier pod:        ainetops.io/tier: intent
+#   every tier pod:        agentic-netops.io/tier: intent
 #   allocator pod:         app: intent-allocator
 #   deployer pod:          app: intent-deployer
 #
@@ -18,18 +18,18 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ainetops-agents
+  name: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ainetops-intent
+  name: agentic-netops-intent
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 ---
 # T038: no-token identities. These workloads never talk to the cluster API:
 # automountServiceAccountToken: false means no token is mounted at all, so a
@@ -38,21 +38,21 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: intent-supervisor
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 automountServiceAccountToken: false
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: intent-mapper
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 automountServiceAccountToken: false
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: intent-ui
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 automountServiceAccountToken: false
 ---
 # T039: the ONLY two token-bearing (cluster API) identities in the tier.
@@ -62,15 +62,15 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: intent-allocator
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 ---
 # The service-intent writer identity for Network, SRv6Service, and Event
-# objects in ainetops-intent.
+# objects in agentic-netops-intent.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: intent-deployer
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 ---
 # T040/T041: write access to the tier's own service intent, in the tier's own
 # namespace only.
@@ -78,12 +78,12 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: intent-writer
-  namespace: ainetops-intent
+  namespace: agentic-netops-intent
 rules:
 - apiGroups: ["network.kubenet.dev"]
   resources: ["networks"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-- apiGroups: ["ainetops.io"]
+- apiGroups: ["agentic-netops.io"]
   resources: ["srv6services"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 - apiGroups: [""]
@@ -97,11 +97,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: intent-writer
-  namespace: ainetops-intent
+  namespace: agentic-netops-intent
 subjects:
 - kind: ServiceAccount
   name: intent-deployer
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -150,26 +150,26 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: intent-allocator
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: kuid-claimer
 ---
 # T051-T054 support: the secret generator Job (deploy/agents/secret-generator-job.yaml)
-# needs to populate Secrets in ainetops-agents without holding any other
+# needs to populate Secrets in agentic-netops-agents without holding any other
 # permission. Narrow Role + binding for that Job's identity only.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: intent-secret-generator
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: secret-generator
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 rules:
 - apiGroups: [""]
   resources: ["secrets"]
@@ -179,11 +179,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: secret-generator
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 subjects:
 - kind: ServiceAccount
   name: intent-secret-generator
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -196,7 +196,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: deny-all-by-default
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 spec:
   podSelector: {}
   policyTypes: ["Ingress", "Egress"]
@@ -208,11 +208,11 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-egress-scoped
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 spec:
   podSelector:
     matchLabels:
-      ainetops.io/tier: intent
+      agentic-netops.io/tier: intent
   policyTypes: ["Egress"]
   egress:
   # T046: DNS only (cluster DNS lives in kube-system).
@@ -229,12 +229,12 @@ spec:
   - to:
     - podSelector:
         matchLabels:
-          ainetops.io/tier: intent
-  # T048: OTLP over gRPC to the tier-owned collector in ainetops-system.
+          agentic-netops.io/tier: intent
+  # T048: OTLP over gRPC to the tier-owned collector in agentic-netops-system.
   - to:
     - namespaceSelector:
         matchLabels:
-          kubernetes.io/metadata.name: ainetops-system
+          kubernetes.io/metadata.name: agentic-netops-system
       podSelector:
         matchLabels:
           app.kubernetes.io/name: otel-collector
@@ -262,7 +262,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: apiserver-egress-cluster-clients
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
 spec:
   podSelector:
     matchExpressions:

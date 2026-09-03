@@ -1,0 +1,57 @@
+# T070: Alerts for link/BGP loss, failed/degraded reconciliation, persistent deviation, unreachable target, SRv6 path/counter failure, topology mismatch, and gNMIc/OTel export failure
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: agentic-netops-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+spec:
+  groups:
+    - name: agentic-netops.fabric
+      rules:
+        - alert: LinkDown
+          expr: min_over_time(sonic_interface_oper_status{state="down"}[5m]) == 1
+          for: 5m
+          labels: { severity: warning }
+          annotations: { description: "Interface down detected", summary: "Link down" }
+        - alert: BGPPeerDown
+          expr: bgp_session_state == 0
+          for: 2m
+          labels: { severity: critical }
+          annotations: { description: "BGP session down", summary: "BGP peer down" }
+        - alert: ProviderFailedReconcile
+          expr: increase(controller_runtime_reconcile_errors_total{controller="agentic-netops-sonic-provider"}[5m]) > 0
+          for: 5m
+          labels: { severity: warning }
+          annotations: { description: "Provider reconcile errors observed", summary: "Reconciliation failed" }
+        - alert: ProviderDegradedDeviation
+          expr: increase(agentic_netops_sonicprovider_applies_total[15m]) > 0 and on() absent_over_time(agentic_netops_sonicprovider_applies_total[15m]) == 0
+          for: 15m
+          labels: { severity: warning }
+          annotations: { description: "Deviation persists without successful apply", summary: "Persistent deviation" }
+        - alert: SDCTargetUnreachable
+          expr: sdc_target_reachable == 0
+          for: 2m
+          labels: { severity: warning }
+          annotations: { description: "SDC target unreachable", summary: "Target unreachable" }
+        - alert: SRv6PathDown
+          expr: max_over_time(sonic_srv6_mysid_packets_total[10m]) == 0
+          for: 10m
+          labels: { severity: critical }
+          annotations: { description: "No SRv6 MySID packets observed", summary: "SRv6 path/counter failure" }
+        - alert: TopologyInventoryMismatch
+          expr: on(device) (count by(device) (sonic_interface_packets_total) != count by(device) (label_replace(sonic_interface_packets_total, "device", "$1", "device", "(.*)")))
+          for: 10m
+          labels: { severity: warning }
+          annotations: { description: "Prometheus series do not match inventory labels", summary: "Topology inventory mismatch" }
+        - alert: GNMIcExportFailures
+          expr: rate(gnmic_output_errors_total[5m]) > 0
+          for: 5m
+          labels: { severity: warning }
+          annotations: { description: "gNMIc output errors detected", summary: "gNMIc export failure" }
+        - alert: OTelExportFailures
+          expr: rate(otelcol_exporter_enqueue_failed[5m]) > 0
+          for: 5m
+          labels: { severity: warning }
+          annotations: { description: "OTel Collector exporter failures", summary: "OTel export failure" }

@@ -13,14 +13,14 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-egress-llm-gateway
-  namespace: ainetops-agents
+  namespace: agentic-netops-agents
   labels:
-    ainetops.owner: ainetops
-    ainetops.io/tier: intent
+    agentic-netops.owner: agentic-netops
+    agentic-netops.io/tier: intent
 spec:
   podSelector:
     matchLabels:
-      ainetops.io/tier: intent
+      agentic-netops.io/tier: intent
   policyTypes: [Egress]
   egress:
     - to:

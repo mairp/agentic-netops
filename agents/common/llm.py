@@ -10,7 +10,7 @@ Phase 10 (T414/T415): Per-conversation token budget enforced by conversation
 thread id (LangGraph ``configurable.thread_id``), NOT by the Python OS thread.
 The current conversation thread id is carried via a ContextVar and must be set
 by the caller (the supervisor graph) before invoking the model. When the
-configured budget (``AINETOPS_LLM_TOKENS_PER_THREAD``) is exceeded for the
+configured budget (``AGENTIC_NETOPS_LLM_TOKENS_PER_THREAD``) is exceeded for the
 active thread id, subsequent calls raise ``RuntimeError('token-budget-exceeded: bounded exit')``.
 """
 
@@ -33,11 +33,11 @@ logger = logging.getLogger(__name__)
 
 
 # Positive integer → enforce per-thread (conversation) budget; 0 disables (no-op)
-_TOK_BUDGET = int(os.getenv("AINETOPS_LLM_TOKENS_PER_THREAD", "0") or 0)
+_TOK_BUDGET = int(os.getenv("AGENTIC_NETOPS_LLM_TOKENS_PER_THREAD", "0") or 0)
 
 # ContextVar carrying the LangGraph conversation thread id (configurable.thread_id)
 _THREAD_CTX: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
-    "ainetops_conversation_thread_id", default=None
+    "agentic_netops_conversation_thread_id", default=None
 )
 
 # Per-thread-id token usage ledger (prompt + completion tokens)
@@ -101,8 +101,8 @@ def get_llm(streaming: bool = True):
     try:
         span = trace.get_current_span()
         if span is not None and hasattr(span, "set_attribute"):
-            span.set_attribute("ainetops.prompt.redacted", redact_prompt(""))
-            span.set_attribute("ainetops.model.id", LLM_MODEL)
+            span.set_attribute("agentic-netops.prompt.redacted", redact_prompt(""))
+            span.set_attribute("agentic-netops.model.id", LLM_MODEL)
     except Exception:
         pass
     if LLM_MODEL.startswith("oauth2/"):
@@ -125,8 +125,8 @@ def get_llm(streaming: bool = True):
                         prompt_text = str(args[0])[:2000]
                     except Exception:
                         prompt_text = ""
-                span.set_attribute("ainetops.prompt.redacted", redact_prompt(prompt_text))
-                span.set_attribute("ainetops.model.id", LLM_MODEL)
+                span.set_attribute("agentic-netops.prompt.redacted", redact_prompt(prompt_text))
+                span.set_attribute("agentic-netops.model.id", LLM_MODEL)
         except Exception:
             pass
         res = await orig_ainvoke(*args, **kwargs)
@@ -151,7 +151,7 @@ def get_llm(streaming: bool = True):
                     text_out = str(text_out)[:2000]
                 except Exception:
                     text_out = ""
-                span.set_attribute("ainetops.response.redacted", redact_model_response(text_out))
+                span.set_attribute("agentic-netops.response.redacted", redact_model_response(text_out))
         except Exception:
             pass
         return res
@@ -167,8 +167,8 @@ def get_llm(streaming: bool = True):
                         prompt_text = str(args[0])[:2000]
                     except Exception:
                         prompt_text = ""
-                span.set_attribute("ainetops.prompt.redacted", redact_prompt(prompt_text))
-                span.set_attribute("ainetops.model.id", LLM_MODEL)
+                span.set_attribute("agentic-netops.prompt.redacted", redact_prompt(prompt_text))
+                span.set_attribute("agentic-netops.model.id", LLM_MODEL)
         except Exception:
             pass
         res = orig_invoke(*args, **kwargs)
@@ -191,7 +191,7 @@ def get_llm(streaming: bool = True):
                     text_out = str(text_out)[:2000]
                 except Exception:
                     text_out = ""
-                span.set_attribute("ainetops.response.redacted", redact_model_response(text_out))
+                span.set_attribute("agentic-netops.response.redacted", redact_model_response(text_out))
         except Exception:
             pass
         return res
@@ -210,10 +210,13 @@ def get_llm(streaming: bool = True):
         async def _ainvoke_guard(*args, **kwargs):
             _maybe_refuse_on_budget()
             return await _wrapped_ainvoke(*args, **kwargs)
-        llm.ainvoke = _ainvoke_guard  # type: ignore[assignment]
+        # pydantic v2 rejects plain assignment of undeclared attributes
+        # (ValueError: "... object has no field ...") — write through
+        # object.__setattr__ so the guard lands in the instance __dict__.
+        object.__setattr__(llm, "ainvoke", _ainvoke_guard)
     if callable(orig_invoke):
         def _invoke_guard(*args, **kwargs):
             _maybe_refuse_on_budget()
             return _wrapped_invoke(*args, **kwargs)
-        llm.invoke = _invoke_guard  # type: ignore[assignment]
+        object.__setattr__(llm, "invoke", _invoke_guard)
     return llm

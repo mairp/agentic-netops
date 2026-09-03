@@ -3,7 +3,7 @@
 FR-030: every confirmation, decline, submission, and refusal is recorded as
 an :class:`~common.schemas.audit.AuditEvent`. Per data-model.md §7 each
 event is emitted **as both a span event and a Kubernetes ``Event`` in
-``ainetops-intent``**.
+``agentic-netops-intent``**.
 
 Emission layers (all three are wired here):
 
@@ -16,9 +16,9 @@ Emission layers (all three are wired here):
   Kubernetes Events itself — the deployer's identity writes them when it
   submits).
 * **Kubernetes ``Event``** (T104) — a core/v1 ``Event`` object in
-  ``ainetops-intent``, best-effort: written when a cluster identity is
-  available (in-cluster token, or the ``AINETOPS_API_ENDPOINT`` /
-  ``AINETOPS_BEARER_TOKEN`` overrides the e2e tests mint), skipped with a
+  ``agentic-netops-intent``, best-effort: written when a cluster identity is
+  available (in-cluster token, or the ``AGENTIC_NETOPS_API_ENDPOINT`` /
+  ``AGENTIC_NETOPS_BEARER_TOKEN`` overrides the e2e tests mint), skipped with a
   logged warning otherwise. SC-006 reconciles the audit stream against the
   resources actually present under the correlation-id label.
 
@@ -56,14 +56,14 @@ logger = logging.getLogger("devnet.common.audit")
 #
 # In-cluster (the deployer pod): the API server is the well-known service
 # and the bearer token is the pod's ServiceAccount token. Out of cluster
-# (the e2e tests): ``AINETOPS_API_ENDPOINT`` + ``AINETOPS_BEARER_TOKEN``
-# (+ ``AINETOPS_VERIFY_TLS=0`` for the Kind self-signed cert) override.
+# (the e2e tests): ``AGENTIC_NETOPS_API_ENDPOINT`` + ``AGENTIC_NETOPS_BEARER_TOKEN``
+# (+ ``AGENTIC_NETOPS_VERIFY_TLS=0`` for the Kind self-signed cert) override.
 # ---------------------------------------------------------------------------
 _IN_CLUSTER_API = "https://kubernetes.default.svc:443"
 _TOKEN_FILE = Path("/var/run/secrets/kubernetes.io/serviceaccount/token")
 _CACERT_FILE = Path("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 
-INTENT_NAMESPACE = "ainetops-intent"  # the tier's resource namespace (Decision 12)
+INTENT_NAMESPACE = "agentic-netops-intent"  # the tier's resource namespace (Decision 12)
 
 EVENT_REASON_BY_TYPE = {
     "confirm": "Confirm",
@@ -181,10 +181,10 @@ def resolve_k8s_identity() -> _K8sEventIdentity | None:
     exists — the caller then skips the Kubernetes Event (the span event
     and sink record remain the durable audit point).
     """
-    endpoint = os.getenv("AINETOPS_API_ENDPOINT")
-    token = os.getenv("AINETOPS_BEARER_TOKEN")
+    endpoint = os.getenv("AGENTIC_NETOPS_API_ENDPOINT")
+    token = os.getenv("AGENTIC_NETOPS_BEARER_TOKEN")
     if endpoint and token:
-        verify = os.getenv("AINETOPS_VERIFY_TLS", "1").lower() in ("1", "true", "yes")
+        verify = os.getenv("AGENTIC_NETOPS_VERIFY_TLS", "1").lower() in ("1", "true", "yes")
         return _K8sEventIdentity(endpoint, token, verify)
     if _TOKEN_FILE.exists():
         try:
@@ -192,7 +192,7 @@ def resolve_k8s_identity() -> _K8sEventIdentity | None:
         except OSError:
             return None
         if token:
-            verify = os.getenv("AINETOPS_VERIFY_TLS", "1").lower() in ("1", "true", "yes")
+            verify = os.getenv("AGENTIC_NETOPS_VERIFY_TLS", "1").lower() in ("1", "true", "yes")
             return _K8sEventIdentity(_IN_CLUSTER_API, token, verify)
     return None
 
@@ -227,8 +227,8 @@ def _event_manifest(event: AuditEvent, seq: int) -> dict[str, Any]:
             "name": f"{event.correlation_id}-{event.event_type}-{seq:04d}",
             "namespace": INTENT_NAMESPACE,
             "labels": {
-                "ainetops.io/correlation-id": event.correlation_id,
-                "ainetops.io/tier": "intent",
+                "agentic-netops.io/correlation-id": event.correlation_id,
+                "agentic-netops.io/tier": "intent",
             },
         },
         "involvedObject": {
@@ -305,7 +305,7 @@ def emit_audit_event(event: AuditEvent) -> AuditEvent:
       emitted — a corrupted audit trail is worse than a missing line.
     * T103 — span event on the active OTel span.
     * sink — in-memory + JSONL (``AUDIT_LOG_PATH``) durable record.
-    * T104 — Kubernetes ``Event`` in ``ainetops-intent`` (best-effort).
+    * T104 — Kubernetes ``Event`` in ``agentic-netops-intent`` (best-effort).
 
     Free-text fields are redacted (FR-031) before any layer sees them.
     """

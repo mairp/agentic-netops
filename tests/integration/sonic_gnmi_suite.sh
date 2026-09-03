@@ -19,7 +19,7 @@ GNMI_CERT=${GNMI_CERT:-./secrets/gnmi.crt}
 GNMI_KEY=${GNMI_KEY:-./secrets/gnmi.key}
 GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
 TARGETS=${TARGETS:-"172.31.0.21:8080,172.31.0.22:8080"}
-CLAB_PREFIX=${CLAB_PREFIX:-clab-ainetops-fabric-}
+CLAB_PREFIX=${CLAB_PREFIX:-clab-agentic-netops-fabric-}
 # Unique witness names so repeated runs never collide with leftover state
 WITNESS_TAG=${WITNESS_TAG:-$(date +%s)}
 LOC_NAME="gate-loc-${WITNESS_TAG}"

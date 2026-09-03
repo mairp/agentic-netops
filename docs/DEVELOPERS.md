@@ -1,6 +1,6 @@
-# AINETOPS Developers Guide
+# Agentic NetOps Developers Guide
 
-This document describes development workflows and responsibilities for the AINETOPS SONiC EVPN/VXLAN Fabric implementation.
+This document describes development workflows and responsibilities for the Agentic NetOps SONiC EVPN/VXLAN Fabric implementation.
 
 - Build binaries: make build
 - Run envtest: make test-envtest
@@ -10,7 +10,7 @@ This document describes development workflows and responsibilities for the AINET
 
 ## RBAC and field ownership
 
-- Provider uses server-side apply with field manager "ainetops-sonic-provider"
+- Provider uses server-side apply with field manager "agentic-netops-sonic-provider"
 - ClusterRole scopes are minimal: events, Kubenet NetworkDevice/status, SDC Config/Target
 - Do not widen verbs without justification
 

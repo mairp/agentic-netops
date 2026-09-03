@@ -19,9 +19,9 @@ type EVPN struct {
 
 // IRB symmetric gateway parameters rendered under a bridge domain.
 type IRB struct {
-	VRF        string `json:"vrf"`
-	GatewayV4  string `json:"gatewayIPv4,omitempty"`
-	GatewayV6  string `json:"gatewayIPv6,omitempty"`
+	VRF       string `json:"vrf"`
+	GatewayV4 string `json:"gatewayIPv4,omitempty"`
+	GatewayV6 string `json:"gatewayIPv6,omitempty"`
 }
 
 // BridgeDomain rendered for VPLS/VPWS and IRB.
@@ -92,12 +92,12 @@ func Translate(in *ServiceInput) (*OutputBundle, error) {
 		"name":      name,
 		"namespace": "kubenet-system",
 		"annotations": map[string]string{
-			"ainetops.io/translator":          TranslatorName,
-			"ainetops.io/translator-version":  TranslatorVersion,
-			"ainetops.io/mapping-version":     MappingVersion,
-			"ainetops.io/migration-input-hash": hash,
-			"ainetops.io/tenant":              in.Tenant,
-			"ainetops.io/service-type":        string(in.Type),
+			"agentic-netops.io/translator":           TranslatorName,
+			"agentic-netops.io/translator-version":   TranslatorVersion,
+			"agentic-netops.io/mapping-version":      MappingVersion,
+			"agentic-netops.io/migration-input-hash": hash,
+			"agentic-netops.io/tenant":               in.Tenant,
+			"agentic-netops.io/service-type":         string(in.Type),
 		},
 	}
 
@@ -114,7 +114,7 @@ func Translate(in *ServiceInput) (*OutputBundle, error) {
 		spec.Attachments = attachmentsForL2(in.Endpoints)
 		if in.Type == ServiceVPWS {
 			ann := metadata["annotations"].(map[string]string)
-			ann["ainetops.io/limited-equivalence"] = "vpws-to-l2vni"
+			ann["agentic-netops.io/limited-equivalence"] = "vpws-to-l2vni"
 		}
 	case ServiceL3VPN:
 		r := Router{
@@ -177,13 +177,13 @@ func buildYAML(n *KubenetNetwork) string {
 	fmt.Fprintf(b, "  annotations:\n")
 	// stable annotation order
 	keys := []string{
-		"ainetops.io/translator",
-		"ainetops.io/translator-version",
-		"ainetops.io/mapping-version",
-		"ainetops.io/migration-input-hash",
-		"ainetops.io/tenant",
-		"ainetops.io/service-type",
-		"ainetops.io/limited-equivalence",
+		"agentic-netops.io/translator",
+		"agentic-netops.io/translator-version",
+		"agentic-netops.io/mapping-version",
+		"agentic-netops.io/migration-input-hash",
+		"agentic-netops.io/tenant",
+		"agentic-netops.io/service-type",
+		"agentic-netops.io/limited-equivalence",
 	}
 	for _, k := range keys {
 		if v, ok := anns[k]; ok {
@@ -197,8 +197,12 @@ func buildYAML(n *KubenetNetwork) string {
 		fmt.Fprintf(b, "  bridgeDomains:\n")
 		for _, bd := range n.Spec.BridgeDomains {
 			fmt.Fprintf(b, "  - name: %s\n", bd.Name)
-			if bd.VLAN != 0 { fmt.Fprintf(b, "    vlan: %d\n", bd.VLAN) }
-			if bd.L2VNI != 0 { fmt.Fprintf(b, "    l2vni: %d\n", bd.L2VNI) }
+			if bd.VLAN != 0 {
+				fmt.Fprintf(b, "    vlan: %d\n", bd.VLAN)
+			}
+			if bd.L2VNI != 0 {
+				fmt.Fprintf(b, "    l2vni: %d\n", bd.L2VNI)
+			}
 			if bd.EVPN != nil {
 				fmt.Fprintf(b, "    evpn:\n")
 				fmt.Fprintf(b, "      routeTargets:\n")
@@ -218,8 +222,12 @@ func buildYAML(n *KubenetNetwork) string {
 			if bd.IRB != nil {
 				fmt.Fprintf(b, "    irb:\n")
 				fmt.Fprintf(b, "      vrf: %s\n", bd.IRB.VRF)
-				if bd.IRB.GatewayV4 != "" { fmt.Fprintf(b, "      gatewayIPv4: %s\n", bd.IRB.GatewayV4) }
-				if bd.IRB.GatewayV6 != "" { fmt.Fprintf(b, "      gatewayIPv6: %s\n", bd.IRB.GatewayV6) }
+				if bd.IRB.GatewayV4 != "" {
+					fmt.Fprintf(b, "      gatewayIPv4: %s\n", bd.IRB.GatewayV4)
+				}
+				if bd.IRB.GatewayV6 != "" {
+					fmt.Fprintf(b, "      gatewayIPv6: %s\n", bd.IRB.GatewayV6)
+				}
 			}
 		}
 	}
@@ -242,10 +250,14 @@ func buildYAML(n *KubenetNetwork) string {
 					fmt.Fprintf(b, "      - \"%s\"\n", rt)
 				}
 			}
-			if r.L3VNI != 0 { fmt.Fprintf(b, "    l3vni: %d\n", r.L3VNI) }
+			if r.L3VNI != 0 {
+				fmt.Fprintf(b, "    l3vni: %d\n", r.L3VNI)
+			}
 			if len(r.Prefixes) > 0 {
 				fmt.Fprintf(b, "    prefixes:\n")
-				for _, p := range r.Prefixes { fmt.Fprintf(b, "    - %s\n", p) }
+				for _, p := range r.Prefixes {
+					fmt.Fprintf(b, "    - %s\n", p)
+				}
 			}
 		}
 	}
@@ -254,8 +266,12 @@ func buildYAML(n *KubenetNetwork) string {
 		fmt.Fprintf(b, "  attachments:\n")
 		for _, a := range n.Spec.Attachments {
 			fmt.Fprintf(b, "  - node: %s\n", a.Node)
-			if a.VLAN != 0 { fmt.Fprintf(b, "    vlan: %d\n", a.VLAN) }
-			if a.VRF != "" { fmt.Fprintf(b, "    vrf: %s\n", a.VRF) }
+			if a.VLAN != 0 {
+				fmt.Fprintf(b, "    vlan: %d\n", a.VLAN)
+			}
+			if a.VRF != "" {
+				fmt.Fprintf(b, "    vrf: %s\n", a.VRF)
+			}
 			fmt.Fprintf(b, "    attachment: %s\n", a.Attachment)
 		}
 	}
@@ -263,7 +279,9 @@ func buildYAML(n *KubenetNetwork) string {
 }
 
 func endpointVLAN(eps []Endpoint) int {
-	if len(eps) == 0 { return 0 }
+	if len(eps) == 0 {
+		return 0
+	}
 	return eps[0].VLAN
 }
 
@@ -285,7 +303,9 @@ func attachmentsForL3(eps []Endpoint, vrf string) []Attachment {
 
 func concatPrefixes(af *AddressFamilies) []string {
 	var out []string
-	if af == nil { return out }
+	if af == nil {
+		return out
+	}
 	out = append(out, af.IPv4Prefixes...)
 	out = append(out, af.IPv6Prefixes...)
 	return out

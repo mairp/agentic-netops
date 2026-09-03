@@ -96,7 +96,7 @@ var (
 	// SchemeBuilder registers SDC types.
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
 	// AddToScheme adds SDC types.
-	AddToScheme   = SchemeBuilder.AddToScheme
+	AddToScheme = SchemeBuilder.AddToScheme
 )
 
 func init() {
@@ -105,25 +105,33 @@ func init() {
 
 // DeepCopyObject implementations (manual, minimal) so these types satisfy runtime.Object.
 func (in *Config) DeepCopyObject() runtime.Object {
-	if in == nil { return nil }
+	if in == nil {
+		return nil
+	}
 	out := new(Config)
 	*out = *in
 	return out
 }
 func (in *ConfigList) DeepCopyObject() runtime.Object {
-	if in == nil { return nil }
+	if in == nil {
+		return nil
+	}
 	out := new(ConfigList)
 	*out = *in
 	return out
 }
 func (in *Target) DeepCopyObject() runtime.Object {
-	if in == nil { return nil }
+	if in == nil {
+		return nil
+	}
 	out := new(Target)
 	*out = *in
 	return out
 }
 func (in *TargetList) DeepCopyObject() runtime.Object {
-	if in == nil { return nil }
+	if in == nil {
+		return nil
+	}
 	out := new(TargetList)
 	*out = *in
 	return out

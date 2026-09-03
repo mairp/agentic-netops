@@ -10,7 +10,7 @@
 #                           the tier secret generator (SLIM gateway password,
 #                           TLS material) before any worker starts.
 # T182 intent::uninstall  — delete every tier workload, Service, ConfigMap,
-#                           Secret, Job, and PVC in ainetops-agents that the
+#                           Secret, Job, and PVC in agentic-netops-agents that the
 #                           install created, leaving no orphan workloads and
 #                           no claimed identifiers behind; the namespace and
 #                           its RBAC/NetworkPolicies (namespace-rbac.yaml)
@@ -28,19 +28,19 @@
 #
 # Sourced by scripts/provision.sh (`--with-intent-tier`) and
 # scripts/off.sh (`--purge-intent-tier`). Consumes the caller's exported
-# AINETOPS_CLUSTER_NAME; never sets -e for the caller beyond the functions.
+# AGENTIC_NETOPS_CLUSTER_NAME; never sets -e for the caller beyond the functions.
 
 # T184 — strict mode for this library (the caller's shell options are
 # restored by sourcing inside the caller's own `set -euo pipefail`).
 set -euo pipefail
 
-INTENT_TIER_NAMESPACE=${INTENT_TIER_NAMESPACE:-ainetops-agents}
+INTENT_TIER_NAMESPACE=${INTENT_TIER_NAMESPACE:-agentic-netops-agents}
 INTENT_TIER_TIMEOUT=${INTENT_TIER_TIMEOUT:-300s}
 INTENT_TIER_CTX=${INTENT_TIER_CTX:-}
 INTENT_TIER_ROOT=${INTENT_TIER_ROOT:-}
 
 intent::ctx() {
-  local cluster="${AINETOPS_CLUSTER_NAME:-ainetops}"
+  local cluster="${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
   echo "${INTENT_TIER_CTX:-kind-${cluster}}"
 }
 
@@ -76,10 +76,10 @@ intent::install() {
   # a registry (air-gapped lab friendly; best-effort — a preloaded node
   # image is fine too).
   if command -v kind >/dev/null 2>&1 && command -v docker >/dev/null 2>&1; then
-    local cluster="${AINETOPS_CLUSTER_NAME:-ainetops}"
-    for img in ainetops/intent-supervisor:latest ainetops/intent-mapper:latest \
-               ainetops/intent-allocator:latest ainetops/intent-deployer:latest \
-               ainetops/intent-translator:latest; do
+    local cluster="${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
+    for img in agentic-netops/intent-supervisor:latest agentic-netops/intent-mapper:latest \
+               agentic-netops/intent-allocator:latest agentic-netops/intent-deployer:latest \
+               agentic-netops/intent-translator:latest; do
       if docker image inspect "$img" >/dev/null 2>&1; then
         kind load docker-image "$img" --name "$cluster" >/dev/null 2>&1 \
           && intent::log "loaded $img" || intent::log "WARN: kind load failed for $img (pull will be attempted)"
@@ -120,7 +120,7 @@ intent::install() {
   intent::kubectl apply -f "$(intent::manifest ui.yaml)"
 
   # T339 — Mount the intent-tier dashboards into Grafana via a reversible patch
-  # We keep dashboards in the agents tree (ConfigMap grafana-dashboards-agents, namespace ainetops-agents)
+  # We keep dashboards in the agents tree (ConfigMap grafana-dashboards-agents, namespace agentic-netops-agents)
   # and mount them into the shared Grafana deployment in monitoring.
   if intent::kubectl -n monitoring get deploy grafana >/dev/null 2>&1; then
     intent::log "patching Grafana to mount intent-tier dashboards (T339)"

@@ -4,7 +4,7 @@ kind: Namespace
 metadata:
   name: monitoring
   labels:
-    app.kubernetes.io/part-of: ainetops
+    app.kubernetes.io/part-of: agentic-netops
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -38,10 +38,10 @@ data:
         - job_name: 'gnmic'
           scrape_interval: 15s
           static_configs:
-            - targets: ['gnmic.ainetops-system.svc.cluster.local:9273']
+            - targets: ['gnmic.agentic-netops-system.svc.cluster.local:9273']
         - job_name: 'otel-collector'
           static_configs:
-            - targets: ['otel-collector.ainetops-system.svc.cluster.local:9464']
+            - targets: ['otel-collector.agentic-netops-system.svc.cluster.local:9464']
         - job_name: 'controllers'
           kubernetes_sd_configs:
             - role: pod
@@ -82,18 +82,18 @@ data:
               annotations:
                 summary: OTel Collector target down
                 description: Prometheus cannot scrape the OTel Collector exporter.
-            - alert: AinetopsControllersDown
+            - alert: Agentic NetOpsControllersDown
               expr: sum by(pod) (up{job="controllers"}) == 0
               for: 2m
               labels: { severity: warning }
               annotations:
-                summary: AINETOPS controller target missing
+                summary: Agentic NetOps controller target missing
                 description: Prometheus scrape discovered no controller metrics endpoints.
-    ainetops.rules.yml: |
+    agentic-netops.rules.yml: |
       groups:
-        - name: ainetops.alerts.include
+        - name: agentic-netops.alerts.include
           rules:
-            - record: ainetops_constant_one
+            - record: agentic_netops_constant_one
               expr: 1
 ---
 apiVersion: apps/v1
@@ -103,7 +103,7 @@ metadata:
   namespace: monitoring
   labels:
     app.kubernetes.io/name: prometheus
-    ainetops.dev/component: observability
+    agentic-netops.dev/component: observability
 spec:
   replicas: 1
   selector:

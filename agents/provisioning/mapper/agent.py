@@ -106,6 +106,10 @@ _ENDPOINT_BETWEEN = re.compile(
 _ATTACHMENT_SPLIT = re.compile(r"\s+")
 _TENANT_RE = re.compile(r"tenant[:\s]+(?P<tenant>[a-z0-9-]+)", re.I)
 _VLAN_RE = re.compile(r"vlan[:\s#]*(?P<vlan>\d{1,4})", re.I)
+_ENDPOINT_TRAILING_CLAUSE_RE = re.compile(
+    r"\s+(?:for\s+tenant|tenant|with|using)\b.*$",
+    re.I,
+)
 
 
 class _MapState(MessagesState):
@@ -178,33 +182,33 @@ def _parse_endpoints(text: str) -> list[EndpointIntent]:
         return []
     left = m.group("left").strip()
     right = m.group("right").strip()
-    def _split(ep: str) -> tuple[str, str]:
-        parts = _ATTACHMENT_SPLIT.split(ep)
-        if len(parts) == 1:
-            return parts[0], ""
-        return " ".join(parts[:-1]).strip(), parts[-1].strip()
-    l_node, l_att = _split(left)
-    r_node, r_att = _split(right)
-    eps: list[EndpointIntent] = []
-    if l_node and l_att:
+    global_vlan = None
+    global_vlan_match = _VLAN_RE.search(text)
+    if global_vlan_match:
+        try:
+            global_vlan = int(global_vlan_match.group("vlan"))
+        except Exception:
+            global_vlan = None
+
+    def _endpoint(ep: str) -> EndpointIntent | None:
         vlan = None
-        v = _VLAN_RE.search(left)
+        v = _VLAN_RE.search(ep)
         if v:
             try:
                 vlan = int(v.group("vlan"))
             except Exception:
                 vlan = None
-        eps.append(EndpointIntent(site_or_node=l_node, attachment=l_att, vlan=vlan))
-    if r_node and r_att:
-        vlan = None
-        v = _VLAN_RE.search(right)
-        if v:
-            try:
-                vlan = int(v.group("vlan"))
-            except Exception:
-                vlan = None
-        eps.append(EndpointIntent(site_or_node=r_node, attachment=r_att, vlan=vlan))
-    return eps
+        if vlan is None:
+            vlan = global_vlan
+
+        clean = _ENDPOINT_TRAILING_CLAUSE_RE.sub("", ep)
+        clean = _VLAN_RE.sub("", clean).strip(" ,.;")
+        parts = [part for part in _ATTACHMENT_SPLIT.split(clean) if part]
+        if len(parts) < 2:
+            return None
+        return EndpointIntent(site_or_node=" ".join(parts[:-1]).strip(), attachment=parts[-1].strip(), vlan=vlan)
+
+    return [endpoint for endpoint in (_endpoint(left), _endpoint(right)) if endpoint is not None]
 
 
 def _detect_tenant(text: str) -> str | None:

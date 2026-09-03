@@ -4,7 +4,7 @@
 set -euo pipefail
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 ROOT=$(cd -- "${DIR}/../.." && pwd)
-KIND_CONTEXT="kind-${AINETOPS_CLUSTER_NAME:-ainetops}"
+KIND_CONTEXT="kind-${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
 
 command -v kubectl >/dev/null 2>&1 || { echo "missing kubectl" >&2; exit 1; }
 command -v awk >/dev/null 2>&1 || { echo "missing awk" >&2; exit 1; }

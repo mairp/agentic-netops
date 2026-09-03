@@ -1,7 +1,7 @@
 """AuditEvent (data-model.md §7) — the immutable audit record.
 
 Emitted for every confirmation, decline, submission, and refusal (FR-030),
-as both a span event and a Kubernetes ``Event`` in ``ainetops-intent``.
+as both a span event and a Kubernetes ``Event`` in ``agentic-netops-intent``.
 SC-006 reconciles the NDJSON stream against the resources actually present
 under the correlation-id label; the counts must be equal, and any resource
 without a matching ``confirm`` is a failure.

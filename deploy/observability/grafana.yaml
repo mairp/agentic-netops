@@ -4,7 +4,7 @@ kind: Namespace
 metadata:
   name: monitoring
   labels:
-    app.kubernetes.io/part-of: ainetops
+    app.kubernetes.io/part-of: agentic-netops
 ---
 # Secret grafana-admin is generated at runtime by deploy/observability/grafana-secret-generator-job.yaml
 # No static credentials are stored in Git.
@@ -28,8 +28,8 @@ metadata:
   labels:
     app.kubernetes.io/name: grafana
   annotations:
-    ainetops.dev/spec-version: "v1"
-    ainetops.dev/plugin.flow: "pinned"
+    agentic-netops.dev/spec-version: "v1"
+    agentic-netops.dev/plugin.flow: "pinned"
 data:
   datasources.yaml: |
     apiVersion: 1
@@ -42,9 +42,9 @@ data:
   dashboards.yaml: |
     apiVersion: 1
     providers:
-      - name: 'ainetops-dashboards'
+      - name: 'agentic-netops-dashboards'
         orgId: 1
-        folder: 'AINETOPS'
+        folder: 'Agentic NetOps'
         type: file
         disableDeletion: false
         editable: true
@@ -60,7 +60,7 @@ metadata:
     app.kubernetes.io/name: grafana
 data:
   fabric-overview.json: |
-    { "annotations": {"list": []}, "editable": true, "fiscalYearStartMonth": 0, "graphTooltip": 0, "panels": [], "schemaVersion": 39, "title": "AINETOPS Fabric Overview", "version": 1 }
+    { "annotations": {"list": []}, "editable": true, "fiscalYearStartMonth": 0, "graphTooltip": 0, "panels": [], "schemaVersion": 39, "title": "Agentic NetOps Fabric Overview", "version": 1 }
   physical-fabric.json: |
     {
       "annotations": {"list": []},
@@ -74,7 +74,7 @@ data:
         {"type": "stat", "title": "Link Status Up", "targets": [{"expr": "sum by(device,interface) (sonic_interface_oper_status{state='up'})"}]}
       ],
       "schemaVersion": 39,
-      "title": "AINETOPS Physical Fabric",
+      "title": "Agentic NetOps Physical Fabric",
       "version": 1
     }
   sdc-orchestration.json: |
@@ -86,15 +86,15 @@ data:
         {"type": "stat", "title": "SDC Targets Reachable", "targets": [{"expr": "sum(sdc_target_reachable)"}]},
         {"type": "graph", "title": "SDC Config Applies", "targets": [{"expr": "rate(sdc_config_apply_total[5m])"}]},
         {"type": "graph", "title": "SDC Deviations", "targets": [{"expr": "sum by(target) (sdc_deviation_total)"}]},
-        {"type": "stat", "title": "Provider Applies", "targets": [{"expr": "increase(ainetops_sonicprovider_applies_total[15m])"}]},
-        {"type": "graph", "title": "Provider Reconcile Errors", "targets": [{"expr": "increase(controller_runtime_reconcile_errors_total{controller='ainetops-sonic-provider'}[15m])"}]},
-        {"type": "graph", "title": "Provider Queue Depth", "targets": [{"expr": "ainetops_provider_queue_size"}]},
-        {"type": "graph", "title": "Provider Retries", "targets": [{"expr": "rate(ainetops_provider_retries_total[5m])"}]},
-        {"type": "graph", "title": "Provider Reconcile Latency (p95)", "targets": [{"expr": "histogram_quantile(0.95, sum(rate(ainetops_provider_reconcile_duration_seconds_bucket[5m])) by (le))"}]},
+        {"type": "stat", "title": "Provider Applies", "targets": [{"expr": "increase(agentic_netops_sonicprovider_applies_total[15m])"}]},
+        {"type": "graph", "title": "Provider Reconcile Errors", "targets": [{"expr": "increase(controller_runtime_reconcile_errors_total{controller='agentic-netops-sonic-provider'}[15m])"}]},
+        {"type": "graph", "title": "Provider Queue Depth", "targets": [{"expr": "agentic_netops_provider_queue_size"}]},
+        {"type": "graph", "title": "Provider Retries", "targets": [{"expr": "rate(agentic_netops_provider_retries_total[5m])"}]},
+        {"type": "graph", "title": "Provider Reconcile Latency (p95)", "targets": [{"expr": "histogram_quantile(0.95, sum(rate(agentic_netops_provider_reconcile_duration_seconds_bucket[5m])) by (le))"}]},
         {"type": "stat", "title": "EVPN Services Active", "targets": [{"expr": "evpn_services_active_count"}]}
       ],
       "schemaVersion": 39,
-      "title": "AINETOPS Orchestration",
+      "title": "Agentic NetOps Orchestration",
       "version": 1
     }
   srv6-service-path.json: |
@@ -104,11 +104,11 @@ data:
       "graphTooltip": 0,
       "panels": [
         {"type": "graph", "title": "SRv6 MySID Counters by Endpoint/Behavior", "targets": [{"expr": "sum by(endpoint,behavior,sid) (rate(sonic_srv6_mysid_packets_total[5m]))"}]},
-        {"type": "stat", "title": "Active Path State by Endpoint", "targets": [{"expr": "max by(path,endpoint) (ainetops_srv6_active_path{path=~'primary|alternate'})"}]},
+        {"type": "stat", "title": "Active Path State by Endpoint", "targets": [{"expr": "max by(path,endpoint) (agentic_netops_srv6_active_path{path=~'primary|alternate'})"}]},
         {"type": "graph", "title": "Path Utilization by Endpoint/Behavior", "targets": [{"expr": "sum by(path,endpoint,behavior) (rate(sonic_srv6_mysid_packets_total[5m]))"}]}
       ],
       "schemaVersion": 39,
-      "title": "AINETOPS SRv6 Service Path",
+      "title": "Agentic NetOps SRv6 Service Path",
       "version": 2
     }
   pipeline-health.json: |
@@ -126,7 +126,7 @@ data:
         {"type": "graph", "title": "Prometheus Up (Controllers)", "targets": [{"expr": "sum by(pod) (up{job='controllers'})"}]}
       ],
       "schemaVersion": 39,
-      "title": "AINETOPS Pipeline Health",
+      "title": "Agentic NetOps Pipeline Health",
       "version": 1
     }
 ---
@@ -137,7 +137,7 @@ metadata:
   namespace: monitoring
   labels:
     app.kubernetes.io/name: grafana
-    ainetops.dev/component: observability
+    agentic-netops.dev/component: observability
 spec:
   replicas: 1
   selector:

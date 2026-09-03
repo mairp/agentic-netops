@@ -1,4 +1,4 @@
-PASS  intent-deployer                                         can-i get secrets -n ainetops-system  -> no
+PASS  intent-deployer                                         can-i get secrets -n agentic-netops-system  -> no
 PASS  intent-deployer                                         can-i update networks -n kubenet-system  -> no
 PASS  intent-deployer                                         can-i create configs.config.sdcio.dev -A  -> no
 PASS  intent-deployer                                         can-i get targets.inv.sdcio.dev -A  -> no
@@ -7,11 +7,11 @@ PASS  intent-deployer                                         can-i update claim
 PASS  intent-deployer                                         can-i update ipclaims -n kuid-system  -> no
 PASS  intent-deployer                                         can-i update genidclaims -n kuid-system  -> no
 PASS  intent-deployer                                         can-i update asclaims -n kuid-system  -> no
-PASS  intent-deployer                                         can-i get networks -n ainetops-agents  -> no
-PASS  intent-deployer                                         can-i get secrets -n ainetops-agents  -> no
+PASS  intent-deployer                                         can-i get networks -n agentic-netops-agents  -> no
+PASS  intent-deployer                                         can-i get secrets -n agentic-netops-agents  -> no
 PASS  intent-deployer                                         can-i create namespaces  -> no
 PASS  intent-deployer                                         can-i create clusterroles  -> no
-PASS  intent-allocator                                        can-i get secrets -n ainetops-system  -> no
+PASS  intent-allocator                                        can-i get secrets -n agentic-netops-system  -> no
 PASS  intent-allocator                                        can-i update networks -n kubenet-system  -> no
 PASS  intent-allocator                                        can-i create configs.config.sdcio.dev -A  -> no
 PASS  intent-allocator                                        can-i get targets.inv.sdcio.dev -A  -> no
@@ -20,13 +20,13 @@ PASS  intent-allocator                                        can-i update claim
 PASS  intent-allocator                                        can-i update ipclaims -n kuid-system  -> no
 PASS  intent-allocator                                        can-i update genidclaims -n kuid-system  -> no
 PASS  intent-allocator                                        can-i update asclaims -n kuid-system  -> no
-PASS  intent-allocator                                        can-i get networks -n ainetops-agents  -> no
-PASS  intent-allocator                                        can-i get secrets -n ainetops-agents  -> no
+PASS  intent-allocator                                        can-i get networks -n agentic-netops-agents  -> no
+PASS  intent-allocator                                        can-i get secrets -n agentic-netops-agents  -> no
 PASS  intent-allocator                                        can-i create namespaces  -> no
 PASS  intent-allocator                                        can-i create clusterroles  -> no
-PASS  intent-deployer can-i create networks.network.kubenet.dev -n ainetops-intent  -> yes
-PASS  intent-deployer can-i create srv6services.ainetops.io -n ainetops-intent  -> yes
-PASS  intent-deployer can-i create events -n ainetops-intent  -> yes
+PASS  intent-deployer can-i create networks.network.kubenet.dev -n agentic-netops-intent  -> yes
+PASS  intent-deployer can-i create srv6services.agentic-netops.io -n agentic-netops-intent  -> yes
+PASS  intent-deployer can-i create events -n agentic-netops-intent  -> yes
 PASS  intent-allocator can-i create claims -n kuid-system  -> yes
 PASS  intent-allocator can-i delete claims -n kuid-system  -> yes
 

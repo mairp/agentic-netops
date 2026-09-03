@@ -8,7 +8,7 @@ def test_sc010_resource_lookup_query_filters_by_correlation_id():
     """Dashboard panel queries fabric resources by correlation id label (no timestamp join).
 
     Asserts the PromQL in deploy/agents/dashboards/intent-tier.json filters by
-    label_ainetops_io_correlation_id, which is stamped from the trace-derived
+    label_agentic_netops_io_correlation_id, which is stamped from the trace-derived
     correlation id (agents/common/telemetry.py, deployer/allocator stampers).
     """
     path = Path("deploy/agents/dashboards/intent-tier.json")
@@ -18,7 +18,7 @@ def test_sc010_resource_lookup_query_filters_by_correlation_id():
     table = next((p for p in panels if p.get("type") == "table" and "Fabric Resources" in p.get("title", "")), {})
     targets = table.get("targets", [])
     exprs = [t.get("expr", "") for t in targets]
-    assert any("label_ainetops_io_correlation_id" in e for e in exprs), "fabric panel must filter by correlation label"
+    assert any("label_agentic_netops_io_correlation_id" in e for e in exprs), "fabric panel must filter by correlation label"
 
 
 def test_no_timestamp_correlation_dashboard_link_uses_only_id():

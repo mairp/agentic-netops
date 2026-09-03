@@ -5,13 +5,17 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mairp/ainetops/pkg/model"
-	"github.com/mairp/ainetops/pkg/render"
-	"github.com/mairp/ainetops/pkg/sdc"
+	"github.com/mairp/agentic-netops/pkg/model"
+	"github.com/mairp/agentic-netops/pkg/render"
+	"github.com/mairp/agentic-netops/pkg/sdc"
 )
 
 func merge(m map[string]any, more ...map[string]any) map[string]any {
-	for _, mm := range more { for k, v := range mm { m[k] = v } }
+	for _, mm := range more {
+		for k, v := range mm {
+			m[k] = v
+		}
+	}
 	return m
 }
 
@@ -32,7 +36,9 @@ func TestEVPN_SRv6_RenderersAndRegister(t *testing.T) {
 		render.RenderSRPolicy(model.SRPolicy{Name: "policy1", Selector: "if:Ethernet1", SIDListRef: "spine-path"}),
 	)
 	reg, err := os.ReadFile(filepath.Join("..", "..", "pkg", "register", "oc_vs_sonic.yaml"))
-	if err != nil { t.Fatalf("read register: %v", err) }
+	if err != nil {
+		t.Fatalf("read register: %v", err)
+	}
 	if err := sdc.ValidateSpecAgainstRegister(m, reg); err != nil {
 		t.Fatalf("register validation failed: %v", err)
 	}

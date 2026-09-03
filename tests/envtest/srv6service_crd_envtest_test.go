@@ -9,11 +9,11 @@ import (
 	"testing"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
@@ -60,10 +60,10 @@ func TestSRv6ServiceCRD_Envtest(t *testing.T) {
 		t.Fatalf("dynamic client: %v", err)
 	}
 
-	gvr := schemaFor("ainetops.io", "v1alpha1", "srv6services")
+	gvr := schemaFor("agentic-netops.io", "v1alpha1", "srv6services")
 
 	// Positive sample
-	posYAML, err := os.ReadFile(filepath.Join("..", "..", "config", "samples", "ainetops_v1alpha1_srv6service.yaml"))
+	posYAML, err := os.ReadFile(filepath.Join("..", "..", "config", "samples", "agentic_netops_v1alpha1_srv6service.yaml"))
 	if err != nil {
 		t.Fatalf("read sample: %v", err)
 	}

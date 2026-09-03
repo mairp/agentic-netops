@@ -3,20 +3,20 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-KIND_CLUSTER_NAME=${AINETOPS_CLUSTER_NAME:-ainetops}
+KIND_CLUSTER_NAME=${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}
 KIND_CONTEXT="kind-${KIND_CLUSTER_NAME}"
 KIND_CONFIG="${ROOT_DIR}/config/kind/cluster.yaml"
-MGMT_NET=${AINETOPS_MGMT_NET:-ainetops-mgmt}
+MGMT_NET=${AGENTIC_NETOPS_MGMT_NET:-agentic-netops-mgmt}
 # The management subnet MUST be user-configured: containerlab assigns explicit
 # per-node mgmt IPs (172.31.0.x) and Docker rejects user-specified endpoint IPs
 # on auto-assigned subnets ("user specified IP address is supported only when
 # connecting to networks with user configured subnets"). It must also match the
-# mgmt.ipv4-subnet in lab/topology.clab.yml and the AINETOPS_MGMT_CIDR used by
+# mgmt.ipv4-subnet in lab/topology.clab.yml and the AGENTIC_NETOPS_MGMT_CIDR used by
 # the preflight overlap check (172.31.0.0/16).
-MGMT_SUBNET=${AINETOPS_MGMT_SUBNET:-172.31.0.0/16}
-LABEL_OWNER=${AINETOPS_OWNER_LABEL:-ainetops}
+MGMT_SUBNET=${AGENTIC_NETOPS_MGMT_SUBNET:-172.31.0.0/16}
+LABEL_OWNER=${AGENTIC_NETOPS_OWNER_LABEL:-agentic-netops}
 
-# Idempotent, subnet-correct ownership of the shared AINETOPS management network.
+# Idempotent, subnet-correct ownership of the shared Agentic NetOps management network.
 # Safe to call from every lifecycle phase; heals a pre-existing network that has
 # the wrong (auto-assigned) subnet as long as nothing is attached to it.
 kind::ensure_mgmt_network() {
@@ -36,7 +36,7 @@ kind::ensure_mgmt_network() {
       return 1
     fi
   fi
-  docker network create --label ainetops.owner="${LABEL_OWNER}" --subnet "${MGMT_SUBNET}" "${MGMT_NET}" >/dev/null
+  docker network create --label agentic-netops.owner="${LABEL_OWNER}" --subnet "${MGMT_SUBNET}" "${MGMT_NET}" >/dev/null
 }
 # Extract the pinned Kind node image from the `kind:` block. The value itself
 # contains a colon (registry/image@sha256:digest), so we must strip only the

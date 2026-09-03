@@ -106,7 +106,13 @@ async def _send(worker: str, card, text: str):
             transport = factory.create_transport(
                 DEFAULT_MESSAGE_TRANSPORT,
                 endpoint=TRANSPORT_SERVER_ENDPOINT,
-                name="devnet/provisioning/provision_graph",
+                # The SLIM client resolves worker topics against its own
+                # transport-local org/namespace, so this MUST stay in the
+                # same namespace the workers register under
+                # ("default/default/<topic>" — see provisioning/*/server.py),
+                # otherwise every publish fails route lookup ("no matching
+                # found") and the call times out into a None reply.
+                name="default/default/provision_graph",
             )
             client = await factory.create_client(
                 "A2A",

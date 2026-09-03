@@ -1,4 +1,4 @@
-# AINETOPS — an autonomous network demo
+# agentic-netops - Autonomous intent-to-fabric operations.
 
 This lab demonstrates a network that **runs itself**: you state intent in plain
 language, and the system decomposes it, allocates identifiers, programs the fabric,
@@ -43,8 +43,8 @@ where autonomy actually lives.
 ## 1. Bring it up
 
 ```bash
-cd /root/ainetops-demo
-./scripts/provision.sh --profile sonic-vs --cluster-name ainetops --with-intent-tier
+cd /root/agentic-netops
+./scripts/provision.sh --profile sonic-vs --cluster-name agentic-netops --with-intent-tier
 ```
 
 Read **[docs/DEPENDENCIES.md](docs/DEPENDENCIES.md)** first — two traps cost the most
@@ -69,7 +69,7 @@ grep -E '\[fabric-bgp\]' provision.log
 Open the chat UI at <http://localhost:30000>, or watch the tier reason:
 
 ```bash
-kubectl --context kind-ainetops -n ainetops-agents logs -f deploy/supervisor
+kubectl --context kind-agentic-netops -n agentic-netops-agents logs -f deploy/supervisor
 ```
 
 The supervisor classifies every request before acting. Try one of each class:
@@ -86,8 +86,8 @@ run unattended. It refuses rather than improvising.
 Watch desired state appear, then reality follow it:
 
 ```bash
-kubectl --context kind-ainetops get srv6services -A -w
-docker exec clab-ainetops-fabric-leaf01 vtysh -c 'show evpn vni'
+kubectl --context kind-agentic-netops get srv6services -A -w
+docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show evpn vni'
 ```
 
 `# Remote VTEPs = 1` is the signal that matters — it is non-zero only once the peer
@@ -166,18 +166,18 @@ what the system did, or to debug it.
 
 ```bash
 # underlay: every node Established, v4 and v6
-docker exec clab-ainetops-fabric-leaf01 vtysh -c 'show bgp summary'
+docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show bgp summary'
 
 # overlay data path, client to client across VXLAN
-docker exec clab-ainetops-fabric-client01 ping -c3 192.0.2.21
+docker exec clab-agentic-netops-fabric-client01 ping -c3 192.0.2.21
 
 # dual-stack underlay, leaf to leaf
-docker exec clab-ainetops-fabric-leaf01 ping -6 -c3 2001:db8:ff::22
+docker exec clab-agentic-netops-fabric-leaf01 ping -6 -c3 2001:db8:ff::22
 
 # read config over gNMI with the per-provision generated credentials
-U=$(kubectl --context kind-ainetops -n ainetops-system get secret gnmi-lab-creds \
+U=$(kubectl --context kind-agentic-netops -n agentic-netops-system get secret gnmi-lab-creds \
       -o jsonpath='{.data.username}' | base64 -d)
-P=$(kubectl --context kind-ainetops -n ainetops-system get secret gnmi-lab-creds \
+P=$(kubectl --context kind-agentic-netops -n agentic-netops-system get secret gnmi-lab-creds \
       -o jsonpath='{.data.password}' | base64 -d)
 gnmic --address 172.31.0.11:8080 --username "$U" --password "$P" \
       --tls-ca ./secrets/ca.crt --tls-cert ./secrets/gnmi.crt --tls-key ./secrets/gnmi.key \
@@ -188,10 +188,9 @@ Credentials are generated per provision — never hard-code `admin/admin`.
 
 ## What the tier deliberately cannot do
 
-The intent tier holds **no device sessions and cannot acquire one** (FR-016/FR-029). It
-only ever writes Kubernetes resources; controllers do all southbound work. Feature 001
-replaced a proprietary southbound with an open Kubernetes-native one, and 002 restores
-only the northbound intent layer. An agent that could reach a device directly would
+The intent tier holds **no device sessions and cannot acquire one**. It
+only ever writes Kubernetes resources; controllers do all southbound work.
+An agent that could reach a device directly would
 bypass every reconcile guarantee above.
 
 `LLM_MODEL` is empty in the committed manifest and materialized at provision time — the
@@ -204,15 +203,15 @@ Real, reproduced, documented rather than hidden:
 
 - **EVPN Type-5 routes are not originated.** The pinned `sonic-vs` FRR 10.5.4 build
   drops the `vni` line from the VRF stanza and never adopts the L3VNI. Type-2/Type-3
-  work, including the bridged data path. `AINETOPS_WAIVE_TYPE5_ORIGINATION=1` continues
+  work, including the bridged data path. `AGENTIC_NETOPS_WAIVE_TYPE5_ORIGINATION=1` continues
   with the gap recorded — `docs/FABRIC_BGP_EVPN_DEFERRED.md` D-A2.
 - **`vlanmgrd` can crash on startup** (AddressSanitizer), leaving a leaf with no overlay
-  devices. `AINETOPS_WAIVE_L2VNI_ADOPTION=1` continues with the defect reported — D-A3.
-- **SRv6 conformance (SC-013/SC-014) needs the `sonic-vm` profile**, which requires an
+  devices. `AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1` continues with the defect reported — D-A3.
+- **SRv6 conformance needs the `sonic-vm` profile**, which requires an
   operator-built vrnetlab image *and* a `lab/profiles/sonic-vm/bootstrap/` directory
   that does not exist yet.
 - **Two pinned images have no local build step** (`grafana/flow-plugin`,
-  `ghcr.io/ainetops/topology-generator`); `deployment/ui` ends in `ImagePullBackOff`.
+  `ghcr.io/agentic-netops/topology-generator`); `deployment/ui` ends in `ImagePullBackOff`.
 - **`docs/INTENT_TIER_OPS_READINESS.md` holds resource figures that were never
   measured.** Re-measure before relying on them.
 

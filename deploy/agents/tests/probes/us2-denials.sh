@@ -9,11 +9,11 @@
 #       all: no networks, no events, no secrets (their ServiceAccounts
 #       are automountServiceAccountToken: false — they hold no token);
 #     intent-allocator -> claim-only: no networks, no events in
-#       ainetops-intent;
+#       agentic-netops-intent;
 #     intent-deployer  -> scoped writer: no secrets/pods, nothing outside
-#       ainetops-intent.
+#       agentic-netops-intent.
 #   positive controls (must answer "yes"): the deployer IS the writer
-#     identity for networks + events in ainetops-intent (FR-019's
+#     identity for networks + events in agentic-netops-intent (FR-019's
 #     submission path).
 #
 # Precondition: deploy/agents/namespace-rbac.yaml applied; caller holds
@@ -27,8 +27,8 @@ set -euo pipefail
 CTX="${1:-}"
 K() { if [[ -n "$CTX" ]]; then kubectl --context "$CTX" "$@"; else kubectl "$@"; fi; }
 
-NS_AGENTS=ainetops-agents
-NS_INTENT=ainetops-intent
+NS_AGENTS=agentic-netops-agents
+NS_INTENT=agentic-netops-intent
 SA_SUP="system:serviceaccount:${NS_AGENTS}:intent-supervisor"
 SA_MAP="system:serviceaccount:${NS_AGENTS}:intent-mapper"
 SA_UI="system:serviceaccount:${NS_AGENTS}:intent-ui"
@@ -80,7 +80,7 @@ done
 # The allocator is claim-only: it cannot write intent resources or events.
 can_i_expect "$SA_ALC" no create networks -n "$NS_INTENT"
 can_i_expect "$SA_ALC" no create events   -n "$NS_INTENT"
-# The deployer is scoped: nothing outside ainetops-intent, no secrets/pods.
+# The deployer is scoped: nothing outside agentic-netops-intent, no secrets/pods.
 can_i_expect "$SA_DEP" no create networks -n "$NS_AGENTS"
 can_i_expect "$SA_DEP" no create networks -n default
 can_i_expect "$SA_DEP" no create secrets  -n "$NS_INTENT"

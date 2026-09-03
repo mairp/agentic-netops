@@ -3,7 +3,7 @@
   "uid": "intent-tier",
   "version": 1,
   "schemaVersion": 39,
-  "tags": ["ainetops", "intent"],
+  "tags": ["agentic-netops", "intent"],
   "timezone": "browser",
   "panels": [
     {
@@ -14,7 +14,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(ainetops_agent_stage_requests_total{stage=\"supervisor\"})",
+          "expr": "sum(agentic_netops_agent_stage_requests_total{stage=\"supervisor\"})",
           "legendFormat": "requests"
         }
       ],
@@ -26,8 +26,8 @@
       "id": 2,
       "gridPos": {"h": 8, "w": 12, "x": 6, "y": 0},
       "targets": [
-        {"refId": "A", "expr": "sum by(stage) (rate(ainetops_agent_stage_success_total[5m]))"},
-        {"refId": "B", "expr": "sum by(stage) (rate(ainetops_agent_stage_failures_total[5m]))"}
+        {"refId": "A", "expr": "sum by(stage) (rate(agentic_netops_agent_stage_success_total[5m]))"},
+        {"refId": "B", "expr": "sum by(stage) (rate(agentic_netops_agent_stage_failures_total[5m]))"}
       ]
     },
     {
@@ -36,7 +36,7 @@
       "id": 3,
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
       "targets": [
-        {"refId": "A", "expr": "histogram_quantile(0.95, sum by(le, stage) (rate(ainetops_agent_stage_latency_seconds_bucket[5m])))", "legendFormat": "p95 {{stage}}"}
+        {"refId": "A", "expr": "histogram_quantile(0.95, sum by(le, stage) (rate(agentic_netops_agent_stage_latency_seconds_bucket[5m])))", "legendFormat": "p95 {{stage}}"}
       ]
     },
     {
@@ -50,7 +50,7 @@
       "links": [
         {
           "title": "Open Conversation",
-          "url": "http://ui.ainetops-agents.svc:3000/?correlation_id=${__data.fields.correlation_id}",
+          "url": "http://ui.agentic-netops-agents.svc:3000/?correlation_id=${__data.fields.correlation_id}",
           "targetBlank": true
         }
       ],
@@ -58,7 +58,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "ainetops_fabric_resources{label_ainetops_io_correlation_id=~\"$correlation_id\"}",
+          "expr": "agentic_netops_fabric_resources{label_agentic_netops_io_correlation_id=~\"$correlation_id\"}",
           "legendFormat": "{{kind}}/{{name}}"
         }
       ]

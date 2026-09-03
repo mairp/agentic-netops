@@ -1,4 +1,4 @@
-module github.com/mairp/ainetops
+module github.com/mairp/agentic-netops
 
 go 1.22
 

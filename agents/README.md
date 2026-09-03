@@ -1,4 +1,4 @@
-# AGNTCY intent tier — Python agent code (feature 002)
+# AGNTCY intent tier — Python agent code
 
 The multi-agent intent tier: a conversational LangGraph supervisor orchestrating
 three specialist workers (mapper, allocator, deployer) over A2A carried on the
@@ -9,7 +9,7 @@ are `common/`, `config/`, `provisioning/`, and `supervisors/` (tests in
 
 ```text
 agents/
-├── pyproject.toml            # pins: research.md Decision 1 (fidelity contract)
+├── pyproject.toml            # exact upstream version pins (the fidelity contract)
 ├── uv.lock                   # CI installs from this lockfile (uv sync --frozen)
 ├── common/                   # schemas, exceptions (incl. AuthError), LLM, transport
 ├── config/                   # transport config: SLIM, endpoints, env-derived settings
@@ -22,35 +22,32 @@ agents/
 └── tests/                    # pytest suite
 ```
 
-## The subject tree is a read-only reference
+## Provenance: the reference tree is read-only
 
-The subject project (`/root/AI-NETWORK-SERVICES-DEVNET-2606`, the
-`AI-NETWORK-SERVICES-DEVNET-2606` devnet) is the byte-for-byte reference for
-this tier's layout and behavior. It is **read-only**:
+This tier reproduces the layout and behavior of the upstream reference
+implementation it was extracted from. That reference tree is **read-only**:
 
 - Copy behavior and structure, never vendor its proprietary southbound code
-  (the Cisco CNC connector, RESTCONF clients, vendor NEDs). Feature 001
+  (the Cisco CNC connector, RESTCONF clients, vendor NEDs). This repository
   deliberately replaced that southbound with an open Kubernetes-native fabric,
   and this tier restores only the *northbound intent tier* — it has no device
-  sessions and is provably unable to acquire one (FR-016/FR-029).
-- Do not modify the subject tree; record any divergence from it in this
-  feature's `specs/002-agntcy-intent-tier/` artifacts instead.
+  sessions and is provably unable to acquire one.
+- Do not modify the reference tree; record any divergence from it in the
+  documentation of this tier instead.
 
-## The three REVERSE.md corrections (binding)
+## The three transport corrections (binding)
 
-`REVERSE.md` documents where the subject's README lies. This repository
-follows the code, not the README, in exactly three places — do not "fix"
-these back to the README values:
+The upstream reference's documentation is wrong in exactly three places; this
+repository follows the code, not that documentation — do not "fix" these back:
 
 1. **The SLIM transport port is `46357`, not `:7080`.** Nothing listens on
    `:7080`; the gateway's data plane is on `46357` (controller port `46358`,
-   not exposed). `README.md:236` in the subject is wrong (Finding 1).
+   not exposed).
 2. **The variable is `TRANSPORT_SERVER_ENDPOINT`, not `TRANSPORT_ENDPOINT`.**
-   Nothing in the subject reads the short name; use the long form everywhere
-   (`config/config.py:8` in the subject).
+   Nothing reads the short name; use the long form everywhere.
 3. **The browser transport is an NDJSON stream over `POST /agent/prompt/stream`
-   — there is no WebSocket route.** The subject's README advertises
-   `ws://localhost:9090/ws/provision` (Finding 2); the code streams
+   — there is no WebSocket route.** Any documentation advertising
+   `ws://localhost:9090/ws/provision` is wrong; the code streams
    `application/x-ndjson`. No WebSocket client or route exists or may be
    added in this repository.
 
@@ -58,7 +55,7 @@ these back to the README values:
 
 Translation from the normalized service-intent contract to fabric resources
 exists in **exactly one implementation: Go, in `pkg/migration`** (this
-repository). The Python agents never reimplement translation logic (FR-011):
+repository). The Python agents never reimplement translation logic:
 
 - The Go sidecar `cmd/intent-translator` (built by
   `docker/Dockerfile.intent-translator`) is a thin HTTP wrapper over
@@ -73,12 +70,12 @@ repository). The Python agents never reimplement translation logic (FR-011):
 
 ## Pins and build
 
-- `pyproject.toml` pins the subject's stack at its pinned versions
+- `pyproject.toml` pins the reference stack at its pinned versions
   (`agntcy-app-sdk==0.4.5`, `a2a-sdk==0.3.0`, `agntcy-identity-service-sdk==0.0.7`,
   `litellm[proxy]==1.75.3`, `ioa-observe-sdk==1.0.24`, `langgraph>=0.4.1`,
   `langgraph-supervisor`, `langchain-litellm>=0.3.0`, `langgraph-checkpoint-sqlite`,
   `pydantic>=2.11.4`, FastAPI/uvicorn/starlette) on
-  `requires-python = ">=3.13,<4.0"` — research.md Decision 1. Do not upgrade
+  `requires-python = ">=3.13,<4.0"`. Do not upgrade
   exact-pinned packages without a recorded decision.
 - Container base images are pinned by digest under `intent_tier:` in
   `versions.lock.yaml`; the Dockerfiles in `docker/` use those digests.

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# AINETOPS SONiC EVPN/VXLAN Fabric — shutdown/cleanup script (Phase 8)
+# Agentic NetOps SONiC EVPN/VXLAN Fabric — shutdown/cleanup script (Phase 8)
 # Sole implementation of environment teardown per contracts/crd-api.md
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 LIB_DIR="${SCRIPT_DIR}/lib"
 
 # Flags
-AINETOPS_CLUSTER_NAME=${AINETOPS_CLUSTER_NAME:-ainetops}
-DELETE_KIND=${AINETOPS_DELETE_KIND:-false}
-CAPTURE_EVIDENCE=${AINETOPS_CAPTURE_EVIDENCE:-false}
+AGENTIC_NETOPS_CLUSTER_NAME=${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}
+DELETE_KIND=${AGENTIC_NETOPS_DELETE_KIND:-false}
+CAPTURE_EVIDENCE=${AGENTIC_NETOPS_CAPTURE_EVIDENCE:-false}
 
 usage() {
   cat <<EOF
@@ -19,11 +19,11 @@ EOF
 }
 
 # Flags
-PURGE_INTENT_TIER=${AINETOPS_PURGE_INTENT_TIER:-false}
+PURGE_INTENT_TIER=${AGENTIC_NETOPS_PURGE_INTENT_TIER:-false}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --cluster-name) shift; AINETOPS_CLUSTER_NAME=${1:-$AINETOPS_CLUSTER_NAME} ;;
+    --cluster-name) shift; AGENTIC_NETOPS_CLUSTER_NAME=${1:-$AGENTIC_NETOPS_CLUSTER_NAME} ;;
     --delete-kind) shift; DELETE_KIND=${1:-$DELETE_KIND} ;;
     --capture-evidence) shift; CAPTURE_EVIDENCE=${1:-$CAPTURE_EVIDENCE} ;;
     --purge-intent-tier) PURGE_INTENT_TIER=true ;;
@@ -32,7 +32,7 @@ while [[ $# -gt 0 ]]; do
   esac
   shift || true
 done
-export AINETOPS_CLUSTER_NAME
+export AGENTIC_NETOPS_CLUSTER_NAME
 
 # T187/T188 — optional intent-tier teardown. ONLY with --purge-intent-tier:
 # the DEFAULT teardown behavior below is untouched (the flag is additive, so
@@ -45,10 +45,10 @@ fi
 
 # Optional evidence capture
 if [[ "$CAPTURE_EVIDENCE" == "true" ]]; then
-  proofs="${SCRIPT_DIR}/../.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+  proofs="${SCRIPT_DIR}/../.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
   mkdir -p "$proofs"
   if command -v kubectl >/dev/null 2>&1; then
-    CTX="kind-${AINETOPS_CLUSTER_NAME}"
+    CTX="kind-${AGENTIC_NETOPS_CLUSTER_NAME}"
     kubectl --context "$CTX" get pods -A -o wide | nl -ba > "$proofs/kubectl-get-all-before-off.txt" || true
     kubectl --context "$CTX" get crds | nl -ba > "$proofs/kubectl-get-crds-before-off.txt" || true
   fi
@@ -77,12 +77,12 @@ fi
 
 # Cleanup owned network and generated Secrets (safe, scoped)
 if command -v docker >/dev/null 2>&1; then
-  if docker network inspect ainetops-mgmt >/dev/null 2>&1; then
+  if docker network inspect agentic-netops-mgmt >/dev/null 2>&1; then
     # Do not remove if foreign label
-    if docker network inspect ainetops-mgmt -f '{{json .Labels}}' | grep -q '"ainetops.owner":"ainetops"'; then
-      docker network rm ainetops-mgmt >/dev/null 2>&1 || true
+    if docker network inspect agentic-netops-mgmt -f '{{json .Labels}}' | grep -q '"agentic-netops.owner":"agentic-netops"'; then
+      docker network rm agentic-netops-mgmt >/dev/null 2>&1 || true
     else
-      echo "[off] preserving non-owned network ainetops-mgmt" >&2
+      echo "[off] preserving non-owned network agentic-netops-mgmt" >&2
     fi
   fi
 fi

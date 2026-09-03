@@ -8,7 +8,7 @@
 set -u
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
 mkdir -p "$PROOFS_DIR"
 SUMMARY="$PROOFS_DIR/tests.summary.txt"
 : > "$SUMMARY"

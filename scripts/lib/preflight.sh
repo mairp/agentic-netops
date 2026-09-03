@@ -21,9 +21,9 @@ preflight::check_versions_lock() {
 
 preflight::host_resources() {
   # Minimal CPU/RAM/disk checks; allow override via env for CI
-  local min_cpu=${AINETOPS_MIN_CPU:-4}
-  local min_mem_mb=${AINETOPS_MIN_MEM_MB:-8192}
-  local min_disk_mb=${AINETOPS_MIN_DISK_MB:-20480}
+  local min_cpu=${AGENTIC_NETOPS_MIN_CPU:-4}
+  local min_mem_mb=${AGENTIC_NETOPS_MIN_MEM_MB:-8192}
+  local min_disk_mb=${AGENTIC_NETOPS_MIN_DISK_MB:-20480}
   # Best-effort checks; platform-specific commands may vary
   local cores mem_kb avail_kb
   cores=$(getconf _NPROCESSORS_ONLN || echo 1)
@@ -36,19 +36,19 @@ preflight::host_resources() {
 
 # Phase 10 — additional headroom checks when installing the intent tier.
 # When provision.sh is invoked with --with-intent-tier it exports
-# AINETOPS_WITH_INTENT_TIER=true; enforce extra CPU/memory/storage headroom
+# AGENTIC_NETOPS_WITH_INTENT_TIER=true; enforce extra CPU/memory/storage headroom
 # so tier pods do not evict or starve feature-001 workloads (NFR-007).
 preflight::intent_tier_headroom() {
-  local with="${AINETOPS_WITH_INTENT_TIER:-false}"
+  local with="${AGENTIC_NETOPS_WITH_INTENT_TIER:-false}"
   if [[ "$with" != "true" ]]; then
     return 0
   fi
-  local base_cpu=${AINETOPS_MIN_CPU:-4}
-  local base_mem_mb=${AINETOPS_MIN_MEM_MB:-8192}
-  local base_disk_mb=${AINETOPS_MIN_DISK_MB:-20480}
-  local add_cpu=${AINETOPS_INTENT_TIER_CPU_HEADROOM_CORES:-2}
-  local add_mem_mb=${AINETOPS_INTENT_TIER_MEM_HEADROOM_MB:-4096}
-  local add_pvc_mb=${AINETOPS_INTENT_TIER_PVC_TOTAL_MB:-6144}
+  local base_cpu=${AGENTIC_NETOPS_MIN_CPU:-4}
+  local base_mem_mb=${AGENTIC_NETOPS_MIN_MEM_MB:-8192}
+  local base_disk_mb=${AGENTIC_NETOPS_MIN_DISK_MB:-20480}
+  local add_cpu=${AGENTIC_NETOPS_INTENT_TIER_CPU_HEADROOM_CORES:-2}
+  local add_mem_mb=${AGENTIC_NETOPS_INTENT_TIER_MEM_HEADROOM_MB:-4096}
+  local add_pvc_mb=${AGENTIC_NETOPS_INTENT_TIER_PVC_TOTAL_MB:-6144}
   local req_cpu=$(( base_cpu + add_cpu ))
   local req_mem_mb=$(( base_mem_mb + add_mem_mb ))
   local req_disk_mb=$(( base_disk_mb + add_pvc_mb ))
@@ -94,9 +94,9 @@ preflight::ranges_overlap() {
 
 preflight::address_conflicts() {
   # Ensure management network CIDR does not overlap pod/service CIDRs
-  local mgmt_cidr=${AINETOPS_MGMT_CIDR:-172.31.0.0/16}
-  local pod_cidr=${AINETOPS_POD_CIDR:-10.244.0.0/16}
-  local svc_cidr=${AINETOPS_SERVICE_CIDR:-10.96.0.0/12}
+  local mgmt_cidr=${AGENTIC_NETOPS_MGMT_CIDR:-172.31.0.0/16}
+  local pod_cidr=${AGENTIC_NETOPS_POD_CIDR:-10.244.0.0/16}
+  local svc_cidr=${AGENTIC_NETOPS_SERVICE_CIDR:-10.96.0.0/12}
   read -r m1 m2 < <(preflight::cidr_range "$mgmt_cidr")
   read -r p1 p2 < <(preflight::cidr_range "$pod_cidr")
   read -r s1 s2 < <(preflight::cidr_range "$svc_cidr")
@@ -116,7 +116,7 @@ preflight::mtu() {
 }
 
 preflight::kvm_check() {
-  local profile=${AINETOPS_PROFILE:-sonic-vs}
+  local profile=${AGENTIC_NETOPS_PROFILE:-sonic-vs}
   if [[ "$profile" == "sonic-vm" ]]; then
     # Require KVM when sonic-vm profile selected
     [[ -e /dev/kvm ]] || preflight::die "/dev/kvm not present for sonic-vm profile"
@@ -137,7 +137,7 @@ preflight::yaml_value() {
 
 preflight::tool_versions() {
   # Verify host tool versions match pins in versions.lock.yaml
-  local soft=${AINETOPS_SOFT_TOOLCHECK:-false}
+  local soft=${AGENTIC_NETOPS_SOFT_TOOLCHECK:-false}
 
   # In soft mode, warn instead of die on missing tools or version mismatches (CI/minimal env)
   local tools=(kind kubectl helm containerlab jq curl)

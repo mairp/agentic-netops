@@ -5,7 +5,7 @@ set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 LOCK_FILE="${ROOT_DIR}/versions.lock.yaml"
-SOFT_MODE=${AINETOPS_SOFT_TOOLCHECK:-false}
+SOFT_MODE=${AGENTIC_NETOPS_SOFT_TOOLCHECK:-false}
 
 require() { command -v "$1" >/dev/null 2>&1 || { echo "missing command: $1" >&2; return 1; }; }
 soft_warn() { echo "[validate-crds] WARN: $*" >&2; }

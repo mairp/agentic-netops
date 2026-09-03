@@ -11,14 +11,14 @@ var semverRe = regexp.MustCompile(`^v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$`)
 // FromAnnotations extracts a compatibility Set from labels/annotations maps.
 func FromAnnotations(ann map[string]string) Set {
 	set := Set{
-		SonicImage:        ann["ainetops.dev/sonic-image"],
-		OpenConfigCommit:  ann["ainetops.dev/openconfig-commit"],
-		SonicNativeCommit: ann["ainetops.dev/sonic-native-commit"],
-		MappingVersion:    ann["ainetops.dev/mapping-version"],
+		SonicImage:        ann["agentic-netops.dev/sonic-image"],
+		OpenConfigCommit:  ann["agentic-netops.dev/openconfig-commit"],
+		SonicNativeCommit: ann["agentic-netops.dev/sonic-native-commit"],
+		MappingVersion:    ann["agentic-netops.dev/mapping-version"],
 		UpstreamAPIVersions: map[string]string{
-			"kubenet": ann["ainetops.dev/kubenet-commit"],
-			"kuid":    ann["ainetops.dev/kuid-commit"],
-			"sdc":     ann["ainetops.dev/sdc-release"],
+			"kubenet": ann["agentic-netops.dev/kubenet-commit"],
+			"kuid":    ann["agentic-netops.dev/kuid-commit"],
+			"sdc":     ann["agentic-netops.dev/sdc-release"],
 		},
 	}
 	return set
@@ -40,10 +40,10 @@ func ValidatePins(set Set) error {
 
 // ValidateContracts ensures that pinned telemetry/topology label contracts are present.
 func ValidateContracts(labels map[string]string) error {
-	if labels["ainetops.dev/topology-label-contract"] == "" {
+	if labels["agentic-netops.dev/topology-label-contract"] == "" {
 		return &ValidationError{Reason: "SchemaMismatch", Message: "missing topology label contract pin"}
 	}
-	if labels["ainetops.dev/telemetry-label-contract"] == "" {
+	if labels["agentic-netops.dev/telemetry-label-contract"] == "" {
 		return &ValidationError{Reason: "SchemaMismatch", Message: "missing telemetry label contract pin"}
 	}
 	return nil

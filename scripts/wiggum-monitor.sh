@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-WORKDIR=${1:-/root/ainetops-demo}
+WORKDIR=${1:-/root/agentic-netops}
 INTERVAL=${INTERVAL:-15}
 LOGDIR="$WORKDIR/logs"
 MONLOG="$LOGDIR/wiggum-monitor.log"

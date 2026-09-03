@@ -8,7 +8,7 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-REPORT_DIR="${ROOT_DIR}/.wiggum/features/001-ainetops-sonic-evpn-fabric/gates/proofs"
+REPORT_DIR="${ROOT_DIR}/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
 mkdir -p "$REPORT_DIR"
 
 fail=0

@@ -113,12 +113,12 @@ func TestPinnedSonicImagePresent(t *testing.T) {
 	}
 	if !strings.Contains(string(out), digest) {
 		// In constrained CI environments, the pinned SONiC image may not be
-		// preloaded. Allow an opt-out via AINETOPS_ENFORCE_SONIC_IMAGE=1 to keep
+		// preloaded. Allow an opt-out via AGENTIC_NETOPS_ENFORCE_SONIC_IMAGE=1 to keep
 		// strict local enforcement while avoiding false negatives in CI.
-		if os.Getenv("AINETOPS_ENFORCE_SONIC_IMAGE") == "1" {
+		if os.Getenv("AGENTIC_NETOPS_ENFORCE_SONIC_IMAGE") == "1" {
 			t.Errorf("pinned SONiC image %s is not loaded on this host", digest)
 		} else {
-			t.Skipf("pinned SONiC image %s not present; skipping strict host-image check (set AINETOPS_ENFORCE_SONIC_IMAGE=1 to enforce)", digest)
+			t.Skipf("pinned SONiC image %s not present; skipping strict host-image check (set AGENTIC_NETOPS_ENFORCE_SONIC_IMAGE=1 to enforce)", digest)
 		}
 	}
 }

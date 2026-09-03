@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mairp/ainetops/pkg/migration"
+	"github.com/mairp/agentic-netops/pkg/migration"
 )
 
 func TestReject_MissingEndpoints_VPLS(t *testing.T) {

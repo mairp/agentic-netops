@@ -16,7 +16,7 @@ testautomation/*/generated/
 secrets/
 *.key
 *.pem
-lab/clab-ainetops-fabric/.tls/
+lab/clab-agentic-netops-fabric/.tls/
 
 # Wiggum harness working state -- not source. Holds a vendored toolchain
 # (features/*/tools, ~30k files), build-gnmi sources, gate evidence, verdicts,
@@ -24,7 +24,7 @@ lab/clab-ainetops-fabric/.tls/
 # the platform.
 .wiggum/
 # containerlab runtime state (topology data, node keys) -- regenerated per lab
-lab/clab-ainetops-fabric/
+lab/clab-agentic-netops-fabric/
 
 # Python build artifacts (the 002 merge carried 52 .pyc files in)
 __pycache__/

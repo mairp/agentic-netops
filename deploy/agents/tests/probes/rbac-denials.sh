@@ -2,8 +2,8 @@
 # T055 / SC-005: assert EVERY denial listed in
 # specs/002-agntcy-intent-tier/contracts/kubernetes-objects.md ("Identity
 # contract" table) for BOTH cluster API identities of the tier:
-#   system:serviceaccount:ainetops-agents:intent-deployer
-#   system:serviceaccount:ainetops-agents:intent-allocator
+#   system:serviceaccount:agentic-netops-agents:intent-deployer
+#   system:serviceaccount:agentic-netops-agents:intent-allocator
 #
 # Each row of the contract table is one (identity, verb, resource, scope) check;
 # every one must answer "no". The FR-016 guardrail is structural — the identity
@@ -12,7 +12,7 @@
 # Precondition: the RBAC from deploy/agents/namespace-rbac.yaml is applied to the
 # target cluster (kubectl apply -f deploy/agents/namespace-rbac.yaml), the
 # feature-001 resource types the tier writes are served (deploy/kubenet/crds/
-# kubenet-crds.yaml for networks.network.kubenet.dev; srv6services.ainetops.io
+# kubenet-crds.yaml for networks.network.kubenet.dev; srv6services.agentic-netops.io
 # ships with the 001 control plane), and the caller holds cluster-admin
 # (needed for --as impersonation; the probes assert on the TARGET identities,
 # not on the caller).
@@ -26,7 +26,7 @@ set -euo pipefail
 CTX="${1:-}"
 K() { if [[ -n "$CTX" ]]; then kubectl --context "$CTX" "$@"; else kubectl "$@"; fi; }
 
-NS_AGENTS=ainetops-agents
+NS_AGENTS=agentic-netops-agents
 IDENTITIES=(
   "system:serviceaccount:${NS_AGENTS}:intent-deployer"
   "system:serviceaccount:${NS_AGENTS}:intent-allocator"
@@ -56,8 +56,8 @@ can_i_must_be_no() {
 for id in "${IDENTITIES[@]}"; do
   # --- contract table, verbatim (contracts/kubernetes-objects.md) -----------
   # no Role grants secrets anywhere
-  can_i_must_be_no "$id" get secrets -n ainetops-system
-  # intent-writer is namespaced to ainetops-intent, not kubenet-system
+  can_i_must_be_no "$id" get secrets -n agentic-netops-system
+  # intent-writer is namespaced to agentic-netops-intent, not kubenet-system
   can_i_must_be_no "$id" update networks -n kubenet-system
   # no rule mentions the SDC groups
   can_i_must_be_no "$id" create configs.config.sdcio.dev -A
@@ -73,15 +73,15 @@ for id in "${IDENTITIES[@]}"; do
   can_i_must_be_no "$id" update genidclaims -n kuid-system
   can_i_must_be_no "$id" update asclaims -n kuid-system
   # --- the tier must not read other namespaces' intent or the control plane
-  can_i_must_be_no "$id" get networks -n ainetops-agents
-  can_i_must_be_no "$id" get secrets -n ainetops-agents
+  can_i_must_be_no "$id" get networks -n agentic-netops-agents
+  can_i_must_be_no "$id" get secrets -n agentic-netops-agents
   # --- cluster-scope writes are impossible for both identities
   can_i_must_be_no "$id" create namespaces
   can_i_must_be_no "$id" create clusterroles
 done
 
 # --- positive sanity checks: the guardrail is scoped, not total --------------
-# intent-deployer MAY write service intent in ainetops-intent (otherwise the
+# intent-deployer MAY write service intent in agentic-netops-intent (otherwise the
 # tier cannot do its job); intent-allocator MAY create/delete claims.
 deployer_may() {
   local got
@@ -101,9 +101,9 @@ allocator_may() {
     fail=$((fail + 1)); printf 'FAIL  intent-allocator can-i %s  -> %s (expected: yes)\n' "$*" "${got:-<no answer>}"
   fi
 }
-deployer_may create networks.network.kubenet.dev -n ainetops-intent
-deployer_may create srv6services.ainetops.io -n ainetops-intent
-deployer_may create events -n ainetops-intent
+deployer_may create networks.network.kubenet.dev -n agentic-netops-intent
+deployer_may create srv6services.agentic-netops.io -n agentic-netops-intent
+deployer_may create events -n agentic-netops-intent
 allocator_may create claims -n kuid-system
 allocator_may delete claims -n kuid-system
 

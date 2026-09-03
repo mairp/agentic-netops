@@ -1,6 +1,6 @@
-name: ainetops-fabric
+name: agentic-netops-fabric
 mgmt:
-  network: ainetops-mgmt  # external AINETOPS-owned Docker network (created by scripts/provision.sh)
+  network: agentic-netops-mgmt  # external Agentic NetOps-owned Docker network (created by scripts/provision.sh)
   ipv4-subnet: 172.31.0.0/16  # reused management subnet (no overlap with pod/service per preflight)
   mtu: 9216
 
@@ -22,15 +22,15 @@ topology:
 
   defaults:
     labels:
-      ainetops.owner: ainetops
-      ainetops.topology: sonic-evpn
+      agentic-netops.owner: agentic-netops
+      agentic-netops.topology: sonic-evpn
 
   nodes:
     spine01:
       kind: sonic-vs
       mgmt-ipv4: 172.31.0.11
       volumes:
-        - ainetops-spine01-etc-sonic:/etc/sonic
+        - agentic-netops-spine01-etc-sonic:/etc/sonic
       labels:
         role: spine
         asn: "65000"
@@ -38,7 +38,7 @@ topology:
       kind: sonic-vs
       mgmt-ipv4: 172.31.0.12
       volumes:
-        - ainetops-spine02-etc-sonic:/etc/sonic
+        - agentic-netops-spine02-etc-sonic:/etc/sonic
       labels:
         role: spine
         asn: "65000"
@@ -46,7 +46,7 @@ topology:
       kind: sonic-vs
       mgmt-ipv4: 172.31.0.21
       volumes:
-        - ainetops-leaf01-etc-sonic:/etc/sonic
+        - agentic-netops-leaf01-etc-sonic:/etc/sonic
       labels:
         role: leaf
         asn: "65101"
@@ -54,7 +54,7 @@ topology:
       kind: sonic-vs
       mgmt-ipv4: 172.31.0.22
       volumes:
-        - ainetops-leaf02-etc-sonic:/etc/sonic
+        - agentic-netops-leaf02-etc-sonic:/etc/sonic
       labels:
         role: leaf
         asn: "65102"

@@ -30,6 +30,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 from typing import Any
 from uuid import uuid4
 
@@ -227,8 +228,18 @@ class AllocatorAgent:
         if not msg:
             return {"result_text": "no interpretation", "payload": None}
         content = str(msg.content)
-        # The supervisor fences worker-returned text; we receive canonical JSON
+        # The supervisor fences worker-returned text (T095: the payload
+        # travels inside a <<<DATA worker_text ... >>> block). Extract that
+        # block before parsing; fall back to the raw content so an unfenced
+        # canonical-JSON caller still works.
         interp_json = content
+        fence = re.search(
+            r"<<<DATA worker_text[^>]*>>>\n(.*?)\n<<<END_DATA worker_text[^>]*>>>",
+            content,
+            re.DOTALL,
+        )
+        if fence:
+            interp_json = fence.group(1)
         try:
             # Attempt canonical dict load regardless of fencing noise
             m = json.loads(interp_json)

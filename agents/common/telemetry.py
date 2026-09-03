@@ -6,7 +6,7 @@ without timestamp matching.
 
 The binding is implemented by returning the current span's trace_id (hex) as
 ``get_trace_correlation_id()``, and by providing helpers to stamp this value
-onto resource dicts under the conventional ainetops.io/correlation-id label.
+onto resource dicts under the conventional agentic-netops.io/correlation-id label.
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from typing import Any
 from opentelemetry import trace
 
 
-CORRELATION_LABEL = "ainetops.io/correlation-id"
+CORRELATION_LABEL = "agentic-netops.io/correlation-id"
 
 
 def get_trace_correlation_id() -> str:

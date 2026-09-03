@@ -79,7 +79,11 @@ WORKER_ENDPOINTS = {
 # -------------------- Models --------------------
 class PromptRequest(BaseModel):
     prompt: str
-    thread_id: str | None = "default_session"
+    # No shared default: a constant here would collapse every
+    # thread_id-less client onto one checkpointer thread, and once that
+    # thread hits its iteration bound it is permanently refused. `None`
+    # means "caller did not supply one" and yields a fresh uuid below.
+    thread_id: str | None = None
     principal: str | None = None
 
 
@@ -156,7 +160,22 @@ async def handle_stream_prompt(request: PromptRequest):
                                 "payload": json.loads(node_state.get("mapped_parameters") or "{}"),
                             }
                         )
-                        if node_state.get("pending_action") != "clarify":
+                        if node_state.get("pending_action") == "clarify":
+                            missing = node_state.get("missing_fields") or []
+                            fields = ", ".join(str(field) for field in missing) or "required service fields"
+                            yield chunk(
+                                {
+                                    "type": "clarification_request",
+                                    "stage": "mapper",
+                                    "status": status,
+                                    "missing_fields": list(missing),
+                                    "prompt": (
+                                        f"Before I can map this service I need: {fields}. Please restate the full "
+                                        "request including those values."
+                                    ),
+                                }
+                            )
+                        else:
                             # A complete interpretation asks for the first
                             # confirmation; a clarification asks for fields.
                             yield chunk(

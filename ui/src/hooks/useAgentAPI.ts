@@ -12,6 +12,7 @@ export type AgentEvent =
   | { type: 'status'; status: string; stage?: string; thread_id?: string; correlation_id: string }
   | { type: 'stage'; stage: 'mapper' | 'allocator' | 'deployer' | 'deployer-tools'; status: string; payload?: any; tool?: string; result?: any; correlation_id: string }
   | { type: 'confirmation_request'; stage: 'mapper' | 'allocator' | 'deployer'; prompt: string; refusable: boolean; correlation_id: string }
+  | { type: 'clarification_request'; stage: 'mapper'; status: string; prompt: string; missing_fields: string[]; correlation_id: string }
   | { type: 'progress'; stage: 'deployer'; status: string; message?: string; details?: any; correlation_id: string }
   | { type: 'final'; status: string; correlation_id: string }
   | { type: 'error'; stage: string; status: string; reason: string; suggestion?: string; correlation_id: string }
@@ -27,20 +28,11 @@ export type UseAgentAPI = {
 }
 
 const supervisorApiUrl: string =
-  (import.meta as any).env?.VITE_SUPERVISOR_API_URL ?? 'http://supervisor.ainetops-agents.svc:9090'
+  (import.meta as any).env?.VITE_BROWSER_API_URL ?? '/api'
 
 export const WEBSOCKETS_DISABLED = true
 export function connectWebSocket(): never {
   throw new Error('WebSocket client is not supported; use NDJSON over POST /agent/prompt/stream')
-}
-
-function uuid(): string {
-  // Not cryptographically strong, but stable enough for a thread id in the UI.
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = (Math.random() * 16) | 0
-    const v = c === 'x' ? r : (r & 0x3) | 0x8
-    return v.toString(16)
-  })
 }
 
 function loadThreadId(): string | null {
@@ -84,6 +76,9 @@ export function useAgentAPI(): UseAgentAPI {
         },
         body,
       })
+      if (!resp.ok) {
+        throw new Error(`supervisor returned HTTP ${resp.status}`)
+      }
       if (!resp.body) {
         throw new Error(`no response body from supervisor at ${supervisorApiUrl}`)
       }
@@ -126,6 +121,14 @@ export function useAgentAPI(): UseAgentAPI {
           /* ignore */
         }
       }
+    } catch (error) {
+      pushEvent({
+        type: 'error',
+        stage: 'supervisor',
+        status: 'FAILED',
+        reason: error instanceof Error ? error.message : 'supervisor request failed',
+        correlation_id: lastCorrelationRef.current || 'unknown',
+      })
     } finally {
       setPending(false)
     }
@@ -145,6 +148,13 @@ export function useAgentAPI(): UseAgentAPI {
 
   const clear = useCallback(() => {
     setEvents([])
+    threadRef.current = null
+    lastCorrelationRef.current = ''
+    try {
+      localStorage.removeItem('intent_thread_id')
+    } catch {
+      // ignore
+    }
   }, [])
 
   return useMemo(() => ({ events, pending, sendPrompt, confirm, decline, threadId: threadRef.current, clear }), [events, pending, sendPrompt, confirm, decline, clear])

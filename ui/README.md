@@ -1,4 +1,4 @@
-# Intent-tier operator chat surface (feature 002)
+# Intent-tier operator chat surface
 
 Vite + React + TypeScript app served on port 3000. It is the operator's entry
 point to the intent tier: a plain-language service request in, an NDJSON status

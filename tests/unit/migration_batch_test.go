@@ -1,9 +1,9 @@
 package unit
 
 import (
+	"github.com/mairp/agentic-netops/pkg/migration"
 	"strings"
 	"testing"
-	"github.com/mairp/ainetops/pkg/migration"
 )
 
 func goodVPLS() migration.ServiceInput {
@@ -23,8 +23,12 @@ func TestBatchAllOrNothing(t *testing.T) {
 	bad.ServiceID = "dup"
 	ok.ServiceID = "dup"
 	outs, err := migration.RenderBatch([]migration.ServiceInput{ok, bad})
-	if err == nil { t.Fatalf("expected error for duplicate serviceId") }
-	if len(outs) != 0 { t.Fatalf("expected no outputs on failure") }
+	if err == nil {
+		t.Fatalf("expected error for duplicate serviceId")
+	}
+	if len(outs) != 0 {
+		t.Fatalf("expected no outputs on failure")
+	}
 	msg := migration.MarshalError(err)
 	if !strings.Contains(msg, "duplicate serviceId") {
 		t.Fatalf("expected duplicate cause, got: %s", msg)
@@ -37,8 +41,14 @@ func TestBatchAllOrNothing_MixedUnsupported(t *testing.T) {
 	bad.ServiceID = "bad"
 	bad.Unsupported.TEPolicy = true
 	outs, err := migration.RenderBatch([]migration.ServiceInput{ok, bad})
-	if err == nil { t.Fatalf("expected error for unsupported TE policy in batch") }
-	if len(outs) != 0 { t.Fatalf("expected no outputs on mixed failure") }
+	if err == nil {
+		t.Fatalf("expected error for unsupported TE policy in batch")
+	}
+	if len(outs) != 0 {
+		t.Fatalf("expected no outputs on mixed failure")
+	}
 	msg := migration.MarshalError(err)
-	if !strings.Contains(msg, "unsupported: tePolicy") { t.Fatalf("missing unsupported cause: %s", msg) }
+	if !strings.Contains(msg, "unsupported: tePolicy") {
+		t.Fatalf("missing unsupported cause: %s", msg)
+	}
 }

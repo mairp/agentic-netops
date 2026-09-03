@@ -15,7 +15,7 @@ from common.telemetry import CORRELATION_LABEL, get_trace_correlation_id
 
 
 def stamp_labels(obj: dict[str, Any], labels: Mapping[str, str]) -> dict[str, Any]:
-    # Ensure correlation-id label, if present under ainetops.io/correlation-id, is a string
+    # Ensure correlation-id label, if present under agentic-netops.io/correlation-id, is a string
     if CORRELATION_LABEL in labels and labels[CORRELATION_LABEL] is not None:
         labels = dict(labels)
         labels[CORRELATION_LABEL] = str(labels[CORRELATION_LABEL])

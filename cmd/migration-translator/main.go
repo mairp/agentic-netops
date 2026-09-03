@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/mairp/ainetops/pkg/migration"
+	"github.com/mairp/agentic-netops/pkg/migration"
 )
 
 // Deterministic CLI: reads a JSON array or object from stdin or --file, validates all-or-nothing,
@@ -37,24 +37,35 @@ func main() {
 		fmt.Fprintln(os.Stderr, msg)
 		os.Exit(2)
 	}
-	if err := processBatch(inputs); err != nil { fatal(err) }
+	if err := processBatch(inputs); err != nil {
+		fatal(err)
+	}
 }
-
 
 func processBatch(inputs []migration.ServiceInput) error {
 	// Detect duplicate IDs within the batch for collision reporting.
 	ids := map[string]int{}
 	for i, in := range inputs {
-		if _, ok := ids[in.ServiceID]; ok { ids[in.ServiceID] = -1 } else { ids[in.ServiceID] = i }
+		if _, ok := ids[in.ServiceID]; ok {
+			ids[in.ServiceID] = -1
+		} else {
+			ids[in.ServiceID] = i
+		}
 	}
 	// Validate all-or-nothing; collect causes with stable ordering by index.
 	var causes []string
 	for i := range inputs {
 		in := inputs[i]
 		dup := false
-		if idx, ok := ids[in.ServiceID]; ok && idx == -1 { dup = true }
+		if idx, ok := ids[in.ServiceID]; ok && idx == -1 {
+			dup = true
+		}
 		if err := in.ValidateAllOrNothing(i, dup); err != nil {
-			if ve, ok := err.(*migration.ValidationError); ok { causes = append(causes, ve.Causes...) } else { causes = append(causes, err.Error()) }
+			if ve, ok := err.(*migration.ValidationError); ok {
+				causes = append(causes, ve.Causes...)
+			} else {
+				causes = append(causes, err.Error())
+			}
 		}
 	}
 	if len(causes) > 0 {
@@ -68,8 +79,12 @@ func processBatch(inputs []migration.ServiceInput) error {
 	for i := range inputs {
 		in := inputs[i]
 		bundle, err := migration.Translate(&in)
-		if err != nil { return err }
-		if i > 0 { fmt.Println("---") }
+		if err != nil {
+			return err
+		}
+		if i > 0 {
+			fmt.Println("---")
+		}
 		fmt.Println(bundle.NetworkYAML)
 	}
 	return nil

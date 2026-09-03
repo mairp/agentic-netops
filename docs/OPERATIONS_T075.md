@@ -1,4 +1,4 @@
-# AINETOPS SONiC EVPN/VXLAN — Operator and Developer Guide (T075)
+# Agentic NetOps SONiC EVPN/VXLAN — Operator and Developer Guide (T075)
 
 This guide covers operator/developer documentation for Phase 8 acceptance: compatibility matrix, resource sizing, image acquisition, EVPN/SRv6 mapping limitations, telemetry pipeline, topology presentation, recovery, and the break-glass finalizer procedure.
 
@@ -17,9 +17,9 @@ This guide covers operator/developer documentation for Phase 8 acceptance: compa
 ## Resource sizing
 
 Minimum host resources (preflight enforced):
-- CPU cores: 4 (AINETOPS_MIN_CPU)
-- Memory: 8 GiB (AINETOPS_MIN_MEM_MB=8192)
-- Disk free: 20 GiB (AINETOPS_MIN_DISK_MB=20480)
+- CPU cores: 4 (AGENTIC_NETOPS_MIN_CPU)
+- Memory: 8 GiB (AGENTIC_NETOPS_MIN_MEM_MB=8192)
+- Disk free: 20 GiB (AGENTIC_NETOPS_MIN_DISK_MB=20480)
 
 Runtime footprint (reference scale: 2 spines, 2 leaves, 4 endpoints, 1 Kind control-plane node):
 - Kind cluster: 1 node (control-plane) using the pinned node image; ~2–3 GiB RAM under load
@@ -67,7 +67,7 @@ Adjustments:
   - Inspect Conditions and Events on SRv6Service, NetworkDevice, and SDC Config/Target.
   - The provider blocks downstream writes on schema/compatibility and validation failures and leaves last-known valid desired state intact.
 - Metrics pipeline outage:
-  - Controllers remain functional; observability alerts indicate OTel/Prometheus/gNMIc issues. See deploy/observability/rules/ainetops.rules.yaml alerts for guidance.
+  - Controllers remain functional; observability alerts indicate OTel/Prometheus/gNMIc issues. See deploy/observability/rules/agentic-netops.rules.yaml alerts for guidance.
 
 ## Break-glass finalizer procedure
 

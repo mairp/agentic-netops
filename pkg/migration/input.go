@@ -14,7 +14,7 @@ import (
 
 // Version constants for deterministic provenance.
 const (
-	TranslatorName    = "ainetops-migration-translator"
+	TranslatorName    = "agentic-netops-migration-translator"
 	TranslatorVersion = "v0.1.0"
 	MappingVersion    = "v0.1.0"
 )
@@ -23,10 +23,10 @@ const (
 type ServiceType string
 
 const (
-	ServiceVPLS  ServiceType = "VPLS"         // multipoint L2VPN
-	ServiceL3VPN ServiceType = "L3VPN"        // routed VPN
-	ServiceVPWS ServiceType = "VPWS"          // E-Line
-	ServiceIRB  ServiceType = "L2L3-IRB"      // integrated L2/L3 (symmetric-IRB)
+	ServiceVPLS  ServiceType = "VPLS"     // multipoint L2VPN
+	ServiceL3VPN ServiceType = "L3VPN"    // routed VPN
+	ServiceVPWS  ServiceType = "VPWS"     // E-Line
+	ServiceIRB   ServiceType = "L2L3-IRB" // integrated L2/L3 (symmetric-IRB)
 )
 
 // AddressFamilies captures AFI-specific properties for L3VPN.
@@ -44,17 +44,17 @@ type RdRt struct {
 
 // Endpoint describes one attachment point on a target node with VLAN or VRF context.
 type Endpoint struct {
-	Node       string `json:"node"`                 // required leaf name
-	Attachment string `json:"attachment"`          // human-readable peer/endpoint id
-	VLAN       int    `json:"vlan,omitempty"`      // for L2 services
-	VRF        string `json:"vrf,omitempty"`       // for L3/IRB attachments
+	Node       string `json:"node"`           // required leaf name
+	Attachment string `json:"attachment"`     // human-readable peer/endpoint id
+	VLAN       int    `json:"vlan,omitempty"` // for L2 services
+	VRF        string `json:"vrf,omitempty"`  // for L3/IRB attachments
 }
 
 // IRBGateway parameters for symmetric-IRB.
 type IRBGateway struct {
-	VRF        string `json:"vrf"`
-	GatewayV4  string `json:"gatewayIPv4"`
-	GatewayV6  string `json:"gatewayIPv6"`
+	VRF       string `json:"vrf"`
+	GatewayV4 string `json:"gatewayIPv4"`
+	GatewayV6 string `json:"gatewayIPv6"`
 }
 
 // Policies are explicit allow-listed options.
@@ -66,13 +66,13 @@ type Policies struct {
 // UnsupportedClaims declare source-only features that must be rejected (FR-011).
 // Presence of any field here causes a terminal validation failure with details.
 type UnsupportedClaims struct {
-	TEPolicy         any `json:"tePolicy,omitempty"`
-	PseudowireOAM    any `json:"pseudowireOAM,omitempty"`
-	ControlWord      any `json:"controlWord,omitempty"`
-	MulticastVPN     any `json:"multicastVPN,omitempty"`
-	ComplexQoS       any `json:"complexQoS,omitempty"`
-	ServiceChain     any `json:"serviceChain,omitempty"`
-	RawCLI           any `json:"rawCLI,omitempty"`
+	TEPolicy      any `json:"tePolicy,omitempty"`
+	PseudowireOAM any `json:"pseudowireOAM,omitempty"`
+	ControlWord   any `json:"controlWord,omitempty"`
+	MulticastVPN  any `json:"multicastVPN,omitempty"`
+	ComplexQoS    any `json:"complexQoS,omitempty"`
+	ServiceChain  any `json:"serviceChain,omitempty"`
+	RawCLI        any `json:"rawCLI,omitempty"`
 }
 
 // ServiceInput is the strict normalized migration input schema.
@@ -81,14 +81,14 @@ type UnsupportedClaims struct {
 type ServiceInput struct {
 	// Identity
 	ServiceID string      `json:"serviceId"`
-	Type      ServiceType `json:"type"`      // VPLS | L3VPN | VPWS | L2L3-IRB
+	Type      ServiceType `json:"type"` // VPLS | L3VPN | VPWS | L2L3-IRB
 	Tenant    string      `json:"tenant"`
 
 	// VPN properties
-	RDRT   *RdRt            `json:"rdRt,omitempty"`
-	L2VNI  int              `json:"l2vni,omitempty"` // for VPLS/VPWS/IRB bridge domains
-	L3VNI  int              `json:"l3vni,omitempty"` // for L3VPN/IRB VRFs
-	AF     *AddressFamilies `json:"addressFamilies,omitempty"`
+	RDRT  *RdRt            `json:"rdRt,omitempty"`
+	L2VNI int              `json:"l2vni,omitempty"` // for VPLS/VPWS/IRB bridge domains
+	L3VNI int              `json:"l3vni,omitempty"` // for L3VPN/IRB VRFs
+	AF    *AddressFamilies `json:"addressFamilies,omitempty"`
 
 	// IRB per-BD gateways (when Type == L2L3-IRB)
 	IRBGateway *IRBGateway `json:"irbGateway,omitempty"`
@@ -149,62 +149,124 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 	}
 	// Unsupported claims
 	u := in.Unsupported
-	if u.TEPolicy != nil { causes = append(causes, "unsupported: tePolicy") }
-	if u.PseudowireOAM != nil { causes = append(causes, "unsupported: pseudowireOAM") }
-	if u.ControlWord != nil { causes = append(causes, "unsupported: controlWord") }
-	if u.MulticastVPN != nil { causes = append(causes, "unsupported: multicastVPN") }
-	if u.ComplexQoS != nil { causes = append(causes, "unsupported: complexQoS") }
-	if u.ServiceChain != nil { causes = append(causes, "unsupported: serviceChain") }
-	if u.RawCLI != nil { causes = append(causes, "unsupported: rawCLI") }
+	if u.TEPolicy != nil {
+		causes = append(causes, "unsupported: tePolicy")
+	}
+	if u.PseudowireOAM != nil {
+		causes = append(causes, "unsupported: pseudowireOAM")
+	}
+	if u.ControlWord != nil {
+		causes = append(causes, "unsupported: controlWord")
+	}
+	if u.MulticastVPN != nil {
+		causes = append(causes, "unsupported: multicastVPN")
+	}
+	if u.ComplexQoS != nil {
+		causes = append(causes, "unsupported: complexQoS")
+	}
+	if u.ServiceChain != nil {
+		causes = append(causes, "unsupported: serviceChain")
+	}
+	if u.RawCLI != nil {
+		causes = append(causes, "unsupported: rawCLI")
+	}
 
 	// Endpoints basics
-	if len(in.Endpoints) == 0 { causes = append(causes, "endpoints: at least one endpoint is required") }
+	if len(in.Endpoints) == 0 {
+		causes = append(causes, "endpoints: at least one endpoint is required")
+	}
 
 	switch in.Type {
 	case ServiceVPLS:
-		if in.L2VNI == 0 { causes = append(causes, "l2vni: required for VPLS") }
-		if in.RDRT == nil { causes = append(causes, "rdRt: required for VPLS") }
-		if len(in.Endpoints) < 2 { causes = append(causes, "endpoints: VPLS requires >=2 endpoints") }
+		if in.L2VNI == 0 {
+			causes = append(causes, "l2vni: required for VPLS")
+		}
+		if in.RDRT == nil {
+			causes = append(causes, "rdRt: required for VPLS")
+		}
+		if len(in.Endpoints) < 2 {
+			causes = append(causes, "endpoints: VPLS requires >=2 endpoints")
+		}
 		// All endpoints must specify same VLAN
 		var vlan int
 		for i, ep := range in.Endpoints {
-			if ep.VLAN == 0 { causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for VPLS", i)) }
-			if i == 0 { vlan = ep.VLAN } else if ep.VLAN != vlan { causes = append(causes, "endpoints.vlan: must be equal across all endpoints for VPLS") }
+			if ep.VLAN == 0 {
+				causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for VPLS", i))
+			}
+			if i == 0 {
+				vlan = ep.VLAN
+			} else if ep.VLAN != vlan {
+				causes = append(causes, "endpoints.vlan: must be equal across all endpoints for VPLS")
+			}
 		}
 	case ServiceL3VPN:
-		if in.L3VNI == 0 { causes = append(causes, "l3vni: required for L3VPN") }
-		if in.RDRT == nil { causes = append(causes, "rdRt: required for L3VPN") }
+		if in.L3VNI == 0 {
+			causes = append(causes, "l3vni: required for L3VPN")
+		}
+		if in.RDRT == nil {
+			causes = append(causes, "rdRt: required for L3VPN")
+		}
 		if in.AF == nil || (len(in.AF.IPv4Prefixes) == 0 && len(in.AF.IPv6Prefixes) == 0) {
 			causes = append(causes, "addressFamilies: at least one prefix is required for L3VPN")
 		}
-		if len(in.Endpoints) < 1 { causes = append(causes, "endpoints: L3VPN requires >=1 endpoint") }
+		if len(in.Endpoints) < 1 {
+			causes = append(causes, "endpoints: L3VPN requires >=1 endpoint")
+		}
 
 		for i, ep := range in.Endpoints {
-			if ep.VRF == "" { causes = append(causes, fmt.Sprintf("endpoints[%d].vrf: required for L3VPN", i)) }
+			if ep.VRF == "" {
+				causes = append(causes, fmt.Sprintf("endpoints[%d].vrf: required for L3VPN", i))
+			}
 		}
 	case ServiceVPWS:
-		if in.L2VNI == 0 { causes = append(causes, "l2vni: required for VPWS") }
-		if in.RDRT == nil { causes = append(causes, "rdRt: required for VPWS") }
-		if len(in.Endpoints) != 2 { causes = append(causes, "endpoints: VPWS requires exactly 2 endpoints") }
+		if in.L2VNI == 0 {
+			causes = append(causes, "l2vni: required for VPWS")
+		}
+		if in.RDRT == nil {
+			causes = append(causes, "rdRt: required for VPWS")
+		}
+		if len(in.Endpoints) != 2 {
+			causes = append(causes, "endpoints: VPWS requires exactly 2 endpoints")
+		}
 		for i, ep := range in.Endpoints {
-			if ep.VLAN == 0 { causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for VPWS", i)) }
+			if ep.VLAN == 0 {
+				causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for VPWS", i))
+			}
 		}
 		if !in.Policies.VPWSLimitedEquivalence {
 			causes = append(causes, "policy: vpwsLimitedEquivalence must be true to allow limited equivalence mapping")
 		}
 	case ServiceIRB:
-		if in.L2VNI == 0 { causes = append(causes, "l2vni: required for IRB bridge domain") }
-		if in.L3VNI == 0 { causes = append(causes, "l3vni: required for IRB VRF") }
-		if in.RDRT == nil { causes = append(causes, "rdRt: required for IRB VRF") }
-		if in.IRBGateway == nil { causes = append(causes, "irbGateway: required for IRB") }
-		if in.IRBGateway != nil {
-			if in.IRBGateway.VRF == "" { causes = append(causes, "irbGateway.vrf: required") }
-			if in.IRBGateway.GatewayV4 == "" { causes = append(causes, "irbGateway.gatewayIPv4: required") }
-			if in.IRBGateway.GatewayV6 == "" { causes = append(causes, "irbGateway.gatewayIPv6: required") }
+		if in.L2VNI == 0 {
+			causes = append(causes, "l2vni: required for IRB bridge domain")
 		}
-		if len(in.Endpoints) < 1 { causes = append(causes, "endpoints: IRB requires at least one endpoint") }
+		if in.L3VNI == 0 {
+			causes = append(causes, "l3vni: required for IRB VRF")
+		}
+		if in.RDRT == nil {
+			causes = append(causes, "rdRt: required for IRB VRF")
+		}
+		if in.IRBGateway == nil {
+			causes = append(causes, "irbGateway: required for IRB")
+		}
+		if in.IRBGateway != nil {
+			if in.IRBGateway.VRF == "" {
+				causes = append(causes, "irbGateway.vrf: required")
+			}
+			if in.IRBGateway.GatewayV4 == "" {
+				causes = append(causes, "irbGateway.gatewayIPv4: required")
+			}
+			if in.IRBGateway.GatewayV6 == "" {
+				causes = append(causes, "irbGateway.gatewayIPv6: required")
+			}
+		}
+		if len(in.Endpoints) < 1 {
+			causes = append(causes, "endpoints: IRB requires at least one endpoint")
+		}
 		for i, ep := range in.Endpoints {
-			if ep.VLAN == 0 { causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for IRB", i)) }
+			if ep.VLAN == 0 {
+				causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for IRB", i))
+			}
 		}
 	default:
 		causes = append(causes, fmt.Sprintf("type: unsupported '%s'", in.Type))

@@ -1,6 +1,6 @@
 Envtest suite
 
-This directory contains Go tests that start a local Kubernetes API server and ETCD via controller-runtime's envtest, install our CRDs, and then validate server-side behavior using dry-run. It satisfies T027a's requirement for server-side dry-run/envtest coverage.
+This directory contains Go tests that start a local Kubernetes API server and ETCD via controller-runtime's envtest, install our CRDs, and then validate server-side behavior using dry-run. It provides server-side dry-run/envtest coverage of the CRDs.
 
 Run:
 

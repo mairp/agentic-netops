@@ -3,8 +3,8 @@ package unit
 import (
 	"testing"
 
-	"github.com/mairp/ainetops/pkg/model"
-	"github.com/mairp/ainetops/pkg/render"
+	"github.com/mairp/agentic-netops/pkg/model"
+	"github.com/mairp/agentic-netops/pkg/render"
 )
 
 func TestRenderBGP_EVPNNeighbors(t *testing.T) {
