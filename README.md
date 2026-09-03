@@ -1,5 +1,13 @@
 # AINETOPS — SONiC EVPN/VXLAN fabric with an agentic intent tier
 
+[![CI](https://github.com/mairp/ainetops/actions/workflows/ci.yaml/badge.svg)](https://github.com/mairp/ainetops/actions/workflows/ci.yaml)
+[![Denylist Scan](https://github.com/mairp/ainetops/actions/workflows/denylist.yml/badge.svg)](https://github.com/mairp/ainetops/actions/workflows/denylist.yml)
+[![SONiC](https://img.shields.io/badge/SONiC-202605-blue)](versions.lock.yaml)
+[![FRR](https://img.shields.io/badge/FRR-10.5.4-blue)](versions.lock.yaml)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.29.4-326ce5)](versions.lock.yaml)
+[![containerlab](https://img.shields.io/badge/containerlab-sonic--vs-0a7bbb)](lab/topology.clab.yml)
+[![Tutorial](https://img.shields.io/badge/docs-TUTORIAL.md-green)](TUTORIAL.md)
+
 A reproducible, vendor-neutral reference platform: a containerlab SONiC fabric driven by
 Kubernetes controllers, with an optional multi-agent "intent tier" that turns a plain-language
 service request into declarative resources.
@@ -27,6 +35,9 @@ traps that will otherwise cost you time:
   resource usage silently returns nothing without it.
 
 ## Quickstart
+
+For a guided walk-through — including driving the agents from plain language — see
+**[TUTORIAL.md](TUTORIAL.md)**.
 
 ```bash
 # bring the fabric up (~30-40 min on first run: image pulls + controller build)
