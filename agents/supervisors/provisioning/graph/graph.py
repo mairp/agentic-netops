@@ -101,7 +101,7 @@ from supervisors.provisioning.prompts.system import (
     wrap_worker_text,
 )
 
-logger = logging.getLogger("devnet.provisioning.supervisor.graph")
+logger = logging.getLogger("agentic_netops.provisioning.supervisor.graph")
 logging.basicConfig(level=logging.INFO)
 
 # ---------------------------------------------------------------------------
@@ -399,7 +399,7 @@ def detect_unsupported_feature(text: str) -> DetectionHit | None:
 # ---------------------------------------------------------------------------
 # Worker-result extraction (T096–T099) and validation (T100–T102).
 # ---------------------------------------------------------------------------
-def _iter_worker_parts(result: Any):
+def _iter_worker_parts(result: Any, worker: str = "worker"):
     """Yield ``("data", dict)`` / ``("text", str)`` for every part of a
     worker response, regardless of the response wrapper (JSON-RPC
     success/error envelope, bare Message, dict, or plain string).
@@ -415,7 +415,7 @@ def _iter_worker_parts(result: Any):
         if err is not None:
             code = getattr(err, "code", None)
             msg = getattr(err, "message", "unknown error")
-            raise WorkerUnavailableError("worker", cause=RuntimeError(f"A2A JSON-RPC error (code={code}): {msg}"))
+            raise WorkerUnavailableError(worker, cause=RuntimeError(f"A2A JSON-RPC error (code={code}): {msg}"))
         if hasattr(root, "result"):
             obj = root.result
     if hasattr(obj, "parts"):
@@ -439,7 +439,7 @@ def _iter_worker_parts(result: Any):
         yield ("text", obj)
 
 
-def extract_payload_and_text(result: Any, marker: str) -> tuple[dict | None, str]:
+def extract_payload_and_text(result: Any, marker: str, worker: str = "worker") -> tuple[dict | None, str]:
     """T096/T097/T098/T099 — extract the structured payload + text from a
     worker response.
 
@@ -454,7 +454,7 @@ def extract_payload_and_text(result: Any, marker: str) -> tuple[dict | None, str
     """
     data_payload: dict | None = None
     texts: list[str] = []
-    for kind, value in _iter_worker_parts(result):
+    for kind, value in _iter_worker_parts(result, worker):
         if kind == "data" and data_payload is None:
             data_payload = value  # DataPart first — authoritative
         elif kind == "text":
@@ -1220,7 +1220,7 @@ class ProvisioningGraph:
                 ],
             }
 
-        payload, worker_text = extract_payload_and_text(result, MAPPER_MARKER)  # T096/T097
+        payload, worker_text = extract_payload_and_text(result, MAPPER_MARKER, "mapper")  # T096/T097
         if payload is None:
             # Diagnostics: the reply arrived but carried no contract payload.
             try:
@@ -1326,7 +1326,7 @@ class ProvisioningGraph:
                 ],
             }
 
-        payload, worker_text = extract_payload_and_text(result, ALLOCATOR_MARKER)  # T098/T099
+        payload, worker_text = extract_payload_and_text(result, ALLOCATOR_MARKER, "allocator")  # T098/T099
         intent, error = validate_allocator_payload(payload, interpretation)  # T101/T102
         if error is not None or intent is None:
             try:
@@ -1381,7 +1381,7 @@ class ProvisioningGraph:
                         AIMessage(content=("The deployer worker is currently unavailable; please try again later."))
                     ],
                 }
-            payload, worker_text = extract_payload_and_text(result, DEPLOYER_MARKER)
+            payload, worker_text = extract_payload_and_text(result, DEPLOYER_MARKER, "deployer")
             # Minimal contract: expect a dict with either status or removed
             if not isinstance(payload, dict) or not any(k in payload for k in ("status", "removed")):
                 return self._reject_out_of_contract(
@@ -1449,7 +1449,7 @@ class ProvisioningGraph:
                 ],
             }
 
-        payload, worker_text = extract_payload_and_text(result, DEPLOYER_MARKER)
+        payload, worker_text = extract_payload_and_text(result, DEPLOYER_MARKER, "deployer")
         # Phase 3 boundary: the deployer's real submission (Go translator,
         # atomic all-or-nothing apply, convergence watch — FR-017..FR-019)
         # lands with the deployer's production executor. In this phase the

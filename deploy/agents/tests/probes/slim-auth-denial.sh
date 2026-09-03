@@ -43,7 +43,7 @@ POD=slim-auth-probe
 GW=slim
 PORT=46357
 TIMEOUT_S=10
-NODE_IMAGE=kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
+NODE_IMAGE=kindest/node@sha256:28b7cbb993dfe093c76641a0c95807637213c9109b761f1d422c2400e22b8e87
 
 cleanup() { K -n "$NS" delete pod "$POD" --ignore-not-found --wait=false >/dev/null 2>&1 || true; }
 trap cleanup EXIT

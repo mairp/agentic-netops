@@ -1,0 +1,44 @@
+# KUID index objects the allocator claims identifiers from.
+#
+# The allocator never generates an identifier locally (FR-013): it creates a
+# Claim against one of these indices and reads the assigned value back from
+# `status.id`. The index names here are the defaults in agents/config/config.py
+# (KUID_L2VNI_INDEX, KUID_VLAN_INDEX, KUID_EXTCOMM_INDEX).
+#
+# These are the aggregated `*.be.kuid.dev` groups served by kuid-server, not
+# the CRD-backed `id.kuid.dev` group used for fabric underlay indices.
+---
+apiVersion: genid.be.kuid.dev/v1alpha1
+kind: GENIDIndex
+metadata:
+  name: evpn-vni
+  namespace: kuid-system
+spec:
+  # 32-bit generic id space; the range mirrors the fabric VNIIndex so L2 and
+  # L3 VNIs stay inside the EVPN range the fabric expects.
+  type: 32bit
+  minID: 10000
+  maxID: 20000
+---
+apiVersion: vlan.be.kuid.dev/v1alpha1
+kind: VLANIndex
+metadata:
+  name: fabric-vlan
+  namespace: kuid-system
+spec:
+  # Endpoint VLANs; 1 and 4094+ stay reserved.
+  minID: 100
+  maxID: 4000
+---
+apiVersion: extcomm.be.kuid.dev/v1alpha1
+kind: EXTCOMMIndex
+metadata:
+  name: rt-index
+  namespace: kuid-system
+spec:
+  # A route-target with a 2-byte ASN and a 4-byte local administrator, so a
+  # claimed id renders as <FABRIC_ASN>:<id>.
+  type: 2byteAS
+  subType: target
+  minID: 1
+  maxID: 65535

@@ -12,7 +12,7 @@ networking:
   serviceSubnet: 10.96.0.0/12
 nodes:
 - role: control-plane
-  image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
+  image: kindest/node@sha256:28b7cbb993dfe093c76641a0c95807637213c9109b761f1d422c2400e22b8e87
   labels:
     agentic-netops.owner: "agentic-netops"
     agentic-netops.kind.role: "control-plane"
@@ -38,7 +38,7 @@ nodes:
     containerPath: /var/local/agentic-netops
     readOnly: false
 - role: worker
-  image: kindest/node@sha256:3abb816a5b1061fb15c6e9e60856ec40d56b7b52bcea5f5f1350bc6e2320b6f8
+  image: kindest/node@sha256:28b7cbb993dfe093c76641a0c95807637213c9109b761f1d422c2400e22b8e87
   labels:
     agentic-netops.owner: "agentic-netops"
     agentic-netops.kind.role: "worker"

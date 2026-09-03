@@ -1,0 +1,94 @@
+# Aggregated API registrations for kuid-server.
+# Apply AFTER the kuid-server Deployment is Ready: an APIService whose
+# backend is unavailable makes API discovery fail for that group.
+# vxlan.be.kuid.dev is intentionally absent - the pinned build 404s it.
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1alpha1.as.be.kuid.dev
+spec:
+  group: as.be.kuid.dev
+  groupPriorityMinimum: 1000
+  insecureSkipTLSVerify: true
+  service:
+    name: kuid-server
+    namespace: kuid-system
+    port: 6443
+  version: v1alpha1
+  versionPriority: 15
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1alpha1.extcomm.be.kuid.dev
+spec:
+  group: extcomm.be.kuid.dev
+  groupPriorityMinimum: 1000
+  insecureSkipTLSVerify: true
+  service:
+    name: kuid-server
+    namespace: kuid-system
+    port: 6443
+  version: v1alpha1
+  versionPriority: 15
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1alpha1.genid.be.kuid.dev
+spec:
+  group: genid.be.kuid.dev
+  groupPriorityMinimum: 1000
+  insecureSkipTLSVerify: true
+  service:
+    name: kuid-server
+    namespace: kuid-system
+    port: 6443
+  version: v1alpha1
+  versionPriority: 15
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1alpha1.infra.kuid.dev
+spec:
+  group: infra.kuid.dev
+  groupPriorityMinimum: 1000
+  insecureSkipTLSVerify: true
+  service:
+    name: kuid-server
+    namespace: kuid-system
+    port: 6443
+  version: v1alpha1
+  versionPriority: 15
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1alpha1.ipam.be.kuid.dev
+spec:
+  group: ipam.be.kuid.dev
+  groupPriorityMinimum: 1000
+  insecureSkipTLSVerify: true
+  service:
+    name: kuid-server
+    namespace: kuid-system
+    port: 6443
+  version: v1alpha1
+  versionPriority: 15
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1alpha1.vlan.be.kuid.dev
+spec:
+  group: vlan.be.kuid.dev
+  groupPriorityMinimum: 1000
+  insecureSkipTLSVerify: true
+  service:
+    name: kuid-server
+    namespace: kuid-system
+    port: 6443
+  version: v1alpha1
+  versionPriority: 15

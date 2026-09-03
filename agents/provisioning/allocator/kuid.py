@@ -40,9 +40,16 @@ from uuid import uuid4
 
 import httpx
 
-from config.config import KUID_API_ENDPOINT
+from config.config import (
+    EXTCOMM_INDEX,
+    FABRIC_ASN,
+    KUID_API_ENDPOINT,
+    L2VNI_INDEX,
+    L3VNI_INDEX,
+    VLAN_INDEX,
+)
 
-logger = logging.getLogger("devnet.network_allocator.kuid")
+logger = logging.getLogger("agentic_netops.network_allocator.kuid")
 
 KUID_NAMESPACE = "kuid-system"
 from common.telemetry import CORRELATION_LABEL
@@ -78,6 +85,24 @@ def _resolve_identity() -> KUIDIdentity:
             token = None
     verify = os.getenv("AGENTIC_NETOPS_VERIFY_TLS", "1").lower() in ("1", "true", "yes")
     return KUIDIdentity(endpoint=endpoint, token=token, verify_tls=verify)
+
+
+def _claim_id(claim: dict[str, Any], what: str) -> int:
+    """The allocated integer for a served claim.
+
+    The `*.be.kuid.dev` groups report it in ``status.id``; the older inline
+    encodings are kept as a fallback so a different pin still works.
+    """
+    status = claim.get("status") or {}
+    value = status.get("id")
+    if value is None:
+        value = status.get("value") or status.get("allocated") or status.get("assigned")
+    if isinstance(value, int):
+        return value
+    try:
+        return int(str(value))
+    except Exception as exc:  # noqa: BLE001
+        raise KUIDAPIError(f"{what} claim has no numeric id: {value!r}") from exc
 
 
 class KUIDClient:
@@ -118,6 +143,7 @@ class KUIDClient:
         *,
         group: str,
         plural: str,
+        kind: str,
         spec: dict[str, Any],
         correlation_id: str,
         name: str | None = None,
@@ -131,7 +157,7 @@ class KUIDClient:
         meta_labels[CORRELATION_LABEL] = correlation_id
         body = {
             "apiVersion": f"{group}/v1alpha1" if group else "v1",
-            "kind": "Claim",
+            "kind": kind,
             "metadata": {
                 "name": name or f"claim-{uuid4().hex[:12]}",
                 "namespace": KUID_NAMESPACE,
@@ -169,10 +195,17 @@ class KUIDClient:
             obj = resp.json()
             last_obj = obj
             status = obj.get("status") or {}
+            # The served *.be.kuid.dev groups report the allocated integer in
+            # status.id and readiness through a Ready condition.
+            if status.get("id") is not None:
+                return obj
+            for cond in status.get("conditions") or []:
+                if cond.get("type") == "Ready" and str(cond.get("status")) == "True":
+                    return obj
             phase = (status.get("phase") or status.get("state") or "").lower()
             if phase in ("allocated", "bound", "ready", "succeeded"):
                 return obj
-            # Some groups report the value inline when ready
+            # Some pins report the value inline when ready
             if any(k in status for k in ("value", "allocated", "assigned")):
                 return obj
             time.sleep(poll_interval)
@@ -218,58 +251,45 @@ class KUIDClient:
 
     # ---------------- Convenience allocators used by the agent ----------------
     def allocate_l2vni(self, correlation_id: str) -> int:
-        spec = {"from": {"kind": "VNIIndex", "name": "evpn-vni"}, "purpose": "l2vni"}
-        claim = self.create_claim(group="genid.be.kuid.dev", plural="genidclaims", spec=spec, correlation_id=correlation_id)
-        claim = self.wait_for_claim(group="genid.be.kuid.dev", plural="genidclaims", name=claim["metadata"]["name"])
-        # Best-effort value extraction (shape varies by group/pin)
-        status = claim.get("status") or {}
-        value = status.get("value") or status.get("allocated") or status.get("assigned")
-        if isinstance(value, int):
-            return value
-        try:
-            return int(str(value))
-        except Exception as exc:  # noqa: BLE001
-            raise KUIDAPIError(f"l2vni claim has no numeric value: {value!r}") from exc
+        return self._allocate_genid(correlation_id, L2VNI_INDEX, "l2vni")
 
     def allocate_l3vni(self, correlation_id: str) -> int:
-        spec = {"from": {"kind": "VNIIndex", "name": "evpn-vni"}, "purpose": "l3vni"}
-        claim = self.create_claim(group="genid.be.kuid.dev", plural="genidclaims", spec=spec, correlation_id=correlation_id)
-        claim = self.wait_for_claim(group="genid.be.kuid.dev", plural="genidclaims", name=claim["metadata"]["name"])
-        status = claim.get("status") or {}
-        value = status.get("value") or status.get("allocated") or status.get("assigned")
-        if isinstance(value, int):
-            return value
-        try:
-            return int(str(value))
-        except Exception as exc:  # noqa: BLE001
-            raise KUIDAPIError(f"l3vni claim has no numeric value: {value!r}") from exc
+        return self._allocate_genid(correlation_id, L3VNI_INDEX, "l3vni")
+
+    def _allocate_genid(self, correlation_id: str, index: str, what: str) -> int:
+        claim = self.create_claim(
+            group="genid.be.kuid.dev", plural="genidclaims", kind="GENIDClaim",
+            spec={"index": index}, correlation_id=correlation_id,
+        )
+        claim = self.wait_for_claim(
+            group="genid.be.kuid.dev", plural="genidclaims",
+            name=claim["metadata"]["name"],
+        )
+        return _claim_id(claim, what)
 
     def allocate_vlan(self, correlation_id: str) -> int:
-        spec = {"from": {"kind": "VLANIndex", "name": "fabric-vlan"}, "purpose": "endpoint-vlan"}
-        claim = self.create_claim(group="vlan.be.kuid.dev", plural="vlanclaims", spec=spec, correlation_id=correlation_id)
-        claim = self.wait_for_claim(group="vlan.be.kuid.dev", plural="vlanclaims", name=claim["metadata"]["name"])
-        status = claim.get("status") or {}
-        value = status.get("value") or status.get("allocated") or status.get("assigned")
-        if isinstance(value, int):
-            return value
-        try:
-            return int(str(value))
-        except Exception as exc:  # noqa: BLE001
-            raise KUIDAPIError(f"vlan claim has no numeric value: {value!r}") from exc
+        claim = self.create_claim(
+            group="vlan.be.kuid.dev", plural="vlanclaims", kind="VLANClaim",
+            spec={"index": VLAN_INDEX}, correlation_id=correlation_id,
+        )
+        claim = self.wait_for_claim(
+            group="vlan.be.kuid.dev", plural="vlanclaims",
+            name=claim["metadata"]["name"],
+        )
+        return _claim_id(claim, "vlan")
 
     def allocate_rd_rt(self, correlation_id: str) -> tuple[str, list[str], list[str]]:
-        # A single extcomm claim often yields a new route-target; treat it as both import/export.
-        spec = {"from": {"kind": "ExtCommIndex", "name": "rt-index"}, "purpose": "rt"}
-        claim = self.create_claim(group="extcomm.be.kuid.dev", plural="extcommclaims", spec=spec, correlation_id=correlation_id)
-        claim = self.wait_for_claim(group="extcomm.be.kuid.dev", plural="extcommclaims", name=claim["metadata"]["name"])
-        status = claim.get("status") or {}
-        # Common encodings: "target:65000:12345" or just "65000:12345"
-        rt = str(status.get("value") or status.get("allocated") or status.get("assigned") or "").strip()
-        if not rt:
-            raise KUIDAPIError("rt/rd claim has no value")
-        # Make a stable RD from the RT value (same ASN:number pair); prefix if needed.
-        rd = rt if ":" in rt else f"65000:{rt}"
-        # Normalize RT to without "target:" prefix (migration accepts both forms but we keep one)
-        if rt.startswith("target:"):
-            rt = rt.split(":", 1)[1]
-        return rd, [rt], [rt]
+        """One extended-community claim yields the route-target number; the
+        RD reuses the same ASN:number pair so both stay derived from the
+        allocation authority rather than generated locally (FR-013)."""
+        claim = self.create_claim(
+            group="extcomm.be.kuid.dev", plural="extcommclaims", kind="EXTCOMMClaim",
+            spec={"index": EXTCOMM_INDEX}, correlation_id=correlation_id,
+        )
+        claim = self.wait_for_claim(
+            group="extcomm.be.kuid.dev", plural="extcommclaims",
+            name=claim["metadata"]["name"],
+        )
+        rt = f"{FABRIC_ASN}:{_claim_id(claim, 'rt')}"
+        return rt, [rt], [rt]
+

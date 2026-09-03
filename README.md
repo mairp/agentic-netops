@@ -3,7 +3,7 @@
 [![CI](https://github.com/mairp/agentic-netops/actions/workflows/ci.yaml/badge.svg)](https://github.com/mairp/agentic-netops/actions/workflows/ci.yaml)
 [![SONiC](https://img.shields.io/badge/SONiC-202605-blue)](versions.lock.yaml)
 [![FRR](https://img.shields.io/badge/FRR-10.5.4-blue)](versions.lock.yaml)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.29.4-326ce5)](versions.lock.yaml)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.31.6-326ce5)](versions.lock.yaml)
 [![containerlab](https://img.shields.io/badge/containerlab-sonic--vs-0a7bbb)](lab/topology.clab.yml)
 [![Tutorial](https://img.shields.io/badge/docs-TUTORIAL.md-green)](TUTORIAL.md)
 

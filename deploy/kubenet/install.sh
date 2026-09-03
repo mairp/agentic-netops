@@ -80,3 +80,34 @@ if [[ "${kubenet_ready}" == "true" && "${kuid_ready}" == "true" ]]; then
 else
   echo "[kubenet-install] CRDs applied; controller pods not Ready within window (kubenet=${kubenet_ready} kuid=${kuid_ready}); continuing best-effort"
 fi
+
+# ---------------------------------------------------------------------------
+# KUID aggregated API server (the allocator's allocation authority).
+#
+# The allocator claims identifiers from the `*.be.kuid.dev` groups, which are
+# served by kuid-server -- not by the CRD-backed `id.kuid.dev` group above.
+# Ordering matters twice over:
+#   1. the Deployment must be Ready before its APIServices are registered, or
+#      API discovery fails for every group it claims to serve;
+#   2. kuid-server's own controllers watch its aggregated kinds, so it needs a
+#      restart once those APIServices exist or its caches never sync and it
+#      refuses writes with "not yet ready to handle request".
+# ---------------------------------------------------------------------------
+echo "[kubenet-install] installing kuid-server (aggregated allocation API)"
+kubectl --context "${KIND_CONTEXT}" apply -f "${ROOT}/deploy/kuid/server.yaml"
+if kubectl --context "${KIND_CONTEXT}" -n kuid-system rollout status deploy/kuid-server --timeout=180s; then
+  kubectl --context "${KIND_CONTEXT}" apply -f "${ROOT}/deploy/kuid/apiservices.yaml"
+  # Resync the server's caches now that its own kinds are discoverable.
+  kubectl --context "${KIND_CONTEXT}" -n kuid-system rollout restart deploy/kuid-server
+  kubectl --context "${KIND_CONTEXT}" -n kuid-system rollout status deploy/kuid-server --timeout=180s || true
+  for i in $(seq 1 30); do
+    if kubectl --context "${KIND_CONTEXT}" apply -f "${ROOT}/deploy/kuid/indices.yaml" >/dev/null 2>&1; then
+      echo "[kubenet-install] kuid-server serving; allocation indices applied"
+      break
+    fi
+    [[ "$i" == "30" ]] && echo "[kubenet-install] WARN: kuid-server did not accept index writes; allocation will fail" >&2
+    sleep 5
+  done
+else
+  echo "[kubenet-install] WARN: kuid-server not Ready; APIServices left unregistered (discovery stays healthy)" >&2
+fi

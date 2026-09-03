@@ -79,7 +79,7 @@ intent::install() {
     local cluster="${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
     for img in agentic-netops/intent-supervisor:latest agentic-netops/intent-mapper:latest \
                agentic-netops/intent-allocator:latest agentic-netops/intent-deployer:latest \
-               agentic-netops/intent-translator:latest; do
+               agentic-netops/intent-translator:latest agentic-netops/intent-ui:latest; do
       if docker image inspect "$img" >/dev/null 2>&1; then
         kind load docker-image "$img" --name "$cluster" >/dev/null 2>&1 \
           && intent::log "loaded $img" || intent::log "WARN: kind load failed for $img (pull will be attempted)"

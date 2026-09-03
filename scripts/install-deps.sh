@@ -13,8 +13,8 @@ BIN_DIR="${BIN_DIR:-/usr/local/bin}"
 MODE="${1:-all}"
 
 # --- pinned host tool versions -------------------------------------------------
-KUBECTL_VERSION="v1.29.4"
-KIND_VERSION="v0.22.0"
+KUBECTL_VERSION="v1.31.6"
+KIND_VERSION="v0.27.0"
 HELM_VERSION="v3.14.4"
 GNMIC_VERSION="0.47.0"
 YQ_VERSION="v4.44.1"
@@ -37,7 +37,7 @@ SONIC_BUILDIMAGE_BRANCH="202405"
 
 # --- pinned images (digest resolved at runtime) --------------------------------
 declare -A IMAGES=(
-  [kind_node]="kindest/node:v1.29.4"
+  [kind_node]="kindest/node:v1.31.6"
   [gnmic]="ghcr.io/openconfig/gnmic:0.47.0"
   [otel_collector]="otel/opentelemetry-collector-contrib:0.104.0"
   [prometheus]="prom/prometheus:v2.53.1"
