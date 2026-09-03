@@ -28,6 +28,14 @@ feeding back into it.
 Everything below is self-contained. The `specs/` directory is intentionally untracked
 (spec-kit working material), so this README carries the instructions rather than pointing at it.
 
+## Walkthrough
+
+![AINETOPS demo](docs/images/ainetops-demo.gif)
+
+*35s walkthrough — [MP4](docs/images/ainetops-demo.mp4). Every frame is real: the
+topology is rendered from the running lab, the dashboard shows live gNMI telemetry,
+and the pod/series counts are captured values, not mock-ups.*
+
 ## The lab
 
 ![Fabric topology](docs/images/lab-topology.png)
@@ -36,6 +44,15 @@ Two spines, two leaves and four clients in containerlab, wired as a Clos with a
 dual-stack eBGP underlay and an EVPN/VXLAN overlay.
 
 ![Fabric telemetry](docs/images/grafana-fabric-telemetry.png)
+
+Live gNMI telemetry from the fabric: gnmic subscribes to each SONiC node's DBs,
+Prometheus scrapes gnmic directly, Grafana renders it.
+
+![Intent tier UI](docs/images/agent-ui.png)
+
+The intent tier's chat surface. **Note:** the chat itself is still a stub — the page
+states "Chat streaming arrives in a later phase" — so intent is driven through the
+supervisor API for now, not this box.
 
 Live gNMI telemetry: gnmic subscribes to each SONiC node's DBs, Prometheus scrapes
 gnmic directly, Grafana renders it.
