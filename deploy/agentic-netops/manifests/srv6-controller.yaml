@@ -21,6 +21,9 @@ spec:
         # its informers ("unable to set up indexes ... dial tcp 10.96.0.1:443:
         # i/o timeout") and it never reaches Ready.
         agentic-netops.io/needs-apiserver: "true"
+        # Scoped device-network egress for gNMI read-back against the fabric
+        # (deploy/rbac/base.yaml allow-fabric-gnmi-egress).
+        agentic-netops.io/needs-fabric-gnmi: "true"
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8081"

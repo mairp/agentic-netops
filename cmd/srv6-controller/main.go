@@ -66,9 +66,10 @@ func main() {
 	}
 
 	reconciler := &srv6service.Reconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Log:    log.WithName("srv6service"),
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Log:       log.WithName("srv6service"),
+		APIReader: mgr.GetAPIReader(), // pins read uncached (see pkg/compat/pins.go)
 	}
 	if err := reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to create controller", "controller", "SRv6Service")

@@ -61,7 +61,12 @@ the chosen split is remembered per browser.
 end to end — classification, interpretation, allocation, your two explicit
 confirmations, then a real deployment transaction against the cluster (translate
 pod-local, server-side dry-run, deterministic apply, rollback on failure,
-convergence watch) and a truthful `submitted` report. A single-shot
+convergence watch) and a truthful `submitted` report — **and the southbound
+closes the loop**: a `sonicprovider` Network controller renders the accepted
+Network onto the SONiC fabric through the host-side fabric-executor and flips
+the Network's `Ready` condition to True only after per-node verification
+passes (proven live 2026-09-04: two L3VPNs, `Ready=True`, VRF/VXLAN/SVI/access
+state asserted on both leaves). A single-shot
 `POST /agent/prompt/stream`, however, stops at the supervisor's own iteration
 bound, because the graph is built to provision only "after your two explicit
 confirmations" and a one-shot request cannot supply them. The refusal is logged

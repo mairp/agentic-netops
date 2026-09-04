@@ -127,3 +127,25 @@ kubectl -n agentic-netops-agents exec deploy/deployer -c deployer -- \
 The number and names of objects returned by the first query must equal the
 `submitted` resources in the deployer audit event. A failed precondition or dry-run
 must return zero objects for that correlation ID.
+
+## Southbound reconciliation (operational, 2026-09-04)
+
+Submission is not the end of the transaction: a `sonicprovider` Network
+controller in `agentic-netops-system` reconciles every accepted Network onto
+the fabric and owns its `Ready` condition. What the deployer's convergence
+watch polls is now actually driven:
+
+- **Render** (`pkg/fabricplan`): per-node ops from the Network spec — GCU for
+  VRF declarations, raw CONFIG_DB for the L3VNI vlan + tunnel map, kernel-side
+  SVI/attachment (bridge-access model; ports are shared per-vlan), FRR
+  vrf/bgp as best-effort (D-A2). Intent VRF names are derived to device names
+  (`Vrf-` + 10 chars) because sonic-vrf.yang caps names hard.
+- **Execute** (`cmd/fabric-executor`): a HOST service on :8084 (kind nodes run
+  containerd; the host docker.sock cannot enter a pod), reached by the provider
+  at `http://172.30.0.1:8084` under a single-purpose netpol + iptables rule.
+  Stops at the first failed op and reports the op's own output.
+- **Verify**: CONFIG_DB rows, kernel masters, addresses, bridge-vids —
+  `Ready=True` only when every node's checks pass; fatal op kinds (gcu, redis,
+  shell) set `Ready=False/ApplyFailed` and requeue; vtysh/frrconf failures are
+  degraded-but-True (D-A2). Deletion rolls back owned state before the
+  finalizer drops.

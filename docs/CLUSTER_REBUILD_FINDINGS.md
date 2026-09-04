@@ -341,6 +341,59 @@ cd agents && uv run pytest tests/unit -q                                 # 118 p
 
 ---
 
+## Southbound closure (2026-09-04) — the loop now completes
+
+The deployer's "inert southbound" is closed. `migr-bbae798efc224f7` (L3VPN) and
+two fresh UI transactions (`migr-71f559ff546e419`, `migr-f1b10cf0d66245e`)
+reconciled onto the fabric with `Ready=True`, verified per node.
+
+**What was broken and how it was fixed (all found live, all in the tree now):**
+
+1. **CRDs had no status subresource** — every status write 404'd silently, so
+   the deployer's watch saw an empty status forever. All four kubenet CRDs now
+   carry `subresources: {status: {}}` (source: `deploy/kubenet/crds/`).
+2. **Pins read rode a poisoned informer** — the sdc.Config controller's
+   cluster-scoped ConfigMap list is RBAC-denied, and any cache-backed read of
+   `fabric-compat-pins` failed with it. `ResolveSitePins` now takes a minimal
+   `compat.PinReader` and the reconcilers pass `mgr.GetAPIReader()` (uncached).
+3. **Capability assertion** — "SRv6 not supported" was a *missing* capability
+   label, not a real gap: versions.lock declares the image SRv6/gNMI-qualified
+   and `scripts/lib/qualify.sh` gated it live ("[qualify] OK", sonic-srv6
+   locator read-back asserted on both leaves). The CM now carries
+   `cap-sai-srv6: "true"`, routed to `SitePins.Labels` (validator surface).
+4. **fabric-executor runs on the host, not in the cluster** — kind nodes run
+   containerd, so the host docker.sock cannot be mounted into a pod. The
+   executor is a host service on `:8084` (`/var/local/agentic-netops/`,
+   pidfile + log there), reached by provider pods at `http://172.30.0.1:8084`
+   through an explicit netpol (ipBlock 172.30.0.1/32 tcp/8084) and an iptables
+   INPUT rule for the kind bridge (`-i br-+ -p tcp --dport 8084 -j ACCEPT`,
+   baked into provision.sh, idempotent).
+5. **VRF names must match `^Vrf[a-zA-Z0-9_-]+$` AND be short** — sonic-vrf.yang
+   rejected the deployer's 19-char `vrf-<hex>` names twice (length, then case).
+   `fabricplan.DeviceVRFName` derives `Vrf-` + first 10 sanitized chars
+   deterministically (≤14 total; exactly-16 still fails YANG — validated live).
+6. **GCU read-back races vrfmgrd** — apply_patch can raise "still some parts
+   not updated" when a daemon rewrites the table mid-transaction even though
+   the write landed. The executor's GCU script now confirms the intended
+   end-state directly against CONFIG_DB (sonic-db-cli, `TABLE|key` keys,
+   depth-2/3 ops) before reporting failure.
+7. **Redis ops are arguments, not shell commands** — plan Redis ops go through
+   `redis-cli -n 4` now (bare `hset` exited 127).
+8. **L3 attachment is bridge-access, not port-master** — enslaving the physical
+   port to the VRF lets two services on one port fight over a single master
+   (observed as flip-flopping ApplyFailed). The render now follows the
+   bootstrap pattern: port → Bridge (vlan_filtering 1) as ACCESS in the service
+   vlan; `Vlan<l3vlan>` bridge subdevice enslaved to the VRF, addressed from
+   the intent's prefix; verify checks `bridge-vid` on the port (the awk had to
+   handle indented rows — vid lands in $1 after the first line).
+9. **vrfmgrd lag** — the kernel VRF device appears asynchronously after the
+   GCU write; master-setting waits up to 10 s, verify stays strict.
+
+**Honest rejections that must stay:** four migration-era Networks remain
+`SchemaMismatch` (attachment references a vlan with no bridgeDomain; a port not
+in the site map) — the validation gate is doing its job.
+
+
 ## Open decisions
 
 1. **Fabric race (Pending #1)** — take it on, or leave the overlay non-forwarding for now?

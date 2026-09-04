@@ -97,6 +97,63 @@ spec:
     - protocol: TCP
       port: 6443
 ---
+# Scoped device-network egress for the SANCTIONED southbound only (2026-09-04).
+#
+# deny-all-by-default above denies every pod's egress, and since kindnetd began
+# enforcing NetworkPolicy that silently severed the lab's own fabric plumbing:
+# gnmic's telemetry subscriptions died with "dial tcp 172.31.0.x:8080: i/o
+# timeout" on all four nodes, and any in-cluster read-back against the devices
+# became impossible. The intent tier (agentic-netops-agents) must keep its
+# device-network denial intact (SC-005), but the southbound controllers and the
+# telemetry subscriber are the components whose entire job is to talk to the
+# fabric, so they get the one narrow hole this policy carves: TCP 8080
+# (gNMI/TLS telemetry) into the pinned containerlab management subnet
+# (AGENTIC_NETOPS_MGMT_SUBNET, scripts/lib/kind.sh) and nothing else.
+#
+# Opt in per workload with the label below; nothing else in the namespace
+# matches it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-fabric-gnmi-egress
+  namespace: agentic-netops-system
+spec:
+  podSelector:
+    matchLabels:
+      agentic-netops.io/needs-fabric-gnmi: "true"
+  policyTypes: ["Egress"]
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 172.31.0.0/16
+    ports:
+    - protocol: TCP
+      port: 8080
+---
+# The SONiC provider's write path runs through the fabric-executor, a host
+# service on the kind bridge gateway (172.30.0.1:8084 — scripts/provision.sh
+# starts it next to the docker daemon it execs through). This carves exactly
+# that one destination for the pods labeled needs-fabric-executor; the intent
+# tier keeps no route here (SC-005: only the system tier reaches fabric
+# control surfaces).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-fabric-executor-egress
+  namespace: agentic-netops-system
+spec:
+  podSelector:
+    matchLabels:
+      agentic-netops.io/needs-fabric-executor: "true"
+  policyTypes: ["Egress"]
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 172.30.0.1/32
+    ports:
+    - protocol: TCP
+      port: 8084
+---
 apiVersion: v1
 kind: Secret
 metadata:

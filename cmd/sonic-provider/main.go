@@ -20,6 +20,8 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -49,6 +51,10 @@ func main() {
 	zapLog, _ := zap.NewProduction()
 	defer zapLog.Sync()
 	setupLog = zapr.NewLogger(zapLog).WithName("setup")
+	// controller-runtime's own logs (controller errors, leader events) route
+	// through log.SetLogger; without this they vanish and reconcile failures
+	// are invisible except as requeue silence.
+	ctrl.SetLogger(zapr.NewLogger(zapLog))
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -64,17 +70,36 @@ func main() {
 		RenewDeadline:                 ptrDuration(40 * time.Second),
 		RetryPeriod:                   ptrDuration(15 * time.Second),
 		LeaderElectionResourceLock:    resourcelock.LeasesResourceLock,
+		// The provider's RBAC is namespaced to the intent tier (Role
+		// sonic-provider-networks), so the Network informer must not list at
+		// cluster scope. Scoping the cache per-GVK keeps that alignment and
+		// bounds the watch to where the deployer submits Networks.
+		Cache: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				&kubenet.Network{}: {
+					Namespaces: map[string]cache.Config{
+						"agentic-netops-intent": {},
+					},
+				},
+			},
+		},
+	}
+
+	// Register schemes BEFORE manager creation: the cache's per-GVK namespace
+	// scoping (options.Cache.ByObject below) needs the scheme to know whether
+	// kubenet.Network is namespaced at NewManager time.
+	if err := kubenet.AddToScheme(scheme); err != nil {
+		setupLog.Error(err, "unable to add Kubenet scheme")
+		os.Exit(1)
+	}
+	if err := sdc.AddToScheme(scheme); err != nil {
+		setupLog.Error(err, "unable to add SDC scheme")
+		os.Exit(1)
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
-	}
-
-	// Register Kubenet types for watches
-	if err := kubenet.AddToScheme(scheme); err != nil {
-		setupLog.Error(err, "unable to add Kubenet scheme")
 		os.Exit(1)
 	}
 
@@ -84,15 +109,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Register SDC types for Ownership and SSA
-	if err := sdc.AddToScheme(scheme); err != nil {
-		setupLog.Error(err, "unable to add SDC scheme")
+	// Pins read uncached: the sdc.Config informer's cluster-scoped ConfigMap
+	// list is RBAC-denied and would poison any cache-backed pin lookup.
+	reconciler := &sonicprovider.Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), Log: setupLog.WithName("sonicprovider"), Recorder: mgr.GetEventRecorderFor("agentic-netops-sonic-provider"), APIReader: mgr.GetAPIReader()}
+	if err := reconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NetworkDevice")
 		os.Exit(1)
 	}
 
-	reconciler := &sonicprovider.Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), Log: setupLog.WithName("sonicprovider"), Recorder: mgr.GetEventRecorderFor("agentic-netops-sonic-provider")}
-	if err := reconciler.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "NetworkDevice")
+	// Network intent reconciler: the intent-to-fabric loop. Watches
+	// network.kubenet.dev Networks in agentic-netops-intent, applies them to the
+	// fabric through the fabric-executor, and reports verified convergence on
+	// the Network's Ready condition.
+	networkReconciler := &sonicprovider.NetworkReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), Log: setupLog.WithName("networkfabric"), Recorder: mgr.GetEventRecorderFor("agentic-netops-sonic-provider"), APIReader: mgr.GetAPIReader()}
+	if err := networkReconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Network")
 		os.Exit(1)
 	}
 

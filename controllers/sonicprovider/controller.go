@@ -34,6 +34,8 @@ type Reconciler struct {
 	Scheme   *runtime.Scheme
 	Log      logr.Logger
 	Recorder recordEventer
+	// APIReader, when set, backs the site-pins read (uncached; see pins.go).
+	APIReader compat.PinReader
 
 	// metrics
 	renderCounter prometheus.Counter
@@ -136,13 +138,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	// Compatibility-set validation gates downstream mutations
-	set := compat.FromAnnotations(nd.Annotations)
-	discovered := map[string]bool{"sai.srv6": nd.Labels["agentic-netops.dev/cap.sai.srv6"] == "true"}
-	if err := compat.FullValidate(set, nd.Labels, discovered); err != nil {
+	// Compatibility-set validation gates downstream mutations (site ConfigMap
+	// pins with object-annotation override — see pkg/compat/pins.go).
+	pinReader := compat.PinReader(r.Client)
+	if r.APIReader != nil {
+		pinReader = r.APIReader
+	}
+	pins := compat.ResolveSitePins(ctx, pinReader, nd.Annotations, nd.Labels)
+	set := compat.FromAnnotations(pins.Annotations)
+	discovered := map[string]bool{"sai.srv6": pins.Labels["agentic-netops.dev/cap.sai.srv6"] == "true"}
+	if err := compat.FullValidate(set, pins.Labels, discovered); err != nil {
 		// Set SchemaMismatch/CapabilityMissing and requeue with terminal backoff, no downstream change
 		reason := compat.ReasonFor(err)
-		cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reason, Message: err.Error()}
+		cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reason, Message: err.Error() + " (" + pins.Provenance() + ")"}
 		patched := nd
 		patched.Status = upsertConditionGeneric(nd.Status, cond)
 		_ = r.Status().Patch(ctx, &patched, client.MergeFrom(&nd))

@@ -131,6 +131,11 @@ spec:
       labels:
         app.kubernetes.io/name: gnmic
         agentic-netops.dev/component: observability
+        # Scoped device-network egress for the telemetry subscriptions
+        # (deploy/rbac/base.yaml allow-fabric-gnmi-egress). Without it the
+        # enforced deny-all leaves every subscription dialing 172.31.0.x:8080
+        # into an i/o timeout.
+        agentic-netops.io/needs-fabric-gnmi: "true"
     spec:
       serviceAccountName: gnmic
       containers:

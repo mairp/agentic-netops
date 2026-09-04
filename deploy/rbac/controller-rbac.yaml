@@ -1,0 +1,78 @@
+# Leader-election and intent-tier RBAC for the southbound controllers.
+#
+# Two gaps closed here, both found live (2026-09-04):
+#
+# 1. Leader election. controller-runtime managers using --leader-elect need
+#    coordination.k8s.io leases in their own namespace. The shared Role
+#    `agentic-netops-controller` grants leases only to the secret-generator
+#    identity, so the srv6-controller and sonic-provider never won the lease:
+#    their logs looped on "cannot get resource leases ... forbidden" and neither
+#    controller ever reconciled a single object.
+#
+# 2. The Network reconciler's API surface. sonic-provider watches
+#    network.kubenet.dev Networks in agentic-netops-intent (where the intent
+#    tier's deployer submits them), maintains their status subresource, and
+#    records events on them. The system namespace's own Role does not and must
+#    not extend there, so this gets its own namespaced Role.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: southbound-controller-leases
+  namespace: agentic-netops-system
+rules:
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["fabric-compat-pins"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: southbound-controller-leases
+  namespace: agentic-netops-system
+subjects:
+- kind: ServiceAccount
+  name: agentic-netops-srv6-controller
+  namespace: agentic-netops-system
+- kind: ServiceAccount
+  name: agentic-netops-sonic-provider
+  namespace: agentic-netops-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: southbound-controller-leases
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sonic-provider-networks
+  namespace: agentic-netops-intent
+rules:
+# update/patch on the main resource: the finalizer add/remove is a plain
+# object write, not a subresource write.
+- apiGroups: ["network.kubenet.dev"]
+  resources: ["networks"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["network.kubenet.dev"]
+  resources: ["networks/status", "networks/finalizers"]
+  verbs: ["get", "update", "patch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sonic-provider-networks
+  namespace: agentic-netops-intent
+subjects:
+- kind: ServiceAccount
+  name: agentic-netops-sonic-provider
+  namespace: agentic-netops-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sonic-provider-networks

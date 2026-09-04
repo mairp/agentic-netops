@@ -21,6 +21,12 @@ spec:
         # its informers ("unable to set up indexes ... dial tcp 10.96.0.1:443:
         # i/o timeout") and it never reaches Ready.
         agentic-netops.io/needs-apiserver: "true"
+        # Scoped device-network egress for gNMI read-back against the fabric
+        # (allow-fabric-gnmi-egress in the same file).
+        agentic-netops.io/needs-fabric-gnmi: "true"
+        # Selected by allow-fabric-executor-ingress — the only caller of the
+        # fabric write path.
+        agentic-netops.io/needs-fabric-executor: "true"
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
@@ -39,6 +45,15 @@ spec:
           value: agentic-netops-sonic-provider
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: http://otel-collector.agentic-netops-system:4318
+        # Fabric write path (deploy/agentic-netops/manifests/fabric-executor.yaml).
+        # Port map contract: the spec's logical attachment names resolved to the
+        # lab's kernel ports — wan1 lands on the SRv6 client port (eth4, the
+        # spare), ethernetN on the client access port (eth3). Unknown names are
+        # rejected by the renderer, never guessed.
+        - name: FABRIC_EXECUTOR_URL
+          value: http://172.30.0.1:8084   # kind bridge gateway = host fabric-executor service
+        - name: FABRIC_PORT_MAP
+          value: '{"wan1":"eth4","ethernet1":"eth3","ethernet2":"eth3","ethernet3":"eth3","eth1":"eth1","eth2":"eth2","eth3":"eth3","eth4":"eth4"}'
         readinessProbe:
           httpGet: { path: /readyz, port: 8081 }
           initialDelaySeconds: 5
