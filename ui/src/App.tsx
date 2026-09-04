@@ -1,9 +1,31 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Chat from './components/Chat/Chat'
 import MainArea from './components/MainArea/MainArea'
 import Navigation from './components/Navigation/Navigation'
+import ResizeHandle from './components/ResizeHandle/ResizeHandle'
 import Sidebar from './components/Sidebar/Sidebar'
 import { useAgentAPI } from './hooks/useAgentAPI'
+
+/** Smallest conversation height that stays usable (header + a message + composer). */
+const CHAT_MIN_HEIGHT = 220
+/** Conversation height until the operator picks their own (persisted). */
+const CHAT_DEFAULT_HEIGHT = 356
+/** Workflow canvas never shrinks below this while dragging the divider
+ *  (62px canvas heading + the 360px .graph-viewport floor + slack). */
+const WORKFLOW_MIN_HEIGHT = 430
+/** Rendered height of the divider row between the panels. */
+const DIVIDER_HEIGHT = 6
+
+function loadChatHeight(): number {
+  try {
+    const stored = localStorage.getItem('agentic-netops-chat-height')
+    const parsed = stored ? Number.parseInt(stored, 10) : Number.NaN
+    if (Number.isFinite(parsed) && parsed >= CHAT_MIN_HEIGHT) return parsed
+  } catch {
+    // Storage can be unavailable; the default applies.
+  }
+  return CHAT_DEFAULT_HEIGHT
+}
 
 export type HealthState = {
   status: 'checking' | 'ok' | 'degraded' | 'offline'
@@ -109,6 +131,42 @@ export default function App() {
     })
   }
 
+  // Divider position between the workflow canvas and the conversation.
+  const [chatExpanded, setChatExpanded] = useState(true)
+  const [chatHeight, setChatHeight] = useState(loadChatHeight)
+  const consoleRef = useRef<HTMLElement>(null)
+  // Upper bound depends on the console's live height; before it is measured
+  // fall back to something generous rather than fighting the layout.
+  const measuredMax = consoleRef.current?.clientHeight ?? 0
+  const chatMaxHeight = measuredMax > 0
+    ? measuredMax - WORKFLOW_MIN_HEIGHT - DIVIDER_HEIGHT
+    : CHAT_DEFAULT_HEIGHT + 600
+  const clampChatHeight = useCallback(
+    (value: number) => Math.min(chatMaxHeight, Math.max(CHAT_MIN_HEIGHT, value)),
+    [chatMaxHeight],
+  )
+  // Re-measure the console when the window resizes so the drag bounds and
+  // the applied clamp follow the live layout.
+  const [, setMeasureTick] = useState(0)
+  useEffect(() => {
+    const onResize = () => setMeasureTick(tick => tick + 1)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  const safeChatHeight = clampChatHeight(chatHeight)
+  const applyChatHeight = useCallback((value: number) => {
+    setChatHeight(clampChatHeight(value))
+  }, [clampChatHeight])
+  const persistChatHeight = useCallback((value: number) => {
+    const clamped = clampChatHeight(value)
+    setChatHeight(clamped)
+    try {
+      localStorage.setItem('agentic-netops-chat-height', String(Math.round(clamped)))
+    } catch {
+      // Storage can be unavailable; the size just is not remembered.
+    }
+  }, [clampChatHeight])
+
   return (
     <div className="app-shell" data-theme={theme}>
       <Navigation
@@ -128,9 +186,24 @@ export default function App() {
           onClear={agent.clear}
         />
         {sidebarOpen && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} />}
-        <main className="operator-console">
+        <main className="operator-console" ref={consoleRef}>
           <MainArea events={agent.events} pending={agent.pending} health={health} />
-          <Chat agent={agent} prompts={prompts} />
+          {chatExpanded && (
+            <ResizeHandle
+              height={safeChatHeight}
+              min={CHAT_MIN_HEIGHT}
+              max={chatMaxHeight}
+              onResize={applyChatHeight}
+              onResizeEnd={persistChatHeight}
+            />
+          )}
+          <Chat
+            agent={agent}
+            prompts={prompts}
+            expanded={chatExpanded}
+            onExpandedChange={setChatExpanded}
+            chatHeight={safeChatHeight}
+          />
         </main>
       </div>
     </div>

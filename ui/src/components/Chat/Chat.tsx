@@ -5,6 +5,11 @@ import type { AgentEvent, UseAgentAPI } from '../../hooks/useAgentAPI'
 type Props = {
   agent: UseAgentAPI
   prompts: string[]
+  /** Whether the conversation body is expanded (owned by App so the divider can react). */
+  expanded: boolean
+  onExpandedChange: (expanded: boolean) => void
+  /** Divider-controlled conversation height in px (only applied while expanded). */
+  chatHeight: number
 }
 
 function CorrelationChip({ correlationId }: { correlationId: string }) {
@@ -98,27 +103,34 @@ function EventFeed({ events, agent }: { events: AgentEvent[]; agent: UseAgentAPI
   )
 }
 
-export default function Chat({ agent, prompts }: Props) {
+export default function Chat({ agent, prompts, expanded, onExpandedChange, chatHeight }: Props) {
   const [text, setText] = useState('')
   const [lastPrompt, setLastPrompt] = useState('')
-  const [expanded, setExpanded] = useState(true)
   const hasDeclined = agent.events.some(event => event.type === 'error' && /declined/.test(event.reason || ''))
   const latestCorrelation = useMemo(() => [...agent.events].reverse().find(event => event.correlation_id)?.correlation_id, [agent.events])
+  const hasConversation = agent.events.length > 0
+  // A divider-dragged height only applies to a real conversation; the bare
+  // composer keeps its natural size.
+  const sized = hasConversation && expanded
 
   const submit = async (prompt = text) => {
     const cleanPrompt = prompt.trim()
     if (!cleanPrompt || agent.pending) return
     setLastPrompt(cleanPrompt)
     setText('')
-    setExpanded(true)
+    onExpandedChange(true)
     await agent.sendPrompt(cleanPrompt)
   }
 
   return (
-    <section className={`chat-panel ${agent.events.length && expanded ? 'expanded' : ''}`} aria-label="Agent conversation">
-      {agent.events.length > 0 && (
+    <section
+      className={`chat-panel ${hasConversation && expanded ? 'expanded' : ''} ${sized ? 'sized' : ''}`}
+      style={sized ? { height: `${Math.round(chatHeight)}px` } : undefined}
+      aria-label="Agent conversation"
+    >
+      {hasConversation && (
         <div className="chat-header">
-          <button className="chat-title" onClick={() => setExpanded(value => !value)} aria-expanded={expanded}>
+          <button className="chat-title" onClick={() => onExpandedChange(!expanded)} aria-expanded={expanded}>
             <ChevronDown size={16} className={expanded ? '' : 'collapsed'} />
             <span>Agent conversation</span>
             {latestCorrelation && <code>{latestCorrelation.slice(0, 8)}</code>}
@@ -127,7 +139,7 @@ export default function Chat({ agent, prompts }: Props) {
         </div>
       )}
 
-      {agent.events.length > 0 && expanded && (
+      {hasConversation && expanded && (
         <div className="conversation-body">
           {lastPrompt && <div className="user-message"><span>You</span><p>{lastPrompt}</p></div>}
           <EventFeed events={agent.events} agent={agent} />
