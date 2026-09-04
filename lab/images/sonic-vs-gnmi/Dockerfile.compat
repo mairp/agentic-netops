@@ -1,0 +1,16 @@
+# SONiC VS image with the repository's gNMI server and its build-time runtime
+# libraries isolated from SONiC's own daemons.  BASE_IMAGE must be immutable.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+COPY telemetry /usr/sbin/telemetry
+COPY schema /usr/sbin/schema
+COPY compat-libs /opt/agentic-netops/telemetry/lib
+COPY telemetry.sh /usr/bin/telemetry.sh
+COPY telemetry.conf /etc/supervisor/conf.d/telemetry.conf
+COPY hostserver.conf /etc/supervisor/conf.d/hostserver.conf
+
+RUN chmod +x /usr/sbin/telemetry /usr/bin/telemetry.sh && \
+    LD_LIBRARY_PATH=/opt/agentic-netops/telemetry/lib \
+      ldd /usr/sbin/telemetry | tee /tmp/telemetry.ldd && \
+    ! grep -q 'not found' /tmp/telemetry.ldd

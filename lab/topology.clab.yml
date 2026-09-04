@@ -16,7 +16,7 @@ topology:
     sonic-vs:
       # Containerlab does not have a special kind for SONiC; we use a linux kind with SONiC images
       kind: linux
-      image: localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e
+      image: localhost:5000/sonic-vs-gnmi:202505-v1@sha256:d1043aed28c98071c997a46d7e9e47823abacb06c31c068183541f8b5b5529e8
       env:
         TZ: UTC
 

@@ -17,11 +17,11 @@ import (
 
 // Schema for a single L3VPN router (VRF) intent, parsed from Spec["routers"].
 type NetworkRouter struct {
-	Name        string   `json:"name"`
-	L3VNI       int64    `json:"l3vni"`
-	RD          string   `json:"rd,omitempty"`
+	Name         string        `json:"name"`
+	L3VNI        int64         `json:"l3vni"`
+	RD           string        `json:"rd,omitempty"`
 	RouteTargets *RouteTargets `json:"routeTargets,omitempty"`
-	Prefixes    []string `json:"prefixes,omitempty"`
+	Prefixes     []string      `json:"prefixes,omitempty"`
 }
 
 type RouteTargets struct {
@@ -45,6 +45,20 @@ type BridgeDomain struct {
 	EVPN  *struct {
 		RouteTargets *RouteTargets `json:"routeTargets,omitempty"`
 	} `json:"evpn,omitempty"`
+	// IRB, when present, makes this bridge domain the L2 half of a symmetric
+	// IRB service: the domain's SVI is the tenant gateway and lives in VRF.
+	// Dropping this field is what made every IRB service render as a plain
+	// VPLS, silently losing the routed half of what the operator asked for.
+	IRB *BridgeDomainIRB `json:"irb,omitempty"`
+}
+
+// BridgeDomainIRB is the routed half of a bridge domain (symmetric IRB): the
+// VRF that owns the SVI and the gateway addresses the SVI carries. VRF names a
+// router in the same Network's routers list — the L3VNI comes from there.
+type BridgeDomainIRB struct {
+	VRF       string `json:"vrf"`
+	GatewayV4 string `json:"gatewayIPv4,omitempty"`
+	GatewayV6 string `json:"gatewayIPv6,omitempty"`
 }
 
 // Network mirrors kubenet's network.kubenet.dev/v1alpha1 Network CR.

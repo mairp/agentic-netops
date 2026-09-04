@@ -1,7 +1,7 @@
 # Agentic NetOps SONiC lab profile: sonic-vs
 profile: sonic-vs
 kind: sonic-vs
-image: localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e
+image: localhost:5000/sonic-vs-gnmi:202505-v1@sha256:d1043aed28c98071c997a46d7e9e47823abacb06c31c068183541f8b5b5529e8
 bootstrap:
   # Limited bootstrap: management, TLS, gNMI only; persistent config under /etc/sonic
   path: lab/profiles/sonic-vs/bootstrap
@@ -15,7 +15,8 @@ notes: |
   This immutable profile is used for fast qualification. No underlay or overlay control-plane
   is configured by bootstrap; only gNMI/TLS is enabled and /etc/sonic persists across restarts.
 
-  SRv6/gNMI-qualified as of 2026-08-31. The image is the community sonic-vs build with a
+  SRv6/gNMI-qualified as of 2026-09-04. The image is the official clean 202505
+  sonic-vs build 1207609 with a
   sonic-gnmi telemetry server layered in (lab/images/sonic-vs-gnmi/); it carries
   /usr/sbin/telemetry, supervisord program:telemetry, and sonic-srv6.yang, so
   scripts/lib/qualify.sh has a live gNMI endpoint to gate on. The previously pinned image
@@ -23,8 +24,9 @@ notes: |
   at all, which is why the capability gate failed closed against it — that was a property
   of the image, not a misconfiguration.
 
-  Image v2 (2026-08-31): adds supervisord programs for dbus-daemon and sonic-host-server
-  (recipe: lab/images/sonic-vs-gnmi/Dockerfile.v2). Bootstrap also sets
+  The compatibility layer adds supervisord programs for dbus-daemon and sonic-host-server
+  and isolates the telemetry binary's 202605 libraries from SONiC's own daemons
+  (recipe: lab/images/sonic-vs-gnmi/Dockerfile.compat). Bootstrap also sets
   DEVICE_METADATA.localhost.switch_type=npu (the YANG enum rejects "switch", and GCU
   validates the whole CONFIG_DB before any patch) and installs TLS certs with ".cer"
   suffixes (sonic-telemetry YANG pattern; a ".crt" path made every GCU write fail).

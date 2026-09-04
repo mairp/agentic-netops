@@ -81,7 +81,12 @@ KUID_ALLOCATION_FALLBACK = os.getenv("KUID_ALLOCATION_FALLBACK", "lease").lower(
 KUID_L2VNI_MIN = int(os.getenv("KUID_L2VNI_MIN", "10000"))
 KUID_L2VNI_MAX = int(os.getenv("KUID_L2VNI_MAX", "20000"))
 KUID_L3VNI_MIN = int(os.getenv("KUID_L3VNI_MIN", "10000"))
-KUID_L3VNI_MAX = int(os.getenv("KUID_L3VNI_MAX", "20000"))
+# 14094, not 20000: SONiC needs a VLAN for every VNI, and the fabric renderer
+# derives an L3VNI's VLAN as 4000 + (vni - 10000) into the reserved 4001-4094
+# band (pkg/fabricplan/plan.go). An L3VNI above 14094 has no VLAN to derive, so
+# a pool that can hand one out is a pool that silently starts failing every
+# L3VPN and IRB at convergence once it gets there.
+KUID_L3VNI_MAX = int(os.getenv("KUID_L3VNI_MAX", "14094"))
 KUID_EXTCOMM_MIN = int(os.getenv("KUID_EXTCOMM_MIN", "1"))
 KUID_EXTCOMM_MAX = int(os.getenv("KUID_EXTCOMM_MAX", "65535"))
 KUID_VLAN_MIN = int(os.getenv("KUID_VLAN_MIN", "100"))

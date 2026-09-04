@@ -26,12 +26,19 @@ metadata:
     agentic-netops.owner: agentic-netops
     agentic-netops.io/tier: intent
 data:
+  # Every prompt here must resolve against the SITE's own maps — the nodes in
+  # FABRIC_NODE_MAP (scripts/provision.sh) and the attachments in
+  # FABRIC_PORT_MAP (deploy/agentic-netops/manifests/provider.yaml). The cards
+  # shipped here named ethernet4/5/6, which this fabric does not have, so the
+  # VPLS and IRB cards were unprovisionable: they translated, submitted, and
+  # only then failed to render. The translator now refuses them up front, which
+  # makes a wrong card an immediate dead end rather than a stranded Network.
   suggested_prompts.json: |
     [
-      "Provision a point-to-point 1G VPWS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme",
-      "Create a full-mesh VPLS between leaf01 ethernet3 and leaf02 ethernet4 for tenant blue vlan 100",
-      "Create an L3VPN between site-a wan1 and site-b wan1 for tenant initech",
-      "Set up an IRB service between leaf01 ethernet5 and leaf02 ethernet6 for tenant umbrella vlan 200"
+      "Provision a point-to-point VPWS between leaf01 ethernet1 and leaf02 ethernet1 for tenant acme",
+      "Create a full-mesh VPLS between leaf01 ethernet2 and leaf02 ethernet2 for tenant blue vlan 100",
+      "Create an L3VPN between site-a wan1 and site-b wan1 for tenant initech with prefix 10.50.0.0/24",
+      "Set up an IRB service between ethernet3 on leaf01 and ethernet3 on leaf02 for tenant umbrella with prefix 10.60.0.0/24"
     ]
 ---
 apiVersion: v1

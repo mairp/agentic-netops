@@ -62,7 +62,7 @@ def test_irb_uses_the_go_type_literal():
     """The translator's IRB type is L2L3-IRB (pkg/migration/input.go:29)."""
     obj = NormalizedServiceIntent.model_validate(load_fixture("supported_irb.json"))
     assert obj.type == "L2L3-IRB"
-    assert obj.l2vni == 10401 and obj.l3vni == 20401
+    assert obj.l2vni == 10401 and obj.l3vni == 14001
     assert obj.irbGateway is not None and obj.irbGateway.vrf == "vrf-b1"
 
 

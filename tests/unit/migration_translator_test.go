@@ -90,7 +90,7 @@ func TestIRBTranslation(t *testing.T) {
 		Tenant:     "B",
 		RDRT:       &migration.RdRt{RD: "65000:401", ImportRT: []string{"65000:401"}, ExportRT: []string{"65000:401"}},
 		L2VNI:      10401,
-		L3VNI:      20401,
+		L3VNI:      14001,
 		IRBGateway: &migration.IRBGateway{VRF: "vrf-b1", GatewayV4: "10.0.20.1/24", GatewayV6: "2001:db8:20::1/64"},
 		Endpoints:  []migration.Endpoint{{Node: "leaf01", Attachment: "client01", VLAN: 20}, {Node: "leaf02", Attachment: "client02", VLAN: 20}},
 	}

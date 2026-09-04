@@ -187,22 +187,12 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 		if len(in.Endpoints) < 2 {
 			causes = append(causes, "endpoints: VPLS requires >=2 endpoints")
 		}
-		// All endpoints must specify same VLAN
-		var vlan int
-		for i, ep := range in.Endpoints {
-			if ep.VLAN == 0 {
-				causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for VPLS", i))
-			}
-			if i == 0 {
-				vlan = ep.VLAN
-			} else if ep.VLAN != vlan {
-				causes = append(causes, "endpoints.vlan: must be equal across all endpoints for VPLS")
-			}
-		}
+		causes = append(causes, endpointVLANCauses(in.Endpoints, "VPLS")...)
 	case ServiceL3VPN:
 		if in.L3VNI == 0 {
 			causes = append(causes, "l3vni: required for L3VPN")
 		}
+		causes = append(causes, l3vniRenderableCauses(in.L3VNI)...)
 		if in.RDRT == nil {
 			causes = append(causes, "rdRt: required for L3VPN")
 		}
@@ -228,11 +218,7 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 		if len(in.Endpoints) != 2 {
 			causes = append(causes, "endpoints: VPWS requires exactly 2 endpoints")
 		}
-		for i, ep := range in.Endpoints {
-			if ep.VLAN == 0 {
-				causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for VPWS", i))
-			}
-		}
+		causes = append(causes, endpointVLANCauses(in.Endpoints, "VPWS")...)
 		if !in.Policies.VPWSLimitedEquivalence {
 			causes = append(causes, "policy: vpwsLimitedEquivalence must be true to allow limited equivalence mapping")
 		}
@@ -243,6 +229,7 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 		if in.L3VNI == 0 {
 			causes = append(causes, "l3vni: required for IRB VRF")
 		}
+		causes = append(causes, l3vniRenderableCauses(in.L3VNI)...)
 		if in.RDRT == nil {
 			causes = append(causes, "rdRt: required for IRB VRF")
 		}
@@ -253,27 +240,69 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 			if in.IRBGateway.VRF == "" {
 				causes = append(causes, "irbGateway.vrf: required")
 			}
-			if in.IRBGateway.GatewayV4 == "" {
-				causes = append(causes, "irbGateway.gatewayIPv4: required")
-			}
-			if in.IRBGateway.GatewayV6 == "" {
-				causes = append(causes, "irbGateway.gatewayIPv6: required")
+			// At least one address family, not both. Requiring both forced
+			// every IRB to carry an IPv6 gateway whether or not the operator
+			// asked for IPv6 — an unrequested address family on the SVI and a
+			// Type-5 route the service was then held to.
+			if in.IRBGateway.GatewayV4 == "" && in.IRBGateway.GatewayV6 == "" {
+				causes = append(causes, "irbGateway: at least one of gatewayIPv4/gatewayIPv6 is required")
 			}
 		}
 		if len(in.Endpoints) < 1 {
 			causes = append(causes, "endpoints: IRB requires at least one endpoint")
 		}
-		for i, ep := range in.Endpoints {
-			if ep.VLAN == 0 {
-				causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for IRB", i))
-			}
-		}
+		causes = append(causes, endpointVLANCauses(in.Endpoints, "IRB")...)
 	default:
 		causes = append(causes, fmt.Sprintf("type: unsupported '%s'", in.Type))
 	}
+
+	// The site's own inventory is the last thing an intent can fail on before
+	// objects exist on the cluster.
+	causes = append(causes, SiteInventoryFromEnv().ValidateEndpoints(in.Endpoints)...)
 
 	if len(causes) > 0 {
 		return &ValidationError{Causes: causes}
 	}
 	return nil
+}
+
+// l3vniRenderableCauses rejects an L3VNI the fabric cannot render. SONiC needs
+// a VLAN for every VNI and the renderer derives one as 4000 + (vni - 10000)
+// into the reserved 4001-4094 band, so only 10000-14094 has a VLAN to derive.
+// Outside it the object used to be accepted, submitted, and only then rejected
+// by the controller.
+func l3vniRenderableCauses(vni int) []string {
+	if vni == 0 || (vni >= 10000 && vni <= 14094) {
+		return nil
+	}
+	return []string{fmt.Sprintf(
+		"l3vni: %d has no derivable service VLAN; this fabric renders L3VNIs in 10000-14094", vni)}
+}
+
+// endpointVLANCauses enforces the one rule every L2 service type shares: a
+// bridge domain is ONE broadcast domain, so every endpoint carries the same
+// service vlan. The translator renders exactly one bridgeDomain, taking its
+// vlan from the first endpoint; a second endpoint on a different vlan produced
+// an attachment referencing a vlan no bridgeDomain declared, and the fabric
+// rejected it at render time — after submission. VPLS checked this from the
+// start; VPWS and IRB did not, which is why neither ever converged.
+func endpointVLANCauses(eps []Endpoint, service string) []string {
+	var causes []string
+	var vlan int
+	for i, ep := range eps {
+		if ep.VLAN == 0 {
+			causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: required for %s", i, service))
+			continue
+		}
+		if vlan == 0 {
+			vlan = ep.VLAN
+			continue
+		}
+		if ep.VLAN != vlan {
+			causes = append(causes, fmt.Sprintf(
+				"endpoints[%d].vlan: %s is one bridge domain, so every endpoint must share one vlan (got %d and %d)",
+				i, service, vlan, ep.VLAN))
+		}
+	}
+	return causes
 }

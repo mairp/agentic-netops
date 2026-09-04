@@ -149,6 +149,19 @@ spec:
         - name: intent-translator
           image: agentic-netops/intent-translator:latest
           imagePullPolicy: IfNotPresent
+          env:
+            # The site's own inventory. The translator is the last gate before
+            # objects exist on the cluster, so an endpoint naming a node or a
+            # port this fabric does not have is refused here -- with the real
+            # names listed -- instead of being submitted and only then failing
+            # to render, leaving a stranded Network with nothing rolled back.
+            # Keep in step with the two places that own these maps:
+            #   FABRIC_NODE_MAP -> scripts/provision.sh (fabric-executor)
+            #   FABRIC_PORT_MAP -> deploy/agentic-netops/manifests/provider.yaml
+            - name: FABRIC_NODE_MAP
+              value: '{"leaf01":"clab-agentic-netops-fabric-leaf01","leaf02":"clab-agentic-netops-fabric-leaf02","spine01":"clab-agentic-netops-fabric-spine01","spine02":"clab-agentic-netops-fabric-spine02","site-a":"clab-agentic-netops-fabric-leaf01","site-b":"clab-agentic-netops-fabric-leaf02"}'
+            - name: FABRIC_PORT_MAP
+              value: '{"wan1":"eth4","ethernet1":"eth3","ethernet2":"eth3","ethernet3":"eth3","eth1":"eth1","eth2":"eth2","eth3":"eth3","eth4":"eth4"}'
           ports:
             - name: translator
               containerPort: 8090

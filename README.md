@@ -1,8 +1,8 @@
 # agentic-netops - Autonomous intent-to-fabric operations.
 
 [![CI](https://github.com/mairp/agentic-netops/actions/workflows/ci.yaml/badge.svg)](https://github.com/mairp/agentic-netops/actions/workflows/ci.yaml)
-[![SONiC](https://img.shields.io/badge/SONiC-202605-blue)](versions.lock.yaml)
-[![FRR](https://img.shields.io/badge/FRR-10.5.4-blue)](versions.lock.yaml)
+[![SONiC](https://img.shields.io/badge/SONiC-202505-blue)](versions.lock.yaml)
+[![FRR](https://img.shields.io/badge/FRR-10.3-blue)](versions.lock.yaml)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.31.6-326ce5)](versions.lock.yaml)
 [![containerlab](https://img.shields.io/badge/containerlab-sonic--vs-0a7bbb)](lab/topology.clab.yml)
 [![Tutorial](https://img.shields.io/badge/docs-TUTORIAL.md-green)](TUTORIAL.md)
@@ -28,14 +28,6 @@ feeding back into it.
 Everything below is self-contained: the instructions live here rather than in
 a separate specification.
 
-## Walkthrough
-
-![Agentic NetOps demo](docs/images/agentic-netops-demo.gif)
-
-*35s walkthrough — [MP4](docs/images/agentic-netops-demo.mp4). Every frame is real: the
-topology is rendered from the running lab, the dashboard shows live gNMI telemetry,
-and the pod/series counts are captured values, not mock-ups.*
-
 ## The lab
 
 ![Fabric topology](docs/images/lab-topology.png)
@@ -50,12 +42,22 @@ Prometheus scrapes gnmic directly, Grafana renders it.
 
 ![Intent tier UI](docs/images/agent-ui.png)
 
-The intent tier's console, wired to the live supervisor: workers reachable over SLIM,
-Compass `gpt-5` reached through the LiteLLM gateway. The scenario cards are the
-service types the supervisor itself advertises on `GET /suggested-prompts` — VPWS,
-VPLS, L3VPN, L2L3-IRB — not a separate hard-coded list. The divider between the
-workflow canvas and the conversation is draggable (mouse, touch, or arrow keys);
-the chosen split is remembered per browser.
+The intent tier's console during a real run, wired to the live supervisor:
+workers reachable over SLIM, Compass `gpt-5` reached through the LiteLLM
+gateway, and the mapper's own interpretation of the request shown before
+anything is allocated. The scenario cards are the service types the supervisor
+itself advertises on `GET /suggested-prompts` — VPWS, VPLS, L3VPN, L2L3-IRB —
+not a separate hard-coded list, and every card names ports this site actually
+has. The divider between the workflow canvas and the conversation is draggable
+(mouse, touch, or arrow keys); the chosen split is remembered per browser.
+
+![Deployment outcome](docs/images/agent-ui-outcome.png)
+
+The end of the same transaction. The `submitted` payload is authoritative and
+exists only because every apply succeeded; when convergence is still in flight
+at the deployer's watch bound the console says exactly that, names the resource,
+and points at the status tool — it does not report a success it has not
+observed.
 
 **What works and what does not:** in the console, a provisionable request flows
 end to end — classification, interpretation, allocation, your two explicit
@@ -65,8 +67,23 @@ convergence watch) and a truthful `submitted` report — **and the southbound
 closes the loop**: a `sonicprovider` Network controller renders the accepted
 Network onto the SONiC fabric through the host-side fabric-executor and flips
 the Network's `Ready` condition to True only after per-node verification
-passes (proven live 2026-09-04: two L3VPNs, `Ready=True`, VRF/VXLAN/SVI/access
-state asserted on both leaves). A single-shot
+passes. **All four advertised service types converge.** Each of VPWS, VPLS,
+L3VPN and L2L3-IRB has been driven from plain language to `Ready=True` on this
+lab (2026-09-05), with the VRF/VXLAN/SVI/vtep/access state and the EVPN control
+plane — including each service's own VNI and its Type-5 route — asserted on both
+leaves. Until 2026-09-04 only L3VPN could ever converge: every VPLS, VPWS and
+IRB failed at the fabric *after* the objects were on the cluster and after the
+deployer had reported a successful submission. What was broken in each, and what
+is still limited (IPv6 IRB gateways), is recorded in
+[docs/INTENT_TIER_SERVICE_TYPES.md](docs/INTENT_TIER_SERVICE_TYPES.md).
+
+An endpoint naming a node or port the site does not have is refused by the
+translator **before** anything is submitted, with the site's real names listed,
+instead of stranding an unrenderable Network on the cluster. And a converged
+service is re-applied and re-verified every five minutes, so `Ready=True` is a
+statement about the fabric now rather than about the moment it first converged:
+drift — a device manager that died, a reboot, another service's teardown taking
+a shared device with it — is repaired, and said so. A single-shot
 `POST /agent/prompt/stream`, however, stops at the supervisor's own iteration
 bound, because the graph is built to provision only "after your two explicit
 confirmations" and a one-shot request cannot supply them. The refusal is logged
@@ -136,13 +153,9 @@ kubectl --context kind-agentic-netops -n agentic-netops-agents get deploy
 
 These are real, reproduced, and documented rather than hidden:
 
-- **EVPN Type-5 routes are not originated.** The pinned `sonic-vs` FRR 10.5.4 build silently drops
-  the `vni` line and never adopts the L3VNI. Type-2 and Type-3 work, including the bridged data
-  path. See `docs/FABRIC_BGP_EVPN_DEFERRED.md` (D-A2).
-- **`vlanmgrd` can crash on startup** (AddressSanitizer), leaving a leaf with no overlay devices,
-  so the fabric cannot forward. Provisioning fails closed by design. To continue past it and have
-  the defect reported rather than block the run:
-  `AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1 ./scripts/provision.sh …` — see D-A3.
+- The former SONiC ASan/L2-VNI and EVPN Type-5 limitations (D-A2/D-A3) were
+  resolved on 2026-09-04 by the clean `sonic-vs-gnmi:202505-v1` image. The
+  unwaived fabric gate now verifies Type-2/3/5, remote VTEPs, and overlay traffic.
 - **Two pinned images have no local build step** (`grafana/flow-plugin`,
   `ghcr.io/agentic-netops/topology-generator`). Provisioning warns rather than fails; the dependent
   workload ends in `ImagePullBackOff`. (The intent tier's six images — supervisor, mapper,
@@ -150,6 +163,12 @@ These are real, reproduced, and documented rather than hidden:
   `intent::install` skips the docker build when the image tag already exists locally unless
   `INTENT_TIER_REBUILD=true`, so source changes need a rebuild or a forced rebuild to reach the
   cluster.)
+- **IPv6 IRB gateways may not originate their Type-5 route.** An IRB carries only
+  the address families the operator asked for; when IPv6 *is* requested, this
+  sonic-vs FRR build sometimes registers the global address as a kernel rather
+  than a connected route, and `redistribute connected` then never originates it.
+  The service reports `Ready=False` naming the missing route rather than claiming
+  success. See [docs/INTENT_TIER_SERVICE_TYPES.md](docs/INTENT_TIER_SERVICE_TYPES.md).
 - **`docs/INTENT_TIER_OPS_READINESS.md` contains resource figures that were never measured.**
   They were produced before a cluster existed and before metrics-server was installed; real
   values differ by large factors. Re-measure before relying on that document.
@@ -160,7 +179,7 @@ These are real, reproduced, and documented rather than hidden:
 scripts/          provision.sh, off.sh, and lib/ (containerlab, rbac, qualify, intent_tier)
 lab/              containerlab topology and the sonic-vs profile bootstrap
 deploy/           Kubernetes manifests: controllers, kubenet, observability, agents
-controllers/      SRv6Service controller (Go)
+controllers/      SRv6Service and sonicprovider Network controllers (Go); see README-CONTROLLERS.md
 tests/            integration (fabric_verify, cycles_runner) and unit suites
 agents/           intent tier: supervisors, provisioning workers, test corpora
 docs/             operations, security audit, dependencies, known defects

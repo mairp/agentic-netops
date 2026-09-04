@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -26,12 +27,12 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/mairp/agentic-netops/pkg/compat"
 	"github.com/mairp/agentic-netops/pkg/fabricplan"
 	"github.com/mairp/agentic-netops/pkg/kubenet"
 	"github.com/mairp/agentic-netops/pkg/reasons"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -113,6 +114,16 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				if len(np.Rollback) > 0 {
 					res, err := r.executorApply(ctx, nodeName, np.Rollback)
 					if err != nil {
+						if isPermanentExecutorError(err) {
+							// The site does not have this node, so nothing was
+							// ever applied on it and nothing can be rolled
+							// back. Holding the finalizer for a node that
+							// cannot exist made such an object undeletable
+							// except by editing its finalizers by hand.
+							log.Info("rollback skipped: executor refuses this node permanently",
+								"node", nodeName, "err", err.Error())
+							continue
+						}
 						log.Error(err, "rollback apply failed; retaining finalizer", "node", nodeName)
 						return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
 					}
@@ -152,18 +163,18 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	set := compat.FromAnnotations(pins.Annotations)
 	discovered := map[string]bool{"sai.srv6": pins.Labels["agentic-netops.dev/cap.sai.srv6"] == "true"}
 	if err := compat.FullValidate(set, pins.Labels, discovered); err != nil {
-		r.setConditions(ctx, &net, false, compat.ReasonFor(err), err.Error()+" ("+pins.Provenance()+")", nil)
+		r.setConditions(ctx, &net, false, compat.ReasonFor(err), err.Error()+" ("+pins.Provenance()+")", false)
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	plan, err := fabricplan.ForNetwork(&net, fabricplan.Options{Ports: PortMapFromEnv()})
 	if err != nil {
 		// Rendering failures are intent-shape problems, not transients.
-		r.setConditions(ctx, &net, false, reasons.ReasonSchemaMismatch, err.Error(), nil)
+		r.setConditions(ctx, &net, false, reasons.ReasonSchemaMismatch, err.Error(), false)
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	hardFail, softFail := false, false
+	hardFail := false
 	var firstErr string
 	for _, nodeName := range sortedNodeNames(plan) {
 		np := plan.Nodes[nodeName]
@@ -176,12 +187,10 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			if rr.OK {
 				continue
 			}
-			// vtysh/frrconf are best-effort (D-A2); gcu/redis/shell are the gate.
-			if isFatalKind(rr.Kind) {
-				hardFail = true
-			} else {
-				softFail = true
-			}
+			// Every rendered operation is part of the convergence contract. The
+			// clean 202505 image closes D-A2, so FRR failures can no longer be
+			// reported as a successful deployment.
+			hardFail = true
 			if firstErr == "" {
 				// Include the op's own log tail: "exit code N" alone is not
 				// actionable (a bare exit 2 hid a shell failure for a full
@@ -217,37 +226,28 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if msg == "" {
 			msg = "device apply/verify failed"
 		}
-		r.setConditions(ctx, &net, false, reasons.ReasonApplyFailed, msg, nil)
+		r.setConditions(ctx, &net, false, reasons.ReasonApplyFailed, msg, false)
 		// Transient: manager daemons lag GCU writes by seconds; requeue fast.
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-	case softFail:
-		r.setConditions(ctx, &net, true, reasons.ReasonApplySucceeded,
-			"applied and verified on all nodes; FRR best-effort ops failed ("+firstErr+") — see D-A2", &softFail)
-		return ctrl.Result{}, nil
 	default:
-		r.setConditions(ctx, &net, true, reasons.ReasonApplySucceeded, "applied and verified on all nodes", nil)
-		return ctrl.Result{}, nil
+		r.setConditions(ctx, &net, true, reasons.ReasonApplySucceeded, "applied and verified on all nodes", false)
+		// Re-verify on a slow cadence. Returning no requeue at all meant a
+		// converged service was never looked at again: device state that
+		// drifted afterwards — a manager daemon that died, a reboot, another
+		// service's teardown taking a shared device with it — left the Network
+		// claiming Ready=True over a fabric that no longer matched it
+		// (observed live: nine L3VPNs Ready=True with their SVIs gone). Every
+		// op and check is idempotent, so a resync either confirms the service
+		// or repairs it and says so.
+		return ctrl.Result{RequeueAfter: resyncInterval}, nil
 	}
 }
 
-func isFatalKind(kind string) bool {
-	// kinds look like "ops[N].gcu"
-	for _, fatal := range []string{".gcu", ".redis", ".shell"} {
-		if len(kind) > 0 && containsSub(kind, fatal) {
-			return true
-		}
-	}
-	return false
-}
-
-func containsSub(s, sub string) bool {
-	for i := 0; i+len(sub) <= len(s); i++ {
-		if s[i:i+len(sub)] == sub {
-			return true
-		}
-	}
-	return false
-}
+// resyncInterval is how often a converged Network is re-applied and
+// re-verified. Long enough not to churn the executor, short enough that a
+// Ready condition is a statement about the fabric now, not only about the
+// moment it first converged.
+const resyncInterval = 5 * time.Minute
 
 func sortedNodeNames(plan *fabricplan.Plan) []string {
 	names := make([]string, 0, len(plan.Nodes))
@@ -301,13 +301,33 @@ func postJSON[T any](hc *http.Client, ctx context.Context, url string, body []by
 		return nil, err
 	}
 	if resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("executor %s: %d %s", url, resp.StatusCode, truncateStr(string(raw), 200))
+		err := fmt.Errorf("executor %s: %d %s", url, resp.StatusCode, truncateStr(string(raw), 200))
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+			// The executor understood and refused: the request itself is wrong
+			// (an unknown node, a malformed op). Retrying cannot change that,
+			// and the caller needs to tell it apart from an outage.
+			return nil, &permanentExecutorError{err: err}
+		}
+		return nil, err
 	}
 	var out T
 	if err := json.Unmarshal(raw, &out); err != nil {
 		return nil, fmt.Errorf("executor response: %v", err)
 	}
 	return &out, nil
+}
+
+// permanentExecutorError marks a refusal the executor will give every time —
+// a node the site does not have, a request it cannot parse. A transport
+// failure is NOT one of these: the executor may simply be restarting.
+type permanentExecutorError struct{ err error }
+
+func (e *permanentExecutorError) Error() string { return e.err.Error() }
+func (e *permanentExecutorError) Unwrap() error { return e.err }
+
+func isPermanentExecutorError(err error) bool {
+	var perm *permanentExecutorError
+	return errors.As(err, &perm)
 }
 
 func truncateStr(s string, n int) string {
@@ -317,10 +337,10 @@ func truncateStr(s string, n int) string {
 	return s[:n] + "…"
 }
 
-// setConditions patches Ready (and optional Degraded) onto the Network status
+// setConditions patches Ready and Degraded onto the Network status
 // map. The loose map is copied before mutation: the shallow DeepCopyObject of
 // the loose types shares the underlying map.
-func (r *NetworkReconciler) setConditions(ctx context.Context, net *kubenet.Network, ready bool, reason, message string, degraded *bool) {
+func (r *NetworkReconciler) setConditions(ctx context.Context, net *kubenet.Network, ready bool, reason, message string, degraded bool) {
 	status := map[string]any{}
 	for k, v := range net.Status {
 		status[k] = v
@@ -331,15 +351,12 @@ func (r *NetworkReconciler) setConditions(ctx context.Context, net *kubenet.Netw
 		Type: "Ready", Status: boolCond(ready), Reason: reason, Message: message,
 		ObservedGeneration: net.Generation, LastTransitionTime: now,
 	})
-	if degraded != nil {
-		d := *degraded
-		conds = upsertCondition(conds, metav1.Condition{
-			Type: "Degraded", Status: boolCond(d),
-			Reason: map[bool]string{true: "FRRBestEffortFailed", false: "NoFailuresObserved"}[d],
-			Message: map[bool]string{true: "best-effort FRR ops failed (forwarding plane is D-A2-deferred)", false: ""}[d],
-			ObservedGeneration: net.Generation, LastTransitionTime: now,
-		})
-	}
+	conds = upsertCondition(conds, metav1.Condition{
+		Type: "Degraded", Status: boolCond(degraded),
+		Reason:             map[bool]string{true: "ApplyDegraded", false: "NoFailuresObserved"}[degraded],
+		Message:            map[bool]string{true: "one or more non-fatal apply operations failed", false: ""}[degraded],
+		ObservedGeneration: net.Generation, LastTransitionTime: now,
+	})
 	status["conditions"] = conds
 	status["observedGeneration"] = net.Generation
 

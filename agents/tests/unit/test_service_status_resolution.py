@@ -19,7 +19,13 @@ from provisioning.deployer.tools import deployer_tools
 CID = "b" * 32
 
 
-def _network(name: str, ready: bool | None, reason: str = "", message: str = "") -> dict[str, Any]:
+def _network(
+    name: str,
+    ready: bool | None,
+    reason: str = "",
+    message: str = "",
+    degraded: bool | None = False,
+) -> dict[str, Any]:
     conditions = []
     if ready is not None:
         conditions.append(
@@ -28,6 +34,16 @@ def _network(name: str, ready: bool | None, reason: str = "", message: str = "")
                 "status": "True" if ready else "False",
                 "reason": reason,
                 "message": message,
+                "lastTransitionTime": "2026-09-04T07:48:18Z",
+            }
+        )
+    if degraded is not None:
+        conditions.append(
+            {
+                "type": "Degraded",
+                "status": "True" if degraded else "False",
+                "reason": "ApplyFailuresObserved" if degraded else "NoFailuresObserved",
+                "message": "one or more nodes failed" if degraded else "no apply failures observed",
                 "lastTransitionTime": "2026-09-04T07:48:18Z",
             }
         )
@@ -74,6 +90,7 @@ def test_ready_true_is_deployed_and_quotes_the_condition(patch_client):
     resource = result["resources"][0]
     assert resource["name"] == "net-svc-alpha"
     assert resource["ready"] is True
+    assert resource["degraded"] is False
     assert resource["message"] == "applied and verified on all nodes"
     assert resource["lastTransitionTime"] == "2026-09-04T07:48:18Z"
     assert client.closed
@@ -84,6 +101,21 @@ def test_ready_false_is_failed(patch_client):
     result = deployer_tools.get_service_status(correlation_id=CID)
     assert result["phase"] == "Failed"
     assert result["resources"][0]["message"] == "leaf2 rejected the VRF binding"
+
+
+def test_degraded_true_is_failed_even_if_ready_is_true(patch_client):
+    patch_client([_network("net-svc-alpha", True, "ApplySucceeded", "ok", degraded=True)])
+    result = deployer_tools.get_service_status(correlation_id=CID)
+    assert result["phase"] == "Failed"
+    assert result["resources"][0]["degraded"] is True
+
+
+def test_service_id_is_recovered_from_a_translated_network(patch_client):
+    obj = _network("migr-abc123", True, "ApplySucceeded", "ok")
+    obj["spec"] = {"description": "Migrated service abc123 (L3VPN)"}
+    patch_client([obj])
+
+    assert deployer_tools.get_service_status(correlation_id=CID)["serviceId"] == "abc123"
 
 
 def test_one_failure_among_many_is_a_failed_transaction(patch_client):
@@ -154,6 +186,7 @@ class TestStatusSummary:
                         "kind": "Network",
                         "name": "net-svc-alpha",
                         "ready": True,
+                        "degraded": False,
                         "reason": "ApplySucceeded",
                         "message": "applied and verified on all nodes",
                         "lastTransitionTime": "2026-09-04T07:48:18Z",
@@ -163,6 +196,7 @@ class TestStatusSummary:
         )
         assert summary.startswith("Deployed.")
         assert "Network/net-svc-alpha Ready=True" in summary
+        assert "Degraded=False" in summary
         assert "applied and verified on all nodes" in summary
         assert "2026-09-04T07:48:18Z" in summary
 

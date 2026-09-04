@@ -180,14 +180,24 @@ if [[ -f /tmp/agentic-netops-fabric-executor-bin ]] && command -v docker >/dev/n
   KIND_GW=${KIND_GW:-172.30.0.1}
   RUN_DIR=/var/local/agentic-netops
   mkdir -p "$RUN_DIR"
+  EXECUTOR_CHANGED=1
+  if [[ -f "$RUN_DIR/agentic-netops-fabric-executor" ]] && \
+     cmp -s /tmp/agentic-netops-fabric-executor-bin "$RUN_DIR/agentic-netops-fabric-executor"; then
+    EXECUTOR_CHANGED=0
+  fi
   install -m 0755 /tmp/agentic-netops-fabric-executor-bin "$RUN_DIR/agentic-netops-fabric-executor"
-  if curl -fsS --max-time 2 "http://127.0.0.1:8084/healthz" >/dev/null 2>&1; then
+  if [[ "$EXECUTOR_CHANGED" -eq 0 ]] && curl -fsS --max-time 2 "http://127.0.0.1:8084/healthz" >/dev/null 2>&1; then
     echo "[provision] fabric-executor already healthy on :8084 (node map unchanged)"
   else
-    if [[ -f "$RUN_DIR/fabric-executor.pid" ]] && kill -0 "$(cat "$RUN_DIR/fabric-executor.pid")" 2>/dev/null; then
-      kill "$(cat "$RUN_DIR/fabric-executor.pid")" 2>/dev/null || true
-      sleep 1
-    fi
+    # A healthy process can still execute an older, unlinked inode after
+    # `install` replaces the binary. Restart whenever bytes changed. Resolve
+    # the actual executable as well as the pidfile because interrupted prior
+    # launches can leave the pidfile stale.
+    EXECUTOR_PIDS=$(pgrep -f "^$RUN_DIR/agentic-netops-fabric-executor$" 2>/dev/null || true)
+    for EXECUTOR_PID in $EXECUTOR_PIDS; do
+      kill "$EXECUTOR_PID" 2>/dev/null || true
+    done
+    [[ -z "$EXECUTOR_PIDS" ]] || sleep 1
     echo "[provision] starting fabric-executor host service on ${KIND_GW}:8084"
     FABRIC_EXECUTOR_BIND=":8084" \
     FABRIC_NODE_MAP='{"leaf01":"clab-agentic-netops-fabric-leaf01","leaf02":"clab-agentic-netops-fabric-leaf02","spine01":"clab-agentic-netops-fabric-spine01","spine02":"clab-agentic-netops-fabric-spine02","site-a":"clab-agentic-netops-fabric-leaf01","site-b":"clab-agentic-netops-fabric-leaf02"}' \

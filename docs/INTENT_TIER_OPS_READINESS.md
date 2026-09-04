@@ -167,7 +167,9 @@ Use deploy/agents/tests/probes/rollback-drill.sh (accepts optional kubectl conte
 ## Dependency status
 
 - docs/FABRIC_BGP_EVPN_DEFERRED.md deferred BGP/EVPN dependency verified
-  - Status: Type-2 origination RESOLVED; Type-5 BLOCKED by image defect; acceptance relies on documented waiver (see docs/FABRIC_BGP_EVPN_DEFERRED.md lines 41–73).
+  - Status update 2026-09-04: Type-2 and Type-5 origination are resolved on the
+    clean 202505 image; the unwaived fabric gate passes (see
+    `docs/FABRIC_BGP_EVPN_DEFERRED.md`).
 
 ---
 

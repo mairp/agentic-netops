@@ -349,31 +349,7 @@ verify_evpn_overlay() {
         # exchanged, which is why 100% packet loss was misread as convergence.)
         echo "[$n] assertion passed: EVPN Type-$t route present in local RIB (origin not checked)"
       else
-        if [[ "$t" == 5 ]]; then
-          # Type-5 needs the L3VNI to be adopted by bgpd. The full recipe is
-          # implemented and documented (docs/FABRIC_BGP_EVPN_DEFERRED.md D-A:
-          # kernel vrf_slave binding, vrf vni block, vrf RIB sync, zebra L3VNI
-          # classification all demonstrated on the sonic-vs-gnmi:202605-v2
-          # image), but this image's FRR 10.5.4 build does not reliably adopt
-          # the L3VNI into bgpd's export path — origination never fires in any
-          # state tried (2026-09-01 reconciliation). Fail-closed: report the
-          # gap precisely instead of silently weakening the assertion.
-          # Explicit, recorded operator waiver (docs/FABRIC_BGP_EVPN_DEFERRED.md D-A2),
-          # mirroring the D-A3 pattern in configure-fabric-bgp.sh: default is fail-closed
-          # and the waiver must be opted into by environment. Without it this assertion
-          # can NEVER pass on the pinned image -- this FRR 10.5.4 build does not
-          # originate Type-5 in any state tried -- so fabric_verify.sh can never exit 0,
-          # every cycle is marked failed, and T080's "three clean provision/test/off
-          # cycles" is structurally unreachable rather than merely unmet. The waiver
-          # keeps the gap loud and attributable instead of weakening the check silently.
-          if [[ "${AGENTIC_NETOPS_WAIVE_TYPE5_ORIGINATION:-0}" == "1" ]]; then
-            echo "[$n] WAIVED: no EVPN Type-5 route in the RIB -- L3VNI origination defect of the sonic-vs FRR 10.5.4 build (docs/FABRIC_BGP_EVPN_DEFERRED.md D-A2). Continuing under AGENTIC_NETOPS_WAIVE_TYPE5_ORIGINATION=1 (operator-recorded); Type-5/L3 routing is NOT verified by this run."
-            continue
-          fi
-          echo "[$n] ASSERTION FAILED: no EVPN Type-5 route in the RIB (L3VNI origination defect of the sonic-vs FRR 10.5.4 build — see docs/FABRIC_BGP_EVPN_DEFERRED.md and gates evidence)" >&2
-        else
-          echo "[$n] ASSERTION FAILED: no EVPN Type-$t route in the RIB" >&2
-        fi
+        echo "[$n] ASSERTION FAILED: no EVPN Type-$t route in the RIB" >&2
         rc=1
       fi
     done

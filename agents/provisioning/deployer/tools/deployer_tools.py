@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 import httpx
@@ -46,8 +47,25 @@ PHASE_NOT_FOUND = "NotFound"
 PHASE_UNKNOWN = "Unknown"
 
 
+def _service_id_from_object(obj: dict[str, Any]) -> str:
+    """Recover the service id from translator-owned Network metadata."""
+
+    meta = obj.get("metadata") if isinstance(obj.get("metadata"), dict) else {}
+    annotations = meta.get("annotations") if isinstance(meta.get("annotations"), dict) else {}
+    annotated = str(annotations.get("agentic-netops.io/service-id") or "")
+    if annotated:
+        return annotated
+    spec = obj.get("spec") if isinstance(obj.get("spec"), dict) else {}
+    description = str(spec.get("description") or "")
+    described = re.search(r"\bMigrated service ([a-z0-9-]{1,15})\b", description, re.I)
+    if described:
+        return described.group(1)
+    name = str(meta.get("name") or "")
+    return name.removeprefix("migr-") if name.startswith("migr-") else ""
+
+
 def _condition_summary(obj: dict[str, Any]) -> dict[str, Any]:
-    """Reduce one intent object to its Ready condition, verbatim.
+    """Reduce one intent object to its Ready and Degraded conditions, verbatim.
 
     The controller owns the Ready condition (controllers/sonicprovider/
     network_controller.go): ``ApplySucceeded``/``ApplyFailed`` with the real
@@ -58,34 +76,41 @@ def _condition_summary(obj: dict[str, Any]) -> dict[str, Any]:
     meta = obj.get("metadata") if isinstance(obj.get("metadata"), dict) else {}
     status = obj.get("status") if isinstance(obj.get("status"), dict) else {}
     conditions = status.get("conditions") if isinstance(status.get("conditions"), list) else []
-    ready: bool | None = None
-    reason = ""
-    message = ""
-    at = ""
+    found: dict[str, dict[str, Any]] = {}
     for condition in conditions:
-        if not isinstance(condition, dict) or str(condition.get("type") or "") != "Ready":
+        if not isinstance(condition, dict):
+            continue
+        condition_type = str(condition.get("type") or "")
+        if condition_type not in ("Ready", "Degraded"):
             continue
         raw = str(condition.get("status") or "").lower()
-        ready = True if raw == "true" else False if raw == "false" else None
-        reason = str(condition.get("reason") or "")
-        message = str(condition.get("message") or "")
-        at = str(condition.get("lastTransitionTime") or "")
-        break
+        found[condition_type] = {
+            "status": True if raw == "true" else False if raw == "false" else None,
+            "reason": str(condition.get("reason") or ""),
+            "message": str(condition.get("message") or ""),
+            "lastTransitionTime": str(condition.get("lastTransitionTime") or ""),
+        }
+    ready_condition = found.get("Ready", {})
+    degraded_condition = found.get("Degraded", {})
     return {
         "kind": str(obj.get("kind") or ""),
         "name": str(meta.get("name") or ""),
         "namespace": str(meta.get("namespace") or ""),
-        "ready": ready,
-        "reason": reason,
-        "message": message,
-        "lastTransitionTime": at,
+        "ready": ready_condition.get("status"),
+        "reason": ready_condition.get("reason", ""),
+        "message": ready_condition.get("message", ""),
+        "lastTransitionTime": ready_condition.get("lastTransitionTime", ""),
+        "degraded": degraded_condition.get("status"),
+        "degradedReason": degraded_condition.get("reason", ""),
+        "degradedMessage": degraded_condition.get("message", ""),
+        "degradedLastTransitionTime": degraded_condition.get("lastTransitionTime", ""),
     }
 
 
 def _phase_from(resources: list[dict[str, Any]]) -> str:
     if not resources:
         return PHASE_NOT_FOUND
-    if any(r.get("ready") is False for r in resources):
+    if any(r.get("ready") is False or r.get("degraded") is True for r in resources):
         return PHASE_FAILED
     if all(r.get("ready") is True for r in resources):
         return PHASE_DEPLOYED
@@ -137,6 +162,11 @@ def get_service_status(*, service_id: str | None = None, correlation_id: str | N
                 pass
 
     resources = [_condition_summary(obj) for obj in objects]
+    if not result["serviceId"]:
+        result["serviceId"] = next(
+            (service_id for obj in objects if (service_id := _service_id_from_object(obj))),
+            "",
+        )
     result["resources"] = resources
     result["phase"] = _phase_from(resources)
     return result

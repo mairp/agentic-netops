@@ -76,19 +76,33 @@ The supervisor classifies every request before acting. Try one of each class:
 
 | Say | Class | Expected behaviour |
 | --- | --- | --- |
-| "Create an L2 service for tenant blue between leaf01 eth3 and leaf02 eth3." | provisionable | interprets → claims IDs → submits an `SRv6Service` |
+| "Create a full-mesh VPLS between leaf01 ethernet2 and leaf02 ethernet2 for tenant blue vlan 100" | provisionable | interprets → claims IDs → submits a `Network` |
 | "What service types do you support?" | informational | answers; provisions nothing |
 | something outside the declarative model | unsupported | refuses, names the supported equivalent |
 
 That third row is the point: an autonomous system that cannot say *no* is not safe to
 run unattended. It refuses rather than improvising.
 
+Say the request, then `confirm` twice — the graph provisions only after two
+explicit confirmations, so a one-shot request stops at its iteration bound by
+design. Name a node or port the site does not have and the translator refuses it
+before anything is submitted, listing the real ones.
+
 Watch desired state appear, then reality follow it:
 
 ```bash
-kubectl --context kind-agentic-netops get srv6services -A -w
+# what the tier submitted, and the controller's own verdict on it
+kubectl --context kind-agentic-netops -n agentic-netops-intent get networks.network.kubenet.dev \
+  -o custom-columns=NAME:.metadata.name,\
+TYPE:'.metadata.annotations.agentic-netops\.io/service-type',\
+READY:'.status.conditions[?(@.type=="Ready")].status' -w
+
 docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show evpn vni'
 ```
+
+`Ready=True` is set only after every rendered operation applied *and* every
+per-node check passed, and it is re-verified every five minutes — so it
+describes the fabric now, not the moment the service first converged.
 
 `# Remote VTEPs = 1` is the signal that matters — it is non-zero only once the peer
 leaf's IMET route actually arrived **and** zebra installed it. It cannot be faked by
@@ -201,12 +215,8 @@ no model configured the tier deploys but cannot reason.
 
 Real, reproduced, documented rather than hidden:
 
-- **EVPN Type-5 routes are not originated.** The pinned `sonic-vs` FRR 10.5.4 build
-  drops the `vni` line from the VRF stanza and never adopts the L3VNI. Type-2/Type-3
-  work, including the bridged data path. `AGENTIC_NETOPS_WAIVE_TYPE5_ORIGINATION=1` continues
-  with the gap recorded — `docs/FABRIC_BGP_EVPN_DEFERRED.md` D-A2.
-- **`vlanmgrd` can crash on startup** (AddressSanitizer), leaving a leaf with no overlay
-  devices. `AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1` continues with the defect reported — D-A3.
+- The former SONiC ASan/L2-VNI and EVPN Type-5 gaps (D-A2/D-A3) are resolved
+  on the pinned `sonic-vs-gnmi:202505-v1` image and their waivers are retired.
 - **SRv6 conformance needs the `sonic-vm` profile**, which requires an
   operator-built vrnetlab image *and* a `lab/profiles/sonic-vm/bootstrap/` directory
   that does not exist yet.

@@ -76,8 +76,10 @@ class IRBGateway(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     vrf: str = Field(min_length=1)
-    gatewayIPv4: str = Field(min_length=1)
-    gatewayIPv6: str = Field(min_length=1)
+    # At least one address family, not both: an IRB should carry the families
+    # the operator asked for and no others (see validate_all_or_nothing).
+    gatewayIPv4: str = ""
+    gatewayIPv6: str = ""
 
 
 class Policies(BaseModel):
@@ -236,10 +238,10 @@ class NormalizedServiceIntent(BaseModel):
             else:
                 if not self.irbGateway.vrf:
                     causes.append("irbGateway.vrf: required")
-                if not self.irbGateway.gatewayIPv4:
-                    causes.append("irbGateway.gatewayIPv4: required")
-                if not self.irbGateway.gatewayIPv6:
-                    causes.append("irbGateway.gatewayIPv6: required")
+                if not self.irbGateway.gatewayIPv4 and not self.irbGateway.gatewayIPv6:
+                    causes.append(
+                        "irbGateway: at least one of gatewayIPv4/gatewayIPv6 is required"
+                    )
             if len(self.endpoints) < 1:
                 causes.append("endpoints: IRB requires at least one endpoint")
             for i, ep in enumerate(self.endpoints):

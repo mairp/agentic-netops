@@ -103,12 +103,26 @@ _UNSUPPORTED_SERVICE_TYPES: list[tuple[re.Pattern[str], str]] = [
 _ENDPOINT_BETWEEN = re.compile(
     r"between\s+(?P<left>[^,;\n]+?)\s+and\s+(?P<right>[^,;\n]+)", re.I
 )
+_ENDPOINT_ATTACH = re.compile(
+    r"\battach(?:ing)?\s+(?P<left>[^,;.\n]+?)\s+and\s+(?P<right>[^,;.\n]+)", re.I
+)
+# "<attachment> on <node>" — the node is ONE token: node names never contain
+# whitespace, so anything past it is commentary ("... on leaf02 as an l2vpn").
+# Letting the node run to end-of-clause is how "leaf02 as an l2vpn" became a
+# node name the fabric could not resolve.
+_ATTACHMENT_ON_NODE = re.compile(
+    r"^(?P<attachment>\S+)\s+on\s+(?P<node>\S+)(?:\s.*)?$", re.I | re.DOTALL
+)
 _ATTACHMENT_SPLIT = re.compile(r"\s+")
 _TENANT_RE = re.compile(r"tenant[:\s]+(?P<tenant>[a-z0-9-]+)", re.I)
 _VLAN_RE = re.compile(r"vlan[:\s#]*(?P<vlan>\d{1,4})", re.I)
 _ENDPOINT_TRAILING_CLAUSE_RE = re.compile(
     r"\s+(?:for\s+tenant|tenant|with|using)\b.*$",
     re.I,
+)
+_ENDPOINT_SENTENCE_END_RE = re.compile(r"[.!?](?:\s+|$).*$", re.DOTALL)
+_PREFIX_TOKEN_RE = re.compile(
+    r"(?<![0-9A-Za-z_:])(?P<prefix>[0-9A-Fa-f:.]+/\d{1,3})(?![0-9A-Za-z_:])"
 )
 
 
@@ -177,7 +191,7 @@ def _detect_unsupported(text: str) -> list[str]:
 
 
 def _parse_endpoints(text: str) -> list[EndpointIntent]:
-    m = _ENDPOINT_BETWEEN.search(text)
+    m = _ENDPOINT_BETWEEN.search(text) or _ENDPOINT_ATTACH.search(text)
     if not m:
         return []
     left = m.group("left").strip()
@@ -201,14 +215,68 @@ def _parse_endpoints(text: str) -> list[EndpointIntent]:
         if vlan is None:
             vlan = global_vlan
 
-        clean = _ENDPOINT_TRAILING_CLAUSE_RE.sub("", ep)
+        # The endpoint clause can be followed by another instruction. Stop at
+        # sentence punctuation without breaking dotted attachment names such
+        # as ``ethernet1.100`` (the dot there is not followed by whitespace).
+        clean = _ENDPOINT_SENTENCE_END_RE.sub("", ep, count=1)
+        clean = _ENDPOINT_TRAILING_CLAUSE_RE.sub("", clean)
         clean = _VLAN_RE.sub("", clean).strip(" ,.;")
+        attachment_on_node = _ATTACHMENT_ON_NODE.fullmatch(clean)
+        if attachment_on_node:
+            return _endpoint_or_none(
+                attachment_on_node.group("node"),
+                attachment_on_node.group("attachment"),
+                vlan,
+            )
+        # Bare "<node> <attachment>". Only the first two tokens are the
+        # endpoint; trailing words are the next instruction, not part of a
+        # name ("leaf02 wan1. Allocate the L3 VNI" is leaf02 / wan1, and
+        # folding the tail into the names is what submitted an attachment
+        # called "VNI" on a node called "leaf02 wan1. Allocate the L3").
         parts = [part for part in _ATTACHMENT_SPLIT.split(clean) if part]
         if len(parts) < 2:
             return None
-        return EndpointIntent(site_or_node=" ".join(parts[:-1]).strip(), attachment=parts[-1].strip(), vlan=vlan)
+        return _endpoint_or_none(parts[0], parts[1], vlan)
 
     return [endpoint for endpoint in (_endpoint(left), _endpoint(right)) if endpoint is not None]
+
+
+def _endpoint_or_none(node: str, attachment: str, vlan: int | None) -> EndpointIntent | None:
+    """Build an endpoint, or nothing when the text did not yield a real one.
+
+    Node and attachment names are single tokens at every site this tier talks
+    to. When what was extracted is not one, the parse failed — and returning
+    None makes the mapper report ``endpoints`` as missing, so the operator is
+    asked to restate the request instead of having a nonsense attachment
+    submitted to the fabric on their behalf.
+    """
+
+    node = node.strip().strip(",.;:")
+    attachment = attachment.strip().strip(",.;:")
+    if not node or not attachment:
+        return None
+    if _ATTACHMENT_SPLIT.search(node) or _ATTACHMENT_SPLIT.search(attachment):
+        return None
+    return EndpointIntent(site_or_node=node, attachment=attachment, vlan=vlan)
+
+
+def _parse_prefixes(text: str) -> tuple[list[str], list[str]]:
+    """Extract and normalize IP network prefixes explicitly supplied by the operator."""
+
+    import ipaddress
+
+    ipv4: list[str] = []
+    ipv6: list[str] = []
+    for match in _PREFIX_TOKEN_RE.finditer(text):
+        try:
+            network = ipaddress.ip_network(match.group("prefix"), strict=False)
+        except ValueError:
+            continue
+        target = ipv4 if network.version == 4 else ipv6
+        prefix = str(network)
+        if prefix not in target:
+            target.append(prefix)
+    return ipv4, ipv6
 
 
 def _detect_tenant(text: str) -> str | None:
@@ -306,12 +374,15 @@ class MappingAgent:
             # Try to salvage at least two placeholders for schema validity
             while len(eps) < 2:
                 eps.append(EndpointIntent(site_or_node="missing", attachment="missing"))
+        ipv4_prefixes, ipv6_prefixes = _parse_prefixes(low)
 
         payload = {
             "service_id": _gen_service_id(),
             "service_type": st.value,
             "tenant": tenant,
             "endpoints": [ep.model_dump(mode="json") for ep in eps],
+            "ipv4_prefixes": ipv4_prefixes,
+            "ipv6_prefixes": ipv6_prefixes,
             "missing_fields": [] if unsupported else missing,
             "unsupported_properties": unsupported,
         }

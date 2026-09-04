@@ -464,6 +464,17 @@ def detect_deployment_status_query(text: str) -> bool:
     return _DEPLOYMENT_STATUS_QUERY.search(text.lower()) is not None
 
 
+def detect_provisioning_request(text: str) -> bool:
+    """True for an explicit create/deploy request naming a supported service.
+
+    A request can describe its desired follow-up (for example, "after approval,
+    check deployment status").  The follow-up must not hijack the primary
+    create operation merely because it contains a status-query phrase.
+    """
+
+    return bool(_FALLBACK_PROVISION_ACTION.search(text) and _FALLBACK_SERVICE_TYPE.search(text))
+
+
 def detect_unsupported_feature(text: str) -> DetectionHit | None:
     """FR-012/T088 — scan for constructs with no fabric equivalent.
 
@@ -1041,6 +1052,32 @@ class ProvisioningGraph:
         response = await chain.ainvoke({"user_message": fenced_user_text})
         return parse_classification(response.content)
 
+    @staticmethod
+    def _start_provisioning() -> dict[str, Any]:
+        """Start a clean transaction on either a new or reused UI thread."""
+
+        return {
+            "next_node": NodeStates.MAPPER,
+            "classification": RequestClassification.PROVISIONABLE.value,
+            "workflow_status": NetworkProvisioningStatus.RECEIVED_REQUEST.value,
+            "tool_action": None,
+            "tool_request": None,
+            "tool_result": None,
+            "awaiting_confirmation": False,
+            "pending_action": None,
+            "mapped_parameters": None,
+            "missing_fields": None,
+            "allocated_resources": None,
+            "submitted_resources": None,
+            "submitted_correlation_id": None,
+            "convergence": None,
+            "claimed_ids": [],
+            "confirmation_1": None,
+            "confirmation_2": None,
+            "refusal_reason": None,
+            "suggestion": None,
+        }
+
     # ---------------- nodes ----------------
     async def _supervisor_node(self, state: GraphState, config: RunnableConfig) -> dict:
         """Determines the intent of the user's message and routes to the
@@ -1072,8 +1109,21 @@ class ProvisioningGraph:
         # capability blurb and the thread's last known status.
         submitted_json = state.get("submitted_resources")
         correlation_for_status = state.get("submitted_correlation_id") or ""
-        if submitted_json and correlation_for_status and detect_deployment_status_query(user_content):
-            req = canonical_json({"action": "status", "correlationId": correlation_for_status})
+        if (
+            submitted_json
+            and correlation_for_status
+            and detect_deployment_status_query(user_content)
+            and not detect_provisioning_request(user_content)
+        ):
+            status_request = {"action": "status", "correlationId": correlation_for_status}
+            try:
+                allocated = json.loads(state.get("allocated_resources") or "{}")
+                service_id = allocated.get("serviceId") if isinstance(allocated, dict) else None
+                if service_id:
+                    status_request["serviceId"] = str(service_id)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                pass
+            req = canonical_json(status_request)
             logger.info(
                 "resolving deployment status for correlation %s from the cluster",
                 correlation_for_status[:8],
@@ -1289,6 +1339,15 @@ class ProvisioningGraph:
                 pass
             return self._refuse(state, config, hit.reason, hit.suggestion, stage="supervisor")
 
+        # A mixed create + future-status request has an unambiguous primary
+        # action. Run this narrow case after the safety/unsupported guards but
+        # before the model classifier, whose informational bias toward the
+        # trailing status phrase must not suppress provisioning. Ordinary
+        # provisioning requests continue through the classifier as designed.
+        if detect_provisioning_request(user_content) and detect_deployment_status_query(user_content):
+            logger.info("supervisor recognized mixed provisioning and status-follow-up request")
+            return self._start_provisioning()
+
         # ---------- T089: the three-way LLM classifier -------------------
         return await self._classify_and_route(state, config, user_content)
 
@@ -1317,13 +1376,7 @@ class ProvisioningGraph:
             classification = fallback_classification(user_content)
             if classification is RequestClassification.PROVISIONABLE:
                 logger.warning("using deterministic provisionable classification while model is unavailable")
-                return {
-                    "next_node": NodeStates.MAPPER,
-                    "classification": classification.value,
-                    "workflow_status": NetworkProvisioningStatus.RECEIVED_REQUEST.value,
-                    "tool_action": None,
-                    "tool_request": None,
-                }
+                return self._start_provisioning()
             if classification is RequestClassification.INFORMATIONAL:
                 logger.warning("using deterministic informational classification while model is unavailable")
                 return {
@@ -1344,14 +1397,7 @@ class ProvisioningGraph:
             }
         if classification is RequestClassification.PROVISIONABLE:
             logger.info("supervisor classified request as provisionable")
-            return {
-                "next_node": NodeStates.MAPPER,
-                "classification": classification.value,
-                "workflow_status": NetworkProvisioningStatus.RECEIVED_REQUEST.value,
-                # A new request is not the previous request's tools command.
-                "tool_action": None,
-                "tool_request": None,
-            }
+            return self._start_provisioning()
         if classification is RequestClassification.INFORMATIONAL:
             logger.info("supervisor classified request as informational")
             return {"next_node": NodeStates.GENERAL_INFO, "classification": classification.value}

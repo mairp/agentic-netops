@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Agentic NetOps lab telemetry service wrapper (SONiC 202605 gNMI stack).
+# Agentic NetOps lab telemetry service wrapper (sonic-gnmi telemetry stack).
 # Reads the TELEMETRY table from /etc/sonic/config_db.json (file-based, so the
 # service can start before redis is ready) and execs /usr/sbin/telemetry.
-# Shape of TELEMETRY (sonic-gnmi 202605):
+# Shape of TELEMETRY:
 #   TELEMETRY|gnmi:   port, client_auth, user_auth, log_level
 #   TELEMETRY|certs:  server_crt, server_key, ca_crt
-#   TELEMETRY|CLIENTS: username, password (used when user_auth=password)
+# Password authentication uses the bootstrap-created local Linux account.
 set -u
 
 CONFIG_DB=/etc/sonic/config_db.json

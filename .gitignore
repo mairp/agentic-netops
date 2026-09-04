@@ -33,3 +33,12 @@ __pycache__/
 
 # Generated verification plans -- derived from spec task lists, not source
 testautomation/
+
+# Compiled binaries `go build ./cmd/<x>` drops in the repo root. Three of these
+# (sonic-provider, srv6-controller, migration-translator — 37 MB) had been
+# committed; the build produces them fresh, and provision.sh builds to /tmp.
+/sonic-provider
+/srv6-controller
+/migration-translator
+/intent-translator
+/fabric-executor

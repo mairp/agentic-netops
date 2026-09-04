@@ -38,7 +38,9 @@ This report aggregates simulation outcomes for Phase 11.
   - Date: 2026-09-02
   - Notes: Tier operates within lab headroom; degradations name themselves; backup/restore verified.
 - Base-fabric dependency status:
-  - Status: Type-2 origination RESOLVED; Type-5 BLOCKED by image defect; acceptance relies on documented waiver (see docs/FABRIC_BGP_EVPN_DEFERRED.md lines 41–73).
+  - Status update 2026-09-04: Type-2 and Type-5 origination are resolved on the
+    clean 202505 image; the unwaived fabric gate passes (see
+    `docs/FABRIC_BGP_EVPN_DEFERRED.md`).
 
 ## Summary
 

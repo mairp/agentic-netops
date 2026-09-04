@@ -73,28 +73,28 @@ tooling:
 # ---------------------------------------------------------------------------
 sonic_images:
   sonic_vs:
-    image: localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e
-    digest: sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e
-    tag: 202605-v2
+    image: localhost:5000/sonic-vs-gnmi:202505-v1@sha256:d1043aed28c98071c997a46d7e9e47823abacb06c31c068183541f8b5b5529e8
+    digest: sha256:d1043aed28c98071c997a46d7e9e47823abacb06c31c068183541f8b5b5529e8
+    tag: 202505-v1
     notes: >
       Fast profile; no KVM required; containerlab kind sonic-vs. SRv6/gNMI-qualified:
       carries /usr/sbin/telemetry (gNMI server, supervisord program:telemetry) and
       sonic-srv6.yang, so the capability gate in scripts/lib/qualify.sh can run
       Capabilities/Get/Set/Subscribe/sonic-srv6 against a live endpoint. Verified
-      2026-08-31: gNMI 0.7.0 answers Capabilities on :8080 over TLS.
-      v2 (2026-08-31): layers supervisord programs for dbus-daemon + sonic-host-server
-      (host_modules was already present but never started), so the GCU dbus provider
-      exists for the gNMI write path. Recipe: lab/images/sonic-vs-gnmi/Dockerfile.v2
-      on top of the v1 digest c04b9edd…; v1 build provenance: lab/images/sonic-vs-gnmi/.
+      2026-09-04: clean upstream 202505 build 1207609, FRR 10.3; core managers
+      are not linked to libasan. The 202605-built telemetry binary uses only its
+      compatibility libraries under /opt/agentic-netops/telemetry/lib, leaving
+      SONiC's system libraries untouched. dbus-daemon and sonic-host-server provide
+      the GCU write path. Recipe: lab/images/sonic-vs-gnmi/Dockerfile.compat.
   sonic_vs_base:
-    image: localhost:5000/sonic-vs:202605@sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
-    digest: sha256:097d1551398223969624a8095b37e60351b1629845c1e62e1f437decc1fb873b
-    tag: 20220111
+    image: localhost:5000/sonic-vs:202505-clean-1207609@sha256:0fc843225270bbd0b6fd7c207e1642a9aee669c44d7a95b634c0f3b10b0447d9
+    digest: sha256:0fc843225270bbd0b6fd7c207e1642a9aee669c44d7a95b634c0f3b10b0447d9
+    tag: 202505-clean-1207609
     notes: >
-      The community sonic-vs build that sonic_vs is layered on
-      (netreplica/docker-sonic-vs:20220111). Kept pinned for provenance and rebuilds.
-      NOT SRv6-qualified on its own: it ships no gNMI server at all, which is why the
-      capability gate failed closed against it (2026-08-30/31).
+      Official SONiC 202505 docker-sonic-vs build 1207609 (ff3c0c9f6), imported
+      from /root/sonic-images/docker-sonic-vs-202505.gz. Kept pinned for provenance
+      and rebuilds. It is ASan-free but not qualified alone because upstream's VS
+      artifact ships no gNMI telemetry server.
   sonic_vm:
     image: local/sonic-vm
     digest: sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5
@@ -156,7 +156,7 @@ sonic_yang:
   sonic_native_branch: '202405'
   sonic_native_commit: cfc766e13eccab4e7603808db3bfa9c5b2dfef17
   compatibility:
-    - image: localhost:5000/sonic-vs-gnmi:202605-v2@sha256:30c294564ca75a020859c26b8c80494126f16c857907cc31498bbc0fd29c253e
+    - image: localhost:5000/sonic-vs-gnmi:202505-v1@sha256:d1043aed28c98071c997a46d7e9e47823abacb06c31c068183541f8b5b5529e8
       oc_version: openconfig@f3443414
       native_version: sonic_yang@cfc766e1
     - image: local/sonic-vm@sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5

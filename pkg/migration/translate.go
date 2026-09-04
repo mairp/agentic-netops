@@ -133,11 +133,23 @@ func Translate(in *ServiceInput) (*OutputBundle, error) {
 			RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT},
 			L3VNI:        in.L3VNI,
 		}
+		// The bridge domain's irb.vrf must name a router in THIS Network, or
+		// the renderer has no L3VNI to put the gateway SVI in. The intent's
+		// irbGateway.vrf is a tenant-scoped label (vrf-<tenant>) and never
+		// matched the per-service router the translator emits, so every IRB
+		// rendered as a plain VPLS with the routed half dropped.
 		bd := BridgeDomain{
 			Name:  fmt.Sprintf("bd-%s", in.ServiceID),
 			VLAN:  endpointVLAN(in.Endpoints),
 			L2VNI: in.L2VNI,
-			IRB:   &IRB{VRF: in.IRBGateway.VRF, GatewayV4: in.IRBGateway.GatewayV4, GatewayV6: in.IRBGateway.GatewayV6},
+			// The L2 half needs the service's own route targets, exactly like
+			// VPLS and VPWS. Without them FRR falls back to an auto-derived
+			// RD/RT per leaf — and the leaves have different eBGP ASNs, so the
+			// derived targets do not match and no MAC route is ever imported
+			// across the fabric (seen live: RD 10.0.0.21:16 on one leaf,
+			// 10.0.0.22:12 on the other, for the same bridge domain).
+			EVPN: &EVPN{RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT}},
+			IRB:  &IRB{VRF: r.Name, GatewayV4: in.IRBGateway.GatewayV4, GatewayV6: in.IRBGateway.GatewayV6},
 		}
 		spec.Routers = []Router{r}
 		spec.BridgeDomains = []BridgeDomain{bd}

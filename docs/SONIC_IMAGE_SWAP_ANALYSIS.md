@@ -12,6 +12,28 @@ SONiC build. **It is running an AddressSanitizer build**, which upstream
 publishes as an explicitly optional debug variant. A clean build of the same
 lineage is already sitting on this host.
 
+## Resolution update — completed 2026-09-04
+
+The swap proposed below has now been completed. The fabric is pinned to
+`localhost:5000/sonic-vs-gnmi:202505-v1@sha256:d1043aed28c98071c997a46d7e9e47823abacb06c31c068183541f8b5b5529e8`.
+
+- `vlanmgrd`, `vxlanmgrd`, `vrfmgrd`, and `orchagent` are ASan-free and running
+  on both leaves; both syslogs contain zero `AddressSanitizer` entries.
+- D-A3 close criteria pass: each leaf reports one remote VTEP for VNI 100 and
+  client01 → client02 succeeds with 0% packet loss.
+- D-A2 close criteria pass without a waiver: bgpd adopts L3 VNIs and both
+  leaves carry Type-5 routes. The full unwaived `fabric_verify.sh run` passed.
+- The follow-up for intent-created L3VPNs is also closed: `pkg/fabricplan`
+  enables `redistribute connected` and `advertise ipv4 unicast`, applies the
+  requested RD/RT in the EVPN AF, and verifies the service-scoped local Type-5
+  route before allowing `Ready=True`.
+- `Network/migr-6cf2d23d9991475` now has `Ready=True/ApplySucceeded` and
+  `Degraded=False/NoFailuresObserved`; VNI 10018 is adopted on both leaves and
+  both self-originate `10.0.0.0/24` with RD/RT `65000:18`.
+
+The remainder of this document is the pre-swap diagnosis and execution plan,
+retained as the investigation record.
+
 ---
 
 ## 1. The finding: the image is an ASan build
@@ -107,7 +129,7 @@ requiring an FRR bug at all.
 
 This is a hypothesis, not a proven claim. It is falsifiable by the test in §5.
 
-## 3. Current state of the fabric (measured 2026-09-04)
+## 3. Pre-swap state of the fabric (measured 2026-09-04)
 
 | Check | Result |
 |---|---|
@@ -189,6 +211,14 @@ Ordered, with the honest cost of each.
 
 ### 6.1 Rebuild the gNMI layer on the clean base — the real work
 
+> **Resolution update:** the implementation did not relink telemetry against
+> 202505. It copied the already-qualified telemetry binary, schema, and exact
+> 202605 shared-library closure into `/opt/agentic-netops/telemetry/lib`, then
+> applied that `LD_LIBRARY_PATH` only to telemetry. This keeps the clean base's
+> manager daemons untouched. The reproducible assembly driver is now tracked at
+> `lab/images/sonic-vs-gnmi/build-compat.sh`; the speculative recompile plan in
+> this subsection is retained for history.
+
 The layer cannot be re-tagged onto a new base: `build4.sh` compiles the
 telemetry binary **against the base image's own libraries**
 (`libswsscommon`, `libyang`, `hiredis`, boost), by design — "the binary is
@@ -213,13 +243,12 @@ resolved against the *202605* runtime. A different base can reopen any of them.
 Then re-apply `Dockerfile.v2` (dbus + `sonic-host-server` supervisord programs
 — required for `org.SONiC.HostService.gcu`, i.e. the GCU write path).
 
-> **Risk to record:** `.wiggum/` is **untracked** (`git ls-files` returns
+> **Historical risk (closed):** `.wiggum/` was **untracked** (`git ls-files` returned
 > nothing for it). The only copy of the build driver for the lab's most
-> load-bearing image is not in version control, on one host. Fix this before
-> touching anything else — it is cheap now and unrecoverable later.
-> `lab/images/sonic-vs-gnmi/README.md` also claims "The full driver script is
-> not part of this repo", which is stale and should be corrected to point at
-> `.wiggum/.../build-gnmi/`.
+> load-bearing image was not in version control. The supported compatibility
+> assembly is now tracked alongside `Dockerfile.compat`, and its smoke build
+> has been verified. The older experimental source-build scripts remain ignored
+> investigation artifacts, not the supported rebuild path.
 
 ### 6.2 Push and re-pin
 
@@ -271,8 +300,8 @@ make lab-qualify
 ```
 
 Both keep their Type-5 and peer-arrival assertions failing closed by design.
-`AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1` should be **removed** from any
-provisioning path only once `fabric_verify` passes unwaived. The deferral doc's
+`AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1` was **removed** after `fabric_verify`
+passed unwaived. The deferral doc's
 own close criteria are the bar:
 
 - D-A3: non-zero remote VTEP count for VNI 100 on both leaves, and

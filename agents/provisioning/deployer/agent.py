@@ -343,9 +343,17 @@ class DeployerAgent:
             name = f"{resource.get('kind')}/{resource.get('name')}"
             ready = resource.get("ready")
             verdict = "Ready=True" if ready is True else "Ready=False" if ready is False else "Ready=<unset>"
+            degraded = resource.get("degraded")
+            degraded_verdict = (
+                "Degraded=True"
+                if degraded is True
+                else "Degraded=False"
+                if degraded is False
+                else "Degraded=<unset>"
+            )
             detail = str(resource.get("message") or resource.get("reason") or "")
             at = str(resource.get("lastTransitionTime") or "")
-            entry = f"{name} {verdict}"
+            entry = f"{name} {verdict} {degraded_verdict}"
             if detail:
                 entry += f' "{detail}"'
             if at:

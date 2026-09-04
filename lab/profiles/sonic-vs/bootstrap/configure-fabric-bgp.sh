@@ -151,6 +151,11 @@ configure_overlay() {
     redis-cli -n 4 hset 'VXLAN_TUNNEL_MAP|$VTEP|map_${L2VNI}_$VLAN' vni '$L2VNI' vlan '$VLAN' >/dev/null
     redis-cli -n 4 hset 'VLAN|$L3VLAN' vlanid '${L3VLAN#Vlan}' >/dev/null
     redis-cli -n 4 hset 'VXLAN_TUNNEL_MAP|$VTEP|map_${L3VNI}_$L3VLAN' vni '$L3VNI' vlan '$L3VLAN' >/dev/null
+    # Materialize the VRF before the GCU whole-config validation below. On the
+    # 202505 manager stack, GCU can apply a multi-row patch successfully but
+    # time out its immediate verification; the subsequent VRF patch must not
+    # be skipped merely because that earlier readback raced the consumers.
+    redis-cli -n 4 hset 'VRF|$TENANT_VRF' vni '$L3VNI' >/dev/null
   "
 }
 
@@ -204,10 +209,16 @@ for p in peers:
                      "keepalive": "60", "nhopself": "0", "rrclient": "0"}
     nbr[p["pip6"]] = {"asn": p["pasn"], "local_addr": p["lip6"], "holdtime": "180",
                       "keepalive": "60", "nhopself": "0", "rrclient": "0"}
-up.apply_patch(jsonpatch.JsonPatch([
-    {"op": "add", "path": "/LOOPBACK_INTERFACE", "value": lo},
-    {"op": "add", "path": "/BGP_NEIGHBOR", "value": nbr},
-]), ConfigFormat.CONFIGDB, False, False, False, [])
+try:
+    up.apply_patch(jsonpatch.JsonPatch([
+        {"op": "add", "path": "/LOOPBACK_INTERFACE", "value": lo},
+        {"op": "add", "path": "/BGP_NEIGHBOR", "value": nbr},
+    ]), ConfigFormat.CONFIGDB, False, False, False, [])
+except Exception as exc:
+    # GCU's 202505 read-after-write verification can race manager consumers.
+    # Continue to the independently validated overlay patch; shell-level live
+    # state and fabric_verify remain the fail-closed checks.
+    print(f"[fabric-bgp] WARN: underlay GCU immediate verification: {exc}", file=sys.stderr)
 
 # patch 2 — leaf overlay intent, applied separately so a failure here cannot
 # roll back the underlay intent above. Per-key adds need the parent table to
@@ -226,7 +237,10 @@ if role == "leaf":
     else:
         leaf_patch.append({"op": "add", "path": "/VRF",
                            "value": {os.environ["TENANT_VRF"]: {"vni": os.environ["L3VNI"]}}})
-    up.apply_patch(jsonpatch.JsonPatch(leaf_patch), ConfigFormat.CONFIGDB, False, False, False, [])
+    try:
+        up.apply_patch(jsonpatch.JsonPatch(leaf_patch), ConfigFormat.CONFIGDB, False, False, False, [])
+    except Exception as exc:
+        print(f"[fabric-bgp] WARN: overlay GCU immediate verification: {exc}", file=sys.stderr)
 print("[fabric-bgp] CONFIG_DB intent applied", file=sys.stderr)
 PY
 }
@@ -255,9 +269,11 @@ generate_frr_conf() {
   [[ "$role" == leaf ]] && conf+="  advertise-all-vni\n"
   conf+=" exit-address-family\n!\n"
   if [[ "$role" == leaf ]]; then
-    # FRR vrf definition block: binds the L3VNI to the tenant VRF (FRR 10 needs
-    # this on top of the kernel vrf_slave for Type-5 origination).
-    conf+="vrf $TENANT_VRF\n vni $L3VNI\nexit-vrf\n!\n"
+    # The L3-VNI binding is deliberately NOT written here. This file is parsed
+    # by bgpd alone, while `vni` in a top-level `vrf` block is owned by
+    # integrated FRR/zebra. bgpd rejects that line as an unknown command. The
+    # binding is applied through integrated vtysh after zebra and the kernel
+    # bridge/SVI topology are ready (apply_frr and the boot hook below).
     conf+="router bgp $asn vrf $TENANT_VRF\n"
     conf+=" address-family ipv4 unicast\n  redistribute connected\n exit-address-family\n"
     conf+=" !\n address-family l2vpn evpn\n  advertise ipv4 unicast\n exit-address-family\n!\n"
@@ -268,16 +284,16 @@ generate_frr_conf() {
 
 # Host-side counterpart of the fabric-init hook's leaf block: make sure the
 # vlanmgrd/vxlanmgrd/vrfmgrd devices exist and carry the kernel state FRR needs
-# (SVI address + VRF membership, L3VNI vtep enslaved to the tenant VRF). The
+# (SVI address + VRF membership, L3VNI vtep bridged into its VLAN). The
 # managers of this build warm-read nothing at startup — they only react to
 # live CONFIG_DB changes — so they are (re)started here to process the tables
-# written above. bgpd classifies the L3VNI from kernel state at startup, so
-# this MUST complete before bgpd loads its vrf stanza.
+# written above. FRR's supported topology keeps the VXLAN device on the
+# VLAN-aware bridge and enslaves the L3 SVI to the tenant VRF.
 ensure_overlay_devices() {
   local c=$1 svi4=$2
   docker exec "$c" supervisorctl restart vlanmgrd vxlanmgrd >/dev/null 2>&1 || true
-  local i dev id master vtep_dev=""
-  for i in $(seq 1 60); do
+  local i dev id vtep_dev=""
+  for i in $(seq 1 15); do
     vtep_dev=""
     for dev in $(docker exec "$c" bash -c 'ls /sys/class/net/ 2>/dev/null | grep "^vtep" || true'); do
       id=$(docker exec "$c" bash -c "ip -d link show $dev 2>/dev/null | grep -oE 'vxlan id [0-9]+' | awk '{print \$3}'" 2>/dev/null)
@@ -371,8 +387,12 @@ ensure_overlay_devices() {
     ip -br addr show $L3VLAN 2>/dev/null | grep -q '$svi4/24' || ip addr add $svi4/24 dev $L3VLAN 2>/dev/null || true
     ip link set $L3VLAN master $TENANT_VRF 2>/dev/null || true
     master=\$(ip -d link show $vtep_dev 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
-    [ \"\$master\" = '$TENANT_VRF' ] || ip link set $vtep_dev master $TENANT_VRF 2>/dev/null || true
-    ip -d link show $vtep_dev 2>/dev/null | grep -q 'master $TENANT_VRF' && echo '[fabric-bgp] L3VNI $vtep_dev bound to $TENANT_VRF'
+    [ \"\$master\" = 'Bridge' ] || ip link set $vtep_dev master Bridge 2>/dev/null || true
+    bridge vlan del dev $vtep_dev vid 1 2>/dev/null || true
+    bridge vlan add dev $vtep_dev vid ${L3VLAN#Vlan} pvid untagged 2>/dev/null || true
+    ip link set $vtep_dev up 2>/dev/null || true
+    ip -d link show $vtep_dev 2>/dev/null | grep -q 'master Bridge' \
+      && echo '[fabric-bgp] L3VNI $vtep_dev bridged into vlan ${L3VLAN#Vlan}; $L3VLAN bound to $TENANT_VRF'
   " || true
 }
 
@@ -396,6 +416,14 @@ apply_frr() {
       sleep 2
     done
     [[ $ok -eq 1 ]] || log "WARN: $TENANT_VRF device not seen on $node yet (bgpd will still load the rest)"
+    # This is an integrated FRR/zebra command, not a bgpd.conf command. Apply it
+    # after the kernel topology exists and reapply on every provisioning run;
+    # FRR 10.x has known reload paths that can lose this association.
+    docker exec "$c" vtysh -c 'configure terminal' -c "vrf $TENANT_VRF" \
+      -c "vni $L3VNI" -c 'end' >/dev/null 2>&1 || {
+        echo "[fabric-bgp] ERROR: $node: could not bind L3 VNI $L3VNI to $TENANT_VRF through integrated vtysh" >&2
+        return 1
+      }
   fi
   docker exec "$c" supervisorctl restart bgpd >/dev/null 2>&1 \
     || docker exec "$c" supervisorctl start bgpd >/dev/null 2>&1 \
@@ -405,102 +433,57 @@ apply_frr() {
     docker exec "$c" bash -c 'pgrep -x bgpd >/dev/null' 2>/dev/null && break
     sleep 2
   done
-  # VNI-adoption verification (mirrors hook step 6b): bgpd queries zebra's VNI
-  # table once at startup — a lost race leaves it with zero VNIs permanently.
-  # Restart-escalate until the L2 VNI shows up (leaf only).
+  # VNI-adoption verification (mirrors hook step 6b): both VNIs are mandatory.
+  # A lost bgpd/zebra notification is normally recovered by toggling
+  # advertise-all-vni; restart escalation is retained for an empty zebra table.
   if [ "$role" = leaf ]; then
-    local attempt adopted
+    local attempt adopted_l2=0 adopted_l3=0
     for attempt in 1 2 3; do
-      adopted=0
+      adopted_l2=0
+      adopted_l3=0
       for i in $(seq 1 10); do
-        # Match the real bgpd table line, which is "* 100        L2   ..." with the
-        # Kernel flag in COLUMN 1 — not " * 100". The original pattern ('^ \* VNI ')
-        # assumed a leading space and therefore never matched, so a leaf that had
-        # adopted the VNI was reported missing, restarted 3x for nothing, and (once
-        # the fall-through was made fatal) failed the provision outright. Verified
-        # against live FRR 10.5.4 output 2026-09-01 on leaf02, which reported
-        # "Number of L2 VNIs: 1" while the old grep called it missing.
-        docker exec "$c" bash -c "vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -qE '^\\*?[[:space:]]*$L2VNI[[:space:]]'" && { adopted=1; break; }
+        docker exec "$c" bash -c "vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -qE '^\\*?[[:space:]]*${L2VNI}[[:space:]]+L2'" && adopted_l2=1 || adopted_l2=0
+        docker exec "$c" bash -c "vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -qE '^\\*?[[:space:]]*${L3VNI}[[:space:]]+L3.*[[:space:]]${TENANT_VRF}([[:space:]]|$)'" && adopted_l3=1 || adopted_l3=0
+        [ "$adopted_l2" -eq 1 ] && [ "$adopted_l3" -eq 1 ] && break
         sleep 3
       done
-      [ "$adopted" -eq 1 ] && { echo "[fabric-bgp] $node: bgpd adopted L2 VNI $L2VNI (attempt $attempt)"; break; }
-      # Escalate through ZEBRA, not just bgpd. bgpd learns VNIs by querying zebra, so
-      # if ZEBRA's own table is empty a bgpd restart can never recover -- it re-asks a
-      # daemon that has nothing to give. zebra populates that table from the vxlan/
-      # bridge devices as it starts, so a zebra that came up before vxlanmgrd created
-      # vtep1-<L2VNI> stays permanently empty.
-      #
-      # Observed 2026-09-03 at 11 minutes uptime: leaf02 `show evpn vni` returned
-      # NOTHING while leaf01 listed both VNIs, and the overlay was at 100% packet
-      # loss. Restarting zebra (then bgpd) on leaf02 brought back "100 L2 vtep1-100
-      # 2 MACs 1 Remote VTEP" on both leaves and the client ping went to 0% loss.
-      # Cheapest remediation first: re-toggle advertise-all-vni. bgpd learns its VNIs
-      # by querying zebra once, and FRR has long-standing bugs where that state is
-      # lost or never loaded -- #4044 (type-5 not re-advertised after a bgpd
-      # restart), #6082 (VNI definitions not loaded from the config on start),
-      # #17430 (EVPN routes lost on reload). The documented workaround for all three
-      # is to unconfigure and reconfigure advertise-all-vni, which forces bgpd to
-      # re-read zebra's table WITHOUT dropping sessions the way a restart does.
-      #
-      # Ordering matters: this runs BEFORE the zebra/bgpd restarts below because a
-      # restart tears down established peerings and re-triggers the very race that
-      # loses the VNI. Measured 2026-09-03: on its own the toggle did NOT recover a
-      # leaf whose vtep1-100 was missing from the Bridge -- that is a different fault
-      # with its own fix in configure_overlay -- so it is a first, cheap attempt
-      # here, not a replacement for the escalation.
-      if [ "$adopted" -ne 1 ]; then
-        docker exec "$c" vtysh \
-          -c 'configure terminal' -c "router bgp $asn" \
-          -c 'address-family l2vpn evpn' -c 'no advertise-all-vni' -c 'end' >/dev/null 2>&1 || true
-        sleep 2
-        docker exec "$c" vtysh \
-          -c 'configure terminal' -c "router bgp $asn" \
-          -c 'address-family l2vpn evpn' -c 'advertise-all-vni' -c 'end' >/dev/null 2>&1 || true
-        sleep 8
-        if docker exec "$c" bash -c "vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -qE '^\\*?[[:space:]]*$L2VNI[[:space:]]'"; then
-          adopted=1
-          echo "[fabric-bgp] $node: bgpd adopted L2 VNI $L2VNI after advertise-all-vni toggle (attempt $attempt, no restart needed)"
-          break
-        fi
+      if [ "$adopted_l2" -eq 1 ] && [ "$adopted_l3" -eq 1 ]; then
+        echo "[fabric-bgp] $node: bgpd adopted L2 VNI $L2VNI and L3 VNI $L3VNI (attempt $attempt)"
+        break
       fi
-      if ! docker exec "$c" bash -c "vtysh -c 'show evpn vni' 2>/dev/null | grep -qE '^[[:space:]]*$L2VNI[[:space:]]'"; then
-        echo "[fabric-bgp] $node: zebra has no VNI $L2VNI (attempt $attempt) — restarting zebra then bgpd"
+      echo "[fabric-bgp] $node: VNI adoption incomplete (L2=$adopted_l2 L3=$adopted_l3, attempt $attempt) — toggling advertise-all-vni"
+      docker exec "$c" vtysh \
+        -c 'configure terminal' -c "router bgp $asn" \
+        -c 'address-family l2vpn evpn' -c 'no advertise-all-vni' -c 'end' >/dev/null 2>&1 || true
+      sleep 2
+      docker exec "$c" vtysh \
+        -c 'configure terminal' -c "router bgp $asn" \
+        -c 'address-family l2vpn evpn' -c 'advertise-all-vni' -c 'end' >/dev/null 2>&1 || true
+      sleep 8
+      if ! docker exec "$c" bash -c "vtysh -c 'show evpn vni' 2>/dev/null | grep -qE '^[[:space:]]*${L2VNI}[[:space:]]'" || \
+         ! docker exec "$c" bash -c "vtysh -c 'show evpn vni' 2>/dev/null | grep -qE '^[[:space:]]*${L3VNI}[[:space:]]+L3.*[[:space:]]${TENANT_VRF}([[:space:]]|$)'"; then
+        echo "[fabric-bgp] $node: zebra VNI table incomplete (attempt $attempt) — restarting zebra and restoring the integrated L3-VNI binding"
         docker exec "$c" supervisorctl restart zebra >/dev/null 2>&1 || true
         sleep 12
+        docker exec "$c" vtysh -c 'configure terminal' -c "vrf $TENANT_VRF" \
+          -c "vni $L3VNI" -c 'end' >/dev/null 2>&1 || true
       else
-        echo "[fabric-bgp] $node: bgpd missing L2 VNI $L2VNI (attempt $attempt) — restarting bgpd"
+        echo "[fabric-bgp] $node: restarting bgpd to re-query zebra"
       fi
       docker exec "$c" supervisorctl restart bgpd >/dev/null 2>&1 || true
       sleep 10
     done
-    # Exhausting the escalation is a HARD failure, not a warning. Without the L2
-    # VNI adopted, bgpd never processes the peer IMET: zebra installs no remote
-    # VTEP, nothing floods, and every overlay ping fails 100%. This previously
-    # fell through silently and provision still exited 0, so a structurally dead
-    # fabric reached test-fabric and was misread as slow convergence
-    # (2026-09-01: re-run cycle 1/2, leaf01, all 3 attempts exhausted).
-    if [ "$adopted" -ne 1 ]; then
-      # Explicit, recorded operator waiver (docs/FABRIC_BGP_EVPN_DEFERRED.md D-A3).
-      # Default is fail-closed; the waiver must be opted into by environment and
-      # says so loudly in the log so it can never be mistaken for a healthy run.
-      # It lets provisioning continue so the rest of the gate (parity,
-      # observability, idempotence, teardown, supply chain) can still be
-      # exercised on an image whose overlay is known-broken. It does NOT weaken
-      # fabric_verify: the peer-arrival assertion still fails closed.
-      if [ "${AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION:-0}" = "1" ]; then
-        echo "[fabric-bgp] WAIVED: $node: bgpd never adopted L2 VNI $L2VNI after 3 restarts. Continuing under AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1 (operator decision, docs/FABRIC_BGP_EVPN_DEFERRED.md D-A3). THE OVERLAY CANNOT FORWARD — client traffic and remote-VTEP assertions WILL fail and must be cited as this documented defect, not as a passing fabric." >&2
-      else
-        echo "[fabric-bgp] ERROR: $node: bgpd never adopted L2 VNI $L2VNI after 3 restarts — overlay cannot forward; failing provision" >&2
-        return 1
-      fi
+    if [ "$adopted_l2" -ne 1 ]; then
+      echo "[fabric-bgp] ERROR: $node: bgpd never adopted L2 VNI $L2VNI after 3 restarts — overlay cannot forward; failing provision" >&2
+      return 1
+    fi
+    if [ "$adopted_l3" -ne 1 ]; then
+      echo "[fabric-bgp] ERROR: $node: bgpd never adopted L3 VNI $L3VNI for $TENANT_VRF — Type-5 origination is unavailable; failing provision" >&2
+      return 1
     fi
   fi
   docker exec "$c" bash -c 'pgrep -x bgpd >/dev/null' 2>/dev/null || {
-    if [ "${AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION:-0}" = "1" ] && [ "$role" = "leaf" ]; then
-      echo "[fabric-bgp] WARN: bgpd not running on $node — continuing under AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1 (overlay will not forward)"
-    else
-      echo "[fabric-bgp] ERROR: bgpd did not start on $node" >&2; return 1
-    fi
+    echo "[fabric-bgp] ERROR: bgpd did not start on $node" >&2; return 1
   }
   return 0
 }
@@ -577,17 +560,18 @@ for spec in $PEERS; do
   ip -br addr show "$iface" 2>/dev/null | grep -q "$lip6/127" || ip -6 addr add "$lip6/127" dev "$iface" 2>/dev/null || true
 done
 IFS=$OLDIFS
-# 5) leaf L3VLAN SVI + L3VNI binding. Everything here must be final BEFORE bgpd
-#    starts: bgpd classifies vni $L3VNI as the tenant VRF's L3VNI from the
-#    kernel device state at startup, so the vtep must already be enslaved when
-#    it loads its vrf stanza (a later re-enslavement is not picked up).
+# 5) Leaf L3VLAN SVI + L3VNI binding. FRR's supported topology is:
+#      VXLAN device -> VLAN-aware Bridge, tagged/PVID for the L3 VLAN
+#      L3 VLAN SVI  -> tenant VRF
+#    The top-level `vrf ... vni` command belongs to integrated FRR/zebra, so
+#    apply it through vtysh before bgpd starts; bgpd.conf cannot own it.
 if [ "$ROLE" = leaf ] && [ -n "$SVI4" ]; then
   # 5a) wait for vxlanmgrd/vlanmgrd to (re)create the devices — they start in
   #     parallel with this hook and take a while after CONFIG_DB load. The vtep
   #     device name does not encode the VNI (vni 1000 lands as vtep1-2000,
   #     suffixed with the L3VLAN id), so resolve it by its vxlan id.
   VTEP_DEV=""
-  for i in $(seq 1 90); do
+  for i in $(seq 1 15); do
     ip link show "$L3VLAN" >/dev/null 2>&1 && break
     sleep 2
   done
@@ -597,7 +581,7 @@ if [ "$ROLE" = leaf ] && [ -n "$SVI4" ]; then
   # the declared intent; this only materializes the device.
   ip link show "$L3VLAN" >/dev/null 2>&1 || \
     ip link add "$L3VLAN" link Bridge type vlan id "${L3VLAN#Vlan}" 2>/dev/null || true
-  for i in $(seq 1 90); do
+  for i in $(seq 1 60); do
     VTEP_DEV=""
     for d in /sys/class/net/vtep*; do
       [ -e "$d" ] || continue
@@ -613,47 +597,35 @@ if [ "$ROLE" = leaf ] && [ -n "$SVI4" ]; then
   ip link set "$L3VLAN" master "$TENANT_VRF" 2>/dev/null || true
   if [ -n "$VTEP_DEV" ]; then
     master=$(ip -d link show "$VTEP_DEV" 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
-    [ "$master" = "$TENANT_VRF" ] || ip link set "$VTEP_DEV" master "$TENANT_VRF" 2>/dev/null || true
+    [ "$master" = "Bridge" ] || ip link set "$VTEP_DEV" master Bridge 2>/dev/null || true
+    bridge vlan del dev "$VTEP_DEV" vid 1 2>/dev/null || true
+    bridge vlan add dev "$VTEP_DEV" vid "${L3VLAN#Vlan}" pvid untagged 2>/dev/null || true
+    ip link set "$VTEP_DEV" up 2>/dev/null || true
     master=$(ip -d link show "$VTEP_DEV" 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
-    if [ "$master" = "$TENANT_VRF" ]; then
-      log "L3VNI vtep $VTEP_DEV (vni $L3VNI) bound to $TENANT_VRF"
+    if [ "$master" = "Bridge" ]; then
+      log "L3VNI vtep $VTEP_DEV (vni $L3VNI) bridged into vlan ${L3VLAN#Vlan}; $L3VLAN bound to $TENANT_VRF"
     else
-      log "WARN: $VTEP_DEV not bound to $TENANT_VRF (master=${master:-none})"
+      log "WARN: $VTEP_DEV not bound to Bridge (master=${master:-none})"
     fi
-    # 5c) bgpd builds its VNI table from zebra ONCE, right after it starts —
-    #     if zebra has not classified the VNIs yet (vxlanmgrd created the vtep
-    #     devices concurrently), bgpd ends up with none and no IMET/Type-2/5
-    #     ever flows. Wait for zebra to classify both VNIs, nudging it with a
-    #     re-enslave + link flap (and, if still unclassified, a vxlanmgrd
-    #     restart that recreates the devices with fresh netlink events).
-    vxrestart=0
-    for i in $(seq 1 45); do
+    vtysh -c 'configure terminal' -c "vrf $TENANT_VRF" -c "vni $L3VNI" -c 'end' >/dev/null 2>&1 || \
+      log "WARN: integrated FRR rejected vrf $TENANT_VRF vni $L3VNI"
+    for i in $(seq 1 30); do
+      # vrfmgrd may recreate the VRF after CONFIG_DB reload and detach the SVI
+      # after our first assignment. Reassert the supported kernel topology
+      # throughout convergence so zebra never observes a stale direct-VRF VXLAN
+      # or an unbound L3 SVI.
+      ip link set "$L3VLAN" master "$TENANT_VRF" 2>/dev/null || true
+      ip link set "$VTEP_DEV" master Bridge 2>/dev/null || true
+      bridge vlan add dev "$VTEP_DEV" vid "${L3VLAN#Vlan}" pvid untagged 2>/dev/null || true
       zn=$(vtysh -d zebra -c 'show evpn vni' 2>/dev/null)
-      echo "$zn" | grep -q "^$L2VNI " && \
-        echo "$zn" | grep -q "^$L3VNI .*L3" && break
-      if echo "$zn" | grep -q "^$L3VNI .*L3"; then
-        ip link set "$VTEP_DEV" down 2>/dev/null || true
-        sleep 1
-        ip link set "$VTEP_DEV" up 2>/dev/null || true
-      elif [ $vxrestart -eq 0 ] && [ $((i % 8)) -eq 0 ]; then
-        vxrestart=1
-        supervisorctl restart vxlanmgrd >/dev/null 2>&1 || true
-        sleep 15
-        ip link set "$VTEP_DEV" master "$TENANT_VRF" 2>/dev/null || true
-        ip link set "$VTEP_DEV" down 2>/dev/null || true
-        sleep 1
-        ip link set "$VTEP_DEV" up 2>/dev/null || true
-      else
-        ip link set "$VTEP_DEV" nomaster 2>/dev/null || true
-        sleep 1
-        ip link set "$VTEP_DEV" master "$TENANT_VRF" 2>/dev/null || true
-        ip link set "$VTEP_DEV" down 2>/dev/null || true
-        sleep 1
-        ip link set "$VTEP_DEV" up 2>/dev/null || true
-      fi
-      sleep 3
+      echo "$zn" | grep -qE "^$L3VNI[[:space:]]+L3.*[[:space:]]$TENANT_VRF([[:space:]]|$)" && break
+      ip link set "$VTEP_DEV" down 2>/dev/null || true
+      sleep 1
+      ip link set "$VTEP_DEV" up 2>/dev/null || true
+      vtysh -c 'configure terminal' -c "vrf $TENANT_VRF" -c "vni $L3VNI" -c 'end' >/dev/null 2>&1 || true
+      sleep 2
     done
-    vtysh -d zebra -c 'show evpn vni' 2>/dev/null | grep -q "^$L3VNI .*L3" && \
+    vtysh -d zebra -c 'show evpn vni' 2>/dev/null | grep -qE "^$L3VNI[[:space:]]+L3.*[[:space:]]$TENANT_VRF([[:space:]]|$)" && \
       log "zebra classified vnis (L2 $L2VNI, L3 $L3VNI)" || \
       log "WARN: zebra vni classification incomplete before bgpd start"
   else
@@ -710,26 +682,41 @@ for i in $(seq 1 30); do
   pgrep -x bgpd >/dev/null && { log "bgpd running (role=$ROLE)"; break; }
   sleep 2
 done
-# 6b) VERIFY the VNI table actually adopted (leaf only). bgpd queries zebra's
-#     VNI table exactly once at startup; losing that race leaves bgpd with zero
-#     VNIs forever — no IMET, no remote VTEPs, no Type-2/3 (observed again in the
-#     2026-09-01 forced rerun, cycle 1: leaf02 ended with "L2 VNIs: 0" while
-#     leaf01 won the race). bgpd restarts are cheap and re-trigger the query, so
-#     verify-and-restart makes adoption deterministic instead of lucky.
+# 6b) Verify both VNIs. Re-toggling advertise-all-vni makes bgpd re-read
+#     zebra's table and is less disruptive than restarting established peers.
 if [ "$ROLE" = leaf ]; then
   for attempt in 1 2 3; do
-    adopted=0
+    adopted_l2=0
+    adopted_l3=0
     for i in $(seq 1 10); do
-      vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -qE "^\*?[[:space:]]*$L2VNI[[:space:]]" && { adopted=1; break; }
+      # Manager reconciliation can finish after zebra's first classification
+      # and detach the SVI once more. Keep the lab-owned topology converged for
+      # the entire bgpd adoption window, not only before bgpd starts.
+      if [ -n "${VTEP_DEV:-}" ]; then
+        ip link set "$L3VLAN" master "$TENANT_VRF" 2>/dev/null || true
+        ip link set "$VTEP_DEV" master Bridge 2>/dev/null || true
+        bridge vlan add dev "$VTEP_DEV" vid "${L3VLAN#Vlan}" pvid untagged 2>/dev/null || true
+        vtysh -c 'configure terminal' -c "vrf $TENANT_VRF" -c "vni $L3VNI" -c 'end' >/dev/null 2>&1 || true
+      fi
+      vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -qE "^\*?[[:space:]]*$L2VNI[[:space:]]+L2" && adopted_l2=1 || adopted_l2=0
+      vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -qE "^\*?[[:space:]]*$L3VNI[[:space:]]+L3.*[[:space:]]$TENANT_VRF([[:space:]]|$)" && adopted_l3=1 || adopted_l3=0
+      [ "$adopted_l2" -eq 1 ] && [ "$adopted_l3" -eq 1 ] && break
       sleep 3
     done
-    [ "$adopted" -eq 1 ] && { log "bgpd adopted L2 VNI $L2VNI (attempt $attempt)"; break; }
-    log "bgpd missing L2 VNI $L2VNI (attempt $attempt) — restarting bgpd to re-query zebra"
+    [ "$adopted_l2" -eq 1 ] && [ "$adopted_l3" -eq 1 ] && { log "bgpd adopted L2 VNI $L2VNI and L3 VNI $L3VNI (attempt $attempt)"; break; }
+    log "VNI adoption incomplete (L2=$adopted_l2 L3=$adopted_l3, attempt $attempt) — toggling advertise-all-vni"
+    vtysh -c 'configure terminal' -c "router bgp $(awk '/^router bgp [0-9]+$/{print $3; exit}' /etc/frr/bgpd.conf)" \
+      -c 'address-family l2vpn evpn' -c 'no advertise-all-vni' -c 'end' >/dev/null 2>&1 || true
+    sleep 2
+    vtysh -c 'configure terminal' -c "router bgp $(awk '/^router bgp [0-9]+$/{print $3; exit}' /etc/frr/bgpd.conf)" \
+      -c 'address-family l2vpn evpn' -c 'advertise-all-vni' -c 'end' >/dev/null 2>&1 || true
+    sleep 8
+    vtysh -c 'configure terminal' -c "vrf $TENANT_VRF" -c "vni $L3VNI" -c 'end' >/dev/null 2>&1 || true
     supervisorctl restart bgpd >/dev/null 2>&1 || true
     sleep 10
   done
-  vtysh -d bgpd -c 'show bgp l2vpn evpn vni' 2>/dev/null | grep -qE "^\*?[[:space:]]*$L2VNI[[:space:]]" || \
-    log "WARN: bgpd still has no L2 VNI $L2VNI after 3 restarts"
+  [ "$adopted_l2" -eq 1 ] && [ "$adopted_l3" -eq 1 ] || \
+    log "WARN: bgpd VNI adoption incomplete after recovery (L2=$adopted_l2 L3=$adopted_l3)"
 fi
 # 7) nudge peers past connect backoff once, late in the boot window
 sleep 10
@@ -755,7 +742,7 @@ EOS
 }
 
 main() {
-  local line node asn lo4 lo6 svi4 peers c role
+  local node asn lo4 lo6 svi4 peers c role
   # pass 1 — daemons, interfaces, overlay tables, CONFIG_DB intent, boot hook
   while IFS='|' read -r node asn lo4 lo6 svi4 peers; do
     [[ -z "$node" ]] && continue

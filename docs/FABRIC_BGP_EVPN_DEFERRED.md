@@ -3,8 +3,10 @@
 **Date:** 2026-09-01 (reconciliation update, end of day)
 **Touches:** `lab/profiles/sonic-vs/bootstrap/configure-fabric-bgp.sh` (new),
 `scripts/lib/containerlab.sh` (`clab::bootstrap`), `tests/integration/fabric_verify.sh`
-**Status:** underlay (v4+v6) + EVPN AF + Type-2 + Type-3 + bridged client data path working and
-verified live; Type-5 blocked by an image build defect (D-A2); D-B resolved; D-C still to correct.
+**Status update 2026-09-04:** D-A2 and D-A3 are resolved on the clean
+`sonic-vs-gnmi:202505-v1` image; the unwaived gate proves Type-2/3/5, remote
+VTEPs, and the bridged client data path. D-B is resolved; D-C still needs its
+separate documentation correction.
 
 ## Verified live after reconciliation (2026-09-01 05:54, fabric_verify.sh)
 
@@ -38,7 +40,15 @@ and `configure-fabric-bgp.sh` builds the fabric during bootstrap.
 
 ## Deferred — fix later
 
-### D-A. ~~EVPN Type-2 and Type-5 are not originated~~ → RESOLVED for Type-2; Type-5 blocked by image defect
+### D-A. EVPN Type-2 and Type-5 origination — RESOLVED
+
+**Resolution (2026-09-04).** The fabric now runs the ASan-free 202505 image.
+bgpd adopts the L3 VNI on both leaves and the unwaived fabric gate sees Type-5
+routes in both RIBs. Intent-created L3VPNs additionally configure
+`redistribute connected`, `advertise ipv4 unicast`, and their requested EVPN
+RD/RT; the provider verifies an RD-scoped local Type-5 route before setting
+`Ready=True`. The older blocked finding below is retained as historical evidence
+for the superseded 202605 ASan image.
 
 **Type-2: RESOLVED 2026-09-01.** Root cause was not VLAN_MEMBER (whose PORT leafref makes it
 unwritable on this image): the leaf access port joined the vlan-aware Bridge with PVID 1 while
@@ -134,7 +144,12 @@ docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show bgp l2vpn evpn'
 - Access ports on the vlan-aware Bridge need explicit `bridge vlan add … pvid untagged` into the
   L2VNI VLAN (PVID 1 default never reaches vtep1-100).
 
-### D-A3. bgpd does not adopt the L2 VNI on a fresh cycles-provisioned lab
+### D-A3. bgpd does not adopt the L2 VNI — RESOLVED
+
+**Resolution (2026-09-04).** On the clean 202505 image both leaves report a
+non-zero remote VTEP count for VNI 100, and client01 → client02 passes with 0%
+loss. The former waiver has been removed; bootstrap and verification fail
+closed. The analysis below records the superseded ASan-image behavior.
 
 Observed 2026-09-01 on the forced re-run (`CYCLES_FORCE_RERUN=1`), cycles 1 and 2, on `leaf01`:
 
@@ -192,12 +207,12 @@ and therefore EVPN overlay forwarding, is accepted as NOT PROVEN on the current
 support is being engaged, and the fabric will be re-qualified on a different SONiC image; the
 remaining gate scope should not be blocked behind it in the meantime.
 
-Mechanics of the waiver, so it can never be mistaken for a passing fabric:
-- Provisioning continues **only** under an explicit `AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1`, which logs a
+Historical mechanics of the waiver (retired and removed on 2026-09-04):
+- Provisioning continued **only** under an explicit `AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1`, which logged a
   `[fabric-bgp] WAIVED:` line naming this section. Default behaviour remains fail-closed.
-- `fabric_verify` is **NOT** weakened. The peer-arrival assertion (remote-VTEP count on the L2 VNI)
-  and the client-traffic assertion both REMAIN and continue to fail closed, exactly as Type-5 does.
-- `test-fabric` will therefore still exit 1. Gate evidence must cite this decision verbatim and
+- `fabric_verify` was **not** weakened. The peer-arrival assertion (remote-VTEP count on the L2 VNI)
+  and the client-traffic assertion remained fail closed, exactly as Type-5 did.
+- `test-fabric` therefore exited 1. Gate evidence had to cite this decision verbatim and
   present the overlay data path as an accepted, documented image defect — never as passing.
-- What would close it for real: a SONiC image on which `show evpn vni` reports a non-zero remote
-  VTEP count for VNI 100 on both leaves, and client01→client02 pings across the overlay succeed.
+- The stated close criterion was a SONiC image on which `show evpn vni` reports a non-zero remote
+  VTEP count for VNI 100 on both leaves and client01→client02 succeeds; that criterion now passes.

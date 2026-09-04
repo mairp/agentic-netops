@@ -780,11 +780,52 @@ class TestStatusQuestionOnACompletedThread:
             assert detect_deployment_status_query(question), question
 
     def test_a_provisioning_request_is_not_a_status_question(self):
-        from supervisors.provisioning.graph.graph import detect_deployment_status_query
+        from supervisors.provisioning.graph.graph import (
+            detect_deployment_status_query,
+            detect_provisioning_request,
+        )
 
         assert not detect_deployment_status_query(
             "Create an L3VPN between leaf1 Ethernet1 and leaf2 Ethernet2 for tenant-a"
         )
+        combined = (
+            "Deploy an L3VPN service for tenant validation-test with IPv4 prefix "
+            "10.99.18.0/24. Attach wan1 on leaf01 and wan1 on leaf02. Allocate the "
+            "required identifiers automatically. After approving, check the final "
+            "deployment status of the service."
+        )
+        assert detect_deployment_status_query(combined)
+        assert detect_provisioning_request(combined)
+
+    async def test_create_request_with_status_followup_is_not_hijacked(self, graph_llm):
+        from langchain_core.messages import HumanMessage
+
+        request = (
+            "Deploy an L3VPN service for tenant validation-test with IPv4 prefix "
+            "10.99.18.0/24. Attach wan1 on leaf01 and wan1 on leaf02. Allocate the "
+            "required identifiers automatically. After approving, check the final "
+            "deployment status of the service."
+        )
+        graph = ProvisioningGraph(
+            llm_factory=lambda streaming=None: RunnableLambda(graph_llm.ainvoke),
+            transport=StubTransport(),
+        )
+        state = {
+            "messages": [HumanMessage(content=request)],
+            "correlation_id": "c" * 32,
+            "submitted_correlation_id": CID,
+            "principal": "unit-test",
+            "workflow_status": NetworkProvisioningStatus.COMPLETED.value,
+            "submitted_resources": canonical_json([NET_REF]),
+        }
+        try:
+            out = await graph._supervisor_node(state, {"configurable": {"thread_id": "unit-thread"}})
+        finally:
+            await graph.close()
+        assert out["next_node"] == "mapper"
+        assert out.get("tool_action") is None
+        assert out["submitted_resources"] is None
+        assert out["submitted_correlation_id"] is None
 
     async def test_status_question_routes_to_the_cluster_not_the_blurb(self, graph_llm):
         from langchain_core.messages import HumanMessage
@@ -813,6 +854,32 @@ class TestStatusQuestionOnACompletedThread:
         assert out["next_node"] == "deployer"
         assert out["tool_action"] == "status"
         assert json.loads(out["tool_request"]) == {"action": "status", "correlationId": CID}
+
+    async def test_status_question_carries_the_allocated_service_id(self, graph_llm):
+        from langchain_core.messages import HumanMessage
+
+        graph = ProvisioningGraph(
+            llm_factory=lambda streaming=None: RunnableLambda(graph_llm.ainvoke),
+            transport=StubTransport(),
+        )
+        state = {
+            "messages": [HumanMessage(content="What is the status of the deployment?")],
+            "correlation_id": "c" * 32,
+            "submitted_correlation_id": CID,
+            "principal": "unit-test",
+            "workflow_status": NetworkProvisioningStatus.COMPLETED.value,
+            "submitted_resources": canonical_json([NET_REF]),
+            "allocated_resources": canonical_json({"serviceId": "svc-alpha"}),
+        }
+        try:
+            out = await graph._supervisor_node(state, {"configurable": {"thread_id": "unit-thread"}})
+        finally:
+            await graph.close()
+        assert json.loads(out["tool_request"]) == {
+            "action": "status",
+            "correlationId": CID,
+            "serviceId": "svc-alpha",
+        }
 
     async def test_without_a_submission_the_question_is_not_hijacked(self, graph_llm):
         from langchain_core.messages import HumanMessage

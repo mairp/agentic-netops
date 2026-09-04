@@ -80,10 +80,6 @@ that honestly in any readiness document rather than reporting healthy steady sta
 
 ## Fabric
 
-`lab/profiles/sonic-vs` ships an ASan-instrumented `vlanmgrd` that can crash on startup,
-leaving a leaf with no overlay devices. See `docs/FABRIC_BGP_EVPN_DEFERRED.md` D-A3. To
-let provisioning continue past it and report the defect rather than fail closed:
-
-```bash
-AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1 ./scripts/provision.sh --profile sonic-vs --with-intent-tier
-```
+`lab/profiles/sonic-vs` pins the ASan-free `sonic-vs-gnmi:202505-v1` image.
+The former D-A2/D-A3 image waivers are retired; L2/L3 VNI adoption, Type-5
+origination, remote-VTEP learning, and overlay traffic fail closed.

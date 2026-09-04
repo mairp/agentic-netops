@@ -28,6 +28,7 @@ allocation client (KUID first, with a Lease fallback for pinned KUID defects).
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import logging
 import re
@@ -67,6 +68,23 @@ def _hash_interpretation(interp_json: str) -> str:
     return hashlib.sha256(interp_json.encode("utf-8")).hexdigest()
 
 
+def _gateway_address(prefixes: list[str], fallback: str) -> str:
+    """First usable host of a declared prefix, as the tenant's IRB gateway.
+
+    The same convention the fabric bootstrap uses for its SVIs (x.y.z.1/n), so
+    the address the operator sees in the interpretation is the address the
+    renderer puts on the bridge domain's SVI.
+    """
+
+    if not prefixes:
+        return fallback
+    try:
+        network = ipaddress.ip_network(prefixes[0], strict=False)
+    except ValueError:
+        return fallback
+    return f"{network.network_address + 1}/{network.prefixlen}"
+
+
 def _deterministic_endpoints(endpoints: list[Endpoint]) -> list[Endpoint]:
     """T224 — deterministically order endpoints by (node, attachment)."""
     return sorted(endpoints, key=lambda e: (e.node, e.attachment))
@@ -83,6 +101,34 @@ class AllocatorAgent:
         self.kuid = KUIDClient()
         # Simple in-process memoization map: assignment hash -> canonical JSON
         self._memo: dict[str, str] = {}
+
+    def _l2_endpoints(
+        self, endpoints: list[Endpoint], correlation_id: str, service: str
+    ) -> list[Endpoint]:
+        """Put every endpoint of an L2 service on ONE service vlan.
+
+        A VPLS/VPWS/IRB service is a single bridge domain, and the translator
+        renders exactly one ``bridgeDomain`` whose vlan comes from the first
+        endpoint. Allocating a vlan per endpoint therefore produced an intent
+        that could never converge: the second attachment referenced a vlan no
+        bridge domain declared, and the fabric rejected it at render time —
+        after the objects were already submitted. Every VPWS and every IRB
+        this tier ever built failed exactly that way.
+
+        The vlan the operator asked for wins; two different requested vlans are
+        a contradiction in the request, not something to silently pick from.
+        """
+
+        declared = sorted({e.vlan for e in endpoints if e.vlan})
+        if len(declared) > 1:
+            raise ValueError(
+                f"{service} is one bridge domain, so all endpoints share one vlan; "
+                f"the request names {len(declared)}: {', '.join(str(v) for v in declared)}"
+            )
+        vlan = declared[0] if declared else self.kuid.allocate_vlan(correlation_id)
+        return [
+            Endpoint(node=e.node, attachment=e.attachment, vlan=vlan) for e in endpoints
+        ]
 
     def _build_intent(self, interp: Interpretation, correlation_id: str) -> NormalizedServiceIntent:
         st = interp.service_type.value
@@ -107,13 +153,7 @@ class AllocatorAgent:
 
         # Type-specific mapping
         if st == "VPLS":
-            # Ensure VLANs present: allocate if missing
-            eps: list[Endpoint] = []
-            vlan = None
-            for e in endpoints:
-                v = e.vlan or vlan or self.kuid.allocate_vlan(correlation_id)
-                vlan = v if vlan is None else vlan
-                eps.append(Endpoint(node=e.node, attachment=e.attachment, vlan=v))
+            eps = self._l2_endpoints(endpoints, correlation_id, "VPLS")
             intent = NormalizedServiceIntent(
                 serviceId=interp.service_id,
                 type="VPLS",
@@ -124,10 +164,7 @@ class AllocatorAgent:
             )
         elif st == "VPWS":
             # VPWS requires exactly two endpoints with VLANs and policy opt-in
-            eps: list[Endpoint] = []
-            for e in endpoints:
-                v = e.vlan or self.kuid.allocate_vlan(correlation_id)
-                eps.append(Endpoint(node=e.node, attachment=e.attachment, vlan=v))
+            eps = self._l2_endpoints(endpoints, correlation_id, "VPWS")
             intent = NormalizedServiceIntent(
                 serviceId=interp.service_id,
                 type="VPWS",
@@ -138,9 +175,16 @@ class AllocatorAgent:
                 policies=Policies(vpwsLimitedEquivalence=True),
             )
         elif st == "L3VPN":
-            # Minimal AF with placeholder prefix to satisfy schema is not allowed; require allocation paths to supply AF.
-            # For US1 we set a minimal AF to pass validation; production would derive from operator input.
-            af = AddressFamilies(ipv4Prefixes=["10.0.0.0/24"])  # deterministic placeholder for parity tests
+            # Preserve address-family prefixes explicitly supplied in the
+            # operator's request. The legacy default remains only for older
+            # interpretations that predate prefix carriage.
+            if interp.ipv4_prefixes or interp.ipv6_prefixes:
+                af = AddressFamilies(
+                    ipv4Prefixes=interp.ipv4_prefixes,
+                    ipv6Prefixes=interp.ipv6_prefixes,
+                )
+            else:
+                af = AddressFamilies(ipv4Prefixes=["10.0.0.0/24"])
             eps: list[Endpoint] = []
             for e in endpoints:
                 vrf = e.vrf or f"vrf-{interp.tenant}"
@@ -156,11 +200,22 @@ class AllocatorAgent:
             )
         elif st == "IRB":
             # IRB: both L2 and L3 VNIs + IRB gateway; use deterministic placeholders for gateway values
-            eps: list[Endpoint] = []
-            for e in endpoints:
-                v = e.vlan or self.kuid.allocate_vlan(correlation_id)
-                eps.append(Endpoint(node=e.node, attachment=e.attachment, vlan=v))
-            igw = IRBGateway(vrf=f"vrf-{interp.tenant}", gatewayIPv4="10.0.0.1/24", gatewayIPv6="fd00::1/64")
+            eps = self._l2_endpoints(endpoints, correlation_id, "IRB")
+            # The gateway is the first usable host of the operator's own
+            # prefix, in the address families they actually asked for. An IRB
+            # used to be handed a fd00::1/64 gateway whether or not IPv6 was
+            # ever mentioned, which put an unrequested address family on the
+            # SVI, asked FRR to originate a Type-5 route for it, and failed
+            # the service when a leaf's zebra did not register it.
+            igw = IRBGateway(
+                vrf=f"vrf-{interp.tenant}",
+                gatewayIPv4=_gateway_address(interp.ipv4_prefixes, ""),
+                gatewayIPv6=_gateway_address(interp.ipv6_prefixes, ""),
+            )
+            if not igw.gatewayIPv4 and not igw.gatewayIPv6:
+                # A routed service needs somewhere to route. Nothing was named,
+                # so the legacy default stands in — and only in v4.
+                igw.gatewayIPv4 = "10.0.0.1/24"
             intent = NormalizedServiceIntent(
                 serviceId=interp.service_id,
                 type="L2L3-IRB",

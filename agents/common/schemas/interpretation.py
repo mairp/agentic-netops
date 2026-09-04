@@ -10,6 +10,7 @@ is a precondition for routing onward, not a post-hoc check.
 
 from __future__ import annotations
 
+import ipaddress
 import re
 from enum import StrEnum
 
@@ -74,6 +75,8 @@ class Interpretation(BaseModel):
     # Optional, absence is not a blocker (data-model.md §2)
     bandwidth: str | None = None
     sla: str | None = None
+    ipv4_prefixes: list[str] = Field(default_factory=list)
+    ipv6_prefixes: list[str] = Field(default_factory=list)
 
     # Terminal flags — mutually exclusive with each other (see class docstring)
     missing_fields: list[str] = Field(default_factory=list)
@@ -87,6 +90,29 @@ class Interpretation(BaseModel):
                 f"tenant must be an RFC 1123 label, got {v!r}"
             )
         return v
+
+    @field_validator("ipv4_prefixes")
+    @classmethod
+    def _valid_ipv4_prefixes(cls, values: list[str]) -> list[str]:
+        return cls._valid_prefixes(values, version=4)
+
+    @field_validator("ipv6_prefixes")
+    @classmethod
+    def _valid_ipv6_prefixes(cls, values: list[str]) -> list[str]:
+        return cls._valid_prefixes(values, version=6)
+
+    @staticmethod
+    def _valid_prefixes(values: list[str], *, version: int) -> list[str]:
+        normalized: list[str] = []
+        for value in values:
+            try:
+                network = ipaddress.ip_network(value, strict=False)
+            except ValueError as exc:
+                raise ValueError(f"invalid IPv{version} prefix {value!r}") from exc
+            if network.version != version:
+                raise ValueError(f"expected an IPv{version} prefix, got {value!r}")
+            normalized.append(str(network))
+        return normalized
 
     @field_validator("endpoints")
     @classmethod

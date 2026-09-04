@@ -15,7 +15,7 @@
 //     logical name -> container name), so no pod can pivot to arbitrary
 //     containers on the host;
 //   - ops are the four proven primitives only: GCU JSON patches, redis CONFIG_DB
-//     commands, kernel shell, vtysh/bgpd.conf (best-effort FRR);
+//     commands, kernel shell, and vtysh/bgpd.conf;
 //   - it lives in agentic-netops-system behind deny-all, so the intent tier
 //     (agentic-netops-agents) still has NO route to the devices (SC-005) — only
 //     the SONiC provider, through this service, can touch the fabric.
@@ -29,6 +29,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
@@ -87,6 +88,7 @@ type VerifyRequest struct {
 		Vid        int64  `json:"vid,omitempty"`
 		Path       string `json:"path,omitempty"`
 		Line       string `json:"line,omitempty"`
+		Command    string `json:"command,omitempty"`
 		Expect     string `json:"expect,omitempty"`
 	} `json:"checks"`
 }
@@ -166,8 +168,35 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 }
 
 func (s *server) containerFor(node string) (string, bool) {
-	c, ok := s.nodeMap[node]
-	return c, ok && c != ""
+	if c, ok := s.nodeMap[node]; ok && c != "" {
+		return c, true
+	}
+	// Case and separators are spelling, not intent: "Leaf01" and "leaf01" name
+	// the same device. An unknown node is still refused — this only unifies
+	// spellings of a node the site map already declares. Sorted so a map that
+	// spells one node two ways resolves deterministically.
+	names := make([]string, 0, len(s.nodeMap))
+	for k := range s.nodeMap {
+		names = append(names, k)
+	}
+	sortStrings(names)
+	want := normalizeNodeName(node)
+	for _, k := range names {
+		if normalizeNodeName(k) == want && s.nodeMap[k] != "" {
+			return s.nodeMap[k], true
+		}
+	}
+	return "", false
+}
+
+func normalizeNodeName(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(s) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // ---- apply ------------------------------------------------------------------
@@ -393,10 +422,16 @@ func (s *server) applyVTYSh(ctx context.Context, container string, cmds []string
 
 func (s *server) applyFRRConf(ctx context.Context, container string, lines []string) OpResult {
 	block := strings.Join(lines, "\n")
-	b64 := base64.StdEncoding.EncodeToString([]byte(block))
-	// Idempotent: grep for the first line as the block marker before appending.
-	marker := oneLine(lines[0])
-	cmd := fmt.Sprintf("grep -qF %q /etc/frr/bgpd.conf 2>/dev/null || { echo %s | base64 -d >> /etc/frr/bgpd.conf; printf '\\n!\\n' >> /etc/frr/bgpd.conf; supervisorctl restart bgpd >/dev/null 2>&1 || true; echo appended; }", marker, b64)
+	sum := sha256.Sum256([]byte(block))
+	marker := fmt.Sprintf("! agentic-netops managed block %x", sum[:8])
+	payload := marker + "\n" + block
+	b64 := base64.StdEncoding.EncodeToString([]byte(payload))
+	// Content-address the marker instead of using the first configuration line.
+	// Several revisions can legitimately begin with the same `vrf NAME`; using
+	// that as the marker made later commands (notably Type-5 origination) appear
+	// durable while the old block remained unchanged. vtysh has already applied
+	// the same commands to running state, so appending here does not restart bgpd.
+	cmd := fmt.Sprintf("grep -qF %q /etc/frr/bgpd.conf 2>/dev/null || { echo %s | base64 -d >> /etc/frr/bgpd.conf; printf '\\n!\\n' >> /etc/frr/bgpd.conf; echo appended; }", marker, b64)
 	out, stderr, err := s.exec(ctx, container, []string{"bash", "-c", cmd})
 	if err != nil {
 		return OpResult{OK: false, Error: err.Error(), Output: out + stderr}
@@ -448,6 +483,7 @@ func (s *server) verifyOne(ctx context.Context, container string, ck struct {
 	Vid        int64  `json:"vid,omitempty"`
 	Path       string `json:"path,omitempty"`
 	Line       string `json:"line,omitempty"`
+	Command    string `json:"command,omitempty"`
 	Expect     string `json:"expect,omitempty"`
 }) VerifyResult {
 	run := func(cmd string) (string, error) {
@@ -479,6 +515,16 @@ func (s *server) verifyOne(ctx context.Context, container string, ck struct {
 			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
 		}
 		return VerifyResult{OK: got != "", Actual: got}
+	case "link-vxlan-id":
+		// Which VNI the kernel VXLAN device actually carries. SONiC names that
+		// device after the VLAN, so a second service reusing a VLAN inherits
+		// the FIRST service's device -- membership and bridge checks all pass
+		// while the overlay carries the wrong VNI. Only this check sees it.
+		got, err := run(fmt.Sprintf("ip -d link show %s 2>/dev/null | grep -oE 'vxlan id [0-9]+' | head -n1 | awk '{print $3}'", ck.Iface))
+		if err != nil {
+			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
+		}
+		return VerifyResult{OK: got == ck.Expect, Actual: got, Error: neqMsg(got, ck.Expect)}
 	case "bridge-vid":
 		// Rows after the first are indented (port name column empty), so the
 		// vid lands in $1 there and $2 on the first row — match both.
@@ -493,9 +539,23 @@ func (s *server) verifyOne(ctx context.Context, container string, ck struct {
 			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
 		}
 		return VerifyResult{OK: got != "0", Actual: got}
+	case "vtysh-contains":
+		got, err := run(fmt.Sprintf("vtysh -c %q", ck.Command))
+		if err != nil {
+			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
+		}
+		ok := strings.Contains(got, ck.Expect)
+		return VerifyResult{OK: ok, Actual: got, Error: neqContainsMsg(got, ck.Expect)}
 	default:
 		return VerifyResult{OK: false, Error: "unknown check type " + ck.Type}
 	}
+}
+
+func neqContainsMsg(got, want string) string {
+	if strings.Contains(got, want) {
+		return ""
+	}
+	return fmt.Sprintf("expected output to contain %q", want)
 }
 
 func neqMsg(got, want string) string {
@@ -527,11 +587,11 @@ type execResult struct {
 // error is non-nil iff the command exited non-zero or the API call failed.
 func (s *server) exec(ctx context.Context, container string, cmd []string) (string, string, error) {
 	spec := map[string]any{
-		"AttachStdout":  true,
-		"AttachStderr":  true,
-		"AttachStdin":   false,
-		"Tty":           false,
-		"Cmd":           cmd,
+		"AttachStdout": true,
+		"AttachStderr": true,
+		"AttachStdin":  false,
+		"Tty":          false,
+		"Cmd":          cmd,
 	}
 	body, err := json.Marshal(spec)
 	if err != nil {
@@ -541,7 +601,9 @@ func (s *server) exec(ctx context.Context, container string, cmd []string) (stri
 	if err != nil {
 		return "", "", fmt.Errorf("exec create: %w", err)
 	}
-	var created struct{ ID string `json:"Id"` }
+	var created struct {
+		ID string `json:"Id"`
+	}
 	if err := json.Unmarshal(resp, &created); err != nil || created.ID == "" {
 		return "", "", fmt.Errorf("exec create response %q: %v", truncate(string(resp), 300), err)
 	}

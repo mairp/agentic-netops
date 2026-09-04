@@ -4,8 +4,14 @@ spec:
   - name: bd-irb1
     vlan: 20
     l2vni: 10401
+    evpn:
+      routeTargets:
+        import:
+        - "65000:401"
+        export:
+        - "65000:401"
     irb:
-      vrf: vrf-b1
+      vrf: vrf-irb1
       gatewayIPv4: 10.0.20.1/24
       gatewayIPv6: 2001:db8:20::1/64
   routers:
@@ -16,7 +22,7 @@ spec:
       - "65000:401"
       export:
       - "65000:401"
-    l3vni: 20401
+    l3vni: 14001
   attachments:
   - node: leaf01
     vlan: 20
