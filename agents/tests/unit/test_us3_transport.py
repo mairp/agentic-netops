@@ -399,7 +399,13 @@ class TestDeployManifests:
             # KUID client verifies the API server against. Without it every
             # claim fails with CERTIFICATE_VERIFY_FAILED.
             ("allocator.yaml", 9091, "intent-allocator", True),
-            ("deployer.yaml", 9093, "intent-deployer", False),
+            # T039 + the deployment-transaction contract: the deployer is the
+            # tier's other token-bearing identity — it server-side-applies
+            # manifests and watches convergence in agentic-netops-intent, so
+            # it mounts the intent-deployer token (stub-era stub expected
+            # False; that expectation failed the transaction at
+            # cluster-identity).
+            ("deployer.yaml", 9093, "intent-deployer", True),
         ],
     )
     def test_worker_manifest(self, name, port, service_account, token_bearing):

@@ -226,6 +226,17 @@ DEFAULT_SUGGESTION = (
     "the allocation authority, and submit it to the cluster only after your "
     "two explicit confirmations."
 )
+# FR-010 companion (live finding, 2026-09-04): a clarification that only
+# names the missing fields invites an equally vague restatement ("provision
+# a mac vrf across all leafs" -> same clarification loop). Name the accepted
+# vocabulary and a worked example so the restatement is mappable.
+CLARIFICATION_HINT = (
+    " Service types: VPLS (full-mesh L2), VPWS (point-to-point L2 / E-Line), "
+    "L3VPN, IRB (integrated L2+L3) — each between two named attachment "
+    "points for one named tenant. Example: 'Create a VPWS between leaf01 "
+    "ethernet1 and leaf02 ethernet2 for tenant acme'."
+)
+
 DEVICE_FAMILY_SUGGESTIONS: dict[str, str] = {
     DEVICE_FAMILY_ACCESS: (
         "describe the service you want on that device and I will provision it "
@@ -1267,7 +1278,11 @@ class ProvisioningGraph:
             # Diagnostics: the reply arrived but carried no contract payload.
             try:
                 dump = result.model_dump(mode="json", by_alias=True) if hasattr(result, "model_dump") else repr(result)
-                logger.error("[Mapper] out-of-contract reply diagnostic: type=%s dump=%s", type(result).__name__, str(dump)[:800])
+                logger.error(
+                    "[Mapper] out-of-contract reply diagnostic: type=%s dump=%s",
+                    type(result).__name__,
+                    str(dump)[:800],
+                )
             except Exception as diag_exc:  # noqa: BLE001
                 logger.error("[Mapper] out-of-contract reply diagnostic failed: %s", diag_exc)
         interpretation, error = validate_mapper_payload(payload)  # T100/T102
@@ -1309,6 +1324,7 @@ class ProvisioningGraph:
                             f"Before I can map this service I need: {fields}. Please restate the full "
                             "request including those values (no defaults are substituted for "
                             "service-defining fields)."
+                            f"{CLARIFICATION_HINT}"
                         )
                     )
                 ],

@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import json
-import time
-
 import pytest
 from langchain_core.runnables import RunnableLambda
 
@@ -69,7 +66,9 @@ async def test_conditional_edges_and_routing_flow():
                 "messages": [
                     {
                         "type": "human",
-                        "content": "provision a VPWS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 100",
+                        "content": (
+                            "provision a VPWS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 100"
+                        ),
                     }
                 ]
             },
@@ -121,6 +120,15 @@ async def test_missing_attachment_points_stop_for_clarification():
         assert llm.calls == 1
         assert [call[0] for call in tr.calls] == ["mapper"]
         assert "Before I can map this service I need" in state["messages"][-1].content
+        # FR-010 companion: the clarification is actionable — it names the
+        # accepted vocabulary and a worked example so the restatement is
+        # mappable (live finding: "provision a mac vrf across all leafs"
+        # looped clarifications with no guidance).
+        assert "VPLS" in state["messages"][-1].content
+        assert "VPWS" in state["messages"][-1].content
+        assert "L3VPN" in state["messages"][-1].content
+        assert "IRB" in state["messages"][-1].content
+        assert "Example:" in state["messages"][-1].content
     finally:
         await g.close()
 
@@ -134,7 +142,14 @@ async def test_wall_clock_deadline_bounded_exit(monkeypatch):
     try:
         # Set deadline to a past time to force bounded exit on first supervisor pass
         state = {
-            "messages": [{"type": "human", "content": "provision a VPLS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 200"}],
+            "messages": [
+                {
+                    "type": "human",
+                    "content": (
+                        "provision a VPLS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 200"
+                    ),
+                }
+            ],
             "deadline": "2000-01-01T00:00:00+00:00",
         }
         out = await g.ainvoke(state, config=_config("deadline-flow"))

@@ -45,6 +45,7 @@ from config.config import (
 )
 from config.logging_config import setup_logging
 from supervisors.provisioning.graph.graph import (
+    CLARIFICATION_HINT,
     ProvisioningGraph,
     default_deadline,
 )
@@ -55,6 +56,7 @@ logger = logging.getLogger("agentic_netops.provision.supervisor.main")
 
 # -------------------- Telemetry --------------------
 from config.telemetry import init_telemetry
+
 init_telemetry(app_name="intent-supervisor")
 
 # -------------------- FastAPI --------------------
@@ -181,6 +183,7 @@ async def handle_stream_prompt(request: PromptRequest):
                                     "prompt": (
                                         f"Before I can map this service I need: {fields}. Please restate the full "
                                         "request including those values."
+                                        f"{CLARIFICATION_HINT}"
                                     ),
                                 }
                             )
@@ -235,7 +238,7 @@ async def handle_stream_prompt(request: PromptRequest):
                                 # local function inside generator: use closure to yield
                                 nonlocal_yield.append(yield_chunk)
                             nonlocal_yield = []
-                            ok = watch_ready(on_progress=on_progress)
+                            watch_ready(on_progress=on_progress)
                             # Drain any progress events captured
                             for entry in nonlocal_yield:
                                 yield entry
