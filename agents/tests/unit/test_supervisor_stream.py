@@ -125,3 +125,95 @@ def test_a_failed_convergence_streams_the_stage_and_then_the_error(monkeypatch):
     assert "leaf2 rejected the VRF binding" in progress["message"]
     assert chunks[-1]["type"] == "error"
     assert chunks[-1]["status"] == NetworkProvisioningStatus.FAILED.value
+
+
+class _ClarifyingMapperGraph:
+    """The mapper reporting an incomplete request, as it does when the
+    operator's prompt omits the service-defining fields."""
+
+    async def astream(self, seed, config=None):
+        yield {
+            "mapper": {
+                "workflow_status": NetworkProvisioningStatus.MAPPED.value,
+                "pending_action": "clarify",
+                "missing_fields": ["service_type", "tenant", "endpoints"],
+                # What the supervisor carries after redaction: nothing the
+                # operator did not supply.
+                "mapped_parameters": json.dumps(
+                    {
+                        "service_id": "5db30b4efa0f4a2",
+                        "service_type": None,
+                        "tenant": None,
+                        "endpoints": None,
+                        "missing_fields": ["service_type", "tenant", "endpoints"],
+                        "unsupported_properties": [],
+                    }
+                ),
+                "messages": [AIMessage(content="Before I can map this service I need: ...")],
+            }
+        }
+
+
+def test_an_incomplete_request_streams_no_interpretation_card(monkeypatch):
+    """An incomplete interpretation is not an interpretation (FR-010). The
+    MAPPED card used to render the mapper's schema-validity placeholders as
+    the operator's request — a service_type of "VPWS" nobody asked for."""
+
+    chunks = _stream(monkeypatch, _ClarifyingMapperGraph())
+    assert not [c for c in chunks if c["type"] == "stage"], "no interpretation card for an incomplete request"
+
+    clarifications = [c for c in chunks if c["type"] == "clarification_request"]
+    assert len(clarifications) == 1
+    assert clarifications[0]["missing_fields"] == ["service_type", "tenant", "endpoints"]
+
+    # The clarification legitimately lists the service types as OPTIONS. What
+    # must never appear is one presented as the operator's choice.
+    for c in chunks:
+        for key in ("service_type", "tenant", "endpoints"):
+            assert f'"{key}": "' not in json.dumps(c), f"{key} reported as supplied: {c}"
+
+
+def test_the_clarification_text_is_not_repeated(monkeypatch):
+    """It was rendered twice: once from clarification_request, once from the
+    final chunk's message, in two slightly different wordings."""
+
+    chunks = _stream(monkeypatch, _ClarifyingMapperGraph())
+    prompt = next(c for c in chunks if c["type"] == "clarification_request")["prompt"]
+    assert "Before I can map this service I need" in prompt
+
+    final = chunks[-1]
+    assert final["type"] == "final"
+    assert "message" not in final, "the final chunk must not repeat the clarification"
+
+    lead = "Before I can map this service I need"
+    assert sum(lead in json.dumps(c) for c in chunks) == 1
+
+
+class _CompleteMapperGraph:
+    async def astream(self, seed, config=None):
+        yield {
+            "mapper": {
+                "workflow_status": NetworkProvisioningStatus.MAPPED.value,
+                "mapped_parameters": json.dumps(
+                    {"service_type": "VPWS", "tenant": "acme", "missing_fields": []}
+                ),
+                "messages": [AIMessage(content="Confirm this interpretation? Reply 'confirm' ...")],
+            }
+        }
+
+
+def test_a_complete_request_still_gets_its_interpretation_card(monkeypatch):
+    """The clarification fix must not suppress the card for a request that
+    actually named its fields."""
+
+    chunks = _stream(monkeypatch, _CompleteMapperGraph())
+    stage = next(c for c in chunks if c["type"] == "stage" and c["stage"] == "mapper")
+    assert stage["payload"]["service_type"] == "VPWS"
+    assert stage["payload"]["tenant"] == "acme"
+    assert any(c["type"] == "confirmation_request" for c in chunks)
+
+
+def test_the_confirmation_question_is_asked_once(monkeypatch):
+    chunks = _stream(monkeypatch, _CompleteMapperGraph())
+    assert sum("Confirm this interpretation?" in json.dumps(c) for c in chunks) == 1
+    assert "message" not in chunks[-1]

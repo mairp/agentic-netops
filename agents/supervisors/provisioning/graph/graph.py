@@ -237,6 +237,44 @@ CLARIFICATION_HINT = (
     "ethernet1 and leaf02 ethernet2 for tenant acme'."
 )
 
+def clarification_prompt(missing_fields: list[str] | None) -> str:
+    """The single operator-facing clarification text (FR-010).
+
+    Built here and reused by the NDJSON surface, so the wording cannot drift
+    into two near-identical paragraphs rendered back to back — which is what
+    the operator saw before (one from the stream's clarification_request, one
+    from this node's AIMessage).
+    """
+
+    fields = ", ".join(str(f) for f in (missing_fields or [])) or "required service fields"
+    return (
+        f"Before I can map this service I need: {fields}. Please restate the full "
+        "request including those values (no defaults are substituted for "
+        "service-defining fields)."
+        f"{CLARIFICATION_HINT}"
+    )
+
+
+def redact_unsupplied(interpretation: dict, missing_fields: list[str] | None) -> dict:
+    """Blank every field the operator did not actually supply.
+
+    ``Interpretation`` requires service_type/tenant/endpoints, so the mapper
+    has to fill them to produce a schema-valid object even when they are
+    exactly what is missing. tenant and endpoints get an obvious ``"missing"``
+    placeholder, but service_type is an enum with no sentinel available, so it
+    gets a real, plausible value (VPWS) that the operator never asked for —
+    displayed next to "no defaults are substituted for service-defining
+    fields". Nothing downstream may carry that: a value nobody supplied is
+    reported as absent, not as a choice.
+    """
+
+    redacted = dict(interpretation)
+    for field in missing_fields or []:
+        if field in redacted:
+            redacted[field] = None
+    return redacted
+
+
 DEVICE_FAMILY_SUGGESTIONS: dict[str, str] = {
     DEVICE_FAMILY_ACCESS: (
         "describe the service you want on that device and I will provision it "
@@ -1401,24 +1439,20 @@ class ProvisioningGraph:
         # FR-010: missing fields -> clarification request, not an
         # interpretation; the supervisor must not route to the allocator.
         if interpretation.missing_fields:
-            fields = ", ".join(interpretation.missing_fields)
             return {
                 "next_node": END,
                 "workflow_status": NetworkProvisioningStatus.MAPPED.value,
-                "mapped_parameters": canonical_json(interpretation.model_dump(mode="json")),
+                # Redacted: the mapper's schema-validity placeholders are not
+                # the operator's choices and must not be carried as if they were.
+                "mapped_parameters": canonical_json(
+                    redact_unsupplied(
+                        interpretation.model_dump(mode="json"), interpretation.missing_fields
+                    )
+                ),
                 "missing_fields": list(interpretation.missing_fields),
                 "awaiting_confirmation": True,
                 "pending_action": "clarify",
-                "messages": [
-                    AIMessage(
-                        content=(
-                            f"Before I can map this service I need: {fields}. Please restate the full "
-                            "request including those values (no defaults are substituted for "
-                            "service-defining fields)."
-                            f"{CLARIFICATION_HINT}"
-                        )
-                    )
-                ],
+                "messages": [AIMessage(content=clarification_prompt(interpretation.missing_fields))],
             }
 
         # Complete, valid interpretation -> first confirmation point.

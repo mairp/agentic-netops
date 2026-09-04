@@ -248,3 +248,57 @@ class TestTheTransactionDoesNotBlockTheEventLoop:
 
         # A blocked loop lets through ~0 heartbeats over the 1 s transaction.
         assert heartbeats > 5, f"event loop was blocked during the transaction ({heartbeats} heartbeats)"
+
+
+class TestIncompleteInterpretationCarriesNoFabricatedValues:
+    """``Interpretation`` requires service_type/tenant/endpoints, so the mapper
+    must fill them to stay schema-valid even when they are exactly what the
+    operator omitted. tenant and endpoints get an obvious "missing" string,
+    but service_type is an enum with no sentinel, so it gets a real value
+    (VPWS) nobody asked for — which was then displayed as the interpretation."""
+
+    def test_missing_fields_are_blanked(self):
+        from supervisors.provisioning.graph.graph import redact_unsupplied
+
+        fabricated = {
+            "service_id": "5db30b4efa0f4a2",
+            "service_type": "VPWS",
+            "tenant": "missing",
+            "endpoints": [
+                {"site_or_node": "missing", "attachment": "missing", "vlan": None},
+                {"site_or_node": "missing", "attachment": "missing", "vlan": None},
+            ],
+            "missing_fields": ["service_type", "tenant", "endpoints"],
+            "unsupported_properties": [],
+        }
+        out = redact_unsupplied(fabricated, fabricated["missing_fields"])
+        assert out["service_type"] is None
+        assert out["tenant"] is None
+        assert out["endpoints"] is None
+        # What the operator DID get stays: the generated id and the flags.
+        assert out["service_id"] == "5db30b4efa0f4a2"
+        assert out["missing_fields"] == ["service_type", "tenant", "endpoints"]
+
+    def test_a_partially_specified_request_keeps_what_was_supplied(self):
+        from supervisors.provisioning.graph.graph import redact_unsupplied
+
+        supplied = {
+            "service_id": "abc123",
+            "service_type": "L3VPN",
+            "tenant": "missing",
+            "endpoints": [{"site_or_node": "leaf01", "attachment": "wan1", "vlan": None}],
+            "missing_fields": ["tenant"],
+            "unsupported_properties": [],
+        }
+        out = redact_unsupplied(supplied, ["tenant"])
+        assert out["service_type"] == "L3VPN"
+        assert out["endpoints"][0]["site_or_node"] == "leaf01"
+        assert out["tenant"] is None
+
+    def test_the_clarification_text_has_one_source(self):
+        from supervisors.provisioning.graph.graph import clarification_prompt
+
+        prompt = clarification_prompt(["service_type", "tenant"])
+        assert "service_type, tenant" in prompt
+        assert "no defaults are substituted" in prompt
+        assert clarification_prompt(None).startswith("Before I can map this service I need: required service fields")

@@ -45,8 +45,8 @@ from config.config import (
 )
 from config.logging_config import setup_logging
 from supervisors.provisioning.graph.graph import (
-    CLARIFICATION_HINT,
     ProvisioningGraph,
+    clarification_prompt,
     default_deadline,
 )
 
@@ -166,6 +166,9 @@ async def handle_stream_prompt(request: PromptRequest):
             # erase the known workflow status and produce STATUS_UNKNOWN.
             last = dict(seed)
             final_message = ""
+            # Set when an emitted chunk already carried the operator-facing
+            # text, so the final chunk does not render it a second time.
+            suppress_final_message = False
             async for update in graph.astream(seed, config=config):
                 for node_name, node_state in update.items():
                     last = {**last, **node_state}
@@ -175,31 +178,37 @@ async def handle_stream_prompt(request: PromptRequest):
                             final_message = content.strip()
                     status = node_state.get("workflow_status") or last.get("workflow_status")
                     if node_name == "mapper" and status == NetworkProvisioningStatus.MAPPED.value:
-                        yield chunk(
-                            {
-                                "type": "stage",
-                                "stage": "mapper",
-                                "status": status,
-                                "payload": json.loads(node_state.get("mapped_parameters") or "{}"),
-                            }
-                        )
                         if node_state.get("pending_action") == "clarify":
+                            # An incomplete interpretation is NOT an
+                            # interpretation (FR-010), so no MAPPED card is
+                            # streamed for it. Showing one meant rendering the
+                            # mapper's schema-validity placeholders as though
+                            # they were the operator's request — a service_type
+                            # of "VPWS" nobody asked for, sitting next to
+                            # missing_fields naming service_type. Only the
+                            # clarification goes out.
                             missing = node_state.get("missing_fields") or []
-                            fields = ", ".join(str(field) for field in missing) or "required service fields"
                             yield chunk(
                                 {
                                     "type": "clarification_request",
                                     "stage": "mapper",
                                     "status": status,
                                     "missing_fields": list(missing),
-                                    "prompt": (
-                                        f"Before I can map this service I need: {fields}. Please restate the full "
-                                        "request including those values."
-                                        f"{CLARIFICATION_HINT}"
-                                    ),
+                                    "prompt": clarification_prompt(list(missing)),
                                 }
                             )
+                            # The clarification carries the operator-facing
+                            # text; the final chunk must not repeat it.
+                            suppress_final_message = True
                         else:
+                            yield chunk(
+                                {
+                                    "type": "stage",
+                                    "stage": "mapper",
+                                    "status": status,
+                                    "payload": json.loads(node_state.get("mapped_parameters") or "{}"),
+                                }
+                            )
                             # A complete interpretation asks for the first
                             # confirmation; a clarification asks for fields.
                             yield chunk(
@@ -213,6 +222,7 @@ async def handle_stream_prompt(request: PromptRequest):
                                     "refusable": True,
                                 }
                             )
+                            suppress_final_message = True
                     elif node_name == "allocator" and status == NetworkProvisioningStatus.ALLOCATED.value:
                         yield chunk(
                             {
@@ -233,6 +243,7 @@ async def handle_stream_prompt(request: PromptRequest):
                                 "refusable": True,
                             }
                         )
+                        suppress_final_message = True
                     # T258/T259 — tools path: a status-query or remove-service
                     # answer is its own stage, not a submission report.
                     elif node_name == "deployer" and node_state.get("tool_result"):
@@ -316,16 +327,11 @@ async def handle_stream_prompt(request: PromptRequest):
                         "suggestion": redact(last.get("suggestion") or ""),
                     }
                 )
-            elif status == NetworkProvisioningStatus.PROVISIONING.value:
-                payload = {"type": "final", "status": status}
-                if final_message:
-                    payload["message"] = redact(final_message)
-                yield chunk(payload)
             else:
-                # MAPPED/ALLOCATED awaiting a confirmation, or a completed
-                # informational answer: the thread is resumable.
+                # PROVISIONING, MAPPED/ALLOCATED awaiting a confirmation, or a
+                # completed informational answer: the thread is resumable.
                 payload = {"type": "final", "status": status}
-                if final_message:
+                if final_message and not suppress_final_message:
                     payload["message"] = redact(final_message)
                 yield chunk(payload)
         except Exception as exc:  # noqa: BLE001 - the stream must end with a named failure
