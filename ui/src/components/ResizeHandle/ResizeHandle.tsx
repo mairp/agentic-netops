@@ -7,6 +7,8 @@ type Props = {
   min: number
   /** Highest chat height given the console's current size. */
   max: number
+  /** Comfortable height restored by double-click when the panel is maximized. */
+  resetValue?: number
   /** Commit a newly clamped height (called continuously while dragging). */
   onResize: (height: number) => void
   /** Persist the final height (drag end / key up). */
@@ -14,16 +16,22 @@ type Props = {
 }
 
 const KEYBOARD_STEP = 32
+/** Home/End keys snap the conversation to its smallest/full-screen size. */
+const SNAP_EPSILON = 8
 
 /**
  * Draggable divider between the workflow canvas and the chat panel.
  *
  * Pointer-based (mouse + touch via pointer events, setPointerCapture so the
  * drag keeps tracking outside the element) with keyboard support
- * (ArrowUp/ArrowDown grow/shrink the conversation). The chat sits BELOW the
- * handle, so dragging up grows it: newHeight = startHeight - dy.
+ * (ArrowUp/ArrowDown grow/shrink the conversation, Home/End snap to minimum
+ * or full-screen). The chat sits BELOW the handle, so dragging up grows it:
+ * newHeight = startHeight - dy. Dragging all the way up collapses the canvas
+ * to its heading bar, giving the conversation practically the whole screen.
+ * Double-click toggles between that maximized state and the comfortable
+ * default height.
  */
-export default function ResizeHandle({ height, min, max, onResize, onResizeEnd }: Props) {
+export default function ResizeHandle({ height, min, max, resetValue, onResize, onResizeEnd }: Props) {
   const [dragging, setDragging] = useState(false)
   const dragStart = useRef({ pointerY: 0, baseHeight: 0 })
 
@@ -66,11 +74,25 @@ export default function ResizeHandle({ height, min, max, onResize, onResizeEnd }
   }
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault()
+      const next = clamp(event.key === 'Home' ? min : max)
+      onResize(next)
+      onResizeEnd(next)
+      return
+    }
     if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
     event.preventDefault()
     const next = clamp(height + (event.key === 'ArrowUp' ? KEYBOARD_STEP : -KEYBOARD_STEP))
     onResize(next)
     onResizeEnd(next)
+  }
+
+  // Double-click flips between "conversation fills the screen" and the
+  // comfortable default, so the canvas is one gesture away either way.
+  const toggleMaximize = () => {
+    const maximized = height >= max - SNAP_EPSILON
+    onResizeEnd(clamp(maximized ? (resetValue ?? min) : max))
   }
 
   return (
@@ -88,8 +110,8 @@ export default function ResizeHandle({ height, min, max, onResize, onResizeEnd }
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
       onKeyDown={onKeyDown}
-      onDoubleClick={() => onResizeEnd(clamp((min + max) / 2))}
-      title="Drag to resize the conversation panel"
+      onDoubleClick={toggleMaximize}
+      title="Drag to resize · double-click to maximize or restore"
     >
       <span className="resize-handle-grip" />
     </div>

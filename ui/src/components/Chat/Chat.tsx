@@ -1,6 +1,8 @@
 import { Check, ChevronDown, Copy, LoaderCircle, Send, Trash2, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type CSSProperties } from 'react'
 import type { AgentEvent, UseAgentAPI } from '../../hooks/useAgentAPI'
+import { useSectionZoom } from '../../hooks/useSectionZoom'
+import ZoomControls from '../ZoomControls/ZoomControls'
 
 type Props = {
   agent: UseAgentAPI
@@ -11,6 +13,9 @@ type Props = {
   /** Divider-controlled conversation height in px (only applied while expanded). */
   chatHeight: number
 }
+
+/** The conversation scales independently of every other section (80%–150%). */
+const CHAT_ZOOM = { min: 0.8, max: 1.5, step: 0.1 }
 
 function CorrelationChip({ correlationId }: { correlationId: string }) {
   const onCopy = async () => {
@@ -151,20 +156,44 @@ function EventFeed({ events, agent }: { events: AgentEvent[]; agent: UseAgentAPI
 export default function Chat({ agent, prompts, expanded, onExpandedChange, chatHeight }: Props) {
   const [text, setText] = useState('')
   const [lastPrompt, setLastPrompt] = useState('')
+  const composerRef = useRef<HTMLTextAreaElement>(null)
+  // The conversation zooms independently of the canvas and the sidebar; it is
+  // applied to the panel's inner blocks so the divider-controlled outer
+  // height is never distorted.
+  const { zoom, zoomIn, zoomOut, resetZoom } = useSectionZoom('agentic-netops-zoom-chat', CHAT_ZOOM)
+  const zoomStyle = { zoom } as CSSProperties
   const hasDeclined = agent.events.some(event => event.type === 'error' && /declined/.test(event.reason || ''))
   const latestCorrelation = useMemo(() => [...agent.events].reverse().find(event => event.correlation_id)?.correlation_id, [agent.events])
   const hasConversation = agent.events.length > 0
   // A divider-dragged height only applies to a real conversation; the bare
   // composer keeps its natural size.
   const sized = hasConversation && expanded
+  const zoomControls = (
+    <ZoomControls
+      label="conversation"
+      zoom={zoom}
+      min={CHAT_ZOOM.min}
+      max={CHAT_ZOOM.max}
+      onZoomIn={zoomIn}
+      onZoomOut={zoomOut}
+      onReset={resetZoom}
+    />
+  )
 
   const submit = async (prompt = text) => {
     const cleanPrompt = prompt.trim()
     if (!cleanPrompt || agent.pending) return
     setLastPrompt(cleanPrompt)
     setText('')
+    if (composerRef.current) composerRef.current.style.height = 'auto'
     onExpandedChange(true)
     await agent.sendPrompt(cleanPrompt)
+  }
+
+  // The draft grows with its content (harness-style) up to a readable cap.
+  const autoGrow = (el: HTMLTextAreaElement) => {
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`
   }
 
   return (
@@ -174,25 +203,28 @@ export default function Chat({ agent, prompts, expanded, onExpandedChange, chatH
       aria-label="Agent conversation"
     >
       {hasConversation && (
-        <div className="chat-header">
+        <div className="chat-header" style={zoomStyle}>
           <button className="chat-title" onClick={() => onExpandedChange(!expanded)} aria-expanded={expanded}>
             <ChevronDown size={16} className={expanded ? '' : 'collapsed'} />
             <span>Agent conversation</span>
             {latestCorrelation && <code>{latestCorrelation.slice(0, 8)}</code>}
           </button>
-          <button className="mini-icon-button" onClick={() => { agent.clear(); setLastPrompt('') }} title="Clear conversation" aria-label="Clear conversation"><Trash2 size={15} /></button>
+          <div className="chat-header-tools">
+            {zoomControls}
+            <button className="mini-icon-button" onClick={() => { agent.clear(); setLastPrompt('') }} title="Clear conversation" aria-label="Clear conversation"><Trash2 size={15} /></button>
+          </div>
         </div>
       )}
 
       {hasConversation && expanded && (
-        <div className="conversation-body">
+        <div className="conversation-body" style={zoomStyle}>
           {lastPrompt && <div className="user-message"><span>You</span><p>{lastPrompt}</p></div>}
           <EventFeed events={agent.events} agent={agent} />
           {hasDeclined && <div className="cancelled-message">Request cancelled. Amend your intent and continue in the same thread.</div>}
         </div>
       )}
 
-      <div className="composer-wrap">
+      <div className="composer-wrap" style={zoomStyle}>
         <div className="composer-meta">
           <label className="prompt-select">
             <span>Suggested prompts</span>
@@ -202,13 +234,24 @@ export default function Chat({ agent, prompts, expanded, onExpandedChange, chatH
             </select>
             <ChevronDown size={14} />
           </label>
-          <span className="thread-label">Thread: {agent.threadId ? agent.threadId.slice(0, 8) : 'new'}</span>
+          <div className="composer-meta-tools">
+            {!hasConversation && zoomControls}
+            <span className="thread-label">Thread: {agent.threadId ? agent.threadId.slice(0, 8) : 'new'}</span>
+          </div>
         </div>
         <form className="composer" onSubmit={event => { event.preventDefault(); void submit() }}>
-          <input
+          <textarea
+            ref={composerRef}
             aria-label="Service request"
+            rows={1}
             value={text}
-            onChange={event => setText(event.currentTarget.value)}
+            onChange={event => { setText(event.currentTarget.value); autoGrow(event.currentTarget) }}
+            onKeyDown={event => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault()
+                void submit()
+              }
+            }}
             placeholder="Describe the service you want on the fabric…"
             disabled={agent.pending}
           />

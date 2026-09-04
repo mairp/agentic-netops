@@ -127,12 +127,19 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .workflow-state > span { width: 7px; height: 7px; background: var(--teal); border-radius: 50%; }
 .workflow-state.active > span { background: var(--accent); animation: pulse 1.4s infinite; }
 
-.graph-viewport { width: 100%; min-width: 0; flex: 1; min-height: 360px; position: relative; overflow: auto; background: var(--page); }
+.graph-viewport { width: 100%; min-width: 0; flex: 1; min-height: 0; position: relative; overflow: auto; background: var(--page); cursor: grab; touch-action: none; user-select: none; }
+.graph-viewport.dragging { cursor: grabbing; }
+.graph-viewport.dragging .graph-scale { transition: none; }
 .dot-grid { position: absolute; inset: 0; opacity: .42; background-image: radial-gradient(circle, var(--border) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
 .graph-scale { width: 100%; min-width: 760px; min-height: 510px; display: grid; place-items: center; transform-origin: center center; transition: transform 160ms ease; }
 .topology-flow { width: 720px; display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
 .graph-node { width: 202px; min-height: 66px; display: grid; grid-template-columns: 36px 1fr; align-items: center; gap: 9px; padding: 10px 44px 10px 10px; background: var(--panel-strong); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 10px 28px rgb(0 0 0 / 12%); position: relative; z-index: 2; }
 .graph-node.active { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent), 0 12px 32px rgb(0 0 0 / 20%); }
+/* An agent mid-conversation over SLIM breathes and its icon blinks. */
+.graph-node.talking { animation: node-breathe 1.5s ease-in-out infinite; }
+.graph-node.talking .graph-node-icon { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); animation: icon-blink 1.15s ease-in-out infinite; }
+/* One-shot ripple fired by every backend event (the span is re-keyed per event). */
+.node-ripple { position: absolute; inset: -3px; border: 2px solid var(--accent); border-radius: 9px; pointer-events: none; animation: ripple-out 700ms ease-out forwards; }
 .graph-node-icon { width: 34px; height: 34px; display: grid; place-items: center; color: var(--muted); background: var(--panel-soft); border: 1px solid var(--border); border-radius: 5px; }
 .graph-node.active .graph-node-icon { color: var(--accent); }
 .graph-node-copy { min-width: 0; display: flex; flex-direction: column; }
@@ -141,15 +148,24 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .node-state { min-width: 30px; position: absolute; right: 9px; top: 13px; color: var(--faint); font: 500 8px 'IBM Plex Mono', monospace; }
 .node-state.ready { color: var(--teal); }
 .node-state.active { color: var(--accent); }
+.node-state.active::before { content: ''; display: inline-block; width: 5px; height: 5px; margin-right: 4px; border-radius: 50%; background: var(--accent); animation: blink-dot 0.9s ease-in-out infinite; }
 .vertical-link { width: 1px; height: 40px; background: var(--border); position: relative; }
-.vertical-link.active, .control-link.active { background: var(--accent); }
-.vertical-link.active span, .control-link.active span { position: absolute; width: 5px; height: 5px; left: -2px; top: 0; background: var(--accent); border-radius: 50%; animation: travel-vertical 1.3s infinite linear; }
+/* Live SLIM links: the line itself blinks while flowing dashes stream down it. */
+.vertical-link.active, .control-link.active { background: var(--accent); box-shadow: 0 0 9px color-mix(in srgb, var(--accent) 55%, transparent); animation: link-blink 1.1s ease-in-out infinite; }
+.vertical-link.active::after, .control-link.active::after { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(180deg, color-mix(in srgb, var(--accent) 80%, white) 0 5px, transparent 5px 11px); animation: flow-down 0.55s linear infinite; }
+.vertical-link.active span, .control-link.active span { position: absolute; width: 5px; height: 5px; left: -2px; top: 0; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent); animation: travel-vertical 1.3s infinite linear; z-index: 1; }
 .transport-rail { width: 534px; height: 28px; border-top: 1px solid var(--border); position: relative; }
 .transport-rail::before { content: ''; position: absolute; left: 50%; top: -1px; height: 1px; width: 0; background: var(--accent); transform: translateX(-50%); transition: width 300ms ease; }
-.transport-rail.active::before { width: 100%; }
+/* The SLIM rail while agents are talking: packets stream left-to-right. */
+.transport-rail.active { border-top-color: transparent; }
+.transport-rail.active::before { width: 100%; background-image: repeating-linear-gradient(90deg, var(--accent) 0 14px, color-mix(in srgb, var(--accent) 22%, transparent) 14px 26px); box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 45%, transparent); animation: flow-right 0.8s linear infinite; }
+.rail-pulse { position: absolute; left: 50%; top: 0; width: 46px; height: 46px; margin: -23px 0 0 -23px; border: 2px solid var(--accent); border-radius: 50%; pointer-events: none; animation: rail-ripple 650ms ease-out forwards; }
 .rail-label { position: absolute; left: 50%; top: -12px; transform: translateX(-50%); padding: 5px 12px; color: var(--text); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius: 12px; font: 500 9px 'IBM Plex Mono', monospace; white-space: nowrap; }
+.transport-rail.active .rail-label { color: white; background: var(--accent); border-color: var(--accent); animation: label-blink 1.2s ease-in-out infinite; }
 .worker-connectors { width: 534px; height: 1px; display: grid; grid-template-columns: repeat(3, 1fr); }
-.worker-connectors i { width: 1px; height: 27px; justify-self: center; margin-top: -28px; background: var(--border); }
+.worker-connectors i { width: 1px; height: 27px; justify-self: center; margin-top: -28px; background: var(--border); position: relative; }
+.worker-connectors i.live { background: var(--accent); box-shadow: 0 0 7px color-mix(in srgb, var(--accent) 50%, transparent); animation: link-blink 1.1s ease-in-out infinite; }
+.worker-connectors i.live::after { content: ''; position: absolute; left: -2px; top: 0; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: travel-connector 0.7s linear infinite; }
 .worker-row { width: 100%; display: grid; grid-template-columns: repeat(3, 202px); justify-content: space-between; }
 .control-link { width: 1px; height: 35px; background: var(--border); position: relative; }
 .control-plane-row { display: flex; align-items: center; justify-content: center; }
@@ -162,21 +178,32 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .system-arrow { width: 90px; height: 1px; margin: 0 8px; background: var(--border); position: relative; }
 .system-arrow::after { content: ''; position: absolute; right: -1px; top: -3px; width: 6px; height: 6px; border-top: 1px solid var(--faint); border-right: 1px solid var(--faint); transform: rotate(45deg); }
 .system-arrow span { position: absolute; left: 50%; bottom: 7px; color: var(--faint); font: 8px 'IBM Plex Mono', monospace; transform: translateX(-50%); white-space: nowrap; }
-.system-arrow.active { background: var(--teal); }
+.system-arrow.active { background: repeating-linear-gradient(90deg, var(--teal) 0 9px, transparent 9px 17px); box-shadow: 0 0 8px color-mix(in srgb, var(--teal) 40%, transparent); animation: flow-right 0.9s linear infinite; }
 .canvas-controls { position: absolute; left: 14px; bottom: 14px; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
-.canvas-controls button { width: 32px; height: 32px; display: grid; place-items: center; padding: 0; color: var(--muted); background: transparent; border: 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+.canvas-controls button { min-width: 40px; width: 40px; height: 32px; display: grid; place-items: center; padding: 0; color: var(--muted); background: transparent; border: 0; border-bottom: 1px solid var(--border); cursor: pointer; }
 .canvas-controls button:last-child { border-bottom: 0; }
-.canvas-controls button:hover { color: var(--text); background: var(--panel-soft); }
+.canvas-controls button:hover:not(:disabled) { color: var(--text); background: var(--panel-soft); }
+.canvas-controls button:disabled { opacity: .38; cursor: not-allowed; }
+.zoom-percent { color: var(--text); font: 500 9px 'IBM Plex Mono', monospace; letter-spacing: -.02em; }
 
-.chat-panel { flex: 0 0 auto; background: var(--panel-strong); border-top: 1px solid var(--border); position: relative; z-index: 10; }
+/* --- per-section zoom controls (sidebar, canvas, conversation) --- */
+.zoom-controls { display: inline-flex; align-items: stretch; background: var(--panel); border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
+.zoom-controls button { width: 24px; height: 24px; display: grid; place-items: center; padding: 0; color: var(--muted); background: transparent; border: 0; border-right: 1px solid var(--border-soft); cursor: pointer; }
+.zoom-controls button:last-child { border-right: 0; }
+.zoom-controls button:hover:not(:disabled) { color: var(--text); background: var(--panel-soft); }
+.zoom-controls button:disabled { opacity: .35; cursor: not-allowed; }
+.zoom-controls .zoom-readout { width: auto; min-width: 38px; padding: 0 4px; color: var(--text); font: 500 9px 'IBM Plex Mono', monospace; }
+.chat-header-tools, .composer-meta-tools, .section-heading-tools { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+.chat-panel { flex: 0 0 auto; background: var(--panel-strong); border-top: 1px solid var(--border); position: relative; z-index: 10; /* Wide conversation column (DeepSeek-harness-like proportions). */ --chat-column: 1200px; }
 .chat-panel.sized { display: flex; flex-direction: column; overflow: hidden; }
 .chat-panel.sized .conversation-body { flex: 1 1 auto; min-height: 0; max-height: none; }
-.chat-header { height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 0 max(18px, calc((100% - 900px) / 2)); border-bottom: 1px solid var(--border-soft); }
+.chat-header { height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 0 max(18px, calc((100% - var(--chat-column)) / 2)); border-bottom: 1px solid var(--border-soft); }
 .chat-title { display: flex; align-items: center; gap: 7px; padding: 0; color: var(--text); background: transparent; border: 0; font-size: 11px; cursor: pointer; }
 .chat-title svg { transition: transform 150ms ease; }
 .chat-title svg.collapsed { transform: rotate(-90deg); }
 .chat-title code { color: var(--faint); font: 9px 'IBM Plex Mono', monospace; }
-.conversation-body { max-height: 238px; overflow-y: auto; padding: 12px max(18px, calc((100% - 900px) / 2)); background: color-mix(in srgb, var(--panel) 84%, transparent); }
+.conversation-body { max-height: 238px; overflow-y: auto; padding: 12px max(18px, calc((100% - var(--chat-column)) / 2)); background: color-mix(in srgb, var(--panel) 84%, transparent); }
 .user-message { display: grid; grid-template-columns: 70px 1fr; gap: 12px; margin-bottom: 10px; }
 .user-message span { color: var(--accent); font: 10px 'IBM Plex Mono', monospace; }
 .user-message p { margin: 0; font-size: 12px; line-height: 1.5; }
@@ -212,22 +239,44 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .feed-line.final { color: var(--teal); }
 .feed-line.muted { color: var(--faint); font-family: 'IBM Plex Mono', monospace; }
 .cancelled-message { margin-top: 8px; color: var(--amber); font-size: 10px; }
-.composer-wrap { padding: 10px max(18px, calc((100% - 900px) / 2)) 12px; }
+.composer-wrap { padding: 10px max(18px, calc((100% - var(--chat-column)) / 2)) 12px; }
 .composer-meta { min-height: 28px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .prompt-select { height: 26px; position: relative; display: inline-flex; align-items: center; gap: 5px; padding: 0 7px; color: var(--muted); background: var(--panel); border: 1px solid var(--border); border-radius: 4px; font-size: 9px; }
 .prompt-select select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
 .thread-label { color: var(--faint); font: 9px 'IBM Plex Mono', monospace; }
-.composer { height: 46px; display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; }
-.composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 12%, transparent); }
-.composer input { min-width: 0; flex: 1; color: var(--text); background: transparent; border: 0; outline: 0; font-size: 12px; }
-.composer input::placeholder { color: var(--faint); }
-.composer button { width: 37px; height: 37px; display: grid; place-items: center; color: white; background: var(--accent); border: 0; border-radius: 5px; cursor: pointer; }
+/* The composer itself is a raised, rounded card (DeepSeek-harness-like):
+   tall enough to breathe, grows with the draft, send pinned bottom-right. */
+.composer { min-height: 52px; display: flex; align-items: flex-end; gap: 8px; padding: 7px 7px 7px 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 22px; box-shadow: 0 4px 12px rgb(0 0 0 / 6%); }
+.composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 12%, transparent), 0 4px 12px rgb(0 0 0 / 6%); }
+.composer textarea { min-width: 0; flex: 1; max-height: 160px; overflow-y: auto; resize: none; padding: 8px 0; color: var(--text); background: transparent; border: 0; outline: 0; font: inherit; font-size: 14px; line-height: 1.45; }
+.composer textarea::placeholder { color: var(--faint); }
+.composer button { width: 38px; height: 38px; flex: 0 0 auto; display: grid; place-items: center; color: white; background: var(--accent); border: 0; border-radius: 13px; cursor: pointer; }
 .composer button:disabled { color: var(--faint); background: var(--panel-soft); cursor: not-allowed; }
 .spin { animation: spin 1s linear infinite; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 50% { opacity: .45; box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 8%, transparent); } }
 @keyframes travel-vertical { from { transform: translateY(0); } to { transform: translateY(35px); } }
+/* --- SLIM live-traffic effects --- */
+@keyframes node-breathe {
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent), 0 12px 32px rgb(0 0 0 / 20%); }
+  50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 24%, transparent), 0 12px 36px rgb(0 0 0 / 24%); }
+}
+@keyframes icon-blink {
+  0%, 100% { color: var(--accent); background: var(--accent-soft); }
+  50% { color: white; background: var(--accent); box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 60%, transparent); }
+}
+@keyframes blink-dot { 50% { opacity: .2; } }
+@keyframes link-blink { 50% { opacity: .5; } }
+@keyframes flow-down { to { background-position: 0 11px; } }
+@keyframes flow-right { to { background-position: 26px 0; } }
+@keyframes travel-connector { to { transform: translateY(27px); opacity: .15; } }
+@keyframes ripple-out { from { opacity: .75; transform: scale(1); } to { opacity: 0; transform: scale(1.18); } }
+@keyframes rail-ripple { from { opacity: .8; transform: scale(.35); } to { opacity: 0; transform: scale(1.5); } }
+@keyframes label-blink {
+  0%, 100% { background: var(--accent); }
+  50% { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+}
 
 @media (max-width: 900px) {
   .mobile-menu { display: flex; }
@@ -244,7 +293,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .canvas-heading { height: 56px; flex-basis: 56px; padding: 0 13px; }
   .canvas-heading h1 { font-size: 13px; }
   .workflow-state { font-size: 9px; }
-  .graph-viewport { min-height: 300px; }
   .graph-scale { min-height: 470px; }
   .conversation-body { max-height: 190px; }
   .confirmation-event { align-items: flex-start; flex-direction: column; }

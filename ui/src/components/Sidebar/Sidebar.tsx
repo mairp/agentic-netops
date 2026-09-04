@@ -1,6 +1,9 @@
 import { Bot, Braces, Check, Circle, Network, Route, ServerCog, ShieldCheck, Trash2, X } from 'lucide-react'
+import type { CSSProperties } from 'react'
 import type { HealthState } from '../../App'
 import type { AgentEvent } from '../../hooks/useAgentAPI'
+import { useSectionZoom } from '../../hooks/useSectionZoom'
+import ZoomControls from '../ZoomControls/ZoomControls'
 
 type Props = {
   open: boolean
@@ -11,6 +14,9 @@ type Props = {
   onClose: () => void
   onClear: () => void
 }
+
+/** The sidebar scales independently of every other section (80%–150%). */
+const SIDEBAR_ZOOM = { min: 0.8, max: 1.5, step: 0.1 }
 
 const stages = [
   { id: 'supervisor', label: 'Supervisor', detail: 'Intent routing', icon: Bot },
@@ -32,9 +38,13 @@ function latestStage(events: AgentEvent[]) {
 
 export default function Sidebar({ open, health, events, pending, threadId, onClose, onClear }: Props) {
   const activeStage = latestStage(events)
+  // Zooming the aside itself scales the whole navigation column (content and
+  // width together), independently of the canvas and the conversation.
+  const { zoom, zoomIn, zoomOut, resetZoom } = useSectionZoom('agentic-netops-zoom-sidebar', SIDEBAR_ZOOM)
+  const zoomStyle = { zoom } as CSSProperties
 
   return (
-    <aside className={`sidebar ${open ? 'open' : ''}`} aria-label="Agent navigation">
+    <aside className={`sidebar ${open ? 'open' : ''}`} style={zoomStyle} aria-label="Agent navigation">
       <button className="sidebar-close" onClick={onClose} aria-label="Close navigation"><X size={18} /></button>
 
       <section className="sidebar-section conversation-section">
@@ -76,7 +86,18 @@ export default function Sidebar({ open, health, events, pending, threadId, onClo
       <section className="sidebar-section session-section">
         <div className="section-heading">
           <span className="section-label">SESSION</span>
-          <button className="mini-icon-button" onClick={onClear} title="Clear conversation" aria-label="Clear conversation"><Trash2 size={14} /></button>
+          <span className="section-heading-tools">
+            <ZoomControls
+              label="navigation sidebar"
+              zoom={zoom}
+              min={SIDEBAR_ZOOM.min}
+              max={SIDEBAR_ZOOM.max}
+              onZoomIn={zoomIn}
+              onZoomOut={zoomOut}
+              onReset={resetZoom}
+            />
+            <button className="mini-icon-button" onClick={onClear} title="Clear conversation" aria-label="Clear conversation"><Trash2 size={14} /></button>
+          </span>
         </div>
         <div className="thread-id"><span>Thread</span><code>{threadId ? threadId.slice(0, 12) : 'New session'}</code></div>
       </section>

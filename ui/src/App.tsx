@@ -10,9 +10,10 @@ import { useAgentAPI } from './hooks/useAgentAPI'
 const CHAT_MIN_HEIGHT = 220
 /** Conversation height until the operator picks their own (persisted). */
 const CHAT_DEFAULT_HEIGHT = 356
-/** Workflow canvas never shrinks below this while dragging the divider
- *  (62px canvas heading + the 360px .graph-viewport floor + slack). */
-const WORKFLOW_MIN_HEIGHT = 430
+/** What the canvas keeps while the conversation is dragged to full screen:
+ *  its 62px heading bar, so the divider stays reachable and the workflow
+ *  status remains visible. */
+const CANVAS_MIN_HEIGHT = 62
 /** Rendered height of the divider row between the panels. */
 const DIVIDER_HEIGHT = 6
 
@@ -135,23 +136,34 @@ export default function App() {
   const [chatExpanded, setChatExpanded] = useState(true)
   const [chatHeight, setChatHeight] = useState(loadChatHeight)
   const consoleRef = useRef<HTMLElement>(null)
-  // Upper bound depends on the console's live height; before it is measured
-  // fall back to something generous rather than fighting the layout.
+  // The conversation may grow until only the canvas heading remains, i.e.
+  // practically the full screen height. Before the console is measured fall
+  // back to something generous rather than fighting the layout.
   const measuredMax = consoleRef.current?.clientHeight ?? 0
   const chatMaxHeight = measuredMax > 0
-    ? measuredMax - WORKFLOW_MIN_HEIGHT - DIVIDER_HEIGHT
+    ? measuredMax - CANVAS_MIN_HEIGHT - DIVIDER_HEIGHT
     : CHAT_DEFAULT_HEIGHT + 600
   const clampChatHeight = useCallback(
     (value: number) => Math.min(chatMaxHeight, Math.max(CHAT_MIN_HEIGHT, value)),
     [chatMaxHeight],
   )
-  // Re-measure the console when the window resizes so the drag bounds and
-  // the applied clamp follow the live layout.
+  // Re-measure the console when its box changes (window resize, sidebar
+  // toggling) so the drag bounds and the applied clamp follow the live layout.
   const [, setMeasureTick] = useState(0)
   useEffect(() => {
     const onResize = () => setMeasureTick(tick => tick + 1)
+    const consoleEl = consoleRef.current
+    if (!consoleEl || typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', onResize)
+      return () => window.removeEventListener('resize', onResize)
+    }
+    const observer = new ResizeObserver(onResize)
+    observer.observe(consoleEl)
     window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', onResize)
+    }
   }, [])
   const safeChatHeight = clampChatHeight(chatHeight)
   const applyChatHeight = useCallback((value: number) => {
@@ -193,6 +205,7 @@ export default function App() {
               height={safeChatHeight}
               min={CHAT_MIN_HEIGHT}
               max={chatMaxHeight}
+              resetValue={CHAT_DEFAULT_HEIGHT}
               onResize={applyChatHeight}
               onResizeEnd={persistChatHeight}
             />
