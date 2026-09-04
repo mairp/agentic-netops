@@ -3,7 +3,11 @@
 Vite + React + TypeScript app served on port 3000. It is the operator's entry
 point to the intent tier: a plain-language service request in, an NDJSON status
 stream out (the supervisor's `POST /agent/prompt/stream` — there is no
-WebSocket route; see `agents/README.md`).
+WebSocket route; see `agents/README.md`). The console's workflow canvas and
+conversation panel are separated by a draggable divider (pointer or arrow
+keys; double-click resets to the midpoint); the chosen height persists in
+`localStorage` under `agentic-netops-chat-height`
+(`src/components/ResizeHandle/`).
 
 ## Development
 

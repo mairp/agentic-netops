@@ -11,15 +11,17 @@ are `common/`, `config/`, `provisioning/`, and `supervisors/` (tests in
 agents/
 ├── pyproject.toml            # exact upstream version pins (the fidelity contract)
 ├── uv.lock                   # CI installs from this lockfile (uv sync --frozen)
-├── common/                   # schemas, exceptions (incl. AuthError), LLM, transport
+├── common/                   # schemas, exceptions (incl. AuthError), LLM, transport, audit
 ├── config/                   # transport config: SLIM, endpoints, env-derived settings
 ├── provisioning/
 │   ├── mapper/               # worker: NL request -> schema-validated Interpretation
 │   ├── allocator/            # worker: KUID Claim + NormalizedServiceIntent contract
-│   └── deployer/tools/       # worker: translator client + cluster submission
+│   └── deployer/             # worker: the deployment transaction (submit.py), the
+│                             #   convergence watch (watch.py), correlation stamping
+│                             #   (stamp.py), translator sidecar client, tools/
 ├── supervisors/
 │   └── provisioning/graph/   # LangGraph state machine, nodes, and A2A tools
-└── tests/                    # pytest suite
+└── tests/                    # pytest suite (unit, adversarial corpus, e2e harnesses)
 ```
 
 ## Provenance: the reference tree is read-only
@@ -67,6 +69,47 @@ repository). The Python agents never reimplement translation logic:
   themselves.
 - If a translation change is needed, it is made once, in `pkg/migration`, with
   its golden-file oracle tests — not in Python.
+
+## The deployer runs the deployment transaction
+
+The deployer is not a stub and not a best-effort applier: it executes the
+contract in `docs/INTENT_TIER_DEPLOYMENT_TRANSACTION.md` end to end —
+pod-local Go translation (`127.0.0.1:8090/v1/translate`), allow-listed
+manifest validation + correlation stamping, server-side dry-run
+(`dryRun=All`), deterministic server-side apply under a shared field
+manager, label-selector rollback on failed applies, and a convergence watch.
+It reports exactly one of:
+
+- `{"submitted": [ResourceRef...]}` (plus per-resource convergence outcomes)
+  only after every apply succeeded; or
+- `{"failed": {phase, resource, message, rolledBack, survivors}}` naming the
+  transaction phase (`request-validation`, `translation`, `manifest-validation`,
+  `dry-run`, `apply`, `rollback`, `cluster-identity`) — survivors after a
+  rollback are a terminal condition.
+
+The supervisor treats a failed report as a contract outcome (FAILED with the
+phase name, never `submitted`). Identity-wise the deployer is one of the
+tier's two token-bearing service accounts (with the allocator): its pod
+mounts the `intent-deployer` token and opts into API-server egress via the
+`agentic-netops.io/needs-apiserver` label; RBAC is scoped to
+`agentic-netops-intent` (networks, srv6services, events).
+
+## LLM provider configuration
+
+Model calls go through LiteLLM. Provisioning assembles Secret
+`llm-provider` (namespace `agentic-netops-agents`) from:
+
+- `AGENTIC_NETOPS_LLM_MODEL` (e.g. `openai/gpt-5`; the part before `/` is
+  the LiteLLM provider label),
+- `AGENTIC_NETOPS_LLM_API_KEY`,
+- `AGENTIC_NETOPS_LLM_BASE_URL` — optional but load-bearing: without it the
+  `openai` provider defaults to `https://api.openai.com/v1`, which rejects
+  gateway keys such as Compass/Core42's. A re-run that omits the variable
+  preserves the base URL already stored in the Secret (a whole-replacement
+  apply used to drop it silently).
+
+Plain `LLM_MODEL` / `OPENAI_API_KEY` / `OPENAI_BASE_URL` are accepted as
+fallbacks. Credentials are never committed.
 
 ## Pins and build
 

@@ -53,14 +53,22 @@ Prometheus scrapes gnmic directly, Grafana renders it.
 The intent tier's console, wired to the live supervisor: workers reachable over SLIM,
 Compass `gpt-5` reached through the LiteLLM gateway. The scenario cards are the
 service types the supervisor itself advertises on `GET /suggested-prompts` — VPWS,
-VPLS, L3VPN, L2L3-IRB — not a separate hard-coded list.
+VPLS, L3VPN, L2L3-IRB — not a separate hard-coded list. The divider between the
+workflow canvas and the conversation is draggable (mouse, touch, or arrow keys);
+the chosen split is remembered per browser.
 
-**What works and what does not:** a prompt reaches the classifier and comes back with
-a real, domain-aware answer. A single-shot `POST /agent/prompt/stream` then stops at
-the supervisor's own iteration bound, because the graph is built to provision only
-"after your two explicit confirmations" and a one-shot request cannot supply them.
-The refusal is logged as `audit refuse ... reason=request bound` — the tier declining
-to act, not failing.
+**What works and what does not:** in the console, a provisionable request flows
+end to end — classification, interpretation, allocation, your two explicit
+confirmations, then a real deployment transaction against the cluster (translate
+pod-local, server-side dry-run, deterministic apply, rollback on failure,
+convergence watch) and a truthful `submitted` report. A single-shot
+`POST /agent/prompt/stream`, however, stops at the supervisor's own iteration
+bound, because the graph is built to provision only "after your two explicit
+confirmations" and a one-shot request cannot supply them. The refusal is logged
+as `audit refuse ... reason=request bound` — the tier declining
+to act, not failing. The transaction contract, including what counts as a
+reportable failure at each phase, is specified in
+[docs/INTENT_TIER_DEPLOYMENT_TRANSACTION.md](docs/INTENT_TIER_DEPLOYMENT_TRANSACTION.md).
 
 Live gNMI telemetry: gnmic subscribes to each SONiC node's DBs, Prometheus scrapes
 gnmic directly, Grafana renders it.
@@ -72,7 +80,7 @@ gnmic directly, Grafana renders it.
 | SONiC fabric | 2 spines, 2 leaves, 4 clients in containerlab; BGP underlay, EVPN/VXLAN overlay |
 | Controllers | SRv6Service CRD + provider, built from vendored Go source |
 | Observability | OpenTelemetry collector, Prometheus, Grafana with fabric dashboards |
-| Intent tier | AGNTCY supervisor + mapper/allocator/deployer agents, chat UI |
+| Intent tier | AGNTCY supervisor + mapper/allocator/deployer agents over A2A/SLIM; the deployer runs the deployment transaction (translate → dry-run → apply → rollback → convergence watch) and reports truthfully |
 
 ## Prerequisites
 
@@ -105,6 +113,15 @@ kubectl --context kind-agentic-netops get pods -A
 Add the agent tier:
 
 ```bash
+# LLM provider credentials — export these before provisioning.
+# AGENTIC_NETOPS_LLM_BASE_URL is optional but matters: without it LiteLLM's
+# `openai` provider defaults to https://api.openai.com/v1, which rejects
+# gateway keys (e.g. Compass/Core42). Re-running provisioning without the
+# base URL preserves whatever the existing Secret carries.
+export AGENTIC_NETOPS_LLM_MODEL=openai/gpt-5
+export AGENTIC_NETOPS_LLM_API_KEY=<your key>            # never committed
+export AGENTIC_NETOPS_LLM_BASE_URL=https://api.core42.ai/v1
+
 ./scripts/provision.sh --profile sonic-vs --cluster-name agentic-netops --with-intent-tier
 kubectl --context kind-agentic-netops -n agentic-netops-agents get deploy
 # UI on http://localhost:30000
@@ -123,7 +140,11 @@ These are real, reproduced, and documented rather than hidden:
   `AGENTIC_NETOPS_WAIVE_L2VNI_ADOPTION=1 ./scripts/provision.sh …` — see D-A3.
 - **Two pinned images have no local build step** (`grafana/flow-plugin`,
   `ghcr.io/agentic-netops/topology-generator`). Provisioning warns rather than fails; the dependent
-  workload ends in `ImagePullBackOff`. `deployment/ui` is the observed case.
+  workload ends in `ImagePullBackOff`. (The intent tier's six images — supervisor, mapper,
+  allocator, deployer, translator, UI — all build locally from `docker/Dockerfile.*`; note
+  `intent::install` skips the docker build when the image tag already exists locally unless
+  `INTENT_TIER_REBUILD=true`, so source changes need a rebuild or a forced rebuild to reach the
+  cluster.)
 - **`docs/INTENT_TIER_OPS_READINESS.md` contains resource figures that were never measured.**
   They were produced before a cluster existed and before metrics-server was installed; real
   values differ by large factors. Re-measure before relying on that document.
@@ -136,7 +157,7 @@ lab/              containerlab topology and the sonic-vs profile bootstrap
 deploy/           Kubernetes manifests: controllers, kubenet, observability, agents
 controllers/      SRv6Service controller (Go)
 tests/            integration (fabric_verify, cycles_runner) and unit suites
-agents/           intent tier: supervisors, provisioning workers, test corpora (002 branch)
+agents/           intent tier: supervisors, provisioning workers, test corpora
 docs/             operations, security audit, dependencies, known defects
 versions.lock.yaml  every image and binary pin; enforced by `make verify-pins`
 ```
