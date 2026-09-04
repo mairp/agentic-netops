@@ -66,6 +66,17 @@ intent::configure_llm_provider() {
   local model="${AGENTIC_NETOPS_LLM_MODEL:-${LLM_MODEL:-}}"
   local api_key="${AGENTIC_NETOPS_LLM_API_KEY:-${OPENAI_API_KEY:-}}"
   local base_url="${AGENTIC_NETOPS_LLM_BASE_URL:-${OPENAI_BASE_URL:-}}"
+  # The regeneration below applies a whole replacement Secret: any key it
+  # omits is DELETED from the live object. A re-run from a shell that set the
+  # model and key but not the base URL therefore silently removed
+  # OPENAI_BASE_URL (2026-09-03), after which LiteLLM defaulted every model
+  # call to api.openai.com -- where a Compass/Core42 key is rejected -- and
+  # the tier only kept working through the supervisor's deterministic
+  # fallbacks. Preserve whatever base URL the existing Secret carries.
+  if [[ -z "$base_url" ]]; then
+    base_url="$(intent::kubectl -n "$INTENT_TIER_NAMESPACE" get secret llm-provider \
+      -o jsonpath='{.data.OPENAI_BASE_URL}' 2>/dev/null | base64 -d 2>/dev/null)"
+  fi
   local -a secret_args
 
   if ! intent::kubectl -n "$INTENT_TIER_NAMESPACE" get secret llm-provider >/dev/null 2>&1; then

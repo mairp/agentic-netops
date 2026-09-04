@@ -8,8 +8,12 @@
 #
 # The worker registers with the SLIM gateway over TRANSPORT_SERVER_ENDPOINT
 # (server.py run_transport); SLIM-only is enforced in code (require_slim).
-# The service account is non-token-bearing (automountServiceAccountToken:
-# false in deploy/agents/namespace-rbac.yaml) — deployer touches no cluster API.
+# The service account IS token-bearing (T039: intent-deployer is one of the
+# tier's two cluster-API identities): the deployment-transaction contract
+# makes the deployer apply Network/SRv6Service objects and write audit
+# Events in agentic-netops-intent, so the pod mounts the intent-deployer
+# token (automountServiceAccountToken: true) and opts into API-server
+# egress via the agentic-netops.io/needs-apiserver label.
 ---
 apiVersion: v1
 kind: Service
@@ -46,9 +50,17 @@ spec:
         app: deployer
         agentic-netops.owner: agentic-netops
         agentic-netops.io/tier: intent
+        # Selected by apiserver-egress-cluster-clients (namespace-rbac.yaml):
+        # the deployer applies Network/SRv6Service objects into
+        # agentic-netops-intent and writes its audit Events there through the
+        # API server, so it needs egress past deny-all-by-default. Alongside
+        # the allocator it is one of the tier's two token-bearing
+        # (cluster API) identities — the deployment-transaction contract
+        # requires the intent-deployer token to be mounted in this container.
+        agentic-netops.io/needs-apiserver: "true"
     spec:
       serviceAccountName: intent-deployer
-      automountServiceAccountToken: false
+      automountServiceAccountToken: true
       containers:
         - name: deployer
           image: agentic-netops/intent-deployer:latest
