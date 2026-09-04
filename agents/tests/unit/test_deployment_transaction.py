@@ -619,3 +619,275 @@ class TestSupervisorEnvelopeAndFailure:
         submit_events = [e for e in get_audit_sink().by_correlation(CID) if e.event_type == "submit"]
         assert len(submit_events) == 1
         assert submit_events[0].resources[0].name == "net-svc-alpha"
+
+
+# ---------------------------------------------------------------------------
+# The last mile: the operator learns the OUTCOME, in-band.
+#
+# Before this, the conversation ended at the submission report — the Network
+# converged (or failed) minutes later and nothing on the thread ever said so
+# (docs/FINAL_STATUS_NOTIFICATION_GAP.md). The deployer already watched
+# convergence and reported it; the supervisor dropped that report on the floor.
+# ---------------------------------------------------------------------------
+NET_REF = {
+    "apiVersion": "network.kubenet.dev/v1alpha1",
+    "kind": "Network",
+    "namespace": "agentic-netops-intent",
+    "name": "net-svc-alpha",
+}
+
+
+def _deployer_parts_with_convergence(convergence: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    payload = {"submitted": [NET_REF], "convergence": convergence}
+    return [
+        {"data": payload},
+        {"text": _marker_text("Submission report received.\n", payload)},
+    ]
+
+
+class CannedTransport(StubTransport):
+    """Returns canned deployer parts without parsing the request.
+
+    The tools path (status/remove) does not carry an intent, so
+    :class:`CapturingTransport`'s envelope parsing cannot be reused for it.
+    """
+
+    def __init__(self, parts: list[dict[str, Any]]) -> None:
+        super().__init__()
+        self.parts = parts
+        self.sent: list[str] = []
+
+    async def call_deployer(self, text: str) -> Any:
+        self.sent.append(text)
+        return {"parts": self.parts}
+
+
+async def _run_deployer_node(graph_llm, parts: list[dict[str, Any]], state: dict[str, Any] | None = None):
+    reset_audit_sink()
+    graph = ProvisioningGraph(
+        llm_factory=lambda streaming=None: RunnableLambda(graph_llm.ainvoke),
+        transport=CannedTransport(parts),
+    )
+    try:
+        return await graph._deployer_node(
+            state if state is not None else _deployer_state(),
+            {"configurable": {"thread_id": "unit-thread"}},
+        )
+    finally:
+        await graph.close()
+
+
+class TestFinalOutcomeReporting:
+    async def test_all_ready_ends_completed_and_quotes_the_condition(self, graph_llm):
+        out = await _run_deployer_node(
+            graph_llm,
+            _deployer_parts_with_convergence(
+                [
+                    {
+                        "resource": "Network/net-svc-alpha",
+                        "outcome": "ready",
+                        "ready": True,
+                        "detail": "applied and verified on all nodes",
+                    }
+                ]
+            ),
+        )
+        assert out["workflow_status"] == NetworkProvisioningStatus.COMPLETED.value
+        text = out["messages"][0].content
+        assert "Deployed." in text
+        # The controller's own condition message, not a paraphrase of it.
+        assert "applied and verified on all nodes" in text
+        assert "Network/net-svc-alpha" in text
+        # The submission itself is still audited as a submission.
+        submits = [e for e in get_audit_sink().by_correlation(CID) if e.event_type == "submit"]
+        assert len(submits) == 1
+
+    async def test_failed_convergence_ends_failed_with_the_condition_message(self, graph_llm):
+        out = await _run_deployer_node(
+            graph_llm,
+            _deployer_parts_with_convergence(
+                [
+                    {
+                        "resource": "Network/net-svc-alpha",
+                        "outcome": "failed",
+                        "ready": False,
+                        "detail": "ApplyFailed: leaf2 rejected the VRF binding",
+                    }
+                ]
+            ),
+        )
+        assert out["workflow_status"] == NetworkProvisioningStatus.FAILED.value
+        assert "convergence failed" in out["refusal_reason"]
+        text = out["messages"][0].content
+        assert "leaf2 rejected the VRF binding" in text
+        # A convergence failure is NOT a rollback: the apply succeeded.
+        assert "remain on the cluster" in text
+        # ...and it is not recorded as a refusal, which would claim nothing
+        # was applied and break the SC-006 reconciliation.
+        assert [e.event_type for e in get_audit_sink().by_correlation(CID)] == ["submit"]
+
+    async def test_timeout_stays_provisioning_and_says_how_to_resolve_it(self, graph_llm):
+        out = await _run_deployer_node(
+            graph_llm,
+            _deployer_parts_with_convergence(
+                [
+                    {
+                        "resource": "Network/net-svc-alpha",
+                        "outcome": "timeout",
+                        "ready": None,
+                        "detail": "convergence timeout after 90s",
+                    }
+                ]
+            ),
+        )
+        assert out["workflow_status"] == NetworkProvisioningStatus.PROVISIONING.value
+        text = out["messages"][0].content
+        assert "still converging" in text
+        assert "status of the deployment" in text
+
+    async def test_no_convergence_report_never_claims_an_outcome(self, graph_llm):
+        out = await _run_deployer_node(graph_llm, _deployer_parts([NET_REF]))
+        assert out["workflow_status"] == NetworkProvisioningStatus.PROVISIONING.value
+        assert "not yet known" in out["messages"][0].content
+
+    async def test_submitted_refs_and_convergence_are_carried_on_the_thread(self, graph_llm):
+        convergence = [
+            {"resource": "Network/net-svc-alpha", "outcome": "ready", "ready": True, "detail": "ok"}
+        ]
+        out = await _run_deployer_node(graph_llm, _deployer_parts_with_convergence(convergence))
+        assert json.loads(out["convergence"]) == convergence
+        assert [r["name"] for r in json.loads(out["submitted_resources"])] == ["net-svc-alpha"]
+        # The label the objects actually carry — the only selector that finds
+        # them once the next request has minted a new correlation id.
+        assert out["submitted_correlation_id"] == CID
+
+
+class TestStatusQuestionOnACompletedThread:
+    """Root cause 4: "what is the status of the deployment?" used to fall into
+    the capability blurb, reporting the thread's stale status."""
+
+    def test_the_question_is_recognised(self):
+        from supervisors.provisioning.graph.graph import detect_deployment_status_query
+
+        for question in (
+            "What is the status of the deployment?",
+            "what's the status?",
+            "Is it deployed?",
+            "did it converge",
+            "deployment status please",
+            "has the service deployed?",
+        ):
+            assert detect_deployment_status_query(question), question
+
+    def test_a_provisioning_request_is_not_a_status_question(self):
+        from supervisors.provisioning.graph.graph import detect_deployment_status_query
+
+        assert not detect_deployment_status_query(
+            "Create an L3VPN between leaf1 Ethernet1 and leaf2 Ethernet2 for tenant-a"
+        )
+
+    async def test_status_question_routes_to_the_cluster_not_the_blurb(self, graph_llm):
+        from langchain_core.messages import HumanMessage
+
+        graph = ProvisioningGraph(
+            llm_factory=lambda streaming=None: RunnableLambda(graph_llm.ainvoke),
+            transport=StubTransport(),
+        )
+        state = {
+            "messages": [HumanMessage(content="What is the status of the deployment?")],
+            # The HTTP surface mints a fresh correlation id for every request,
+            # so the thread's current id is NOT the one the submitted objects
+            # are labelled with. Resolving on the current id finds nothing and
+            # reports "NotFound" for a Network that is Ready (observed live,
+            # 2026-09-04).
+            "correlation_id": "c" * 32,
+            "submitted_correlation_id": CID,
+            "principal": "unit-test",
+            "workflow_status": NetworkProvisioningStatus.PROVISIONING.value,
+            "submitted_resources": canonical_json([NET_REF]),
+        }
+        try:
+            out = await graph._supervisor_node(state, {"configurable": {"thread_id": "unit-thread"}})
+        finally:
+            await graph.close()
+        assert out["next_node"] == "deployer"
+        assert out["tool_action"] == "status"
+        assert json.loads(out["tool_request"]) == {"action": "status", "correlationId": CID}
+
+    async def test_without_a_submission_the_question_is_not_hijacked(self, graph_llm):
+        from langchain_core.messages import HumanMessage
+
+        graph = ProvisioningGraph(
+            llm_factory=lambda streaming=None: RunnableLambda(graph_llm.ainvoke),
+            transport=StubTransport(),
+        )
+        state = {
+            "messages": [HumanMessage(content="What is the status of the deployment?")],
+            "correlation_id": CID,
+            "principal": "unit-test",
+            "workflow_status": NetworkProvisioningStatus.RECEIVED_REQUEST.value,
+        }
+        try:
+            out = await graph._supervisor_node(state, {"configurable": {"thread_id": "unit-thread"}})
+        finally:
+            await graph.close()
+        assert out.get("tool_action") is None
+
+    async def test_a_resolved_status_answer_sets_the_thread_status(self, graph_llm):
+        report = {
+            "status": {
+                "serviceId": "",
+                "correlationId": CID,
+                "phase": "Deployed",
+                "resources": [
+                    {
+                        "kind": "Network",
+                        "name": "net-svc-alpha",
+                        "ready": True,
+                        "reason": "ApplySucceeded",
+                        "message": "applied and verified on all nodes",
+                        "lastTransitionTime": "2026-09-04T07:48:18Z",
+                    }
+                ],
+            }
+        }
+        parts = [{"data": report}, {"text": _marker_text("Deployed. Network/net-svc-alpha Ready=True.\n", report)}]
+        state = {
+            **_deployer_state(),
+            "tool_action": "status",
+            "tool_request": canonical_json({"action": "status", "correlationId": CID}),
+        }
+        out = await _run_deployer_node(graph_llm, parts, state=state)
+        assert out["workflow_status"] == NetworkProvisioningStatus.COMPLETED.value
+        assert "Deployed." in out["messages"][0].content
+
+    async def test_a_resolved_failure_answer_names_the_responsible_stage(self, graph_llm):
+        report = {"status": {"correlationId": CID, "phase": "Failed", "resources": []}}
+        parts = [{"data": report}, {"text": _marker_text("Failed.\n", report)}]
+        state = {
+            **_deployer_state(),
+            "tool_action": "status",
+            "tool_request": canonical_json({"action": "status", "correlationId": CID}),
+        }
+        out = await _run_deployer_node(graph_llm, parts, state=state)
+        assert out["workflow_status"] == NetworkProvisioningStatus.FAILED.value
+        assert out["refusal_reason"].startswith("deployer ")
+
+
+class TestInformationalAnswerDoesNotRelabelTheThread:
+    async def test_a_question_mid_transaction_keeps_provisioning(self, graph_llm):
+        graph = ProvisioningGraph(
+            llm_factory=lambda streaming=None: RunnableLambda(graph_llm.ainvoke),
+            transport=StubTransport(),
+        )
+        state = {
+            "messages": [],
+            "workflow_status": NetworkProvisioningStatus.PROVISIONING.value,
+            "submitted_resources": canonical_json([NET_REF]),
+        }
+        try:
+            out = await graph._general_response_node(state, {"configurable": {"thread_id": "unit-thread"}})
+        finally:
+            await graph.close()
+        assert out["workflow_status"] == NetworkProvisioningStatus.PROVISIONING.value
+        assert "still converging" in out["messages"][0].content

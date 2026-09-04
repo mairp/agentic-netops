@@ -73,7 +73,17 @@ def _parse_action(text: str) -> _Action:
     - free text: "status of service <id>", "remove service <id>",
       "remove correlation <cid>".
     Defaults to submission when a deployment envelope is present.
+
+    The supervisor fences every worker-bound payload (T095), so the fence is
+    unwrapped first — exactly as ``parse_deployment_envelope`` does. Without
+    that, a canonical ``{"action": ...}`` command arrives wrapped, fails the
+    JSON parse, and silently degrades into "unknown tool action".
     """
+    from provisioning.deployer.submit import DATA_FENCE_RE
+
+    fence = DATA_FENCE_RE.search(text)
+    if fence:
+        text = fence.group(1)
     try:
         m = json.loads(text)
         if isinstance(m, dict) and "action" in m:
@@ -297,8 +307,44 @@ class DeployerAgent:
         return redact_model_response(text)
 
     def _summary_status(self, status: dict[str, Any]) -> str:
-        phase = status.get("phase") or status.get("state") or status.get("status") or "unknown"
-        return redact_model_response(f"Service status: {phase}.")
+        """Outcome-first, naming every resource and its Ready condition.
+
+        The operator asked what happened; the answer leads with the verdict
+        and then quotes the controller's own condition message verbatim.
+        """
+
+        phase = str(status.get("phase") or "Unknown")
+        resources = status.get("resources") if isinstance(status.get("resources"), list) else []
+        lead = {
+            "Deployed": "Deployed",
+            "Failed": "Failed",
+            "Converging": "Still converging",
+            "NotFound": "Not found",
+        }.get(phase, "Status unknown")
+        text = f"{lead}."
+        if not resources:
+            error = status.get("error")
+            if phase == "NotFound":
+                text += " No submitted resource carries this correlation id — nothing is on the cluster."
+            elif error:
+                text += f" The cluster could not be read: {error}"
+            return redact_model_response(text)
+        parts: list[str] = []
+        for resource in resources:
+            if not isinstance(resource, dict):
+                continue
+            name = f"{resource.get('kind')}/{resource.get('name')}"
+            ready = resource.get("ready")
+            verdict = "Ready=True" if ready is True else "Ready=False" if ready is False else "Ready=<unset>"
+            detail = str(resource.get("message") or resource.get("reason") or "")
+            at = str(resource.get("lastTransitionTime") or "")
+            entry = f"{name} {verdict}"
+            if detail:
+                entry += f' "{detail}"'
+            if at:
+                entry += f" since {at}"
+            parts.append(entry)
+        return redact_model_response(text + " " + "; ".join(parts) + ".")
 
     def _summary_remove(self, removed: dict[str, Any]) -> str:
         count = int(removed.get("deleted", 0))

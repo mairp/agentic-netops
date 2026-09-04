@@ -47,6 +47,13 @@ logger = logging.getLogger("agentic_netops.provisioning.supervisor.tools")
 
 # FR-025: per-call timeout + bounded retry with backoff.
 WORKER_CALL_TIMEOUT_SECONDS = float(os.getenv("WORKER_CALL_TIMEOUT_SECONDS", "60"))
+# The deployer's call legitimately contains the bounded convergence watch
+# (deployment contract step 7), so its per-call bound must exceed that watch
+# — otherwise the supervisor cuts the call off exactly when the outcome is
+# about to be reported, and the operator is told the worker is unreachable
+# for a deployment that in fact converged. The mapper and allocator keep the
+# tighter default: neither waits on the fabric.
+DEPLOYER_CALL_TIMEOUT_SECONDS = float(os.getenv("DEPLOYER_CALL_TIMEOUT_SECONDS", "210"))
 WORKER_CALL_RETRIES = int(os.getenv("WORKER_CALL_RETRIES", "2"))
 _RETRY_BACKOFF_SECONDS = 1.0
 
@@ -95,10 +102,11 @@ def _require_slim() -> None:
         raise ValueError("Only SLIM transport is supported for provisioning agents.")
 
 
-async def _send(worker: str, card, text: str):
+async def _send(worker: str, card, text: str, *, timeout_seconds: float | None = None):
     """Build the transport + client, send one text message, with the
     FR-025 timeout/retry discipline. Returns the raw A2A response."""
     _require_slim()
+    call_timeout = WORKER_CALL_TIMEOUT_SECONDS if timeout_seconds is None else timeout_seconds
     last_error: BaseException | None = None
     for attempt in range(WORKER_CALL_RETRIES + 1):
         try:
@@ -129,9 +137,7 @@ async def _send(worker: str, card, text: str):
                     )
                 ),
             )
-            return await asyncio.wait_for(
-                client.send_message(request), timeout=WORKER_CALL_TIMEOUT_SECONDS
-            )
+            return await asyncio.wait_for(client.send_message(request), timeout=call_timeout)
         except (TimeoutError, ConnectionError, OSError) as exc:
             # Transport-level failure: the worker is unreachable (FR-025/FR-026).
             last_error = exc
@@ -184,4 +190,9 @@ async def call_deployer_agent(payload_json: str):
     "confirm"``, T124/T125) — enforced in ``graph._deployer_node`` before
     any call is made.
     """
-    return await _send("deployer", card_for_capability("deploy_network_service"), payload_json)
+    return await _send(
+        "deployer",
+        card_for_capability("deploy_network_service"),
+        payload_json,
+        timeout_seconds=DEPLOYER_CALL_TIMEOUT_SECONDS,
+    )

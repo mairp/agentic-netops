@@ -133,6 +133,12 @@ spec:
               value: "http://127.0.0.1:46357"
             - name: SUPERVISOR_CHECKPOINT_DB
               value: /state/supervisor-checkpoint/checkpoints.sqlite
+            # The deployer call carries the convergence watch, so it needs a
+            # bound above the deployer's DEPLOYER_CONVERGENCE_TIMEOUT_SECONDS
+            # (150 s). Cutting it shorter reports "worker unreachable" for a
+            # deployment that actually converged.
+            - name: DEPLOYER_CALL_TIMEOUT_SECONDS
+              value: "210"
             # LLM provider selection is the LLM_MODEL prefix alone
             # (common/llm.py); the credentials come from Secret/llm-provider.
             # The classifier runs through LiteLLM, which for an `openai/` LLM_MODEL prefix

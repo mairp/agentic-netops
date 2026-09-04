@@ -103,6 +103,18 @@ def get_graph() -> ProvisioningGraph:
     return _graph
 
 
+# The statuses the deployer node can end a transaction on. All three carry a
+# convergence report, so all three render as a deployer stage chunk: the
+# operator learns the outcome (or the honest absence of one) in-band.
+_DEPLOYER_OUTCOME_STATUSES = frozenset(
+    {
+        NetworkProvisioningStatus.PROVISIONING.value,
+        NetworkProvisioningStatus.COMPLETED.value,
+        NetworkProvisioningStatus.FAILED.value,
+    }
+)
+
+
 # -------------------- HTTP Endpoints --------------------
 from ioa_observe.sdk.tracing.tracing import session_start
 
@@ -221,39 +233,8 @@ async def handle_stream_prompt(request: PromptRequest):
                                 "refusable": True,
                             }
                         )
-                    elif node_name == "deployer" and status == NetworkProvisioningStatus.PROVISIONING.value:
-                        yield chunk({"type": "stage", "stage": "deployer", "status": status})
-                        # T273 — emit progress chunks from convergence watch (stubbed)
-                        try:
-                            from provisioning.deployer.watch import watch_ready
-                            def on_progress(evt: dict):
-                                try:
-                                    evt = dict(evt or {})
-                                except Exception:
-                                    return
-                                evt.setdefault("type", "progress")
-                                evt.setdefault("stage", "deployer")
-                                evt.setdefault("status", status)
-                                yield_chunk = chunk(evt)
-                                # local function inside generator: use closure to yield
-                                nonlocal_yield.append(yield_chunk)
-                            nonlocal_yield = []
-                            watch_ready(on_progress=on_progress)
-                            # Drain any progress events captured
-                            for entry in nonlocal_yield:
-                                yield entry
-                        except Exception:
-                            pass
-                    # T258/T259 — tools path: status-query and remove-service chunks
-                    elif node_name == "supervisor" and node_state.get("pending_action") == "confirm_remove":
-                        yield chunk(
-                            {
-                                "type": "confirmation_request",
-                                "stage": "deployer",
-                                "prompt": "Remove this service? Reply 'confirm' to proceed or 'decline' to cancel.",
-                                "refusable": True,
-                            }
-                        )
+                    # T258/T259 — tools path: a status-query or remove-service
+                    # answer is its own stage, not a submission report.
                     elif node_name == "deployer" and node_state.get("tool_result"):
                         try:
                             tool_payload = json.loads(node_state.get("tool_result") or "{}")
@@ -266,6 +247,56 @@ async def handle_stream_prompt(request: PromptRequest):
                                 "tool": node_state.get("tool_action") or "",
                                 "result": tool_payload,
                                 "status": status,
+                            }
+                        )
+                    elif node_name == "deployer" and status in _DEPLOYER_OUTCOME_STATUSES:
+                        # The deployer node reports the transaction's outcome,
+                        # not just its submission: the stage chunk carries the
+                        # submitted refs and the per-resource convergence
+                        # observations, and one progress chunk per resource
+                        # names the controller's own verdict.
+                        try:
+                            convergence = json.loads(node_state.get("convergence") or "[]")
+                        except Exception:  # noqa: BLE001
+                            convergence = []
+                        try:
+                            submitted = json.loads(node_state.get("submitted_resources") or "[]")
+                        except Exception:  # noqa: BLE001
+                            submitted = []
+                        stage_chunk: dict = {"type": "stage", "stage": "deployer", "status": status}
+                        if submitted or convergence:
+                            stage_chunk["payload"] = {"submitted": submitted, "convergence": convergence}
+                        yield chunk(stage_chunk)
+                        for observation in convergence:
+                            if not isinstance(observation, dict):
+                                continue
+                            outcome = str(observation.get("outcome") or "")
+                            resource = str(observation.get("resource") or "resource")
+                            detail = str(observation.get("detail") or "").strip()
+                            verdict = {
+                                "ready": "converged",
+                                "failed": "failed to converge",
+                                "timeout": "still converging at the watch bound",
+                            }.get(outcome, outcome or "observed")
+                            message = f"{resource} {verdict}"
+                            if detail:
+                                message += f": {detail}"
+                            yield chunk(
+                                {
+                                    "type": "progress",
+                                    "stage": "deployer",
+                                    "status": status,
+                                    "message": redact(message),
+                                    "details": observation,
+                                }
+                            )
+                    elif node_name == "supervisor" and node_state.get("pending_action") == "confirm_remove":
+                        yield chunk(
+                            {
+                                "type": "confirmation_request",
+                                "stage": "deployer",
+                                "prompt": "Remove this service? Reply 'confirm' to proceed or 'decline' to cancel.",
+                                "refusable": True,
                             }
                         )
                     elif status == NetworkProvisioningStatus.FAILED.value:

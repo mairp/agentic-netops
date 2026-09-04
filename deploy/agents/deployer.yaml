@@ -97,6 +97,15 @@ spec:
             # The transport reaches the gateway through the pod-local proxy.
             - name: TRANSPORT_SERVER_ENDPOINT
               value: "http://127.0.0.1:46357"
+            # The convergence watch (deployment contract step 7) is what turns
+            # a submission into an outcome the operator is told about. Keep it
+            # above observed fabric convergence (35-133 s on the lab, varying
+            # with executor load) and below the supervisor's
+            # DEPLOYER_CALL_TIMEOUT_SECONDS.
+            - name: DEPLOYER_CONVERGENCE_TIMEOUT_SECONDS
+              value: "150"
+            - name: DEPLOYER_CONVERGENCE_POLL_SECONDS
+              value: "1"
           # Trivial liveness (process up); a transport outage degrades
           # /v1/health readiness (named 503) instead of killing the pod.
           livenessProbe:

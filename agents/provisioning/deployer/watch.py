@@ -66,9 +66,12 @@ class ConvergenceOutcome:
 
 
 def _observe(obj: dict[str, Any]) -> tuple[bool | None, str | None]:
-    """Classify one object read as (ready, failure_detail).
+    """Classify one object read as (ready, detail).
 
-    ``None`` means "still converging" — keep polling.
+    ``None`` means "still converging" — keep polling. ``detail`` is the
+    controller's own condition message for BOTH verdicts: a success that
+    cannot quote why it succeeded is as unhelpful to the operator as a
+    failure that cannot quote why it failed.
     """
     status = obj.get("status") if isinstance(obj.get("status"), dict) else {}
     conditions = status.get("conditions") if isinstance(status.get("conditions"), list) else []
@@ -80,7 +83,7 @@ def _observe(obj: dict[str, Any]) -> tuple[bool | None, str | None]:
         cond_status = str(condition.get("status") or "").lower()
         if cond_type == READY_CONDITION_TYPE:
             if cond_status == "true":
-                return True, None
+                return True, str(condition.get("message") or condition.get("reason") or "") or None
             if cond_status == "false":
                 ready_false_detail = str(
                     condition.get("message") or condition.get("reason") or "Ready condition is False"

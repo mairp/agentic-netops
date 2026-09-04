@@ -491,7 +491,23 @@ def build_default_client() -> KubernetesIntentClient:
 
 
 def convergence_settings() -> tuple[float, float]:
-    timeout = float(os.getenv("DEPLOYER_CONVERGENCE_TIMEOUT_SECONDS", "45"))
+    """The convergence watch bound.
+
+    Measured convergence on the lab varies with how much the fabric executor
+    already carries: ~35 s on an idle fabric, 133 s on a loaded one (both
+    observed 2026-09-04, Network applied through both leaves programmed and
+    verified). The default covers that spread, because the watch is the only
+    thing standing between the operator and an unanswered "did it deploy?".
+
+    It is a bound, not a guarantee: past it the operator is told the truth
+    ("still converging") and the status question resolves the outcome from the
+    cluster. Do not chase an arbitrarily slow fabric by raising this — a
+    blocking call is the wrong shape for that, and the supervisor's per-call
+    bound for the deployer (``DEPLOYER_CALL_TIMEOUT_SECONDS``) has to stay
+    above it or the call is cut off before the watch can report.
+    """
+
+    timeout = float(os.getenv("DEPLOYER_CONVERGENCE_TIMEOUT_SECONDS", "150"))
     poll = float(os.getenv("DEPLOYER_CONVERGENCE_POLL_SECONDS", "1"))
     return max(0.0, timeout), max(0.05, poll)
 

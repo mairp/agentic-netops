@@ -361,6 +361,21 @@ class GraphState(MessagesState):
     tool_request: str | None = None  # canonical JSON of the tool request
     tool_result: str | None = None   # canonical JSON of the tool result
 
+    # --- final-outcome additions ---
+    # The deployer's per-resource convergence observations (canonical JSON of
+    # the report list) and the submitted refs, kept on the thread so a later
+    # status question can resolve the same transaction instead of starting a
+    # fresh one.
+    convergence: str | None = None
+    submitted_resources: str | None = None
+    # The correlation id of the transaction that submitted them. This is NOT
+    # state["correlation_id"]: the HTTP surface mints a fresh correlation id
+    # per request, so by the time the operator asks "did it deploy?" the
+    # thread's current id labels nothing on the cluster. The label the
+    # submitted objects actually carry is the submitting request's id, and it
+    # is the only selector that finds them again.
+    submitted_correlation_id: str | None = None
+
 
 # ---------------------------------------------------------------------------
 # Deterministic safety-layer detectors (pure functions — used by
@@ -387,6 +402,28 @@ def detect_direct_device(text: str) -> DetectionHit | None:
         reason=f"the request asks for {family}",
         suggestion=DEVICE_FAMILY_SUGGESTIONS.get(family, DEFAULT_SUGGESTION),
     )
+
+
+# A question about the outcome of *this thread's* deployment. It is answered
+# by resolving the submitted resources' live conditions, never by the fixed
+# capability blurb — "the current status of this request thread is
+# PROVISIONING" is not an answer to "did it deploy?".
+_DEPLOYMENT_STATUS_QUERY = re.compile(
+    r"(?:"
+    r"status of (?:the |my |this |our )?(?:deployment|deploy|provisioning|service|network|request)"
+    r"|(?:deployment|provisioning|service|network) status"
+    r"|what(?:'s| is| was) the status"
+    r"|(?:did|has) (?:it|the deployment|the service|the network) (?:deploy|converge|complete)"
+    r"|is (?:it|the deployment|the service|the network) (?:deployed|ready|up|converged|done|live)"
+    r"|(?:did|has) it (?:deployed|worked|succeeded)"
+    r")",
+)
+
+
+def detect_deployment_status_query(text: str) -> bool:
+    """True when the operator is asking for the outcome of a deployment."""
+
+    return _DEPLOYMENT_STATUS_QUERY.search(text.lower()) is not None
 
 
 def detect_unsupported_feature(text: str) -> DetectionHit | None:
@@ -565,6 +602,35 @@ class A2AWorkerTransport:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+# How a resolved cluster phase (deployer.get_service_status) maps onto the
+# closed status vocabulary. "Unknown" is deliberately absent: an unreadable
+# cluster must not overwrite what the thread already knows.
+_STATUS_PHASE_TO_WORKFLOW = {
+    "Deployed": NetworkProvisioningStatus.COMPLETED,
+    "Failed": NetworkProvisioningStatus.FAILED,
+    "Converging": NetworkProvisioningStatus.PROVISIONING,
+    "NotFound": NetworkProvisioningStatus.FAILED,
+}
+
+
+def _describe_convergence(observations: list[dict]) -> str:
+    """Render convergence observations as operator-readable text.
+
+    The deployer's ``detail`` is the controller's own condition message
+    (``ApplySucceeded`` / ``ApplyFailed`` with the real operation output);
+    it is quoted, never paraphrased.
+    """
+
+    parts: list[str] = []
+    for observation in observations:
+        if not isinstance(observation, dict):
+            continue
+        resource = str(observation.get("resource") or "resource")
+        detail = str(observation.get("detail") or "").strip()
+        parts.append(f"{resource} ({detail})" if detail else resource)
+    return ", ".join(parts) or "no resource named"
+
+
 def canonical_json(obj: Any) -> str:
     """Canonical serialization (sorted keys, compact) — the byte-identity
     basis of FR-014 and of the corpus byte-identical assertion (T118)."""
@@ -961,6 +1027,26 @@ class ProvisioningGraph:
         user_content_l = user_content.lower().strip()
 
         # ---------- T256/T257: status-query and remove-service routing -----
+        # A status question on a thread that already submitted something is
+        # answered from that transaction, by its correlation id — the label
+        # every submitted object carries. Without this the question falls
+        # through to the general-response node, which can only recite the
+        # capability blurb and the thread's last known status.
+        submitted_json = state.get("submitted_resources")
+        correlation_for_status = state.get("submitted_correlation_id") or ""
+        if submitted_json and correlation_for_status and detect_deployment_status_query(user_content):
+            req = canonical_json({"action": "status", "correlationId": correlation_for_status})
+            logger.info(
+                "resolving deployment status for correlation %s from the cluster",
+                correlation_for_status[:8],
+            )
+            return {
+                "next_node": NodeStates.DEPLOYER,
+                "tool_action": "status",
+                "tool_request": req,
+                "messages": [],
+            }
+
         # Detect a status query for an existing service id or by correlation id
         m = re.search(r"status of (?:service |)(?P<sid>[a-z0-9-]{6,15})", user_content_l)
         if m:
@@ -1197,6 +1283,8 @@ class ProvisioningGraph:
                     "next_node": NodeStates.MAPPER,
                     "classification": classification.value,
                     "workflow_status": NetworkProvisioningStatus.RECEIVED_REQUEST.value,
+                    "tool_action": None,
+                    "tool_request": None,
                 }
             if classification is RequestClassification.INFORMATIONAL:
                 logger.warning("using deterministic informational classification while model is unavailable")
@@ -1222,6 +1310,9 @@ class ProvisioningGraph:
                 "next_node": NodeStates.MAPPER,
                 "classification": classification.value,
                 "workflow_status": NetworkProvisioningStatus.RECEIVED_REQUEST.value,
+                # A new request is not the previous request's tools command.
+                "tool_action": None,
+                "tool_request": None,
             }
         if classification is RequestClassification.INFORMATIONAL:
             logger.info("supervisor classified request as informational")
@@ -1446,11 +1537,25 @@ class ProvisioningGraph:
                     state, config, stage="deployer", error="no contract tools report", worker_text=worker_text
                 )
             summary = redact_model_response(worker_text.split("<!--")[0].strip()) or "Tools result."
-            return {
+            out: dict[str, Any] = {
                 "next_node": END,
+                "tool_action": tool_action,
                 "tool_result": canonical_json(payload),
                 "messages": [AIMessage(content=summary)],
             }
+            # A status answer resolves the transaction: the thread's status
+            # becomes the cluster's verdict, so the operator is never told
+            # "PROVISIONING" about a transaction that has already converged
+            # (or already failed).
+            status_report = payload.get("status")
+            if tool_action == "status" and isinstance(status_report, dict):
+                resolved = _STATUS_PHASE_TO_WORKFLOW.get(str(status_report.get("phase") or ""))
+                if resolved is not None:
+                    out["workflow_status"] = resolved.value
+                    if resolved is NetworkProvisioningStatus.FAILED:
+                        out["refusal_reason"] = f"deployer resolved the deployment status: {summary}"
+                        out["suggestion"] = DEFAULT_SUGGESTION
+            return out
 
         # ---- Submission preconditions (T124/T125) -----------------------
         workflow_status = state.get("workflow_status")
@@ -1603,20 +1708,116 @@ class ProvisioningGraph:
                     worker_text=worker_text,
                 )
             self._audit(state, config, "submit", resources=resources, reason="deployer submission report")
+            # The deployer watched convergence (deployment contract step 7)
+            # and reported one terminal observation per resource. That report
+            # is the transaction's OUTCOME; ending the thread at PROVISIONING
+            # while holding it would leave the operator with no in-band way
+            # to learn whether the service came up.
+            convergence = payload.get("convergence")
+            convergence = convergence if isinstance(convergence, list) else []
+            names = ", ".join(f"{r.kind}/{r.name}" for r in resources)
+            correlation = state.get("correlation_id") or ""
+            submitted_json = canonical_json([r.model_dump(mode="json") for r in resources])
+            carried = {
+                "next_node": END,
+                "submitted_resources": submitted_json,
+                "submitted_correlation_id": correlation,
+                "convergence": canonical_json(convergence),
+            }
+
+            failed_obs = [c for c in convergence if isinstance(c, dict) and c.get("outcome") == "failed"]
+            timed_out = [c for c in convergence if isinstance(c, dict) and c.get("outcome") == "timeout"]
+            ready_obs = [c for c in convergence if isinstance(c, dict) and c.get("outcome") == "ready"]
+
+            if failed_obs:
+                # Submitted, then did not converge. The submission stands (the
+                # objects are on the cluster and the submit audit event is
+                # true); the transaction's outcome is a failure and is named
+                # as one, with the controller's own condition message.
+                detail = _describe_convergence(failed_obs)
+                try:
+                    get_metrics().record_stage_result(stage="deployer", success=False)
+                except Exception:
+                    pass
+                return {
+                    **carried,
+                    "workflow_status": NetworkProvisioningStatus.FAILED.value,
+                    "refusal_reason": f"deployer submitted {names} but convergence failed: {detail}",
+                    "suggestion": (
+                        "Inspect the resource's Ready condition, correct the intent, and submit a "
+                        "fresh request; the submitted objects were not rolled back."
+                    ),
+                    "messages": [
+                        AIMessage(
+                            content=redact_model_response(
+                                f"Deployment failed. {names} was submitted, but it did not converge: "
+                                f"{detail}. The submitted objects remain on the cluster — nothing was "
+                                f"rolled back, because the apply itself succeeded. "
+                                f"(correlation id: {correlation})"
+                            )
+                        )
+                    ],
+                }
+
+            if ready_obs and not timed_out:
+                # Every submitted object reported Ready: this is the final,
+                # verified outcome and the thread ends on it.
+                detail = _describe_convergence(ready_obs)
+                try:
+                    get_metrics().record_stage_result(stage="deployer", success=True)
+                except Exception:
+                    pass
+                return {
+                    **carried,
+                    "workflow_status": NetworkProvisioningStatus.COMPLETED.value,
+                    "awaiting_confirmation": False,
+                    "pending_action": None,
+                    "messages": [
+                        AIMessage(
+                            content=redact_model_response(
+                                f"Deployed. {len(ready_obs)} resource(s) reached Ready on the fabric: "
+                                f"{detail}. (correlation id: {correlation})"
+                            )
+                        )
+                    ],
+                }
+
             try:
                 get_metrics().record_stage_result(stage="deployer", success=True)
             except Exception:
                 pass
+            if timed_out:
+                # Bounded watch, honest report: submitted and still converging.
+                # This is NOT an outcome, and it does not claim to be one.
+                detail = _describe_convergence(timed_out)
+                return {
+                    **carried,
+                    "workflow_status": NetworkProvisioningStatus.PROVISIONING.value,
+                    "messages": [
+                        AIMessage(
+                            content=redact_model_response(
+                                f"Submitted {names}, still converging when the deployer's watch bound "
+                                f"expired: {detail}. Nothing failed — ask \"what is the status of the "
+                                f"deployment?\" on this thread and I will resolve the current condition "
+                                f"from the cluster. (correlation id: {correlation})"
+                            )
+                        )
+                    ],
+                }
+            # No convergence report at all (a deployer that ran with the watch
+            # disabled): the submission is all that can be claimed.
             return {
-                "next_node": END,
+                **carried,
                 "workflow_status": NetworkProvisioningStatus.PROVISIONING.value,
                 "messages": [
                     AIMessage(
                         content=(
                             "Submission report received: "
-                            + ", ".join(f"{r.kind}/{r.name}" for r in resources)
-                            + ". (correlation id: "
-                            + (state.get("correlation_id") or "")
+                            + names
+                            + ". No convergence observation was reported, so the outcome is not yet "
+                            "known — ask for the status of the deployment to resolve it. "
+                            "(correlation id: "
+                            + correlation
                             + ")"
                         )
                     )
@@ -1648,11 +1849,27 @@ class ProvisioningGraph:
             "I never act directly on devices: every change flows through declarative service "
             "intent and the two-confirmation pipeline."
         )
-        final_status = (
-            NetworkProvisioningStatus.FAILED.value
-            if status == NetworkProvisioningStatus.FAILED.value
-            else NetworkProvisioningStatus.COMPLETED.value
-        )
+        # A thread with a submission in flight says so, and says how to get
+        # the outcome — rather than leaving the operator with a bare status
+        # word for a transaction it cannot see.
+        if status == NetworkProvisioningStatus.PROVISIONING.value and state.get("submitted_resources"):
+            text += (
+                " A submission on this thread is still converging; ask \"what is the status of the "
+                "deployment?\" and I will resolve its condition from the cluster."
+            )
+        # An informational answer must not relabel the thread. Only a thread
+        # with nothing in flight ends COMPLETED here; a transaction's status
+        # is owned by the transaction (data-model.md §8).
+        if status in (
+            NetworkProvisioningStatus.FAILED.value,
+            NetworkProvisioningStatus.PROVISIONING.value,
+            NetworkProvisioningStatus.MAPPED.value,
+            NetworkProvisioningStatus.ALLOCATED.value,
+            NetworkProvisioningStatus.APPROVED.value,
+        ):
+            final_status = status
+        else:
+            final_status = NetworkProvisioningStatus.COMPLETED.value
         return {
             "messages": [AIMessage(content=text)],
             "workflow_status": final_status,

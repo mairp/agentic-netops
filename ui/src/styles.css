@@ -199,6 +199,15 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .secondary-button { color: var(--muted); background: transparent; border: 1px solid var(--border); }
 .failure-event { border-color: color-mix(in srgb, var(--danger) 48%, var(--border)); }
 .failure-event .event-stage, .failure-event small { color: var(--danger); }
+/* Per-resource convergence outcomes on the deployer card: the verdict is
+   colour-coded, the controller's own condition message is quoted after it. */
+.convergence-list { margin: 7px 0 0; padding: 0 0 0 14px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.convergence-list li { margin-top: 2px; }
+.convergence-list strong { color: var(--text); font-family: 'IBM Plex Mono', monospace; font-weight: 500; }
+.convergence-ready { color: var(--teal); }
+.convergence-failed { color: var(--danger); }
+.convergence-timeout { color: var(--amber); }
+.convergence-detail { color: var(--faint); }
 .feed-line { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 10px; }
 .feed-line.final { color: var(--teal); }
 .feed-line.muted { color: var(--faint); font-family: 'IBM Plex Mono', monospace; }

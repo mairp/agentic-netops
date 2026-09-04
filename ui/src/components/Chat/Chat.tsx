@@ -27,8 +27,52 @@ function CorrelationChip({ correlationId }: { correlationId: string }) {
   )
 }
 
+type ConvergenceObservation = { resource?: string; outcome?: string; detail?: string | null; ready?: boolean | null }
+
+/*
+ * The deployer card states the transaction's outcome, and only the outcome
+ * the supervisor actually reported. It never implies a watch that is not
+ * running: "converging in the background" is claimed only while the status
+ * really is PROVISIONING.
+ */
+function deployerHeadline(status: string, convergence: ConvergenceObservation[]): string {
+  const ready = convergence.filter(c => c.outcome === 'ready').length
+  const failed = convergence.filter(c => c.outcome === 'failed').length
+  const pending = convergence.filter(c => c.outcome === 'timeout').length
+  if (status === 'COMPLETED' || status === 'VERIFIED') {
+    return ready > 0
+      ? `Deployed — ${ready} resource${ready === 1 ? '' : 's'} verified Ready on the fabric.`
+      : 'Deployed.'
+  }
+  if (status === 'FAILED') {
+    return failed > 0
+      ? `Deployment failed — ${failed} resource${failed === 1 ? '' : 's'} did not converge. The submitted objects remain on the cluster.`
+      : 'Deployment failed.'
+  }
+  if (pending > 0) {
+    return `Submitted — ${pending} resource${pending === 1 ? '' : 's'} still converging past the watch bound. Ask for the status of the deployment to resolve it.`
+  }
+  return 'Submitted — the outcome has not been reported yet.'
+}
+
+function ConvergenceList({ observations }: { observations: ConvergenceObservation[] }) {
+  return (
+    <ul className="convergence-list" aria-label="convergence-outcomes">
+      {observations.map((observation, index) => (
+        <li key={index} className={`convergence-${observation.outcome ?? 'unknown'}`}>
+          <strong>{observation.resource}</strong>
+          {' '}
+          {observation.outcome === 'ready' ? 'converged' : observation.outcome === 'failed' ? 'failed to converge' : 'still converging'}
+          {observation.detail ? <span className="convergence-detail"> — {observation.detail}</span> : null}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 function StageCard({ evt }: { evt: Extract<AgentEvent, { type: 'stage' }> }) {
   const details = evt.payload ?? evt.result
+  const convergence: ConvergenceObservation[] = Array.isArray(evt.payload?.convergence) ? evt.payload.convergence : []
   return (
     <article className="event-card stage-event">
       <div className="event-card-heading">
@@ -36,10 +80,11 @@ function StageCard({ evt }: { evt: Extract<AgentEvent, { type: 'stage' }> }) {
         <span className="event-status"><Check size={12} />{evt.status}</span>
         <CorrelationChip correlationId={evt.correlation_id} />
       </div>
-      {evt.stage === 'deployer' && <p>Deployment in progress…</p>}
+      {evt.stage === 'deployer' && <p aria-label="deployment-outcome">{deployerHeadline(evt.status, convergence)}</p>}
+      {evt.stage === 'deployer' && convergence.length > 0 && <ConvergenceList observations={convergence} />}
       {details && (
         <details open>
-          <summary>{evt.stage === 'mapper' ? 'Interpretation' : evt.stage === 'allocator' ? 'Assignment' : 'Tool result'}</summary>
+          <summary>{evt.stage === 'mapper' ? 'Interpretation' : evt.stage === 'allocator' ? 'Assignment' : evt.stage === 'deployer' ? 'Submission report' : 'Tool result'}</summary>
           <pre aria-label={evt.stage === 'mapper' ? 'interpretation-json' : evt.stage === 'allocator' ? 'assignment-json' : 'tools-result-json'}>{JSON.stringify(details, null, 2)}</pre>
         </details>
       )}

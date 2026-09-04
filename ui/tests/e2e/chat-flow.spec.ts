@@ -35,7 +35,7 @@ function injectEvents(page) {
   })
 }
 
-test('happy path: interpretation, allocation, deployment progress', async ({ page }) => {
+test('happy path: interpretation, allocation, deployment outcome', async ({ page }) => {
   await injectEvents(page)
   await page.goto('http://localhost:3000')
   await page.evaluate(() => (window as any).__injectEvents([
@@ -44,9 +44,9 @@ test('happy path: interpretation, allocation, deployment progress', async ({ pag
     { type: 'confirmation_request', stage: 'mapper', prompt: 'Confirm?', refusable: true, correlation_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
     { type: 'stage', stage: 'allocator', status: 'ALLOCATED', payload: { rdRt: { rd: '1:1', rt: '1:1' } }, correlation_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
     { type: 'confirmation_request', stage: 'allocator', prompt: 'Deploy?', refusable: true, correlation_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
-    { type: 'stage', stage: 'deployer', status: 'PROVISIONING', correlation_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
-    { type: 'progress', stage: 'deployer', status: 'PROVISIONING', message: 'applying manifests', correlation_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
-    { type: 'final', status: 'PROVISIONING', correlation_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
+    { type: 'stage', stage: 'deployer', status: 'COMPLETED', payload: { submitted: [{ kind: 'Network', name: 'net-svc-alpha' }], convergence: [{ resource: 'Network/net-svc-alpha', outcome: 'ready', ready: true, detail: 'applied and verified on all nodes' }] }, correlation_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
+    { type: 'progress', stage: 'deployer', status: 'COMPLETED', message: 'Network/net-svc-alpha converged: applied and verified on all nodes', correlation_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
+    { type: 'final', status: 'COMPLETED', message: 'Deployed. 1 resource(s) reached Ready on the fabric.', correlation_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
   ]))
   await page.getByLabel('Service request').fill('provision service')
   await page.keyboard.press('Enter')
@@ -56,8 +56,40 @@ test('happy path: interpretation, allocation, deployment progress', async ({ pag
   await expect(page.getByText('rd')).toBeVisible()
   await expect(page.getByLabel('confirm-allocator')).toBeVisible()
   await expect(page.getByLabel('decline-allocator')).toBeVisible()
-  await expect(page.getByText('Deployment in progress…')).toBeVisible()
-  await expect(page.getByText('applying manifests')).toBeVisible()
+  // The conversation's last word is the OUTCOME, not "in progress".
+  await expect(page.getByLabel('deployment-outcome')).toHaveText(/Deployed — 1 resource verified Ready/)
+  await expect(page.getByLabel('convergence-outcomes')).toContainText('applied and verified on all nodes')
+  await expect(page.getByText('Deployed. 1 resource(s) reached Ready on the fabric.')).toBeVisible()
+})
+
+test('a submission still converging is not reported as deployed', async ({ page }) => {
+  await injectEvents(page)
+  await page.goto('http://localhost:3000')
+  await page.evaluate(() => (window as any).__injectEvents([
+    { type: 'status', status: 'RECEIVED_REQUEST', thread_id: 't1b', correlation_id: 'ffffffffffffffffffffffffffffffff' },
+    { type: 'stage', stage: 'deployer', status: 'PROVISIONING', payload: { submitted: [{ kind: 'Network', name: 'net-svc-alpha' }], convergence: [{ resource: 'Network/net-svc-alpha', outcome: 'timeout', ready: null, detail: 'convergence timeout after 90s' }] }, correlation_id: 'ffffffffffffffffffffffffffffffff' },
+    { type: 'final', status: 'PROVISIONING', correlation_id: 'ffffffffffffffffffffffffffffffff' }
+  ]))
+  await page.getByLabel('Service request').fill('provision service')
+  await page.keyboard.press('Enter')
+  await expect(page.getByLabel('deployment-outcome')).toContainText('still converging')
+  await expect(page.getByLabel('deployment-outcome')).toContainText('Ask for the status of the deployment')
+})
+
+test('a failed convergence is reported as a failure, not as progress', async ({ page }) => {
+  await injectEvents(page)
+  await page.goto('http://localhost:3000')
+  await page.evaluate(() => (window as any).__injectEvents([
+    { type: 'status', status: 'RECEIVED_REQUEST', thread_id: 't1c', correlation_id: '11111111111111111111111111111111' },
+    { type: 'stage', stage: 'deployer', status: 'FAILED', payload: { submitted: [{ kind: 'Network', name: 'net-svc-alpha' }], convergence: [{ resource: 'Network/net-svc-alpha', outcome: 'failed', ready: false, detail: 'ApplyFailed: leaf2 rejected the VRF binding' }] }, correlation_id: '11111111111111111111111111111111' },
+    { type: 'error', stage: 'deployer', status: 'FAILED', reason: 'deployer submitted Network/net-svc-alpha but convergence failed', correlation_id: '11111111111111111111111111111111' },
+    { type: 'final', status: 'FAILED', correlation_id: '11111111111111111111111111111111' }
+  ]))
+  await page.getByLabel('Service request').fill('provision service')
+  await page.keyboard.press('Enter')
+  await expect(page.getByLabel('deployment-outcome')).toContainText('Deployment failed')
+  await expect(page.getByLabel('convergence-outcomes')).toContainText('leaf2 rejected the VRF binding')
+  await expect(page.getByLabel('failure-reason')).toBeVisible()
 })
 
 test('decline renders cancellation state and preserves thread id', async ({ page }) => {
