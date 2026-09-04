@@ -22,6 +22,7 @@ resource, rolled-back set, and any survivors.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -231,7 +232,13 @@ class DeployerAgent:
         # is the authoritative submission report and exists only because
         # every apply succeeded.
         try:
-            payload = run_deployment_transaction(envelope)
+            # The transaction is synchronous and its convergence watch polls
+            # with a blocking sleep for as long as the watch bound allows.
+            # Called directly it would block this worker's event loop for that
+            # whole window, so the pod stops answering /health and the kubelet
+            # SIGKILLs it mid-transaction (observed 2026-09-04: exit 137 on a
+            # 133 s convergence, liveness 3x20 s). Off the loop it goes.
+            payload = await asyncio.to_thread(run_deployment_transaction, envelope)
         except DeploymentTransactionError as exc:
             logger.error("deployment transaction failed: %s", exc)
             summary = f"Deployment failed during {exc.phase}"

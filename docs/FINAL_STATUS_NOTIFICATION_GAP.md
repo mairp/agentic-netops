@@ -68,7 +68,7 @@ step 7 already polled every submitted object to a terminal observation and
 returned `{"submitted": [...], "convergence": [...]}`. **The supervisor read
 `submitted` and dropped `convergence` on the floor** — it had the outcome in
 hand and reported "in progress" anyway. Everything below follows from that,
-plus six smaller defects found while closing it — two of which only
+plus seven smaller defects found while closing it — three of which only
 the live run could surface.
 
 ## The fix
@@ -143,7 +143,7 @@ running.
 - `agents/provisioning/deployer/watch.py` — quote the Ready=True message
 - `agents/provisioning/deployer/submit.py` — 150 s watch bound
 - `agents/provisioning/deployer/agent.py` — fence-aware tool commands,
-  outcome-first status summary
+  outcome-first status summary, transaction off the event loop
 - `agents/provisioning/deployer/tools/deployer_tools.py` — live
   `get_service_status`
 - `ui/src/components/Chat/Chat.tsx`, `ui/src/styles.css` — outcome card
@@ -178,13 +178,20 @@ thin client over it).
 
    The Network and its condition, not the capability blurb. **PASS**
 
-The timeout branch was also exercised live (thread `final-1788512432`,
-convergence took 133 s against a then-90 s bound): the operator got
-"still converging … ask what is the status of the deployment", asked, and got
-the resolved `Deployed`. The honest-timeout path and the resolution path work
-together as designed.
+The timeout branch was exercised live twice (threads `final-1788512432` and
+`blockfix-1788514139`; convergence took 133 s, then over 200 s as the lab
+accumulated Networks). Both times the operator got "still converging … ask
+what is the status of the deployment". Asking mid-convergence answered
+"Still converging. Network/… Ready=<unset>" — truthful, not a guess — and
+asking again after it converged answered "Deployed … since 09:32:01Z", with
+the thread moving PROVISIONING → COMPLETED. The honest-timeout path and the
+resolution path work together as designed.
 
-### Two defects the unit tests could not have caught
+That the fabric keeps slowing as Networks accumulate is the argument against
+raising the watch bound further: a blocking call cannot outrun an unbounded
+fabric, and the status question is the backstop that does not have to.
+
+### Three defects the unit tests could not have caught
 
 - **The status query selected on the wrong correlation id.** `main.py` mints a
   fresh correlation id per HTTP request, so by the time the operator asks,
@@ -194,6 +201,17 @@ together as designed.
   `submitted_correlation_id` and is what the status query selects on. The unit
   test had seeded both ids to the same value, which is the one case that never
   happens in production; it now seeds them differently.
+- **The convergence watch blocked the deployer's event loop.**
+  `_agent_node` is `async` but called `run_deployment_transaction`
+  synchronously, and the watch polls with a blocking `time.sleep`. The worker
+  therefore stopped answering `/health` for the whole watch window. At the old
+  45 s bound that stayed under the liveness threshold (3 x 20 s); at 150 s it
+  did not, and the kubelet SIGKILLed the deployer mid-transaction (exit 137,
+  observed on a 133 s convergence). The transaction now runs off the loop via
+  `asyncio.to_thread`. Verified by probing `/health` throughout a full 150 s
+  watch: 40/40 responses were 200 and the pod recorded zero restarts. A
+  regression test asserts the loop keeps running during a transaction (it
+  reports 1 heartbeat unfixed, >5 fixed).
 - **Convergence is slower than first measured.** The original repro observed
   ~35 s; a loaded fabric took 133 s (Network created 09:00:43, Ready 09:02:56).
   The watch bound is now 150 s and the deployer's call bound 210 s. It stays a

@@ -192,3 +192,59 @@ class TestStatusSummary:
         summary = DeployerAgent()._summary_status({"phase": "Unknown", "error": "HTTP 403", "resources": []})
         assert summary.startswith("Status unknown.")
         assert "HTTP 403" in summary
+
+
+class TestTheTransactionDoesNotBlockTheEventLoop:
+    """A blocking convergence watch on the event loop stops the worker
+    answering /health, and the kubelet SIGKILLs it mid-transaction (observed
+    live 2026-09-04: exit 137 on a 133 s convergence against a 3x20 s
+    liveness probe). The transaction must run off the loop."""
+
+    async def test_health_stays_responsive_while_a_transaction_runs(self, monkeypatch):
+        import asyncio
+        import time
+
+        from provisioning.deployer import submit as submit_mod
+        from provisioning.deployer.agent import DeployerAgent
+
+        def slow_transaction(envelope):
+            time.sleep(1.0)  # stands in for the convergence watch
+            return {"submitted": []}
+
+        monkeypatch.setattr(
+            "provisioning.deployer.agent.run_deployment_transaction", slow_transaction
+        )
+        monkeypatch.setattr(submit_mod, "build_default_client", lambda: None)
+
+        envelope = json.dumps(
+            {
+                "action": "submit",
+                "intent": {
+                    "serviceId": "svc-alpha",
+                    "type": "VPWS",
+                    "tenant": "tenant-a",
+                    "endpoints": [
+                        {"node": "leaf1", "attachment": "Ethernet1"},
+                        {"node": "leaf2", "attachment": "Ethernet2"},
+                    ],
+                },
+                "context": {"correlationId": CID, "threadId": "t", "principal": "p"},
+            }
+        )
+
+        heartbeats = 0
+
+        async def heartbeat():
+            nonlocal heartbeats
+            while True:
+                await asyncio.sleep(0.05)
+                heartbeats += 1
+
+        beat = asyncio.create_task(heartbeat())
+        try:
+            await DeployerAgent().ainvoke(envelope)
+        finally:
+            beat.cancel()
+
+        # A blocked loop lets through ~0 heartbeats over the 1 s transaction.
+        assert heartbeats > 5, f"event loop was blocked during the transaction ({heartbeats} heartbeats)"
