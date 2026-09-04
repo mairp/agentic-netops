@@ -393,7 +393,11 @@ class StubTransport:
         self.calls.append(("deployer", text))
         body = self._fenced_body(text)
         m = re.search(r"\{.*\}", body, re.DOTALL)
-        intent = json.loads(m.group(0))
+        payload = json.loads(m.group(0))
+        # Production traffic is the deployment envelope
+        # (docs/INTENT_TIER_DEPLOYMENT_TRANSACTION.md); a bare intent is
+        # the compatibility form.
+        intent = payload.get("intent", payload) if isinstance(payload, dict) else payload
         ref = {
             "apiVersion": "network.kubenet.dev/v1alpha1",
             "kind": "Network",

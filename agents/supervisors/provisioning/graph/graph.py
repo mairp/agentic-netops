@@ -1468,8 +1468,38 @@ class ProvisioningGraph:
                 stage="deployer",
             )
 
+        # The production deployment envelope (docs/INTENT_TIER_DEPLOYMENT_
+        # TRANSACTION.md): the validated intent plus the immutable request
+        # context, so every submitted resource carries the conversation's
+        # correlation metadata and the deployer audit event names the same
+        # principal and thread.
+        correlation_id = state.get("correlation_id") or ""
+        if not correlation_id:
+            correlation_id = new_request_nonce()
+            state["correlation_id"] = correlation_id
+        thread_id = (config or {}).get("configurable", {}).get("thread_id", "default_session")
+        try:
+            envelope = canonical_json(
+                {
+                    "action": "submit",
+                    "intent": json.loads(intent_json),
+                    "context": {
+                        "correlationId": correlation_id,
+                        "threadId": thread_id,
+                        "principal": state.get("principal") or "operator",
+                    },
+                }
+            )
+        except (TypeError, ValueError) as exc:
+            return self._refuse(
+                state, config,
+                f"submission precondition failed: allocated intent is not valid JSON ({exc})",
+                DEFAULT_SUGGESTION,
+                stage="deployer",
+            )
+
         nonce = new_request_nonce()
-        fenced = wrap_worker_text(redact_prompt(intent_json), nonce)  # T095
+        fenced = wrap_worker_text(redact_prompt(envelope), nonce)  # T095
         logger.info("[Deployer] preconditions held; calling deployer worker (nonce=%s)", nonce[:8])
         try:
             result = await self.transport.call_deployer(fenced)
@@ -1492,11 +1522,55 @@ class ProvisioningGraph:
             }
 
         payload, worker_text = extract_payload_and_text(result, DEPLOYER_MARKER, "deployer")
-        # Phase 3 boundary: the deployer's real submission (Go translator,
-        # atomic all-or-nothing apply, convergence watch — FR-017..FR-019)
-        # lands with the deployer's production executor. In this phase the
-        # contract submission report is {"submitted": [ResourceRef...]};
-        # anything else is out-of-contract and nothing is submitted.
+        # A named transaction failure ({"failed": {...}}) is a contract
+        # report, not an out-of-contract payload: the deployer names the
+        # failed phase, the full rolled-back set, and any survivor, and
+        # never reports the transaction as submitted (deployment contract,
+        # failure behavior table).
+        if isinstance(payload, dict) and isinstance(payload.get("failed"), dict):
+            failure = payload["failed"]
+            phase = str(failure.get("phase") or "transaction")
+            resource = failure.get("resource")
+            rolled_back = failure.get("rolledBack") or []
+            survivors = failure.get("survivors") or []
+            detail = str(failure.get("message") or "deployment transaction failed")
+            try:
+                get_metrics().record_stage_result(stage="deployer", success=False)
+            except Exception:
+                pass
+            self._audit(
+                state, config, "refuse",
+                reason=f"deployer reported transaction failure during {phase}: {detail}",
+            )
+            content = redact_model_response(
+                f"The deployment failed during the {phase} phase"
+                + (f" ({resource})" if resource else "")
+                + f": {detail}. Nothing is reported as submitted."
+                + (f" {len(rolled_back)} resource(s) were rolled back." if rolled_back else "")
+                + (
+                    " Resources that could not be deleted (rollback survivors): "
+                    + ", ".join(
+                        f"{r.get('kind')}/{r.get('name')}" for r in survivors if isinstance(r, dict)
+                    )
+                    + "."
+                    if survivors
+                    else ""
+                )
+                + f" (correlation id: {state.get('correlation_id') or ''})"
+            )
+            return {
+                "next_node": END,
+                "workflow_status": NetworkProvisioningStatus.FAILED.value,
+                "refusal_reason": f"deployer transaction failure during {phase}: {detail}",
+                "suggestion": DEFAULT_SUGGESTION,
+                "awaiting_confirmation": False,
+                "pending_action": None,
+                "messages": [AIMessage(content=content)],
+            }
+        # The deployer's real submission (Go translator, atomic all-or-nothing
+        # apply, convergence watch — FR-017..FR-019) produced an authoritative
+        # report {"submitted": [ResourceRef...]}; anything else is
+        # out-of-contract and nothing is submitted.
         if isinstance(payload, dict) and isinstance(payload.get("submitted"), list):
             resources: list[ResourceRef] = []
             try:

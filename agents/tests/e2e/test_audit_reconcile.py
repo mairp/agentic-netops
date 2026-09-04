@@ -143,7 +143,10 @@ class SubmittingDeployerTransport(StubTransport):
         m = re.search(r">>>\n(.*?)\n<<<END_DATA", text, re.DOTALL)
         body = m.group(1) if m else text
         jm = re.search(r"\{.*\}", body, re.DOTALL)
-        intent = json.loads(jm.group(0))
+        payload = json.loads(jm.group(0))
+        # Production traffic is the deployment envelope (deployment
+        # transaction contract); a bare intent is the compatibility form.
+        intent = payload.get("intent", payload) if isinstance(payload, dict) else payload
         ref = {
             "apiVersion": "network.kubenet.dev/v1alpha1",
             "kind": "Network",

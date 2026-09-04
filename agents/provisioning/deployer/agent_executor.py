@@ -1,25 +1,21 @@
-"""Phase 2 stub executor for the deployer worker (T084).
+"""Deployer worker executor — runs the deployment transaction agent.
 
-The real flow — the APPROVED + confirmation-2 invariant check (data-model.md
-§1), the translator dry-run, the declarative ``network.kubenet.dev/networks``
-+ ``agentic-netops.io/srv6services`` submission into ``agentic-netops-intent``, the
-convergence watch, and rollback (Decision 10) — lands in Phase 3. The stub
-submits nothing: it completes with an explicit skeleton answer.
+Mirrors the allocator executor: extract the supervisor's fenced payload,
+run :class:`~provisioning.deployer.agent.DeployerAgent`, and enqueue the
+resulting A2A message (authoritative DataPart + SUBMISSION_JSON marker).
+Every submission decision — envelope validation, translation, dry-run,
+apply, rollback, convergence — happens inside the agent; this executor
+only moves messages.
 """
 
 from __future__ import annotations
 
 import logging
-from uuid import uuid4
 
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
 from a2a.types import (
-    Message,
-    Part,
-    Role,
     Task,
-    TextPart,
     UnsupportedOperationError,
 )
 from a2a.utils import new_task
@@ -31,7 +27,12 @@ WORKER_NAME = "deployer"
 
 
 class DeploymentAgentExecutor(AgentExecutor):
-    """Stub: acknowledges the task and completes it as a skeleton."""
+    """Call DeployerAgent and emit its authoritative message."""
+
+    def __init__(self) -> None:
+        from provisioning.deployer.agent import DeployerAgent
+
+        self._agent = DeployerAgent()
 
     async def execute(
         self,
@@ -45,25 +46,22 @@ class DeploymentAgentExecutor(AgentExecutor):
             task = new_task(context.message)
             await event_queue.enqueue_event(task)
 
-        await event_queue.enqueue_event(
-            Message(
-                message_id=str(uuid4()),
-                role=Role.agent,
-                metadata={"name": "Network Deployer Agent", "skeleton": True, "worker": WORKER_NAME},
-                parts=[
-                    Part(
-                        TextPart(
-                            text=(
-                                "skeleton (Phase 2): deployer stub — nothing has "
-                                "been submitted to the cluster. Submission lands in "
-                                "Phase 3 behind the APPROVED + confirmation-2 invariant."
-                            )
-                        )
-                    )
-                ],
-            )
+        # The supervisor fences every payload it sends (T095); the agent's
+        # ingest unwraps the fence itself.
+        request_text = (
+            context.message.parts[0].root.text
+            if context.message and context.message.parts
+            else ""
         )
-        logger.debug("Deployment stub execution completed")
+
+        try:
+            message, _payload = await self._agent.ainvoke(request_text)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("deployment failed: %s", exc)
+            raise
+
+        await event_queue.enqueue_event(message)
+        logger.debug("Deployment execution completed")
 
     async def cancel(
         self,

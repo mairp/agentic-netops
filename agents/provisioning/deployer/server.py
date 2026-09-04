@@ -37,10 +37,10 @@ from uvicorn import Config, Server
 
 from common.exceptions import AuthError
 from config.config import DEFAULT_MESSAGE_TRANSPORT, ENABLE_HTTP, TRANSPORT_SERVER_ENDPOINT
+from config.telemetry import init_telemetry
 from provisioning.deployer.agent_executor import DeploymentAgentExecutor
 from provisioning.deployer.card import AGENT_CARD
 
-from config.telemetry import init_telemetry
 init_telemetry(app_name="intent-deployer")
 
 factory = AgntcyFactory("agentic_netops.network_deployer", enable_tracing=True)

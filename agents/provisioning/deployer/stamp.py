@@ -9,7 +9,8 @@ labels/annotations under metadata. They are deterministic and idempotent.
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from common.telemetry import CORRELATION_LABEL, get_trace_correlation_id
 
