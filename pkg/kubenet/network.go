@@ -15,6 +15,34 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// NetworkVLAN is a tolerant read-side shape for spec.vlans entries.
+type NetworkVLAN struct {
+	Name string `json:"name"`
+	VLAN int64  `json:"vlan"`
+}
+
+// AccessList is a tolerant read-side shape for spec.accessLists.
+type AccessList struct {
+	Name          string    `json:"name"`
+	Stage         string    `json:"stage"`
+	Type          string    `json:"type"`
+	DefaultAction string    `json:"defaultAction,omitempty"`
+	Rules         []ACLRule `json:"rules,omitempty"`
+}
+
+// ACLRule is a tolerant read-side shape for one ACL rule.
+type ACLRule struct {
+	Name              string `json:"name"`
+	Priority          int64  `json:"priority"`
+	Action            string `json:"action"`
+	Protocol          string `json:"protocol,omitempty"`
+	SourcePrefix      string `json:"sourcePrefix,omitempty"`
+	DestinationPrefix string `json:"destinationPrefix,omitempty"`
+	SourcePort        string `json:"sourcePort,omitempty"`
+	DestinationPort   string `json:"destinationPort,omitempty"`
+	Description       string `json:"description,omitempty"`
+}
+
 // Schema for a single L3VPN router (VRF) intent, parsed from Spec["routers"].
 type NetworkRouter struct {
 	Name         string        `json:"name"`
@@ -104,6 +132,16 @@ func (n *Network) Routers() []NetworkRouter {
 // Attachments parses Spec["attachments"].
 func (n *Network) Attachments() []NetworkAttachment {
 	return decodeList[NetworkAttachment](n.Spec["attachments"])
+}
+
+// VLANs parses Spec["vlans"].
+func (n *Network) VLANs() []NetworkVLAN {
+	return decodeList[NetworkVLAN](n.Spec["vlans"])
+}
+
+// AccessLists parses Spec["accessLists"].
+func (n *Network) AccessLists() []AccessList {
+	return decodeList[AccessList](n.Spec["accessLists"])
 }
 
 // BridgeDomains parses Spec["bridgeDomains"].

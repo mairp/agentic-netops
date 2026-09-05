@@ -214,6 +214,13 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 			causes = append(causes, "endpoints: vlan requires >=1 endpoint")
 		}
 		causes = append(causes, endpointVLANCauses(in.Endpoints, "vlan")...)
+		// Reserved VLAN band 4001-4094 is used for derived L3VLANs; refuse here with usable range.
+		for i, ep := range in.Endpoints {
+			if ep.VLAN > 4000 {
+				causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: %d is reserved (4001-4094); usable range is 1-4000", i, ep.VLAN))
+			}
+		}
+
 	case ServiceMACVRF:
 		if in.L2VNI == 0 {
 			causes = append(causes, "l2vni: required for mac-vrf")
@@ -224,6 +231,13 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 		// A mac-vrf that terminates a gateway is useful on a single leaf; one
 		// that only bridges needs somewhere to bridge to.
 		minEndpoints := 2
+		// Reserved VLAN band 4001-4094 applies to mac-vrf too
+		for i, ep := range in.Endpoints {
+			if ep.VLAN > 4000 {
+				causes = append(causes, fmt.Sprintf("endpoints[%d].vlan: %d is reserved (4001-4094); usable range is 1-4000", i, ep.VLAN))
+			}
+		}
+
 		if in.AnycastGateway != nil {
 			minEndpoints = 1
 		}

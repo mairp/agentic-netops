@@ -51,15 +51,9 @@ type Attachment struct {
 }
 
 // NetworkSpec is ordered to produce deterministic YAML.
-type NetworkVLAN struct {
-	Name string `json:"name"`
-	VLAN int    `json:"vlan"`
-}
-
-// NetworkSpec is ordered to produce deterministic YAML.
 // It includes legacy and construct-era fields; writers populate only the
 // fields that match the chosen construct(s).
- type NetworkSpec struct {
+type NetworkSpec struct {
 	Description   string         `json:"description,omitempty"`
 	VLANs         []NetworkVLAN  `json:"vlans,omitempty"`
 	BridgeDomains []BridgeDomain `json:"bridgeDomains,omitempty"`
@@ -229,6 +223,7 @@ func buildYAML(n *KubenetNetwork) string {
 		"agentic-netops.io/migration-input-hash",
 		"agentic-netops.io/tenant",
 		"agentic-netops.io/service-type",
+		"agentic-netops.io/source-service-type",
 		"agentic-netops.io/limited-equivalence",
 	}
 	for _, k := range keys {
@@ -315,6 +310,48 @@ func buildYAML(n *KubenetNetwork) string {
 			}
 		}
 	}
+	// AccessLists
+	if len(n.Spec.AccessLists) > 0 {
+		fmt.Fprintf(b, "  accessLists:\n")
+		for _, a := range n.Spec.AccessLists {
+			fmt.Fprintf(b, "  - name: %s\n", a.Name)
+			fmt.Fprintf(b, "    stage: %s\n", a.Stage)
+			fmt.Fprintf(b, "    type: %s\n", a.Type)
+			if a.DefaultAction != "" {
+				fmt.Fprintf(b, "    defaultAction: %s\n", a.DefaultAction)
+			}
+			if len(a.Rules) > 0 {
+				fmt.Fprintf(b, "    rules:\n")
+				for _, r := range a.Rules {
+					fmt.Fprintf(b, "    - name: %s\n", r.Name)
+					if r.Priority != 0 {
+						fmt.Fprintf(b, "      priority: %d\n", r.Priority)
+					}
+					if r.Action != "" {
+						fmt.Fprintf(b, "      action: %s\n", r.Action)
+					}
+					if r.Protocol != "" {
+						fmt.Fprintf(b, "      protocol: %s\n", r.Protocol)
+					}
+					if r.SourcePrefix != "" {
+						fmt.Fprintf(b, "      sourcePrefix: %s\n", r.SourcePrefix)
+					}
+					if r.DestinationPrefix != "" {
+						fmt.Fprintf(b, "      destinationPrefix: %s\n", r.DestinationPrefix)
+					}
+					if r.SourcePort != "" {
+						fmt.Fprintf(b, "      sourcePort: %s\n", r.SourcePort)
+					}
+					if r.DestinationPort != "" {
+						fmt.Fprintf(b, "      destinationPort: %s\n", r.DestinationPort)
+					}
+					if r.Description != "" {
+						fmt.Fprintf(b, "      description: %s\n", r.Description)
+					}
+				}
+			}
+		}
+	}
 	// Attachments
 	if len(n.Spec.Attachments) > 0 {
 		fmt.Fprintf(b, "  attachments:\n")
@@ -343,15 +380,6 @@ func attachmentsForL2(eps []Endpoint) []Attachment {
 	var out []Attachment
 	for _, ep := range eps {
 		out = append(out, Attachment{Node: ep.Node, VLAN: ep.VLAN, Attachment: ep.Attachment})
-	}
-	return out
-}
-
-// attachmentsForPorts renders only node and attachment, leaving vlan/vrf empty.
-func attachmentsForPorts(eps []Endpoint) []Attachment {
-	var out []Attachment
-	for _, ep := range eps {
-		out = append(out, Attachment{Node: ep.Node, Attachment: ep.Attachment})
 	}
 	return out
 }

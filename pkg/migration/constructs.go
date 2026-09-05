@@ -157,7 +157,7 @@ type ACLRule struct {
 	Priority int `json:"priority"`
 	// Action is permit or deny (rendered FORWARD / DROP).
 	Action string `json:"action"`
-	// Protocol is tcp, udp, icmp, icmpv6, any, or a numeric IP protocol.
+	// Protocol is tcp, udp, icmp, igmp, rsvp, gre, ah, pim, l2tp, any, or a numeric IP protocol.
 	Protocol string `json:"protocol,omitempty"`
 	// SourcePrefix / DestinationPrefix are CIDR prefixes matching the address
 	// family of the ACL type.
@@ -178,18 +178,18 @@ type ACL struct {
 	Name string `json:"name,omitempty"`
 	// Stage is ingress or egress.
 	Stage string `json:"stage"`
-	// Type is l3 (IPv4), l3v6 (IPv6) or l2 (MAC).
+	// Type is l3 (IPv4) or l3v6 (IPv6).
 	Type string `json:"type"`
 	// Rules is the ordered match/action set; at least one is required.
 	Rules []ACLRule `json:"rules"`
 	// DefaultAction, when set, appends a terminal lowest-priority rule so the
 	// list's behaviour for unmatched traffic is declared rather than implied.
 	DefaultAction string `json:"defaultAction,omitempty"`
+	// BindTo scopes the binding target. Only "port" is accepted; anything else
+	// is refused with a cause stating the list binds to ports.
+	BindTo string `json:"bindTo,omitempty"`
 }
 
-// AccessList is a historical alias used by the translator's NetworkSpec.
-// Keep the symbol for compatibility; it is an exact alias of ACL.
-type AccessList = ACL
 
 // ACL vocabulary accepted on input, folded to the canonical spelling.
 var (
@@ -200,7 +200,6 @@ var (
 	aclTypes = map[string]string{
 		"l3": "l3", "ipv4": "l3", "ip": "l3",
 		"l3v6": "l3v6", "ipv6": "l3v6", "l3ipv6": "l3v6",
-		"l2": "l2", "mac": "l2",
 	}
 	aclActions = map[string]string{
 		"permit": "permit", "allow": "permit", "forward": "permit", "accept": "permit",
@@ -208,7 +207,8 @@ var (
 	}
 	aclProtocols = map[string]string{
 		"any": "any", "": "any",
-		"tcp": "tcp", "udp": "udp", "icmp": "icmp", "icmpv6": "icmpv6", "ipv6-icmp": "icmpv6",
+		"tcp": "tcp", "udp": "udp", "icmp": "icmp",
+		"igmp": "igmp", "rsvp": "rsvp", "gre": "gre", "ah": "ah", "pim": "pim", "l2tp": "l2tp",
 	}
 )
 
@@ -277,8 +277,11 @@ func aclCauses(a *ACL) []string {
 	if _, ok := aclStages[foldWord(a.Stage)]; !ok {
 		causes = append(causes, fmt.Sprintf("acl.stage: required, one of ingress, egress (got %q)", a.Stage))
 	}
+	if a.BindTo != "" && a.BindTo != "port" {
+		causes = append(causes, fmt.Sprintf("acl.bindTo: %q is unsupported; an access list binds to ports", a.BindTo))
+	}
 	if _, ok := aclTypes[typeKey(ServiceType(a.Type))]; !ok {
-		causes = append(causes, fmt.Sprintf("acl.type: required, one of l3, l3v6, l2 (got %q)", a.Type))
+		causes = append(causes, fmt.Sprintf("acl.type: required, one of l3, l3v6 (got %q)", a.Type))
 	}
 	if a.DefaultAction != "" {
 		if _, ok := aclActions[foldWord(a.DefaultAction)]; !ok {
@@ -287,6 +290,9 @@ func aclCauses(a *ACL) []string {
 	}
 	if len(a.Rules) == 0 {
 		causes = append(causes, "acl.rules: at least one rule is required")
+		if a.Name != "" {
+			causes = append(causes, "acl: a service carries its own rules and its name is a label; provide rules instead of referencing by name")
+		}
 	}
 	seenName := map[string]bool{}
 	seenPriority := map[int]bool{}
@@ -298,8 +304,10 @@ func aclCauses(a *ACL) []string {
 		} else {
 			seenName[r.Name] = true
 		}
-		if r.Priority < 1 || r.Priority > 65535 {
-			causes = append(causes, fmt.Sprintf("acl.rules[%d].priority: must be 1-65535 (got %d)", i, r.Priority))
+		if r.Priority == 1 {
+			causes = append(causes, fmt.Sprintf("acl.rules[%d].priority: 1 is reserved for the default action; usable priorities are 2-65535", i))
+		} else if r.Priority < 2 || r.Priority > 65535 {
+			causes = append(causes, fmt.Sprintf("acl.rules[%d].priority: must be 2-65535 (got %d)", i, r.Priority))
 		} else if seenPriority[r.Priority] {
 			// Two rules at one priority make evaluation order undefined, and
 			// which of a permit and a deny wins is exactly what an operator
@@ -314,7 +322,7 @@ func aclCauses(a *ACL) []string {
 		if _, ok := aclProtocols[foldWord(r.Protocol)]; !ok {
 			if n, err := strconv.Atoi(r.Protocol); err != nil || n < 0 || n > 255 {
 				causes = append(causes, fmt.Sprintf(
-					"acl.rules[%d].protocol: one of any, tcp, udp, icmp, icmpv6 or an IP protocol number 0-255 (got %q)", i, r.Protocol))
+					"acl.rules[%d].protocol: one of any, tcp, udp, icmp, igmp, rsvp, gre, ah, pim, l2tp or an IP protocol number 0-255 (got %q)", i, r.Protocol))
 			}
 		}
 		causes = append(causes, aclPrefixCauses(i, "sourcePrefix", r.SourcePrefix, a.Type)...)
@@ -345,26 +353,12 @@ func aclPrefixCauses(i int, field, prefix, aclType string) []string {
 		if p.Addr().Is4() {
 			return []string{fmt.Sprintf("acl.rules[%d].%s: %s is IPv4 but the acl type is l3v6; use type l3", i, field, prefix)}
 		}
-	case "l2":
-		return []string{fmt.Sprintf("acl.rules[%d].%s: an l2 acl matches MAC addresses, not IP prefixes", i, field)}
 	}
 	return nil
 }
 
 // aclPortCauses rejects an L4 port on a rule whose protocol has none, and any
 // port or range outside 0-65535.
-// accessListFor materializes a rendered ACL name defaulted from service id
-// and returns a distinct value to carry within the NetworkSpec.
-func accessListFor(a *ACL, serviceID string) AccessList {
-	if a == nil {
-		return AccessList{}
-	}
-	out := *a
-	if out.Name == "" {
-		out.Name = fmt.Sprintf("acl-%s", serviceID)
-	}
-	return out
-}
 
 func aclPortCauses(i int, field, port, protocol string) []string {
 	if port == "" {
