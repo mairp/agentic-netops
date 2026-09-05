@@ -1,0 +1,14 @@
+{
+  "serviceId": "r_acl_no_stage",
+  "type": "acl",
+  "tenant": "acme",
+  "acl": {
+    "type": "l3",
+    "rules": [
+      {"name": "r1", "priority": 10, "action": "permit"}
+    ]
+  },
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet1"}
+  ]
+}

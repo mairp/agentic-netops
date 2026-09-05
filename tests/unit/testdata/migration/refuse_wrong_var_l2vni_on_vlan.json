@@ -1,0 +1,9 @@
+{
+  "serviceId": "r_wrong_l2vni_vlan",
+  "type": "vlan",
+  "tenant": "acme",
+  "l2vni": 10001,
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet1", "vlan": 120}
+  ]
+}

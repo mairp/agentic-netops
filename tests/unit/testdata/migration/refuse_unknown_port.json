@@ -1,0 +1,8 @@
+{
+  "serviceId": "r_unknown_port",
+  "type": "vlan",
+  "tenant": "acme",
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet99", "vlan": 120}
+  ]
+}

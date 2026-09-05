@@ -1,0 +1,16 @@
+{
+  "serviceId": "r_acl_dup_prio",
+  "type": "acl",
+  "tenant": "acme",
+  "acl": {
+    "stage": "ingress",
+    "type": "l3",
+    "rules": [
+      {"name": "r1", "priority": 100, "action": "permit"},
+      {"name": "r2", "priority": 100, "action": "deny"}
+    ]
+  },
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet1"}
+  ]
+}

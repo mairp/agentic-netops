@@ -1,0 +1,15 @@
+{
+  "serviceId": "r_acl_type_l2",
+  "type": "acl",
+  "tenant": "acme",
+  "acl": {
+    "stage": "ingress",
+    "type": "l2",
+    "rules": [
+      {"name": "r1", "priority": 10, "action": "deny"}
+    ]
+  },
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet1"}
+  ]
+}

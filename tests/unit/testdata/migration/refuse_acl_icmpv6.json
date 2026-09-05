@@ -1,0 +1,15 @@
+{
+  "serviceId": "r_acl_icmpv6",
+  "type": "acl",
+  "tenant": "acme",
+  "acl": {
+    "stage": "ingress",
+    "type": "l3v6",
+    "rules": [
+      {"name": "r1", "priority": 10, "action": "permit", "protocol": "icmpv6"}
+    ]
+  },
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet1"}
+  ]
+}

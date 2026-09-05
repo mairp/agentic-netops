@@ -1,0 +1,8 @@
+{
+  "serviceId": "c_vlan_120",
+  "type": "vlan",
+  "tenant": "acme",
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet1", "vlan": 120}
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "serviceId": "r_vlan_mismatch",
+  "type": "mac-vrf",
+  "tenant": "acme",
+  "rdRt": {"rd": "65000:302", "importRT": ["65000:302"], "exportRT": ["65000:302"]},
+  "l2vni": 10302,
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet1", "vlan": 200},
+    {"node": "leaf02", "attachment": "ethernet1", "vlan": 201}
+  ]
+}

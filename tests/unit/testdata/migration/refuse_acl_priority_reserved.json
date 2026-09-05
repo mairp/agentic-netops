@@ -1,0 +1,15 @@
+{
+  "serviceId": "r_acl_prio_reserved",
+  "type": "acl",
+  "tenant": "acme",
+  "acl": {
+    "stage": "ingress",
+    "type": "l3",
+    "rules": [
+      {"name": "default", "priority": 1, "action": "deny"}
+    ]
+  },
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet1"}
+  ]
+}

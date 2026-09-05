@@ -1,0 +1,11 @@
+{
+  "serviceId": "c_macvrf_100",
+  "type": "mac-vrf",
+  "tenant": "blue",
+  "rdRt": {"rd": "65000:100", "importRT": ["65000:100"], "exportRT": ["65000:100"]},
+  "l2vni": 10100,
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet2", "vlan": 100},
+    {"node": "leaf02", "attachment": "ethernet2", "vlan": 100}
+  ]
+}

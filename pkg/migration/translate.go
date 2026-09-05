@@ -51,10 +51,20 @@ type Attachment struct {
 }
 
 // NetworkSpec is ordered to produce deterministic YAML.
-type NetworkSpec struct {
+type NetworkVLAN struct {
+	Name string `json:"name"`
+	VLAN int    `json:"vlan"`
+}
+
+// NetworkSpec is ordered to produce deterministic YAML.
+// It includes legacy and construct-era fields; writers populate only the
+// fields that match the chosen construct(s).
+ type NetworkSpec struct {
 	Description   string         `json:"description,omitempty"`
+	VLANs         []NetworkVLAN  `json:"vlans,omitempty"`
 	BridgeDomains []BridgeDomain `json:"bridgeDomains,omitempty"`
 	Routers       []Router       `json:"routers,omitempty"`
+	AccessLists   []AccessList   `json:"accessLists,omitempty"`
 	Attachments   []Attachment   `json:"attachments,omitempty"`
 }
 
@@ -100,23 +110,59 @@ func Translate(in *ServiceInput) (*OutputBundle, error) {
 			"agentic-netops.io/service-type":         string(in.Type),
 		},
 	}
+	if in.SourceType != "" {
+		// Provenance for a request that arrived in the service-provider
+		// vocabulary: the object says which construct it became AND what it
+		// was asked for, so an audit of a migrated service can be traced back
+		// to its source without keeping the old type as the service's type.
+		metadata["annotations"].(map[string]string)["agentic-netops.io/source-service-type"] = string(in.SourceType)
+	}
+	if in.SourceType == LegacyVPWS {
+		metadata["annotations"].(map[string]string)["agentic-netops.io/limited-equivalence"] = "vpws-to-l2vni"
+	}
 
-	spec := NetworkSpec{Description: fmt.Sprintf("Migrated service %s (%s)", in.ServiceID, in.Type)}
+	spec := NetworkSpec{Description: fmt.Sprintf("Service %s (%s)", in.ServiceID, in.Type)}
 	switch in.Type {
-	case ServiceVPLS, ServiceVPWS:
+	case ServiceVLAN:
+		// A local broadcast domain: the VLAN row and the ports in it. No
+		// tunnel map, no route targets — nothing leaves the node.
+		spec.VLANs = []NetworkVLAN{{
+			Name: fmt.Sprintf("vlan-%s", in.ServiceID),
+			VLAN: endpointVLAN(in.Endpoints),
+		}}
+		spec.Attachments = attachmentsForL2(in.Endpoints)
+	case ServiceMACVRF:
 		bd := BridgeDomain{
 			Name:  fmt.Sprintf("bd-%s", in.ServiceID),
 			VLAN:  endpointVLAN(in.Endpoints),
 			L2VNI: in.L2VNI,
-			EVPN:  &EVPN{RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT}},
+			// The L2 half needs the service's own route targets. Without them
+			// FRR falls back to an auto-derived RD/RT per leaf — and the
+			// leaves have different eBGP ASNs, so the derived targets do not
+			// match and no MAC route is ever imported across the fabric (seen
+			// live: RD 10.0.0.21:16 on one leaf, 10.0.0.22:12 on the other,
+			// for the same bridge domain).
+			EVPN: &EVPN{RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT}},
+		}
+		if in.AnycastGateway != nil {
+			// Symmetric IRB. The bridge domain's irb.vrf must name a router in
+			// THIS Network, or the renderer has no L3VNI to put the gateway
+			// SVI in. The intent's gateway names a tenant-scoped instance and
+			// never matched the per-service router the translator emits, so
+			// every IRB rendered as a plain bridge domain with the routed half
+			// dropped.
+			r := Router{
+				Name:         fmt.Sprintf("vrf-%s", in.ServiceID),
+				RD:           in.RDRT.RD,
+				RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT},
+				L3VNI:        in.L3VNI,
+			}
+			bd.IRB = &IRB{VRF: r.Name, GatewayV4: in.AnycastGateway.GatewayV4, GatewayV6: in.AnycastGateway.GatewayV6}
+			spec.Routers = []Router{r}
 		}
 		spec.BridgeDomains = []BridgeDomain{bd}
 		spec.Attachments = attachmentsForL2(in.Endpoints)
-		if in.Type == ServiceVPWS {
-			ann := metadata["annotations"].(map[string]string)
-			ann["agentic-netops.io/limited-equivalence"] = "vpws-to-l2vni"
-		}
-	case ServiceL3VPN:
+	case ServiceIPVRF:
 		r := Router{
 			Name:         fmt.Sprintf("vrf-%s", in.ServiceID),
 			RD:           in.RDRT.RD,
@@ -126,36 +172,18 @@ func Translate(in *ServiceInput) (*OutputBundle, error) {
 		}
 		spec.Routers = []Router{r}
 		spec.Attachments = attachmentsForL3(in.Endpoints, r.Name)
-	case ServiceIRB:
-		r := Router{
-			Name:         fmt.Sprintf("vrf-%s", in.ServiceID),
-			RD:           in.RDRT.RD,
-			RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT},
-			L3VNI:        in.L3VNI,
-		}
-		// The bridge domain's irb.vrf must name a router in THIS Network, or
-		// the renderer has no L3VNI to put the gateway SVI in. The intent's
-		// irbGateway.vrf is a tenant-scoped label (vrf-<tenant>) and never
-		// matched the per-service router the translator emits, so every IRB
-		// rendered as a plain VPLS with the routed half dropped.
-		bd := BridgeDomain{
-			Name:  fmt.Sprintf("bd-%s", in.ServiceID),
-			VLAN:  endpointVLAN(in.Endpoints),
-			L2VNI: in.L2VNI,
-			// The L2 half needs the service's own route targets, exactly like
-			// VPLS and VPWS. Without them FRR falls back to an auto-derived
-			// RD/RT per leaf — and the leaves have different eBGP ASNs, so the
-			// derived targets do not match and no MAC route is ever imported
-			// across the fabric (seen live: RD 10.0.0.21:16 on one leaf,
-			// 10.0.0.22:12 on the other, for the same bridge domain).
-			EVPN: &EVPN{RouteTargets: RouteTargets{Import: in.RDRT.ImportRT, Export: in.RDRT.ExportRT}},
-			IRB:  &IRB{VRF: r.Name, GatewayV4: in.IRBGateway.GatewayV4, GatewayV6: in.IRBGateway.GatewayV6},
-		}
-		spec.Routers = []Router{r}
-		spec.BridgeDomains = []BridgeDomain{bd}
-		spec.Attachments = attachmentsForL2(in.Endpoints)
+	case ServiceACL:
+		// The filter is the service: the endpoints name the ports it binds to
+		// and carry no vlan or vrf of their own.
+		spec.Attachments = attachmentsForPorts(in.Endpoints)
 	default:
 		return nil, fmt.Errorf("unsupported type: %s", in.Type)
+	}
+
+	// An access list rides along with whatever construct declared it, bound to
+	// that service's own attachment ports.
+	if in.ACL != nil {
+		spec.AccessLists = []AccessList{accessListFor(in.ACL, in.ServiceID)}
 	}
 
 	net := KubenetNetwork{
@@ -163,6 +191,12 @@ func Translate(in *ServiceInput) (*OutputBundle, error) {
 		Kind:       "Network",
 		Metadata:   metadata,
 		Spec:       spec,
+	}
+	// Adjust description shape for legacy vs construct labelling to match golden fixtures.
+	if in.SourceType != "" {
+		net.Spec.Description = fmt.Sprintf("Migrated service %s (%s)", in.ServiceID, in.SourceType)
+	} else {
+		net.Spec.Description = fmt.Sprintf("Migrated service %s (%s)", in.ServiceID, in.Type)
 	}
 	// Manually assemble YAML to achieve deterministic key order for golden tests.
 	yml := buildYAML(&net)
@@ -204,6 +238,14 @@ func buildYAML(n *KubenetNetwork) string {
 	}
 	fmt.Fprintf(b, "spec:\n")
 	fmt.Fprintf(b, "  description: %s\n", n.Spec.Description)
+	// VLANs
+	if len(n.Spec.VLANs) > 0 {
+		fmt.Fprintf(b, "  vlans:\n")
+		for _, v := range n.Spec.VLANs {
+			fmt.Fprintf(b, "  - name: %s\n", v.Name)
+			fmt.Fprintf(b, "    vlan: %d\n", v.VLAN)
+		}
+	}
 	// BridgeDomains
 	if len(n.Spec.BridgeDomains) > 0 {
 		fmt.Fprintf(b, "  bridgeDomains:\n")
@@ -301,6 +343,15 @@ func attachmentsForL2(eps []Endpoint) []Attachment {
 	var out []Attachment
 	for _, ep := range eps {
 		out = append(out, Attachment{Node: ep.Node, VLAN: ep.VLAN, Attachment: ep.Attachment})
+	}
+	return out
+}
+
+// attachmentsForPorts renders only node and attachment, leaving vlan/vrf empty.
+func attachmentsForPorts(eps []Endpoint) []Attachment {
+	var out []Attachment
+	for _, ep := range eps {
+		out = append(out, Attachment{Node: ep.Node, Attachment: ep.Attachment})
 	}
 	return out
 }

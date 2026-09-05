@@ -1,0 +1,15 @@
+{
+  "serviceId": "r_acl_family_mismatch",
+  "type": "acl",
+  "tenant": "acme",
+  "acl": {
+    "stage": "ingress",
+    "type": "l3",
+    "rules": [
+      {"name": "r1", "priority": 10, "action": "permit", "protocol": "tcp", "sourcePrefix": "2001:db8::/64"}
+    ]
+  },
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet1"}
+  ]
+}

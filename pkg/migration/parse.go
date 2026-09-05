@@ -26,6 +26,7 @@ func ParseStrictBatch(data []byte) ([]ServiceInput, error) {
 			if err := strictUnmarshal(raws[i], &in); err != nil {
 				return nil, fmt.Errorf("item %d: %w", i, err)
 			}
+			in.Canonicalize()
 			out = append(out, in)
 		}
 		return out, nil
@@ -34,6 +35,7 @@ func ParseStrictBatch(data []byte) ([]ServiceInput, error) {
 		if err := strictUnmarshal(trim, &in); err != nil {
 			return nil, err
 		}
+		in.Canonicalize()
 		return []ServiceInput{in}, nil
 	default:
 		return nil, fmt.Errorf("invalid JSON: expected object or array")

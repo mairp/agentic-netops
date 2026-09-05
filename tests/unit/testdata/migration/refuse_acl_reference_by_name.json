@@ -1,0 +1,13 @@
+{
+  "serviceId": "r_acl_reference_by_name",
+  "type": "acl",
+  "tenant": "acme",
+  "acl": {
+    "stage": "ingress",
+    "type": "l3",
+    "name": "existing-acl"
+  },
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet1"}
+  ]
+}

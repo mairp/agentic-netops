@@ -1,0 +1,18 @@
+{
+  "serviceId": "c_acl_https",
+  "type": "acl",
+  "tenant": "acme",
+  "acl": {
+    "name": "allow-https",
+    "stage": "ingress",
+    "type": "l3",
+    "rules": [
+      {"name": "allow-https", "priority": 100, "action": "permit", "protocol": "tcp", "destinationPort": "443", "sourcePrefix": "10.0.0.0/24"},
+      {"name": "default", "priority": 200, "action": "deny"}
+    ]
+  },
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet1"},
+    {"node": "leaf02", "attachment": "ethernet1"}
+  ]
+}

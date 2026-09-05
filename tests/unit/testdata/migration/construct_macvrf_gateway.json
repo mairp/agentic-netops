@@ -1,0 +1,13 @@
+{
+  "serviceId": "c_macvrf_irb_110",
+  "type": "mac-vrf",
+  "tenant": "umbrella",
+  "rdRt": {"rd": "65000:110", "importRT": ["65000:110"], "exportRT": ["65000:110"]},
+  "l2vni": 10110,
+  "l3vni": 10150,
+  "anycastGateway": {"gatewayIPv4": "10.60.0.1/24"},
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet3", "vlan": 110},
+    {"node": "leaf02", "attachment": "ethernet3", "vlan": 110}
+  ]
+}

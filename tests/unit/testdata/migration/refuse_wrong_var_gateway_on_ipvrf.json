@@ -1,0 +1,12 @@
+{
+  "serviceId": "r_wrong_gateway_ipvrf",
+  "type": "ip-vrf",
+  "tenant": "acme",
+  "rdRt": {"rd": "65000:500", "importRT": ["65000:500"], "exportRT": ["65000:500"]},
+  "l3vni": 10500,
+  "anycastGateway": {"gatewayIPv4": "10.0.0.1/24"},
+  "addressFamilies": {"ipv4Prefixes": ["10.0.0.0/24"]},
+  "endpoints": [
+    {"node": "leaf01", "attachment": "wan1", "vrf": "vrf-acme"}
+  ]
+}

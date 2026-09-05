@@ -1,0 +1,11 @@
+{
+  "serviceId": "r_reserved_vlan_band",
+  "type": "ip-vrf",
+  "tenant": "acme",
+  "rdRt": {"rd": "65000:301", "importRT": ["65000:301"], "exportRT": ["65000:301"]},
+  "l3vni": 20000,
+  "addressFamilies": {"ipv4Prefixes": ["10.0.0.0/24"]},
+  "endpoints": [
+    {"node": "leaf01", "attachment": "wan1", "vrf": "vrf-a"}
+  ]
+}

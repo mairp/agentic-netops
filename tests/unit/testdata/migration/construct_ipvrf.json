@@ -1,0 +1,11 @@
+{
+  "serviceId": "c_ipvrf_50",
+  "type": "ip-vrf",
+  "tenant": "initech",
+  "rdRt": {"rd": "65000:250", "importRT": ["65000:250"], "exportRT": ["65000:250"]},
+  "l3vni": 10250,
+  "addressFamilies": {"ipv4Prefixes": ["10.50.0.0/24"]},
+  "endpoints": [
+    {"node": "leaf01", "attachment": "wan1", "vrf": "vrf-initech"}
+  ]
+}

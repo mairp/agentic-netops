@@ -47,7 +47,7 @@ func TestReject_MissingEndpoints_L3VPN(t *testing.T) {
 		t.Fatalf("expected no outputs on failure")
 	}
 	msg := migration.MarshalError(err)
-	if !strings.Contains(msg, "L3VPN requires >=1 endpoint") {
-		t.Fatalf("expected L3VPN endpoints cause, got: %s", msg)
+	if !strings.Contains(msg, "ip-vrf requires >=1 endpoint") {
+		t.Fatalf("expected ip-vrf endpoints cause, got: %s", msg)
 	}
 }

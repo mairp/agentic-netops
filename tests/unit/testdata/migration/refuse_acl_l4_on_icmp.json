@@ -1,0 +1,15 @@
+{
+  "serviceId": "r_acl_l4_on_icmp",
+  "type": "acl",
+  "tenant": "acme",
+  "acl": {
+    "stage": "ingress",
+    "type": "l3",
+    "rules": [
+      {"name": "r1", "priority": 5, "action": "permit", "protocol": "icmp", "destinationPort": "443"}
+    ]
+  },
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet1"}
+  ]
+}

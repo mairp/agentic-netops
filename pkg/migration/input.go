@@ -19,17 +19,12 @@ const (
 	MappingVersion    = "v0.1.0"
 )
 
-// ServiceType enumerates supported normalized service kinds.
+// ServiceType names one of the fabric constructs an intent may ask for. The
+// vocabulary, the accepted legacy aliases and the folding between them live in
+// constructs.go.
 type ServiceType string
 
-const (
-	ServiceVPLS  ServiceType = "VPLS"     // multipoint L2VPN
-	ServiceL3VPN ServiceType = "L3VPN"    // routed VPN
-	ServiceVPWS  ServiceType = "VPWS"     // E-Line
-	ServiceIRB   ServiceType = "L2L3-IRB" // integrated L2/L3 (symmetric-IRB)
-)
-
-// AddressFamilies captures AFI-specific properties for L3VPN.
+// AddressFamilies captures AFI-specific properties for an ip-vrf.
 type AddressFamilies struct {
 	IPv4Prefixes []string `json:"ipv4Prefixes,omitempty"`
 	IPv6Prefixes []string `json:"ipv6Prefixes,omitempty"`
@@ -50,7 +45,9 @@ type Endpoint struct {
 	VRF        string `json:"vrf,omitempty"`  // for L3/IRB attachments
 }
 
-// IRBGateway parameters for symmetric-IRB.
+// IRBGateway is the legacy spelling of AnycastGateway, kept so a feature-001
+// migration source that still says irbGateway parses. Canonicalize folds it
+// into AnycastGateway and clears it; nothing downstream reads it.
 type IRBGateway struct {
 	VRF       string `json:"vrf"`
 	GatewayV4 string `json:"gatewayIPv4"`
@@ -81,17 +78,33 @@ type UnsupportedClaims struct {
 type ServiceInput struct {
 	// Identity
 	ServiceID string      `json:"serviceId"`
-	Type      ServiceType `json:"type"` // VPLS | L3VPN | VPWS | L2L3-IRB
+	Type      ServiceType `json:"type"` // vlan | mac-vrf | ip-vrf | acl
 	Tenant    string      `json:"tenant"`
+
+	// SourceType records the legacy service-provider type the request arrived
+	// as, when it arrived as one. It is provenance for the audit trail and for
+	// the two feature-001 rules that outlive the rename (VPWS's exact endpoint
+	// count and its limited-equivalence opt-in). It is never serialized, so the
+	// same service hashes identically in either vocabulary.
+	SourceType ServiceType `json:"-"`
 
 	// VPN properties
 	RDRT  *RdRt            `json:"rdRt,omitempty"`
-	L2VNI int              `json:"l2vni,omitempty"` // for VPLS/VPWS/IRB bridge domains
-	L3VNI int              `json:"l3vni,omitempty"` // for L3VPN/IRB VRFs
+	L2VNI int              `json:"l2vni,omitempty"` // the mac-vrf's L2VNI
+	L3VNI int              `json:"l3vni,omitempty"` // the ip-vrf's L3VNI
 	AF    *AddressFamilies `json:"addressFamilies,omitempty"`
 
-	// IRB per-BD gateways (when Type == L2L3-IRB)
+	// AnycastGateway makes a mac-vrf a symmetric-IRB service: the bridge
+	// domain's SVI carries the gateway inside the service's ip-vrf.
+	AnycastGateway *AnycastGateway `json:"anycastGateway,omitempty"`
+
+	// IRBGateway is the legacy spelling of the above, folded by Canonicalize.
 	IRBGateway *IRBGateway `json:"irbGateway,omitempty"`
+
+	// ACL is the filter this service carries. On a `type: acl` service it is
+	// the whole service; on any other construct it is bound to the same
+	// attachment ports the service lands on.
+	ACL *ACL `json:"acl,omitempty"`
 
 	// Endpoints
 	Endpoints []Endpoint `json:"endpoints"`
@@ -134,6 +147,10 @@ func (e *ValidationError) Error() string {
 // - presence of unsupported claims;
 // - collisions detected by the caller across a batch (detected via index arg).
 func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) error {
+	// Fold legacy and alias vocabulary to canonical constructs and words so
+	// validation and translation see a single shape even when callers build the
+	// struct directly (tests do) instead of using ParseStrictBatch.
+	in.Canonicalize()
 	var causes []string
 	if in.ServiceID == "" {
 		causes = append(causes, "serviceId: required")
@@ -177,83 +194,117 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 	}
 
 	switch in.Type {
-	case ServiceVPLS:
+	case ServiceVLAN:
+		// A local VLAN is the one construct with no overlay at all. Anything
+		// that only means something in the overlay is a sign the operator
+		// wanted a mac-vrf or an ip-vrf, so it is named rather than ignored.
+		if in.L2VNI != 0 {
+			causes = append(causes, "l2vni: a vlan is local to the node; ask for a mac-vrf to extend it over the fabric")
+		}
+		if in.L3VNI != 0 {
+			causes = append(causes, "l3vni: a vlan carries no routed instance; ask for an ip-vrf, or a mac-vrf with an anycastGateway")
+		}
+		if in.RDRT != nil {
+			causes = append(causes, "rdRt: a vlan is not advertised by EVPN and has no route distinguisher or targets")
+		}
+		if in.AnycastGateway != nil {
+			causes = append(causes, "anycastGateway: only a mac-vrf carries an anycast gateway")
+		}
+		if len(in.Endpoints) < 1 {
+			causes = append(causes, "endpoints: vlan requires >=1 endpoint")
+		}
+		causes = append(causes, endpointVLANCauses(in.Endpoints, "vlan")...)
+	case ServiceMACVRF:
 		if in.L2VNI == 0 {
-			causes = append(causes, "l2vni: required for VPLS")
+			causes = append(causes, "l2vni: required for mac-vrf")
 		}
 		if in.RDRT == nil {
-			causes = append(causes, "rdRt: required for VPLS")
+			causes = append(causes, "rdRt: required for mac-vrf")
 		}
-		if len(in.Endpoints) < 2 {
-			causes = append(causes, "endpoints: VPLS requires >=2 endpoints")
+		// A mac-vrf that terminates a gateway is useful on a single leaf; one
+		// that only bridges needs somewhere to bridge to.
+		minEndpoints := 2
+		if in.AnycastGateway != nil {
+			minEndpoints = 1
 		}
-		causes = append(causes, endpointVLANCauses(in.Endpoints, "VPLS")...)
-	case ServiceL3VPN:
+		if len(in.Endpoints) < minEndpoints {
+			causes = append(causes, fmt.Sprintf("endpoints: mac-vrf requires >=%d endpoints", minEndpoints))
+		}
+		causes = append(causes, endpointVLANCauses(in.Endpoints, "mac-vrf")...)
+		if in.AnycastGateway != nil {
+			// Symmetric IRB: the bridge domain's SVI is the gateway and lives
+			// in the service's own ip-vrf, which needs its own L3VNI.
+			if in.L3VNI == 0 {
+				causes = append(causes, "l3vni: required for a mac-vrf with an anycastGateway (the ip-vrf it routes into)")
+			}
+			causes = append(causes, l3vniRenderableCauses(in.L3VNI)...)
+			// At least one address family, not both. Requiring both forced
+			// every gateway to carry an IPv6 address whether or not the
+			// operator asked for IPv6 — an unrequested address family on the
+			// SVI and a Type-5 route the service was then held to.
+			if in.AnycastGateway.GatewayV4 == "" && in.AnycastGateway.GatewayV6 == "" {
+				causes = append(causes, "anycastGateway: at least one of gatewayIPv4/gatewayIPv6 is required")
+			}
+		} else if in.L3VNI != 0 {
+			causes = append(causes, "l3vni: a mac-vrf carries an L3VNI only when it declares an anycastGateway")
+		}
+		// Feature-001 rules that belong to the VPWS alias, not to the
+		// construct: a pseudowire is exactly two attachments, and mapping one
+		// onto an L2VNI is a limited equivalence the source has to opt into.
+		// Asking for a mac-vrf directly claims no pseudowire and needs neither.
+		if in.SourceType == LegacyVPWS {
+			if len(in.Endpoints) != 2 {
+				causes = append(causes, "endpoints: VPWS requires exactly 2 endpoints")
+			}
+			if !in.Policies.VPWSLimitedEquivalence {
+				causes = append(causes, "policy: vpwsLimitedEquivalence must be true to allow limited equivalence mapping")
+			}
+		}
+	case ServiceIPVRF:
 		if in.L3VNI == 0 {
-			causes = append(causes, "l3vni: required for L3VPN")
+			causes = append(causes, "l3vni: required for ip-vrf")
 		}
 		causes = append(causes, l3vniRenderableCauses(in.L3VNI)...)
 		if in.RDRT == nil {
-			causes = append(causes, "rdRt: required for L3VPN")
+			causes = append(causes, "rdRt: required for ip-vrf")
 		}
 		if in.AF == nil || (len(in.AF.IPv4Prefixes) == 0 && len(in.AF.IPv6Prefixes) == 0) {
-			causes = append(causes, "addressFamilies: at least one prefix is required for L3VPN")
+			causes = append(causes, "addressFamilies: at least one prefix is required for ip-vrf")
+		}
+		if in.L2VNI != 0 {
+			causes = append(causes, "l2vni: an ip-vrf carries no bridge domain; ask for a mac-vrf with an anycastGateway to get both")
+		}
+		if in.AnycastGateway != nil {
+			causes = append(causes, "anycastGateway: belongs to the mac-vrf whose SVI carries it, not to the ip-vrf")
 		}
 		if len(in.Endpoints) < 1 {
-			causes = append(causes, "endpoints: L3VPN requires >=1 endpoint")
+			causes = append(causes, "endpoints: ip-vrf requires >=1 endpoint")
 		}
-
 		for i, ep := range in.Endpoints {
 			if ep.VRF == "" {
-				causes = append(causes, fmt.Sprintf("endpoints[%d].vrf: required for L3VPN", i))
+				causes = append(causes, fmt.Sprintf("endpoints[%d].vrf: required for ip-vrf", i))
 			}
 		}
-	case ServiceVPWS:
-		if in.L2VNI == 0 {
-			causes = append(causes, "l2vni: required for VPWS")
+	case ServiceACL:
+		// A standalone filter: the endpoints are the ports it binds to and
+		// nothing about an overlay applies.
+		if in.ACL == nil {
+			causes = append(causes, "acl: required for an acl service")
 		}
-		if in.RDRT == nil {
-			causes = append(causes, "rdRt: required for VPWS")
-		}
-		if len(in.Endpoints) != 2 {
-			causes = append(causes, "endpoints: VPWS requires exactly 2 endpoints")
-		}
-		causes = append(causes, endpointVLANCauses(in.Endpoints, "VPWS")...)
-		if !in.Policies.VPWSLimitedEquivalence {
-			causes = append(causes, "policy: vpwsLimitedEquivalence must be true to allow limited equivalence mapping")
-		}
-	case ServiceIRB:
-		if in.L2VNI == 0 {
-			causes = append(causes, "l2vni: required for IRB bridge domain")
-		}
-		if in.L3VNI == 0 {
-			causes = append(causes, "l3vni: required for IRB VRF")
-		}
-		causes = append(causes, l3vniRenderableCauses(in.L3VNI)...)
-		if in.RDRT == nil {
-			causes = append(causes, "rdRt: required for IRB VRF")
-		}
-		if in.IRBGateway == nil {
-			causes = append(causes, "irbGateway: required for IRB")
-		}
-		if in.IRBGateway != nil {
-			if in.IRBGateway.VRF == "" {
-				causes = append(causes, "irbGateway.vrf: required")
-			}
-			// At least one address family, not both. Requiring both forced
-			// every IRB to carry an IPv6 gateway whether or not the operator
-			// asked for IPv6 — an unrequested address family on the SVI and a
-			// Type-5 route the service was then held to.
-			if in.IRBGateway.GatewayV4 == "" && in.IRBGateway.GatewayV6 == "" {
-				causes = append(causes, "irbGateway: at least one of gatewayIPv4/gatewayIPv6 is required")
-			}
+		if in.L2VNI != 0 || in.L3VNI != 0 || in.RDRT != nil || in.AnycastGateway != nil {
+			causes = append(causes, "acl: an acl binds to ports and carries no VNI, route targets or gateway; attach it to a vlan, mac-vrf or ip-vrf to filter that service")
 		}
 		if len(in.Endpoints) < 1 {
-			causes = append(causes, "endpoints: IRB requires at least one endpoint")
+			causes = append(causes, "endpoints: acl requires >=1 endpoint to bind to")
 		}
-		causes = append(causes, endpointVLANCauses(in.Endpoints, "IRB")...)
 	default:
-		causes = append(causes, fmt.Sprintf("type: unsupported '%s'", in.Type))
+		causes = append(causes, fmt.Sprintf("type: unsupported '%s' (constructs: %s)", in.Type, ConstructList()))
+	}
+
+	// An access list is a property any construct may carry, so it is validated
+	// once here rather than in each branch.
+	if in.ACL != nil {
+		causes = append(causes, aclCauses(in.ACL)...)
 	}
 
 	// The site's own inventory is the last thing an intent can fail on before
