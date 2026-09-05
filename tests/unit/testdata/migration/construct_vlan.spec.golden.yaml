@@ -1,0 +1,9 @@
+spec:
+  description: Migrated service c_vlan_120 (vlan)
+  vlans:
+  - name: vlan-c_vlan_120
+    vlan: 120
+  attachments:
+  - node: leaf01
+    vlan: 120
+    attachment: ethernet1

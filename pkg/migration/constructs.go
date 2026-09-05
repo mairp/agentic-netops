@@ -190,7 +190,6 @@ type ACL struct {
 	BindTo string `json:"bindTo,omitempty"`
 }
 
-
 // ACL vocabulary accepted on input, folded to the canonical spelling.
 var (
 	aclStages = map[string]string{

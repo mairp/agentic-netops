@@ -1,0 +1,21 @@
+service_type: IP-VRF
+cases:
+  - id: basic-ipvrf
+    first_pass: true
+    text: "Deploy an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant acme with prefix 10.0.10.0/24"
+  - id: casing-variant
+    first_pass: true
+    text: "Create an IP-VRF between leaf01 wan1 and leaf02 wan1 for tenant blue with prefix 10.1.0.0/24"
+  - id: punctuation-variant
+    first_pass: true
+    text: "Set up ip_vrf between leaf01 wan1 and leaf02 wan1 for tenant green with prefix 10.2.0.0/24"
+  - id: no-punct-variant
+    first_pass: true
+    text: "Deploy ipvrf between leaf01 wan1 and leaf02 wan1 for tenant acme with prefix 10.3.0.0/24"
+  - id: mixedcase-hyphen
+    first_pass: true
+    text: "Create an Ip-Vrf between leaf01 wan1 and leaf02 wan1 for tenant blue with prefix 10.4.0.0/24"
+  - id: uppercase
+    first_pass: true
+    text: "Provision IP VRF between leaf01 wan2 and leaf02 wan2 for tenant green with prefix 10.5.0.0/24"
+

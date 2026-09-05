@@ -183,6 +183,19 @@ func ForNetwork(net *kubenet.Network, opts Options) (*Plan, error) {
 		}
 		bds[bd.VLAN] = bd
 	}
+	// Local VLANs: spec.vlans declares per-node local broadcast domains with no overlay.
+	vls := map[int64]kubenet.NetworkVLAN{}
+	for _, v := range net.VLANs() {
+		if v.VLAN == 0 {
+			continue
+		}
+		if v.VLAN > l3VLANBase {
+			// Same message as bridgeDomains above (R-04): keep operator guidance consistent.
+			return nil, errf("vlan %q uses vlan %d, reserved for derived L3VLANs (%d-4094); pick a vlan at or below %d",
+				v.Name, v.VLAN, l3VLANBase+1, l3VLANBase)
+		}
+		vls[v.VLAN] = v
+	}
 
 	// Deterministic order for reproducible patches.
 	atts := net.Attachments()
@@ -205,28 +218,35 @@ func ForNetwork(net *kubenet.Network, opts Options) (*Plan, error) {
 				return nil, err
 			}
 		case att.VLAN != 0:
-			bd, ok := bds[att.VLAN]
-			if !ok {
-				return nil, errf("attachment %s@%s references vlan %d with no bridgeDomain (this network declares %s)",
-					att.Attachment, att.Node, att.VLAN, declaredVLANs(bds))
-			}
-			if bd.IRB == nil {
-				if err := renderL2(np, bd, att, opts); err != nil {
+			if bd, ok := bds[att.VLAN]; ok {
+				if bd.IRB == nil {
+					if err := renderL2(np, bd, att, opts); err != nil {
+						return nil, err
+					}
+					break
+				}
+				// Symmetric IRB: the bridge domain is the L2 half and its SVI is
+				// the tenant gateway inside the router named by irb.vrf. Without
+				// the router the routed half cannot be rendered, and rendering
+				// only the L2 half would silently hand back a VPLS.
+				r, ok := routers[bd.IRB.VRF]
+				if !ok {
+					return nil, errf("bridgeDomain %q declares irb.vrf %q with no matching router", bd.Name, bd.IRB.VRF)
+				}
+				if err := renderIRB(np, bd, r, att, opts); err != nil {
 					return nil, err
 				}
 				break
 			}
-			// Symmetric IRB: the bridge domain is the L2 half and its SVI is
-			// the tenant gateway inside the router named by irb.vrf. Without
-			// the router the routed half cannot be rendered, and rendering
-			// only the L2 half would silently hand back a VPLS.
-			r, ok := routers[bd.IRB.VRF]
-			if !ok {
-				return nil, errf("bridgeDomain %q declares irb.vrf %q with no matching router", bd.Name, bd.IRB.VRF)
+			// No bridgeDomain on this vlan — see if this is a local VLAN construct.
+			if v, ok := vls[att.VLAN]; ok {
+				if err := renderVLAN(np, v, att, opts); err != nil {
+					return nil, err
+				}
+				break
 			}
-			if err := renderIRB(np, bd, r, att, opts); err != nil {
-				return nil, err
-			}
+			return nil, errf("attachment %s@%s references vlan %d with no bridgeDomain or local VLAN (this network declares %s)",
+				att.Attachment, att.Node, att.VLAN, declaredVLANs(bds, vls))
 		default:
 			return nil, errf("attachment %s@%s has neither vrf nor vlan", att.Attachment, att.Node)
 		}
@@ -262,18 +282,28 @@ func L3VLANForVNI(vni int64) (int64, error) {
 
 // declaredVLANs renders the bridge domains a network actually declares, so a
 // mismatched attachment says what the operator could have meant.
-func declaredVLANs(bds map[int64]kubenet.BridgeDomain) string {
-	if len(bds) == 0 {
-		return "no bridgeDomains"
+func declaredVLANs(bds map[int64]kubenet.BridgeDomain, vls ...map[int64]kubenet.NetworkVLAN) string {
+	if len(bds) == 0 && (len(vls) == 0 || len(vls[0]) == 0) {
+		return "no bridgeDomains or vlans"
 	}
 	vlans := make([]int64, 0, len(bds))
 	for v := range bds {
 		vlans = append(vlans, v)
 	}
+	if len(vls) > 0 {
+		for v := range vls[0] {
+			vlans = append(vlans, v)
+		}
+	}
 	sort.Slice(vlans, func(i, j int) bool { return vlans[i] < vlans[j] })
 	parts := make([]string, 0, len(vlans))
+	last := int64(-1)
 	for _, v := range vlans {
+		if v == last {
+			continue
+		}
 		parts = append(parts, fmt.Sprintf("vlan %d", v))
+		last = v
 	}
 	return strings.Join(parts, ", ")
 }
@@ -688,6 +718,34 @@ func l2Overlay(bd kubenet.BridgeDomain, vlanName string, opts Options) []string 
 		fmt.Sprintf("hset 'VLAN|%s' vlanid '%d'", vlanName, bd.VLAN),
 		fmt.Sprintf("hset 'VXLAN_TUNNEL_MAP|%s|map_%d_%s' vni '%d' vlan '%s'", opts.VTEPName, bd.L2VNI, vlanName, bd.L2VNI, vlanName),
 	}
+}
+
+// renderVLAN renders a local VLAN construct: a VLAN row and the access port's membership
+// in the vlan-aware Bridge. No VXLAN_TUNNEL_MAP rows, no vtep handling, no l2vpn evpn block.
+func renderVLAN(np *NodePlan, v kubenet.NetworkVLAN, att kubenet.NetworkAttachment, opts Options) error {
+	vlanName := fmt.Sprintf("Vlan%d", v.VLAN)
+	port, err := opts.Ports.Port(att.Attachment)
+	if err != nil {
+		return errf("attachment %s@%s: %v", att.Attachment, att.Node, err)
+	}
+	// 1. Declared VLAN row (raw redis) only.
+	np.Ops = append(np.Ops, Op{Redis: []string{fmt.Sprintf("hset 'VLAN|%s' vlanid '%d'", vlanName, v.VLAN)}})
+	// 2. Kernel: join the access port to the Bridge in this vlan; no VXLAN device involvement.
+	shell := []string{"ip link show Bridge >/dev/null 2>&1 || { ip link add Bridge type bridge; ip link set Bridge up; }"}
+	shell = append(shell, accessPortShell(port, v.VLAN)...)
+	np.Ops = append(np.Ops, Op{Shell: shell})
+	// 3. Verification: VLAN row present and port membership + bridge vid.
+	np.Checks = append(np.Checks,
+		Check{Type: "redis-hget", RedisKey: fmt.Sprintf("VLAN|%s", vlanName), RedisField: "vlanid", Expect: fmt.Sprintf("%d", v.VLAN)},
+		Check{Type: "ip-master", Iface: port, Master: "Bridge"},
+		Check{Type: "bridge-vid", Iface: port, Vid: v.VLAN},
+	)
+	// 4. Rollback: delete VLAN row and remove port membership.
+	np.Rollback = append(np.Rollback,
+		Op{Redis: []string{fmt.Sprintf("del 'VLAN|%s'", vlanName)}},
+		Op{Shell: []string{fmt.Sprintf("bridge vlan del dev %s vid %d 2>/dev/null || true", port, v.VLAN)}},
+	)
+	return nil
 }
 
 // l2RT is the bridge domain's route target, or "" when it declares none.

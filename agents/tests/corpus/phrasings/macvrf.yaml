@@ -1,0 +1,21 @@
+service_type: MAC-VRF
+cases:
+  - id: basic-macvrf
+    first_pass: true
+    text: "Provision a mac vrf between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 100"
+  - id: casing-variant
+    first_pass: true
+    text: "Create a MAC-VRF between leaf01 Ethernet1 and leaf02 Ethernet1 for tenant blue VLAN 200"
+  - id: punctuation-variant
+    first_pass: true
+    text: "Set up mac_vrf between leaf01 ethernet-3 and leaf02 ethernet-3 for tenant green vlan 300"
+  - id: no-punct-variant
+    first_pass: true
+    text: "Provision macvrf between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 150"
+  - id: mixedcase-hyphen
+    first_pass: true
+    text: "Create a Mac-Vrf between leaf01 Ethernet1 and leaf02 Ethernet1 for tenant blue VLAN 250"
+  - id: uppercase-space
+    first_pass: true
+    text: "Set up MAC VRF between leaf01 ethernet4 and leaf02 ethernet4 for tenant green vlan 350"
+

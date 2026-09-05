@@ -24,6 +24,8 @@ func TestRendererPathsCoveredByRegister(t *testing.T) {
 	merge(render.RenderNetworkInstances([]model.NetworkInstance{{Name: "DEFAULT", Type: "DEFAULT"}}))
 	merge(render.RenderVXLAN(model.VXLAN{SourceInterface: "Loopback0", UDPPort: 4789}, []model.VLAN{{ID: 10, Name: "blue", L2VNI: 10010}}))
 	merge(render.RenderSRv6(model.SRv6Locator{Name: "default", Prefix: "2001:db8:1::/48"}, []model.MySID{{SID: "2001:db8:1::1", Behavior: "End"}}))
+	// Add local VLANs to exercise SONiC-native VLAN register entries
+	merge(render.RenderLocalVLANs([]model.VLAN{{ID: 120, Name: "vlan-local"}}, map[int][]string{120: {"Ethernet1"}}))
 	reg, err := os.ReadFile(filepath.Join("..", "..", "pkg", "register", "oc_vs_sonic.yaml"))
 	if err != nil {
 		t.Fatalf("read register: %v", err)

@@ -1,0 +1,19 @@
+spec:
+  description: Migrated service c_macvrf_100 (mac-vrf)
+  bridgeDomains:
+  - name: bd-c_macvrf_100
+    vlan: 100
+    l2vni: 10100
+    evpn:
+      routeTargets:
+        import:
+        - "65000:100"
+        export:
+        - "65000:100"
+  attachments:
+  - node: leaf01
+    vlan: 100
+    attachment: ethernet2
+  - node: leaf02
+    vlan: 100
+    attachment: ethernet2

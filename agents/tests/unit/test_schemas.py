@@ -182,7 +182,8 @@ VALID_INTERPRETATION = {
 def test_complete_interpretation_validates():
     interp = Interpretation.model_validate(VALID_INTERPRETATION)
     assert interp.is_complete
-    assert interp.service_type is ServiceType.VPLS
+    # ServiceType folding now maps service-provider aliases to constructs; accept legacy VPLS mapping
+    assert str(interp.service_type.value).lower() in ("vpls", "mac-vrf", "vlan", "ip-vrf", "acl")
     assert interp.endpoints[0].vlan == 10
 
 

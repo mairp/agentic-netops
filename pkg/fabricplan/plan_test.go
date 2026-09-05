@@ -102,6 +102,50 @@ func TestType5RouteNeedleMasksHostBits(t *testing.T) {
 	}
 }
 
+// --- VLAN (local) ------------------------------------------------------------
+
+func TestVLANPlanRendersLocalOnly_NoVXLANOrEVPN(t *testing.T) {
+	net := &kubenet.Network{Spec: map[string]any{
+		"vlans":       []any{map[string]any{"name": "vlan-local", "vlan": float64(120)}},
+		"attachments": []any{map[string]any{"node": "leaf01", "attachment": "ethernet1", "vlan": float64(120)}},
+	}}
+	plan, err := ForNetwork(net, Options{Ports: PortMapper{"ethernet1": "eth3"}})
+	if err != nil {
+		t.Fatalf("ForNetwork: %v", err)
+	}
+	np := plan.Nodes["leaf01"]
+	if np == nil {
+		t.Fatal("leaf01 plan missing")
+	}
+	// No VXLAN_TUNNEL_MAP rows and no vtep device handling, no l2vpn evpn block.
+	for _, op := range np.Ops {
+		for _, r := range op.Redis {
+			if strings.Contains(r, "VXLAN_TUNNEL_MAP|") {
+				t.Fatalf("local VLAN emitted a VXLAN_TUNNEL_MAP row: %q", r)
+			}
+		}
+		for _, s := range op.Shell {
+			if strings.Contains(s, "vtep1-") || strings.Contains(s, "address-family l2vpn evpn") {
+				t.Fatalf("local VLAN touched vtep or l2vpn evpn: %q", s)
+			}
+		}
+	}
+	// Positive: VLAN row and access port membership with bridge vid check exist.
+	foundVLANRow := false
+	foundBridgeVID := false
+	for _, ck := range np.Checks {
+		if ck.Type == "redis-hget" && strings.Contains(ck.RedisKey, "VLAN|Vlan120") && ck.RedisField == "vlanid" && ck.Expect == "120" {
+			foundVLANRow = true
+		}
+		if ck.Type == "bridge-vid" && ck.Iface == "eth3" && ck.Vid == 120 {
+			foundBridgeVID = true
+		}
+	}
+	if !foundVLANRow || !foundBridgeVID {
+		t.Fatalf("local VLAN checks missing: %#v", np.Checks)
+	}
+}
+
 // --- L2 ----------------------------------------------------------------------
 
 func l2Network(vlan int64, l2vni int64) *kubenet.Network {

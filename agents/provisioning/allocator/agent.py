@@ -140,44 +140,47 @@ class AllocatorAgent:
 
         # Claim identifiers from the cluster allocation authority; never generate locally.
         correlation_id = correlation_id or get_trace_correlation_id() or uuid4().hex
-        if st in ("VPLS", "VPWS", "IRB"):
-            l2vni = self.kuid.allocate_l2vni(correlation_id)
-        else:
-            l2vni = None
-        if st in ("L3VPN", "IRB"):
-            l3vni = self.kuid.allocate_l3vni(correlation_id)
-        else:
-            l3vni = None
-        rd, import_rt, export_rt = self.kuid.allocate_rd_rt(correlation_id)
-        rd_rt = RdRt(rd=rd, importRT=import_rt, exportRT=export_rt)
+        # Per-construct claim profiles (contracts/kuid-claim-profiles.md §2)
+        # - vlan: claim VLAN only (and none when operator named one)
+        # - mac-vrf: claim VLAN (unless named) + L2VNI + RT; L3VNI only with anycastGateway
+        # - ip-vrf: claim L3VNI + RT
+        # - acl: no claims
+        l2vni = None
+        l3vni = None
+        rd_rt: RdRt | None = None
 
         # Type-specific mapping
-        if st == "VPLS":
-            eps = self._l2_endpoints(endpoints, correlation_id, "VPLS")
+        if st == "vlan":
+            # Resolve L2 endpoints on ONE vlan; allocate from KUID only if not named
+            # Determine if operator named a VLAN on any endpoint
+            named_vlan = any(e.vlan for e in endpoints)
+            eps = self._l2_endpoints(endpoints, correlation_id, "vlan")
+            if not named_vlan:
+                # _l2_endpoints allocated one VLAN via KUIDClient
+                pass
             intent = NormalizedServiceIntent(
                 serviceId=interp.service_id,
-                type="VPLS",
+                type="vlan",
+                tenant=interp.tenant,
+                endpoints=eps,
+            )
+        elif st == "mac-vrf":
+            # Claim L2VNI + RT; VLAN claimed unless operator named one
+            # VLAN allocation occurs in _l2_endpoints when not named
+            eps = self._l2_endpoints(endpoints, correlation_id, "mac-vrf")
+            l2vni = self.kuid.allocate_l2vni(correlation_id)
+            rd, import_rt, export_rt = self.kuid.allocate_rd_rt(correlation_id)
+            rd_rt = RdRt(rd=rd, importRT=import_rt, exportRT=export_rt)
+            intent = NormalizedServiceIntent(
+                serviceId=interp.service_id,
+                type="mac-vrf",
                 tenant=interp.tenant,
                 rdRt=rd_rt,
                 l2vni=l2vni,
                 endpoints=eps,
             )
-        elif st == "VPWS":
-            # VPWS requires exactly two endpoints with VLANs and policy opt-in
-            eps = self._l2_endpoints(endpoints, correlation_id, "VPWS")
-            intent = NormalizedServiceIntent(
-                serviceId=interp.service_id,
-                type="VPWS",
-                tenant=interp.tenant,
-                rdRt=rd_rt,
-                l2vni=l2vni,
-                endpoints=eps,
-                policies=Policies(vpwsLimitedEquivalence=True),
-            )
-        elif st == "L3VPN":
-            # Preserve address-family prefixes explicitly supplied in the
-            # operator's request. The legacy default remains only for older
-            # interpretations that predate prefix carriage.
+        elif st == "ip-vrf":
+            # Preserve operator-supplied address families when present (v4 default otherwise)
             if interp.ipv4_prefixes or interp.ipv6_prefixes:
                 af = AddressFamilies(
                     ipv4Prefixes=interp.ipv4_prefixes,
@@ -185,46 +188,30 @@ class AllocatorAgent:
                 )
             else:
                 af = AddressFamilies(ipv4Prefixes=["10.0.0.0/24"])
+            # Map endpoints to VRF-carrying attachments; default VRF label derived from tenant
             eps: list[Endpoint] = []
             for e in endpoints:
                 vrf = e.vrf or f"vrf-{interp.tenant}"
                 eps.append(Endpoint(node=e.node, attachment=e.attachment, vrf=vrf))
+            l3vni = self.kuid.allocate_l3vni(correlation_id)
+            rd, import_rt, export_rt = self.kuid.allocate_rd_rt(correlation_id)
+            rd_rt = RdRt(rd=rd, importRT=import_rt, exportRT=export_rt)
             intent = NormalizedServiceIntent(
                 serviceId=interp.service_id,
-                type="L3VPN",
+                type="ip-vrf",
                 tenant=interp.tenant,
                 rdRt=rd_rt,
                 l3vni=l3vni,
                 addressFamilies=af,
                 endpoints=eps,
             )
-        elif st == "IRB":
-            # IRB: both L2 and L3 VNIs + IRB gateway; use deterministic placeholders for gateway values
-            eps = self._l2_endpoints(endpoints, correlation_id, "IRB")
-            # The gateway is the first usable host of the operator's own
-            # prefix, in the address families they actually asked for. An IRB
-            # used to be handed a fd00::1/64 gateway whether or not IPv6 was
-            # ever mentioned, which put an unrequested address family on the
-            # SVI, asked FRR to originate a Type-5 route for it, and failed
-            # the service when a leaf's zebra did not register it.
-            igw = IRBGateway(
-                vrf=f"vrf-{interp.tenant}",
-                gatewayIPv4=_gateway_address(interp.ipv4_prefixes, ""),
-                gatewayIPv6=_gateway_address(interp.ipv6_prefixes, ""),
-            )
-            if not igw.gatewayIPv4 and not igw.gatewayIPv6:
-                # A routed service needs somewhere to route. Nothing was named,
-                # so the legacy default stands in — and only in v4.
-                igw.gatewayIPv4 = "10.0.0.1/24"
+        elif st == "acl":
+            # Standalone ACL: binds to ports; allocator does not claim identifiers
             intent = NormalizedServiceIntent(
                 serviceId=interp.service_id,
-                type="L2L3-IRB",
+                type="acl",
                 tenant=interp.tenant,
-                rdRt=rd_rt,
-                l2vni=l2vni,
-                l3vni=l3vni,
-                irbGateway=igw,
-                endpoints=eps,
+                endpoints=endpoints,
             )
         else:
             # Unsupported type: let schema validation fail clearly

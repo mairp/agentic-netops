@@ -59,26 +59,33 @@ MAPPER_MARKER = "MAPPED_JSON"
 # -------------------- Helpers --------------------
 _SERVICE_PATTERNS: list[tuple[ServiceType, list[re.Pattern[str]]]] = [
     (
-        ServiceType.VPWS,
+        ServiceType.VLAN,
         [
-            re.compile(r"\bvpws\b", re.I),
-            re.compile(r"e-?line", re.I),
-            re.compile(r"point[- ]to[- ]point|p2p", re.I),
+            re.compile(r"\bvlan\b", re.I),
+            re.compile(r"access\s+port|untagged", re.I),
         ],
     ),
     (
-        ServiceType.VPLS,
+        ServiceType.MAC_VRF,
         [
-            re.compile(r"\bvpls\b", re.I),
-            re.compile(r"full[- ]mesh|multipoint", re.I),
-            re.compile(r"l2vpn", re.I),
+            re.compile(r"\bmac[- _]?vrf\b", re.I),
+            re.compile(r"\bl2vpn\b|\bvpls\b|\bvpws\b|e-?line", re.I),
+            re.compile(r"evpn|bridge\s+domain", re.I),
         ],
     ),
     (
-        ServiceType.L3VPN,
-        [re.compile(r"\bl3vpn\b", re.I), re.compile(r"layer ?3|routing|vrf", re.I)],
+        ServiceType.IP_VRF,
+        [
+            re.compile(r"\bip[- _]?vrf\b", re.I),
+            re.compile(r"\bl3vpn\b|\blayer\s*3\b|\brouting\b|\bvrf\b", re.I),
+        ],
     ),
-    (ServiceType.IRB, [re.compile(r"\birb\b", re.I), re.compile(r"l2\+l3|integrated", re.I)]),
+    (
+        ServiceType.ACL,
+        [
+            re.compile(r"\bacl\b|access[- ]list|filter", re.I),
+        ],
+    ),
 ]
 
 _UNSUPPORTED_FEATURES: list[tuple[re.Pattern[str], str]] = [
@@ -359,11 +366,12 @@ class MappingAgent:
             if ust is not None:
                 unsupported.append(f"serviceType:{ust}")
                 # Coerce to a valid enum for schema validation only; terminal flag prevents routing
-                st = ServiceType.VPWS
+                st = ServiceType.VLAN
             else:
-                missing.append("service_type")
-                # Default to VPWS for schema validity but mark missing (no effect past confirmation)
-                st = ServiceType.VPWS
+                # FR-004: refuse an unknown construct and list the supported constructs
+                unsupported.append("constructs: vlan, mac-vrf, ip-vrf, acl")
+                # Coerce to a valid construct for schema shape; unsupported_properties makes it terminal
+                st = ServiceType.VLAN
         tenant = _detect_tenant(low)
         if not tenant:
             missing.append("tenant")

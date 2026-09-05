@@ -1,43 +1,43 @@
 {
   "metadata": {
-    "version": 1,
-    "notes": "Mapper catalogue re-authored for US1: service types aligned to feature-001 (VPLS, VPWS/E-Line, L3VPN, IRB). CNC-oriented subjects removed."
+    "version": 2,
+    "notes": "Mapper catalogue rewritten for construct vocabulary (vlan, mac-vrf, ip-vrf, acl)."
   },
   "prompts": {
-    "VPLS": {
-      "description": "Map a full-mesh Layer-2 bridge (VPLS) between two or more attachments for a tenant.",
+    "vlan": {
+      "description": "Map a local broadcast domain (VLAN) and the ports in it on one or more nodes.",
       "examples": [
-        "provision a VPLS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme",
-        "create a multipoint L2 VPLS for tenant acme across site-a xe-0/0/1, site-b xe-0/0/2, site-c xe-0/0/3"
+        "create a vlan 120 on leaf01 ethernet1 for tenant acme",
+        "put leaf01 ethernet2 into vlan 300 for tenant blue"
       ],
-      "keywords": ["vpls", "l2vpn", "multipoint", "full-mesh"],
+      "keywords": ["vlan", "access", "untagged", "bridge"],
       "hints": { "bandwidth": ["gbps", "mbps", "g", "m"] }
     },
-    "VPWS": {
-      "description": "Map a point-to-point Layer-2 service (VPWS / E-Line) between exactly two attachments for a tenant.",
+    "mac-vrf": {
+      "description": "Map a VLAN extended over the fabric by an L2VNI with EVPN route-targets (MAC VRF).",
       "examples": [
-        "provision a point-to-point 1G E-Line between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme",
-        "create a VPWS between dc1-leaf1 xe-0/0/4 and dc2-leaf2 xe-0/0/5 for tenant acme vlan 200"
+        "provision a mac vrf between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 100",
+        "extend vlan 200 over the fabric as a mac-vrf for tenant acme"
       ],
-      "keywords": ["vpws", "e-line", "eline", "point-to-point", "p2p"],
+      "keywords": ["mac-vrf", "l2vni", "l2", "evpn", "bridge", "l2vpn"],
       "hints": { "bandwidth": ["gbps", "mbps", "g", "m"] }
     },
-    "L3VPN": {
-      "description": "Map a Layer-3 VPN service between one or more sites for a tenant (VRF-based).",
+    "ip-vrf": {
+      "description": "Map a routed instance (IP VRF) with an L3VNI and route-targets.",
       "examples": [
-        "create an L3VPN between paris and london for tenant acme",
-        "provision a layer3 vpn for tenant acme at site-a and site-b"
+        "create an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant acme with prefix 10.0.10.0/24",
+        "provision a vrf for tenant blue across leaf01 and leaf02"
       ],
-      "keywords": ["l3vpn", "layer3", "vrf"],
+      "keywords": ["ip-vrf", "l3vni", "vrf", "routing", "layer3", "l3vpn"],
       "hints": { "bandwidth": ["gbps", "mbps", "g", "m"] }
     },
-    "IRB": {
-      "description": "Map an integrated L2+L3 (IRB) service: a VPLS bridge domain with a routed VRF and gateways.",
+    "acl": {
+      "description": "Map an access-list bound to the ports a service attaches on.",
       "examples": [
-        "provision an IRB between site-a xe-0/0/1 and site-b xe-0/0/2 for tenant acme vlan 10",
-        "create IRB service for tenant acme at leaf01 ethernet10"
+        "allow tcp/443 from 10.0.0.0/24 on leaf01 ethernet1",
+        "deny all egress on leaf02 ethernet2"
       ],
-      "keywords": ["irb", "integrated", "l2+l3"],
+      "keywords": ["acl", "access list", "filter", "l3", "l3v6"],
       "hints": { "bandwidth": ["gbps", "mbps", "g", "m"] }
     }
   },

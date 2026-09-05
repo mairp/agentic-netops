@@ -1,0 +1,11 @@
+service_type: VLAN
+cases:
+  - id: basic-vlan
+    first_pass: true
+    text: "Create a vlan 120 on leaf01 ethernet1 for tenant acme"
+  - id: casing-variant
+    first_pass: true
+    text: "Provision a VLAN 200 on Leaf01 Ethernet1 for tenant blue"
+  - id: punctuation-variant
+    first_pass: true
+    text: "Set up vlan-300 on leaf01 ethernet-2 for tenant green"

@@ -40,16 +40,16 @@ const (
 // versions.lock.yaml "SRv6/gNMI-qualified" + scripts/lib/qualify.sh) and land
 // in SitePins.Labels where the capability validators read them.
 var shortKeyToAnnotation = map[string]string{
-	"sonic-image":          "agentic-netops.dev/sonic-image",
-	"openconfig-commit":    "agentic-netops.dev/openconfig-commit",
-	"sonic-native-commit":  "agentic-netops.dev/sonic-native-commit",
-	"mapping-version":      "agentic-netops.dev/mapping-version",
-	"kubenet-commit":       "agentic-netops.dev/kubenet-commit",
-	"kuid-commit":          "agentic-netops.dev/kuid-commit",
-	"sdc-release":          "agentic-netops.dev/sdc-release",
+	"sonic-image":              "agentic-netops.dev/sonic-image",
+	"openconfig-commit":        "agentic-netops.dev/openconfig-commit",
+	"sonic-native-commit":      "agentic-netops.dev/sonic-native-commit",
+	"mapping-version":          "agentic-netops.dev/mapping-version",
+	"kubenet-commit":           "agentic-netops.dev/kubenet-commit",
+	"kuid-commit":              "agentic-netops.dev/kuid-commit",
+	"sdc-release":              "agentic-netops.dev/sdc-release",
 	"topology-label-contract":  ContractTopologyLabel,
 	"telemetry-label-contract": ContractTelemetryLabel,
-	"cap-sai-srv6":         "agentic-netops.dev/cap.sai.srv6",
+	"cap-sai-srv6":             "agentic-netops.dev/cap.sai.srv6",
 }
 
 // AnnotationFor returns the pin/contract name a ConfigMap key feeds.

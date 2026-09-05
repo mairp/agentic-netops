@@ -1,28 +1,22 @@
 """The allocator's output — ``NormalizedServiceIntent`` (data-model.md §3).
 
-This is FR-011's "no second translator": the shape is not invented here, it
-is the contract ``pkg/migration`` already consumes — read off
-``tests/unit/testdata/migration/supported_*.json`` and parsed by
-``migration.ParseStrictBatch``, which rejects unknown fields (contracts/
-translator-api.md: "The Python model must be equally strict so the failure
-lands at the agent boundary rather than here (FR-017)").
+FR-011: no second translator — this model mirrors the Go side's
+``pkg/migration`` ServiceInput exactly (wire names and validation rules),
+now in the datacenter construct vocabulary: ``vlan``, ``mac-vrf``,
+``ip-vrf``, ``acl``.
 
-Strictness parity with the Go side (T068-T070):
+Strictness parity (T068–T070):
 
-* every model sets ``model_config = ConfigDict(extra="forbid")`` because
-  ``ParseStrictBatch`` rejects unknown fields;
-* :meth:`NormalizedServiceIntent.validate_all_or_nothing` mirrors
-  ``pkg/migration/input.go`` ``ValidateAllOrNothing`` field for field:
-  required ``rdRt`` / VNI per type, ``addressFamilies`` prefixes for L3,
-  the ``vpwsLimitedEquivalence`` policy opt-in, and the endpoint rules
-  (count + vlan/vrf per type);
-* the Go type literals are used verbatim — the translator's IRB type is
-  ``L2L3-IRB`` (``pkg/migration/input.go:29``), not ``IRB``.
+- every model sets ``model_config = ConfigDict(extra="forbid")`` because
+  the Go decoder rejects unknown fields;
+- :meth:`NormalizedServiceIntent.validate_all_or_nothing` mirrors
+  ``pkg/migration/input.go`` ``ValidateAllOrNothing`` construct by
+  construct — required/forbidden variables, endpoint minima, the reserved
+  VLAN band 4001–4094 and the L3VNI band 10000–14094;
+- the four construct literals are used verbatim.
 
 No identifier in this model may be locally generated: every ``l2vni``,
-``l3vni``, and ``rd``/RT value must trace to the cluster allocation authority
-(KUID where the pinned server works; Kubernetes Lease fallback for the broken
-GENID/EXTCOMM pools).
+``l3vni``, and ``rd``/RT value must trace to the cluster allocation authority.
 """
 
 from __future__ import annotations
@@ -33,10 +27,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class RdRt(BaseModel):
-    """Route distinguisher + route-targets (required for every VPN type).
-
-    Values come from KUID claims (Decision 11), never generated locally.
-    """
+    """Route distinguisher + route-targets (VPNs only)."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -46,7 +37,7 @@ class RdRt(BaseModel):
 
 
 class AddressFamilies(BaseModel):
-    """AFI-specific properties for L3 (at least one prefix overall)."""
+    """AFI-specific properties for ip-vrf (at least one prefix overall)."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -57,9 +48,9 @@ class AddressFamilies(BaseModel):
 class Endpoint(BaseModel):
     """One attachment point on a target node.
 
-    ``{node, attachment, vlan?}`` for L2, ``{node, attachment, vrf}`` for
-    L3/IRB — which of vlan/vrf applies is enforced per service type in
-    :meth:`NormalizedServiceIntent.validate_all_or_nothing`.
+    ``{node, attachment, vlan?}`` for L2 constructs (vlan, mac-vrf);
+    ``{node, attachment, vrf}`` for ip-vrf — which of vlan/vrf applies is
+    enforced per construct in :meth:`NormalizedServiceIntent.validate_all_or_nothing`.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -70,34 +61,29 @@ class Endpoint(BaseModel):
     vrf: str | None = None
 
 
-class IRBGateway(BaseModel):
-    """IRB per-BD gateways (required when type == L2L3-IRB)."""
+class AnycastGateway(BaseModel):
+    """mac-vrf anycast gateway (symmetric IRB) — optional.
+
+    When present, mac-vrf requires an ``l3vni`` and the gateway SVI carries
+    at least one of these addresses inside the ip-vrf the service routes into.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
-    vrf: str = Field(min_length=1)
-    # At least one address family, not both: an IRB should carry the families
-    # the operator asked for and no others (see validate_all_or_nothing).
+    ipVrf: str | None = None
     gatewayIPv4: str = ""
     gatewayIPv6: str = ""
 
 
 class Policies(BaseModel):
-    """Explicit allow-listed options, passed to the translator unmodified."""
-
     model_config = ConfigDict(extra="forbid")
 
-    # Must be true to allow VPWS-to-L2VNI limited-equivalence mapping.
+    # legacy VPWS mapping (kept for parity with the Go validator; has no effect for constructs)
     vpwsLimitedEquivalence: bool = False
 
 
 class UnsupportedClaims(BaseModel):
-    """Explicitly modeled unsupported features (FR-011).
-
-    Presence of ANY of these is a terminal validation failure naming the
-    property — mirrored from ``pkg/migration/input.go`` so the agent
-    boundary rejects with the same causes the translator would.
-    """
+    """Explicitly modeled unsupported features (FR-011)."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -111,16 +97,12 @@ class UnsupportedClaims(BaseModel):
 
     @property
     def present(self) -> list[str]:
-        """Names of the unsupported claims actually present (Go cause order)."""
         return [name for name in ("tePolicy", "pseudowireOAM", "controlWord", "multicastVPN",
-                                  "complexQoS", "serviceChain", "rawCLI")
-                if getattr(self, name) is not None]
+                                  "complexQoS", "serviceChain", "rawCLI") if getattr(self, name) is not None]
 
 
 @dataclass
 class ValidationError:
-    """Structured rejection with all causes (mirrors the Go ValidationError)."""
-
     causes: list[str] = field(default_factory=list)
 
     def __str__(self) -> str:
@@ -128,18 +110,13 @@ class ValidationError:
 
 
 class NormalizedServiceIntent(BaseModel):
-    """The normalized service-intent contract (data-model.md §3).
-
-    Field names are the Go JSON wire names (``serviceId``, ``rdRt``,
-    ``l2vni``, ...) — this model serializes byte-compatibly with
-    ``pkg/migration``'s ``ServiceInput``.
-    """
+    """The normalized service-intent contract (data-model.md §3)."""
 
     model_config = ConfigDict(extra="forbid")
 
     # Identity
     serviceId: str = Field(min_length=1)
-    # VPLS | L3VPN | VPWS | L2L3-IRB — the Go literals, verbatim
+    # vlan | mac-vrf | ip-vrf | acl — construct literals
     type: str
     tenant: str = Field(min_length=1)
 
@@ -149,8 +126,8 @@ class NormalizedServiceIntent(BaseModel):
     l3vni: int | None = Field(default=None, ge=1)
     addressFamilies: AddressFamilies | None = None
 
-    # IRB per-BD gateways (when type == L2L3-IRB)
-    irbGateway: IRBGateway | None = None
+    # mac-vrf anycast gateway (symmetric IRB)
+    anycastGateway: AnycastGateway | None = None
 
     # Endpoints
     endpoints: list[Endpoint]
@@ -160,10 +137,8 @@ class NormalizedServiceIntent(BaseModel):
     unsupported: UnsupportedClaims | None = None
 
     # ------------------------------------------------------------------
-    # Validation — mirrors pkg/migration/input.go ValidateAllOrNothing
-    # (T069: rdRt, VNI, address-family, policy, and endpoint rules).
-    # Returns None when valid, a ValidationError with all causes otherwise
-    # (all-or-nothing: a single rejection fails the object, nothing partial).
+    # Validation — mirrors pkg/migration/input.go ValidateAllOrNothing.
+    # Returns None when valid, a ValidationError otherwise.
     # ------------------------------------------------------------------
     def validate_all_or_nothing(self, dup_service_id: bool = False) -> ValidationError | None:
         causes: list[str] = []
@@ -185,68 +160,95 @@ class NormalizedServiceIntent(BaseModel):
         if len(self.endpoints) == 0:
             causes.append("endpoints: at least one endpoint is required")
 
-        if self.type == "VPLS":
-            if not self.l2vni:
-                causes.append("l2vni: required for VPLS")
-            if self.rdRt is None:
-                causes.append("rdRt: required for VPLS")
-            if len(self.endpoints) < 2:
-                causes.append("endpoints: VPLS requires >=2 endpoints")
-            # All endpoints must specify the same VLAN
+        t = self.type
+        if t == "vlan":
+            # Wrong-construct variables
+            if self.l2vni:
+                causes.append("l2vni: a vlan is local to the node; ask for a mac-vrf to extend it over the fabric")
+            if self.l3vni:
+                causes.append("l3vni: a vlan carries no routed instance; ask for an ip-vrf, or a mac-vrf with an anycastGateway")
+            if self.rdRt is not None:
+                causes.append("rdRt: a vlan is not advertised by EVPN and has no route distinguisher or targets")
+            if self.anycastGateway is not None:
+                causes.append("anycastGateway: only a mac-vrf carries an anycast gateway")
+            if len(self.endpoints) < 1:
+                causes.append("endpoints: vlan requires >=1 endpoint")
+            # VLAN required on every endpoint and reserved band refusal; equality across endpoints
             vlan = 0
             for i, ep in enumerate(self.endpoints):
                 if not ep.vlan:
-                    causes.append(f"endpoints[{i}].vlan: required for VPLS")
-                if i == 0:
-                    vlan = ep.vlan or 0
-                elif ep.vlan and ep.vlan != vlan:
-                    causes.append("endpoints.vlan: must be equal across all endpoints for VPLS")
-        elif self.type == "L3VPN":
-            if not self.l3vni:
-                causes.append("l3vni: required for L3VPN")
+                    causes.append(f"endpoints[{i}].vlan: required for vlan")
+                else:
+                    if ep.vlan > 4000:
+                        causes.append(f"endpoints[{i}].vlan: {ep.vlan} is reserved (4001-4094); usable range is 1-4000")
+                    if vlan == 0:
+                        vlan = ep.vlan
+                    elif ep.vlan != vlan:
+                        causes.append(
+                            f"endpoints[{i}].vlan: vlan is one bridge domain, so every endpoint must share one vlan (got {vlan} and {ep.vlan})"
+                        )
+        elif t == "mac-vrf":
+            if not self.l2vni:
+                causes.append("l2vni: required for mac-vrf")
             if self.rdRt is None:
-                causes.append("rdRt: required for L3VPN")
+                causes.append("rdRt: required for mac-vrf")
+            min_eps = 2
+            if self.anycastGateway is not None:
+                min_eps = 1
+            if len(self.endpoints) < min_eps:
+                causes.append(f"endpoints: mac-vrf requires >={min_eps} endpoints")
+            # Reserved VLAN band and vlan presence / equality across endpoints
+            vlan = 0
+            for i, ep in enumerate(self.endpoints):
+                if not ep.vlan:
+                    causes.append(f"endpoints[{i}].vlan: required for mac-vrf")
+                else:
+                    if ep.vlan > 4000:
+                        causes.append(f"endpoints[{i}].vlan: {ep.vlan} is reserved (4001-4094); usable range is 1-4000")
+                    if vlan == 0:
+                        vlan = ep.vlan
+                    elif ep.vlan != vlan:
+                        causes.append(
+                            f"endpoints[{i}].vlan: mac-vrf is one bridge domain, so every endpoint must share one vlan (got {vlan} and {ep.vlan})"
+                        )
+            # anycastGateway requires l3vni in the ip-vrf it routes into
+            if self.anycastGateway is not None:
+                if not self.l3vni:
+                    causes.append("l3vni: required for a mac-vrf with an anycastGateway (the ip-vrf it routes into)")
+                if not (10000 <= (self.l3vni or 0) <= 14094):
+                    causes.append(
+                        f"l3vni: {self.l3vni} has no derivable service VLAN; this fabric renders L3VNIs in 10000-14094"
+                    )
+            elif self.l3vni:
+                causes.append("l3vni: a mac-vrf carries an L3VNI only when it declares an anycastGateway")
+        elif t == "ip-vrf":
+            if not self.l3vni:
+                causes.append("l3vni: required for ip-vrf")
+            if not (self.l3vni is None or 10000 <= self.l3vni <= 14094):
+                causes.append(
+                    f"l3vni: {self.l3vni} has no derivable service VLAN; this fabric renders L3VNIs in 10000-14094"
+                )
+            if self.rdRt is None:
+                causes.append("rdRt: required for ip-vrf")
             af = self.addressFamilies
             if af is None or (len(af.ipv4Prefixes) == 0 and len(af.ipv6Prefixes) == 0):
-                causes.append("addressFamilies: at least one prefix is required for L3VPN")
+                causes.append("addressFamilies: at least one prefix is required for ip-vrf")
+            if self.l2vni:
+                causes.append("l2vni: an ip-vrf carries no bridge domain; ask for a mac-vrf with an anycastGateway to get both")
+            if self.anycastGateway is not None:
+                causes.append("anycastGateway: belongs to the mac-vrf whose SVI carries it, not to the ip-vrf")
             if len(self.endpoints) < 1:
-                causes.append("endpoints: L3VPN requires >=1 endpoint")
+                causes.append("endpoints: ip-vrf requires >=1 endpoint")
             for i, ep in enumerate(self.endpoints):
                 if not ep.vrf:
-                    causes.append(f"endpoints[{i}].vrf: required for L3VPN")
-        elif self.type == "VPWS":
-            if not self.l2vni:
-                causes.append("l2vni: required for VPWS")
-            if self.rdRt is None:
-                causes.append("rdRt: required for VPWS")
-            if len(self.endpoints) != 2:
-                causes.append("endpoints: VPWS requires exactly 2 endpoints")
-            for i, ep in enumerate(self.endpoints):
-                if not ep.vlan:
-                    causes.append(f"endpoints[{i}].vlan: required for VPWS")
-            if not (self.policies and self.policies.vpwsLimitedEquivalence):
-                causes.append("policy: vpwsLimitedEquivalence must be true to allow limited equivalence mapping")
-        elif self.type == "L2L3-IRB":
-            if not self.l2vni:
-                causes.append("l2vni: required for IRB bridge domain")
-            if not self.l3vni:
-                causes.append("l3vni: required for IRB VRF")
-            if self.rdRt is None:
-                causes.append("rdRt: required for IRB VRF")
-            if self.irbGateway is None:
-                causes.append("irbGateway: required for IRB")
-            else:
-                if not self.irbGateway.vrf:
-                    causes.append("irbGateway.vrf: required")
-                if not self.irbGateway.gatewayIPv4 and not self.irbGateway.gatewayIPv6:
-                    causes.append(
-                        "irbGateway: at least one of gatewayIPv4/gatewayIPv6 is required"
-                    )
+                    causes.append(f"endpoints[{i}].vrf: required for ip-vrf")
+        elif t == "acl":
+            if self.l2vni or self.l3vni or self.rdRt is not None or self.anycastGateway is not None:
+                causes.append(
+                    "acl: an acl binds to ports and carries no VNI, route targets or gateway; attach it to a vlan, mac-vrf or ip-vrf to filter that service"
+                )
             if len(self.endpoints) < 1:
-                causes.append("endpoints: IRB requires at least one endpoint")
-            for i, ep in enumerate(self.endpoints):
-                if not ep.vlan:
-                    causes.append(f"endpoints[{i}].vlan: required for IRB")
+                causes.append("endpoints: acl requires >=1 endpoint to bind to")
         else:
             causes.append(f"type: unsupported '{self.type}'")
 

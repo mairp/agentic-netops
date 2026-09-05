@@ -43,3 +43,11 @@ entries:
     prefer: sonic
     native_path: /sonic-srv6:sonic-srv6/BEHAVIORS
     justification: SRv6 behaviors (H.Encaps.Red, End, End.DT46) are SONiC-native on pinned image
+  - path: /sonic-vlan:sonic-vlan/VLAN
+    prefer: sonic
+    native_path: /sonic-vlan:sonic-vlan/VLAN
+    justification: VLAN is a kernel device outside the OpenConfig interface tree on the pinned image
+  - path: /sonic-vlan:sonic-vlan/VLAN_MEMBER
+    prefer: sonic
+    native_path: /sonic-vlan:sonic-vlan/VLAN_MEMBER
+    justification: VLAN_MEMBER binds kernel ports to VLANs; OpenConfig leafrefs would fail YANG validation

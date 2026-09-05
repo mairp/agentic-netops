@@ -18,10 +18,10 @@ AGENT_SKILL = AgentSkill(
     description="Extracts and structures technical parameters from a network service request.",
     tags=["network", "provisioning", "intent", "mapping"],
     examples=[
-        "Deploy an L2VPN between Site-A and Site-B with 1Gbps",
-        "Create a 500Mbps L3VPN between Paris and London",
-        "Provision a VPLS for tenant ACME between two sites",
-        "Map this request: deploy a VPN between New York and Boston at 300Mbps",
+        "Create a vlan 120 on leaf01 ethernet1 for tenant acme",
+        "Provision a mac-vrf between leaf01 ethernet1 and leaf02 ethernet2 for tenant blue vlan 300",
+        "Deploy an ip-vrf between leaf01 wan1 and leaf02 wan1 with prefix 10.0.10.0/24",
+        "Bind an acl to leaf01 ethernet1 ingress permitting tcp/443",
     ],
 )
 

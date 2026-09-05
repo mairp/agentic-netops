@@ -1,0 +1,22 @@
+spec:
+  description: Migrated service c_acl_https (acl)
+  accessLists:
+  - name: allow-https
+    stage: ingress
+    type: l3
+    rules:
+    - name: allow-https
+      priority: 100
+      action: permit
+      protocol: tcp
+      sourcePrefix: 10.0.0.0/24
+      destinationPort: 443
+    - name: default
+      priority: 200
+      action: deny
+      protocol: any
+  attachments:
+  - node: leaf01
+    attachment: ethernet1
+  - node: leaf02
+    attachment: ethernet1

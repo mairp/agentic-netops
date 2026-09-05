@@ -149,3 +149,22 @@ def test_irb_carries_only_the_address_families_that_were_asked_for():
     neither = _allocator(_CountingKUID())._build_intent(_interpretation("IRB"), "c" * 32)
     assert neither.irbGateway.gatewayIPv4 == "10.0.0.1/24"
     assert neither.irbGateway.gatewayIPv6 == ""
+
+
+def test_vlan_claim_profile_strands_no_l2vni():
+    allocator = _allocator(_CountingKUID())
+    interpretation = Interpretation.model_validate(
+        {
+            "service_id": "svc-vlan",
+            "service_type": "vlan",
+            "tenant": "acme",
+            "endpoints": [
+                {"site_or_node": "leaf01", "attachment": "ethernet1"}
+            ],
+        }
+    )
+    intent = allocator._build_intent(interpretation, "c" * 32)
+    assert intent.type == "vlan"
+    assert intent.l2vni is None
+    assert intent.rdRt is None
+
