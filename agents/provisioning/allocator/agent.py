@@ -36,15 +36,23 @@ from typing import Any
 from uuid import uuid4
 
 from a2a.types import DataPart, Message, Part, Role, TextPart
+from ioa_observe.sdk.decorators import agent
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END, MessagesState, StateGraph
 from pydantic import ValidationError
 
 from common.redaction import redact_model_response
 from common.schemas.interpretation import Interpretation
-from common.schemas.normalized_intent import AddressFamilies, AnycastGateway, Endpoint, NormalizedServiceIntent, Policies, RdRt
-from provisioning.allocator.kuid import KUIDClient
+from common.schemas.normalized_intent import (
+    ACL,
+    AddressFamilies,
+    AnycastGateway,
+    Endpoint,
+    NormalizedServiceIntent,
+    RdRt,
+)
 from common.telemetry import get_trace_correlation_id
+from provisioning.allocator.kuid import KUIDClient
 
 logger = logging.getLogger("agentic_netops.network_allocator.agent")
 
@@ -90,7 +98,6 @@ def _deterministic_endpoints(endpoints: list[Endpoint]) -> list[Endpoint]:
     return sorted(endpoints, key=lambda e: (e.node, e.attachment))
 
 
-from ioa_observe.sdk.decorators import agent
 
 
 @agent(name="Network Allocator Agent", method_name="ainvoke")
@@ -130,8 +137,27 @@ class AllocatorAgent:
             Endpoint(node=e.node, attachment=e.attachment, vlan=vlan) for e in endpoints
         ]
 
+    @staticmethod
+    def _normalized_acl(interp: Interpretation) -> ACL | None:
+        """The interpretation's filter in the normalized contract's wire names.
+
+        The two contracts differ by one field name (``default_action`` here is
+        ``defaultAction`` there). Any construct may carry a filter bound to its
+        own attachment ports, so this is applied to every branch below — a
+        mac-vrf requested "permitting only ingress tcp port 443" must reach the
+        deployer with that filter, not as a bare bridge domain.
+        """
+
+        if interp.acl is None:
+            return None
+        data = interp.acl.model_dump(mode="json", exclude_none=True)
+        if "default_action" in data:
+            data["defaultAction"] = data.pop("default_action")
+        return ACL.model_validate(data)
+
     def _build_intent(self, interp: Interpretation, correlation_id: str) -> NormalizedServiceIntent:
         st = interp.service_type.value
+        acl = self._normalized_acl(interp)
         endpoints: list[Endpoint] = []
         # Map Interpretation endpoints to normalized Endpoint (node->site_or_node)
         for ep in interp.endpoints:
@@ -161,6 +187,7 @@ class AllocatorAgent:
             intent = NormalizedServiceIntent(
                 serviceId=interp.service_id,
                 type="vlan",
+                acl=acl,
                 tenant=interp.tenant,
                 endpoints=eps,
             )
@@ -183,6 +210,7 @@ class AllocatorAgent:
             intent = NormalizedServiceIntent(
                 serviceId=interp.service_id,
                 type="mac-vrf",
+                acl=acl,
                 tenant=interp.tenant,
                 rdRt=rd_rt,
                 l2vni=l2vni,
@@ -210,6 +238,7 @@ class AllocatorAgent:
             intent = NormalizedServiceIntent(
                 serviceId=interp.service_id,
                 type="ip-vrf",
+                acl=acl,
                 tenant=interp.tenant,
                 rdRt=rd_rt,
                 l3vni=l3vni,
@@ -217,11 +246,17 @@ class AllocatorAgent:
                 endpoints=eps,
             )
         elif st == "acl":
-            # Standalone ACL: binds to ports; allocator does not claim identifiers
+            # Standalone ACL: binds to ports; allocator does not claim identifiers.
+            # The filter itself must travel with the intent — dropping it here
+            # (which is what this branch did) submitted an access-list service
+            # carrying no access list, and the operator's rules never reached
+            # the fabric. The wire names differ by one field: the
+            # interpretation's ``default_action`` is ``defaultAction`` here.
             intent = NormalizedServiceIntent(
                 serviceId=interp.service_id,
                 type="acl",
                 tenant=interp.tenant,
+                acl=acl,
                 endpoints=endpoints,
             )
         else:
@@ -254,7 +289,9 @@ class AllocatorAgent:
         workflow.add_edge("allocate", END)
         return workflow.compile()
 
-    async def ainvoke(self, interpretation_json: str, *, correlation_id: str = "") -> tuple[Message, NormalizedServiceIntent]:
+    async def ainvoke(
+        self, interpretation_json: str, *, correlation_id: str = ""
+    ) -> tuple[Message, NormalizedServiceIntent]:
         seed = {"messages": [HumanMessage(content=interpretation_json)]}
         if not hasattr(self, "graph"):
             self.graph = self._build_graph()
@@ -264,7 +301,7 @@ class AllocatorAgent:
         try:
             intent = NormalizedServiceIntent.model_validate(payload)
         except ValidationError as exc:
-            raise ValueError(f"allocator produced invalid normalized intent: {exc}")
+            raise ValueError(f"allocator produced invalid normalized intent: {exc}") from exc
         parts = [Part(TextPart(text=self._format_summary_with_marker(summary, intent)))]
         parts.insert(0, Part(DataPart(data=intent.model_dump(mode="json"))))  # authoritative
         msg = Message(
@@ -310,7 +347,10 @@ class AllocatorAgent:
         cached = state_memo.get(key) or self._memo.get(key)
         if cached is not None:
             logger.info("memoized allocation hit for %s", key[:8])
-            return {"result_text": self._summary(NormalizedServiceIntent.model_validate_json(cached)), "payload": json.loads(cached)}
+            return {
+                "result_text": self._summary(NormalizedServiceIntent.model_validate_json(cached)),
+                "payload": json.loads(cached),
+            }
 
         correlation_id = ""
         # The supervisor stamps the state; allocator uses the correlation-id when allocating

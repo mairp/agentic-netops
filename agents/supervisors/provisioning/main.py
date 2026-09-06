@@ -31,6 +31,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from ioa_observe.sdk.tracing.tracing import session_start
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 
@@ -44,6 +45,7 @@ from config.config import (
     TRANSPORT_SERVER_ENDPOINT,
 )
 from config.logging_config import setup_logging
+from config.telemetry import init_telemetry
 from supervisors.provisioning.graph.graph import (
     ProvisioningGraph,
     clarification_prompt,
@@ -55,7 +57,6 @@ setup_logging()
 logger = logging.getLogger("agentic_netops.provision.supervisor.main")
 
 # -------------------- Telemetry --------------------
-from config.telemetry import init_telemetry
 
 init_telemetry(app_name="intent-supervisor")
 
@@ -116,7 +117,6 @@ _DEPLOYER_OUTCOME_STATUSES = frozenset(
 
 
 # -------------------- HTTP Endpoints --------------------
-from ioa_observe.sdk.tracing.tracing import session_start
 
 
 @app.post("/agent/prompt/stream")

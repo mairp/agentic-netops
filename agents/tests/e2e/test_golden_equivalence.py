@@ -7,7 +7,6 @@ import pytest
 
 from provisioning.deployer.tools.deployer_tools import submit_service
 
-
 # Golden input fixtures represent the NormalizedServiceIntent shapes that
 # pkg/migration already consumes. We verify that the translator sidecar,
 # bound to 127.0.0.1:8090, would accept and deterministically echo
@@ -94,7 +93,19 @@ def test_supported_golden_inputs_shape(name: str, payload: dict[str, Any], monke
     def fake_post(url: str, headers: dict[str, str], content: str):  # type: ignore[override]
         body = json.loads(content)
         # Return deterministic echo matching translator shape
-        return DummyResp({"manifests": [{"apiVersion": "network.kubenet.dev/v1alpha1", "kind": "Network", "metadata": {"name": body.get("serviceId", "")}}], "yaml": "apiVersion: network.kubenet.dev/v1alpha1\nkind: Network\nmetadata:\n  name: %s\n" % body.get("serviceId", "")})
+        service_id = body.get("serviceId", "")
+        manifest = {
+            "apiVersion": "network.kubenet.dev/v1alpha1",
+            "kind": "Network",
+            "metadata": {"name": service_id},
+        }
+        rendered = (
+            "apiVersion: network.kubenet.dev/v1alpha1\n"
+            "kind: Network\n"
+            "metadata:\n"
+            f"  name: {service_id}\n"
+        )
+        return DummyResp({"manifests": [manifest], "yaml": rendered})
 
     class DummyClient:
         def __init__(self, timeout: float):

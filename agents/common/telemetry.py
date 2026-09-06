@@ -14,7 +14,6 @@ from typing import Any
 
 from opentelemetry import trace
 
-
 CORRELATION_LABEL = "agentic-netops.io/correlation-id"
 
 

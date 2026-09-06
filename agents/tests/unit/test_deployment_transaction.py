@@ -134,7 +134,11 @@ class FakeIntentAPI:
         ]
 
     def list_networks(self) -> list[dict[str, Any]]:
-        return [obj for (api, kind, _), obj in self.objects.items() if api == "network.kubenet.dev/v1alpha1" and kind == "Network"]
+        return [
+            obj
+            for (api, kind, _), obj in self.objects.items()
+            if api == "network.kubenet.dev/v1alpha1" and kind == "Network"
+        ]
 
     def delete(self, ref: Any) -> bool:
         if self.sticky_delete:
@@ -428,15 +432,30 @@ class TestDeployerAgentReporting:
 
     def test_preflight_refuses_second_acl_on_same_port_stage(self, monkeypatch):
         from provisioning.deployer import submit as submit_mod
-        # Build two Network manifests: existing with ACL ingress on ethernet1; new tries to bind another ACL on same port/stage
+        # Build two Network manifests: existing with ACL ingress on ethernet1;
+        # new tries to bind another ACL on the same port and stage.
         existing = _manifest("net-existing")
         existing["spec"] = {
-            "accessLists": [{"name": "acl-a", "stage": "ingress", "type": "l3", "rules": [{"name": "r", "priority": 100, "action": "deny"}]}],
+            "accessLists": [
+                {
+                    "name": "acl-a",
+                    "stage": "ingress",
+                    "type": "l3",
+                    "rules": [{"name": "r", "priority": 100, "action": "deny"}],
+                }
+            ],
             "attachments": [{"node": "leaf01", "attachment": "ethernet1"}],
         }
         new = _manifest("net-new")
         new["spec"] = {
-            "accessLists": [{"name": "acl-b", "stage": "ingress", "type": "l3", "rules": [{"name": "r", "priority": 100, "action": "permit"}]}],
+            "accessLists": [
+                {
+                    "name": "acl-b",
+                    "stage": "ingress",
+                    "type": "l3",
+                    "rules": [{"name": "r", "priority": 100, "action": "permit"}],
+                }
+            ],
             "attachments": [{"node": "leaf01", "attachment": "ethernet1"}],
         }
         def translator(_intent):
@@ -457,12 +476,26 @@ class TestDeployerAgentReporting:
         from provisioning.deployer import submit as submit_mod
         existing = _manifest("net-existing")
         existing["spec"] = {
-            "accessLists": [{"name": "acl-a", "stage": "ingress", "type": "l3", "rules": [{"name": "r", "priority": 100, "action": "deny"}]}],
+            "accessLists": [
+                {
+                    "name": "acl-a",
+                    "stage": "ingress",
+                    "type": "l3",
+                    "rules": [{"name": "r", "priority": 100, "action": "deny"}],
+                }
+            ],
             "attachments": [{"node": "leaf01", "attachment": "ethernet1"}],
         }
         new = _manifest("net-new")
         new["spec"] = {
-            "accessLists": [{"name": "acl-b", "stage": "egress", "type": "l3", "rules": [{"name": "r", "priority": 100, "action": "permit"}]}],
+            "accessLists": [
+                {
+                    "name": "acl-b",
+                    "stage": "egress",
+                    "type": "l3",
+                    "rules": [{"name": "r", "priority": 100, "action": "permit"}],
+                }
+            ],
             "attachments": [{"node": "leaf01", "attachment": "ethernet1"}],
         }
         def translator(_intent):
@@ -858,10 +891,13 @@ class TestStatusQuestionOnACompletedThread:
         )
 
         assert not detect_deployment_status_query(
-            "Create an L3VPN between leaf1 Ethernet1 and leaf2 Ethernet2 for tenant-a"
+            "Create a mac-vrf between leaf1 Ethernet1 and leaf2 Ethernet2 for tenant-a"
         )
+        # Phrased in the construct vocabulary: detect_provisioning_request only
+        # recognizes vlan / mac-vrf / ip-vrf / acl, so an "L3VPN" request — what
+        # this case used to say — is not a provisioning request at all.
         combined = (
-            "Deploy an L3VPN service for tenant validation-test with IPv4 prefix "
+            "Deploy an ip-vrf for tenant validation-test with IPv4 prefix "
             "10.99.18.0/24. Attach wan1 on leaf01 and wan1 on leaf02. Allocate the "
             "required identifiers automatically. After approving, check the final "
             "deployment status of the service."
@@ -873,7 +909,7 @@ class TestStatusQuestionOnACompletedThread:
         from langchain_core.messages import HumanMessage
 
         request = (
-            "Deploy an L3VPN service for tenant validation-test with IPv4 prefix "
+            "Deploy an ip-vrf for tenant validation-test with IPv4 prefix "
             "10.99.18.0/24. Attach wan1 on leaf01 and wan1 on leaf02. Allocate the "
             "required identifiers automatically. After approving, check the final "
             "deployment status of the service."
@@ -1001,10 +1037,50 @@ class TestStatusQuestionOnACompletedThread:
         assert "Deployed." in out["messages"][0].content
 
     async def test_a_resolved_failure_answer_names_the_responsible_stage(self, graph_llm):
-        report = {"status": {"correlationId": CID, "phase": "Failed", "resources": []}}
+        """A resolved status of Failed ends the thread FAILED and says so.
+
+        This case had a body of one unused assignment and asserted nothing —
+        ruff's F841 is what surfaced it. The assertions below are the ones the
+        name promises: the answer is the deployer's own report, the thread
+        status follows the report, and the operator-facing text carries the
+        failure rather than a generic apology.
+        """
+
+        report = {
+            "status": {
+                "serviceId": "svc-alpha",
+                "correlationId": CID,
+                "phase": "Failed",
+                "resources": [
+                    {
+                        "kind": "Network",
+                        "name": "net-svc-alpha",
+                        "ready": False,
+                        "reason": "ApplyFailed",
+                        "message": "leaf02: config apply rejected",
+                        "lastTransitionTime": "2026-09-04T07:48:18Z",
+                    }
+                ],
+            }
+        }
+        parts = [{"data": report}, {"text": _marker_text("Failed. Network/net-svc-alpha Ready=False.\n", report)}]
+        state = {
+            **_deployer_state(),
+            "tool_action": "status",
+            "tool_request": canonical_json({"action": "status", "correlationId": CID}),
+        }
+        out = await _run_deployer_node(graph_llm, parts, state=state)
+        assert out["workflow_status"] == NetworkProvisioningStatus.FAILED.value
+        answer = out["messages"][0].content
+        assert "Failed" in answer
+        assert "net-svc-alpha" in answer
+
     async def test_unverified_indicator_carries_through_supervisor_rendering(self, graph_llm):
         # The deployer worker returns a status report with Ready False message naming a check that did not run.
-        parts = [{"data": _fake_status_with_unverified()}, {"text": _marker_text("Failed.\n", _fake_status_with_unverified())}]
+        parts = [
+            {"data": _fake_status_with_unverified()},
+            {"text": _marker_text("Failed.\n", _fake_status_with_unverified())},
+        ]
         state = {
             **_deployer_state(),
             "tool_action": "status",

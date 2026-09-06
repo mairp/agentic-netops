@@ -217,7 +217,13 @@ def test_anycast_gateway_is_refused_on_every_other_construct():
                 "stage": "ingress",
                 "type": "l3",
                 "rules": [
-                    {"name": "allow-web", "priority": 100, "action": "permit", "protocol": "tcp", "destinationPort": "80"}
+                    {
+                        "name": "allow-web",
+                        "priority": 100,
+                        "action": "permit",
+                        "protocol": "tcp",
+                        "destinationPort": "80",
+                    }
                 ],
             }
         try:
@@ -245,3 +251,55 @@ def test_vlan_claim_profile_strands_no_l2vni():
     assert intent.l2vni is None
     assert intent.rdRt is None
 
+
+
+def test_a_standalone_acl_carries_its_rules_into_the_normalized_intent():
+    """The filter is the request; an acl intent without it deploys nothing.
+
+    The allocator built the acl intent from serviceId/type/tenant/endpoints and
+    dropped ``interpretation.acl`` on the floor, so the rules an operator
+    confirmed never reached the deployer. The one wire-name difference between
+    the two contracts (``default_action`` -> ``defaultAction``) is translated
+    here, not guessed at downstream.
+    """
+
+    interpretation = Interpretation.model_validate(
+        {
+            "service_id": "svc-acl",
+            "service_type": "acl",
+            "tenant": "acme",
+            "endpoints": [{"site_or_node": "leaf01", "attachment": "wan1"}],
+            "acl": {
+                "stage": "ingress",
+                "type": "l3",
+                "default_action": "deny",
+                "rules": [
+                    {
+                        "name": "rule-1",
+                        "priority": 100,
+                        "action": "permit",
+                        "protocol": "tcp",
+                        "destinationPort": "443",
+                        "sourcePrefix": "10.0.0.0/24",
+                    }
+                ],
+            },
+        }
+    )
+
+    intent = _allocator(_CountingKUID())._build_intent(interpretation, "c" * 32)
+
+    assert intent.acl is not None, "the access list was dropped between the mapper and the deployer"
+    assert intent.acl.stage == "ingress"
+    assert intent.acl.defaultAction == "deny"
+    assert [r.model_dump(exclude_none=True) for r in intent.acl.rules] == [
+        {
+            "name": "rule-1",
+            "priority": 100,
+            "action": "permit",
+            "protocol": "tcp",
+            "destinationPort": "443",
+            "sourcePrefix": "10.0.0.0/24",
+        }
+    ]
+    assert intent.validate_all_or_nothing() is None

@@ -43,10 +43,10 @@ from uvicorn import Config, Server
 
 from common.exceptions import AuthError
 from config.config import DEFAULT_MESSAGE_TRANSPORT, ENABLE_HTTP, TRANSPORT_SERVER_ENDPOINT
+from config.telemetry import init_telemetry
 from provisioning.mapper.agent_executor import MappingAgentExecutor
 from provisioning.mapper.card import AGENT_CARD
 
-from config.telemetry import init_telemetry
 init_telemetry(app_name="intent-mapper")
 
 factory = AgntcyFactory("agentic_netops.network_mapping", enable_tracing=True)

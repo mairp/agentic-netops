@@ -21,11 +21,11 @@ No identifier in this model may be locally generated: every ``l2vni``,
 
 from __future__ import annotations
 
+import ipaddress
 from dataclasses import dataclass, field
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
-import ipaddress
-from typing import Literal
 
 
 class RdRt(BaseModel):
@@ -194,7 +194,10 @@ class NormalizedServiceIntent(BaseModel):
             if self.l2vni:
                 causes.append("l2vni: a vlan is local to the node; ask for a mac-vrf to extend it over the fabric")
             if self.l3vni:
-                causes.append("l3vni: a vlan carries no routed instance; ask for an ip-vrf, or a mac-vrf with an anycastGateway")
+                causes.append(
+                    "l3vni: a vlan carries no routed instance; ask for an ip-vrf, or a mac-vrf "
+                    "with an anycastGateway"
+                )
             if self.rdRt is not None:
                 causes.append("rdRt: a vlan is not advertised by EVPN and has no route distinguisher or targets")
             if self.anycastGateway is not None:
@@ -213,7 +216,8 @@ class NormalizedServiceIntent(BaseModel):
                         vlan = ep.vlan
                     elif ep.vlan != vlan:
                         causes.append(
-                            f"endpoints[{i}].vlan: vlan is one bridge domain, so every endpoint must share one vlan (got {vlan} and {ep.vlan})"
+                            f"endpoints[{i}].vlan: vlan is one bridge domain, so every endpoint "
+                            f"must share one vlan (got {vlan} and {ep.vlan})"
                         )
         elif t == "mac-vrf":
             if not self.l2vni:
@@ -237,7 +241,8 @@ class NormalizedServiceIntent(BaseModel):
                         vlan = ep.vlan
                     elif ep.vlan != vlan:
                         causes.append(
-                            f"endpoints[{i}].vlan: mac-vrf is one bridge domain, so every endpoint must share one vlan (got {vlan} and {ep.vlan})"
+                            f"endpoints[{i}].vlan: mac-vrf is one bridge domain, so every "
+                            f"endpoint must share one vlan (got {vlan} and {ep.vlan})"
                         )
             # anycastGateway requires l3vni in the ip-vrf it routes into
             if self.anycastGateway is not None:
@@ -262,7 +267,10 @@ class NormalizedServiceIntent(BaseModel):
             if af is None or (len(af.ipv4Prefixes) == 0 and len(af.ipv6Prefixes) == 0):
                 causes.append("addressFamilies: at least one prefix is required for ip-vrf")
             if self.l2vni:
-                causes.append("l2vni: an ip-vrf carries no bridge domain; ask for a mac-vrf with an anycastGateway to get both")
+                causes.append(
+                    "l2vni: an ip-vrf carries no bridge domain; ask for a mac-vrf with an "
+                    "anycastGateway to get both"
+                )
             if self.anycastGateway is not None:
                 causes.append("anycastGateway: belongs to the mac-vrf whose SVI carries it, not to the ip-vrf")
             if len(self.endpoints) < 1:
@@ -273,7 +281,8 @@ class NormalizedServiceIntent(BaseModel):
         elif t == "acl":
             if self.l2vni or self.l3vni or self.rdRt is not None or self.anycastGateway is not None:
                 causes.append(
-                    "acl: an acl binds to ports and carries no VNI, route targets or gateway; attach it to a vlan, mac-vrf or ip-vrf to filter that service"
+                    "acl: an acl binds to ports and carries no VNI, route targets or gateway; "
+                    "attach it to a vlan, mac-vrf or ip-vrf to filter that service"
                 )
             if len(self.endpoints) < 1:
                 causes.append("endpoints: acl requires >=1 endpoint to bind to")
@@ -302,7 +311,8 @@ class NormalizedServiceIntent(BaseModel):
                     causes.append("acl.rules: at least one rule is required")
                     if ad.get("name"):
                         causes.append(
-                            "acl: a service carries its own rules and its name is a label; provide rules instead of referencing by name"
+                            "acl: a service carries its own rules and its name is a label; "
+                            "provide rules instead of referencing by name"
                         )
                 for i, r in enumerate(rules):
                     # r may be a dict or a pydantic object; use getattr/[] tolerant access
@@ -320,13 +330,15 @@ class NormalizedServiceIntent(BaseModel):
                     prio = int((rd.get("priority") if isinstance(rd, dict) else 0) or 0)
                     if prio == 1:
                         causes.append(
-                            f"acl.rules[{i}].priority: 1 is reserved for the default action; usable priorities are 2-65535"
+                            f"acl.rules[{i}].priority: 1 is reserved for the default action; "
+                            f"usable priorities are 2-65535"
                         )
                     elif prio < 2 or prio > 65535:
                         causes.append(f"acl.rules[{i}].priority: must be 2-65535 (got {prio})")
                     elif prio in seen_prios:
                         causes.append(
-                            f"acl.rules[{i}].priority: {prio} is already used by another rule; priorities must be distinct"
+                            f"acl.rules[{i}].priority: {prio} is already used by another rule; "
+                            f"priorities must be distinct"
                         )
                     else:
                         seen_prios.add(prio)
@@ -345,11 +357,15 @@ class NormalizedServiceIntent(BaseModel):
                                 raise ValueError
                         except Exception:
                             causes.append(
-                                f"acl.rules[{i}].protocol: one of any, tcp, udp, icmp, igmp, rsvp, gre, ah, pim, l2tp or an IP protocol number 0-255 (got {proto_raw!r})"
+                                f"acl.rules[{i}].protocol: one of any, tcp, udp, icmp, igmp, "
+                                f"rsvp, gre, ah, pim, l2tp or an IP protocol number 0-255 (got "
+                                f"{proto_raw!r})"
                             )
                     if proto in ("icmpv6", "ipv6-icmp"):
                         causes.append(
-                            f"acl.rules[{i}].protocol: one of any, tcp, udp, icmp, igmp, rsvp, gre, ah, pim, l2tp or an IP protocol number 0-255 (got {proto_raw!r})"
+                            f"acl.rules[{i}].protocol: one of any, tcp, udp, icmp, igmp, rsvp, "
+                            f"gre, ah, pim, l2tp or an IP protocol number 0-255 (got "
+                            f"{proto_raw!r})"
                         )
                     # Prefix family check
                     for field in ("sourcePrefix", "destinationPrefix"):

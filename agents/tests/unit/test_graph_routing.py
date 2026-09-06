@@ -124,10 +124,11 @@ async def test_missing_attachment_points_stop_for_clarification():
         # accepted vocabulary and a worked example so the restatement is
         # mappable (live finding: "provision a mac vrf across all leafs"
         # looped clarifications with no guidance).
-        assert "VPLS" in state["messages"][-1].content
-        assert "VPWS" in state["messages"][-1].content
-        assert "L3VPN" in state["messages"][-1].content
-        assert "IRB" in state["messages"][-1].content
+        # The vocabulary named is the construct set (US5): the hint used to
+        # list VPLS/VPWS/L3VPN/IRB, and this assertion kept asking for them
+        # long after those names were retired everywhere else.
+        for construct in ("vlan", "mac-vrf", "ip-vrf", "acl"):
+            assert construct in state["messages"][-1].content
         assert "Example:" in state["messages"][-1].content
     finally:
         await g.close()

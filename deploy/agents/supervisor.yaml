@@ -46,7 +46,7 @@ data:
       "Deploy an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant initech with prefix 10.50.0.0/24",
       "Create a mac-vrf on vlan 160 across leaf01 ethernet1 and leaf02 ethernet1 for tenant umbrella with an anycast gateway at 10.60.0.1/24",
       "Apply an acl on leaf01 wan1 for tenant acme: allow ingress tcp port 443 from 10.0.0.0/24, deny everything else",
-      "Extend vlan 170 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme, permitting only tcp 443 from 10.0.0.0/24"
+      "Extend vlan 170 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme, permitting only ingress tcp port 443 from 10.0.0.0/24"
     ]
 ---
 apiVersion: v1

@@ -44,6 +44,7 @@ from uuid import uuid4
 
 import httpx
 
+from common.telemetry import CORRELATION_LABEL
 from config.config import (
     EXTCOMM_INDEX,
     FABRIC_ASN,
@@ -65,7 +66,6 @@ from config.config import (
 logger = logging.getLogger("agentic_netops.network_allocator.kuid")
 
 KUID_NAMESPACE = "kuid-system"
-from common.telemetry import CORRELATION_LABEL
 
 LEASE_LABELS = {
     "app.kubernetes.io/managed-by": "agentic-netops",
@@ -120,7 +120,7 @@ def _resolve_identity() -> KUIDIdentity:
     token = os.getenv("AGENTIC_NETOPS_BEARER_TOKEN") or None
     if token is None:
         try:
-            with open(SA_TOKEN_FILE, "r", encoding="utf-8") as fh:
+            with open(SA_TOKEN_FILE, encoding="utf-8") as fh:
                 token = fh.read().strip() or None
         except OSError:
             token = None
@@ -270,7 +270,11 @@ class KUIDClient:
             if any(k in status for k in ("value", "allocated", "assigned")):
                 return obj
             time.sleep(poll_interval)
-        raise KUIDAPIError(f"claim {name} did not become ready within {timeout_seconds}s")
+        last_status = (last_obj or {}).get("status") if isinstance(last_obj, dict) else None
+        raise KUIDAPIError(
+            f"claim {name} did not become ready within {timeout_seconds}s "
+            f"(last observed status: {last_status!r})"
+        )
 
     # ---------------- T216/T217: release by correlation-id ----------------
     def release_by_correlation(self, correlation_id: str) -> int:

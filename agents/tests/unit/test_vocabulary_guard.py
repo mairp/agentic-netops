@@ -18,9 +18,8 @@ This test reads files as text and enforces those rules.
 """
 from __future__ import annotations
 
-from pathlib import Path
-
 import re
+from pathlib import Path
 
 RETIRED = re.compile(r"\b(vpls|vpws|e-line|l3vpn|l2l3-irb)\b", re.IGNORECASE)
 
@@ -87,6 +86,7 @@ def test_no_retired_vocabulary_on_operator_surfaces():
                 if RETIRED.search(line):
                     offenders.append(f"{p.relative_to(ROOT)}:{i}:{line.strip()}")
     assert not offenders, (
-        "Retired vocabulary found on operator-facing surfaces — only migration alias/provenance contexts are permitted.\n"
+        "Retired vocabulary found on operator-facing surfaces — only migration "
+        "alias/provenance contexts are permitted.\n"
         + "\n".join(offenders)
     )

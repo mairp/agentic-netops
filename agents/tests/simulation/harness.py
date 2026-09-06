@@ -16,14 +16,14 @@ produces deterministic JSONL result records suitable for report.py consumption.
 from __future__ import annotations
 
 import json
-import os
 import random
 import threading
 import time
+from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any
 
 import yaml
 
@@ -41,7 +41,7 @@ class Persona:
     name: str
     description: str
     style: str
-    prompts: List[str]
+    prompts: list[str]
 
 
 @dataclass
@@ -61,21 +61,21 @@ class SessionResult:
     declined_once: bool
     completed: bool
     refused: bool
-    refusal_type: Optional[str] = None  # e.g., unsupported, direct_action
+    refusal_type: str | None = None  # e.g., unsupported, direct_action
     tokens_input: int = 0
     tokens_output: int = 0
     cost_usd: float = 0.0
     leaked_credentials: int = 0
     kuid_claims_made: int = 0
     kuid_claims_released: int = 0
-    kuid_collision: Optional[Dict[str, Any]] = None
+    kuid_collision: dict[str, Any] | None = None
     submitted_count: int = 1  # used by restart fault assertion
-    extra: Dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)
 
 
 # T428: seeded RNG selection
 
-def select_sessions_seeded_rng(seed: int, sessions: List[Any], count: int) -> List[Any]:
+def select_sessions_seeded_rng(seed: int, sessions: list[Any], count: int) -> list[Any]:
     """
     Deterministically select `count` sessions from `sessions` using seeded RNG.
     """
@@ -87,10 +87,10 @@ def select_sessions_seeded_rng(seed: int, sessions: List[Any], count: int) -> Li
 
 # Persona loader
 
-def load_personas(personas_dir: Path) -> List[Persona]:
-    personas: List[Persona] = []
+def load_personas(personas_dir: Path) -> list[Persona]:
+    personas: list[Persona] = []
     for path in sorted(personas_dir.glob("*.yaml")):
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
         personas.append(
             Persona(
@@ -105,13 +105,15 @@ def load_personas(personas_dir: Path) -> List[Persona]:
 
 # T437: overlapping identifier scenarios
 
-def generate_overlapping_identifier_scenarios(seed: int, personas: List[Persona], per_persona: int = 2) -> List[Dict[str, Any]]:
+def generate_overlapping_identifier_scenarios(
+    seed: int, personas: list[Persona], per_persona: int = 2
+) -> list[dict[str, Any]]:
     """
     Create sessions with overlapping identifiers to exercise KUID collision handling.
     Returns a list of dicts with 'session_id', 'thread_id', 'correlation_id', and 'persona'.
     """
     rng = random.Random(seed)
-    sessions: List[Dict[str, Any]] = []
+    sessions: list[dict[str, Any]] = []
     # generate a shared assignment key to force overlap
     shared_assignment_key = f"ASSIGN-{rng.randrange(1000,9999)}"
     for p in personas:
@@ -138,7 +140,7 @@ def generate_overlapping_identifier_scenarios(seed: int, personas: List[Persona]
 
 # Worker to simulate a session
 
-def _simulate_session(session: Dict[str, Any]) -> SessionResult:
+def _simulate_session(session: dict[str, Any]) -> SessionResult:
     # Deterministic timing based on ids
     t0 = time.time()
     # Simulate processing time within 0.1-0.5s window
@@ -159,7 +161,7 @@ def _simulate_session(session: Dict[str, Any]) -> SessionResult:
     kuid_claims_made = 3
     kuid_claims_released = 3
     submitted_count = 1
-    kuid_collision: Optional[Dict[str, Any]] = None
+    kuid_collision: dict[str, Any] | None = None
 
     # If kuid_key is the shared one, simulate a collision on one of the sessions
     if session.get("kuid_key", "").startswith("ASSIGN-"):
@@ -200,10 +202,12 @@ def _simulate_session(session: Dict[str, Any]) -> SessionResult:
 
 # T436: up-to-3 concurrent conversation runner
 
-def run_concurrent_conversations(sessions: List[Dict[str, Any]], max_concurrency: int = THREAD_BUDGET) -> List[SessionResult]:
+def run_concurrent_conversations(
+    sessions: list[dict[str, Any]], max_concurrency: int = THREAD_BUDGET
+) -> list[SessionResult]:
     """Run session simulations with a fixed thread budget (up to 3)."""
     max_workers = min(max_concurrency, get_thread_budget())
-    results: List[SessionResult] = []
+    results: list[SessionResult] = []
     lock = threading.Lock()
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         fut_to_session = {ex.submit(_simulate_session, s): s for s in sessions}
@@ -225,7 +229,7 @@ def write_session_results_jsonl(path: Path, results: Iterable[SessionResult]) ->
 
 # T438: assert collision reports conflicting value
 
-def assert_kuid_collision_reports_conflicting_value(records: List[SessionResult]) -> None:
+def assert_kuid_collision_reports_conflicting_value(records: list[SessionResult]) -> None:
     """
     Raise AssertionError if any record with a collision lacks 'conflicting_value'.
     """
@@ -237,7 +241,7 @@ def assert_kuid_collision_reports_conflicting_value(records: List[SessionResult]
 
 # T427: simulation harness entrypoint
 
-def run_simulation_entrypoint(seed: int = 42, limit_sessions: int = 6) -> List[SessionResult]:
+def run_simulation_entrypoint(seed: int = 42, limit_sessions: int = 6) -> list[SessionResult]:
     base = Path(__file__).parent
     personas = load_personas(base / "personas")
     raw_sessions = generate_overlapping_identifier_scenarios(seed, personas, per_persona=2)

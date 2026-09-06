@@ -14,10 +14,17 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any
 
 API_RESULTS = Path(__file__).parent / "results" / "api-sessions.jsonl"
-BROWSER_RESULTS = Path(__file__).parent.parent.parent.parent / "ui" / "tests" / "simulation" / "results" / "browser-sessions.jsonl"
+BROWSER_RESULTS = (
+    Path(__file__).parent.parent.parent.parent
+    / "ui"
+    / "tests"
+    / "simulation"
+    / "results"
+    / "browser-sessions.jsonl"
+)
 EVID_K8S_DIR = Path(__file__).parent / "evidence" / "kubernetes"
 EVID_TEL_DIR = Path(__file__).parent / "evidence" / "telemetry"
 ACCEPTANCE_DOC = Path(__file__).parents[3] / "docs" / "INTENT_TIER_ACCEPTANCE_REPORT.md"
@@ -25,7 +32,7 @@ ACCEPTANCE_DOC = Path(__file__).parents[3] / "docs" / "INTENT_TIER_ACCEPTANCE_RE
 
 @dataclass
 class Session:
-    data: Dict[str, Any]
+    data: dict[str, Any]
 
     @property
     def first_pass(self) -> bool:
@@ -48,7 +55,7 @@ class Session:
         return bool(self.data.get("refused", False))
 
     @property
-    def refusal_type(self) -> Optional[str]:
+    def refusal_type(self) -> str | None:
         return self.data.get("refusal_type")
 
     @property
@@ -82,10 +89,10 @@ class Session:
 
 # Utility loaders
 
-def load_jsonl(path: Path) -> List[Dict[str, Any]]:
+def load_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
-    rows: List[Dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -95,7 +102,7 @@ def load_jsonl(path: Path) -> List[Dict[str, Any]]:
     return rows
 
 
-def load_sessions() -> List[Session]:
+def load_sessions() -> list[Session]:
     api = [Session(r) for r in load_jsonl(API_RESULTS)]
     # Browser records are simpler; coerce into Session with defaults
     browser_raw = load_jsonl(BROWSER_RESULTS)
@@ -120,32 +127,32 @@ def load_sessions() -> List[Session]:
 
 # Metrics (T447..T453)
 
-def compute_first_pass_accuracy(sessions: List[Session]) -> float:
+def compute_first_pass_accuracy(sessions: list[Session]) -> float:
     if not sessions:
         return 0.0
     return sum(1 for s in sessions if s.first_pass) / len(sessions)
 
 
-def compute_clarification_rate(sessions: List[Session]) -> float:
+def compute_clarification_rate(sessions: list[Session]) -> float:
     if not sessions:
         return 0.0
     return sum(1 for s in sessions if s.clarifications > 0) / len(sessions)
 
 
-def compute_decline_and_amend_success(sessions: List[Session]) -> float:
+def compute_decline_and_amend_success(sessions: list[Session]) -> float:
     declined = [s for s in sessions if s.declined_once]
     if not declined:
         return 0.0
     return sum(1 for s in declined if s.completed) / len(declined)
 
 
-def compute_refusal_rate(sessions: List[Session]) -> float:
+def compute_refusal_rate(sessions: list[Session]) -> float:
     if not sessions:
         return 0.0
     return sum(1 for s in sessions if s.refused) / len(sessions)
 
 
-def compute_approved_to_completed_stats(sessions: List[Session]) -> Dict[str, float]:
+def compute_approved_to_completed_stats(sessions: list[Session]) -> dict[str, float]:
     times = [s.approved_to_completed_sec for s in sessions if s.completed]
     return {
         "avg": mean(times) if times else 0.0,
@@ -154,7 +161,7 @@ def compute_approved_to_completed_stats(sessions: List[Session]) -> Dict[str, fl
     }
 
 
-def compute_tokens_and_cost(sessions: List[Session]) -> Dict[str, Any]:
+def compute_tokens_and_cost(sessions: list[Session]) -> dict[str, Any]:
     return {
         "tokens_input_total": sum(s.tokens_input for s in sessions),
         "tokens_output_total": sum(s.tokens_output for s in sessions),
@@ -170,7 +177,7 @@ def compute_tokens_and_cost(sessions: List[Session]) -> Dict[str, Any]:
     }
 
 
-def compute_leaked_credentials(sessions: List[Session]) -> int:
+def compute_leaked_credentials(sessions: list[Session]) -> int:
     return sum(s.leaked_credentials for s in sessions)
 
 
@@ -186,7 +193,7 @@ def assert_sc_003_unsupported_refusal_threshold(refusal_rate: float, threshold: 
     assert refusal_rate <= threshold, f"SC-003 unsupported-refusal rate too high: {refusal_rate} > {threshold}"
 
 
-def assert_sc_004_direct_action_refusal_threshold(sessions: List[Session], max_rate: float = 0.05) -> None:
+def assert_sc_004_direct_action_refusal_threshold(sessions: list[Session], max_rate: float = 0.05) -> None:
     # SC-004
     if not sessions:
         return
@@ -195,12 +202,12 @@ def assert_sc_004_direct_action_refusal_threshold(sessions: List[Session], max_r
     assert rate <= max_rate, f"SC-004 direct-action refusal rate too high: {rate} > {max_rate}"
 
 
-def assert_sc_008_convergence_threshold(stats: Dict[str, float], p95_threshold: float = 10.0) -> None:
+def assert_sc_008_convergence_threshold(stats: dict[str, float], p95_threshold: float = 10.0) -> None:
     # SC-008
     assert stats["p95"] <= p95_threshold, f"SC-008 convergence p95 too high: {stats['p95']} > {p95_threshold}"
 
 
-def assert_sc_014_zero_residual_claims(sessions: List[Session]) -> None:
+def assert_sc_014_zero_residual_claims(sessions: list[Session]) -> None:
     # SC-014
     residual = sum(s.kuid_claims_made - s.kuid_claims_released for s in sessions)
     assert residual == 0, f"SC-014 residual claims present: {residual}"
@@ -213,16 +220,20 @@ def assert_sc_016_zero_leaked_credentials(leaked: int) -> None:
 
 # Reconciliation checks (T460..T463)
 
-def reconcile_audit_vs_resources() -> Tuple[int, int]:
+def reconcile_audit_vs_resources() -> tuple[int, int]:
     audit = load_jsonl(EVID_K8S_DIR / "audit.jsonl")
     resources = load_jsonl(EVID_K8S_DIR / "resources.jsonl")
     # Count created resources by correlation id
     created = {(r["correlation_id"], r["kind"], r["name"]) for r in resources if r.get("action") == "create"}
-    audited = {(a.get("correlation_id"), a.get("resource", {}).get("kind"), a.get("resource", {}).get("name")) for a in audit if a.get("action") == "submitted"}
+    audited = {
+        (a.get("correlation_id"), a.get("resource", {}).get("kind"), a.get("resource", {}).get("name"))
+        for a in audit
+        if a.get("action") == "submitted"
+    }
     return len(created), len(created & audited)
 
 
-def reconcile_audit_vs_claims() -> Tuple[int, int]:
+def reconcile_audit_vs_claims() -> tuple[int, int]:
     audit = load_jsonl(EVID_K8S_DIR / "audit.jsonl")
     claims = load_jsonl(EVID_K8S_DIR / "claims.jsonl")
     created = {(c["correlation_id"], c["name"]) for c in claims if c.get("action") == "create"}
@@ -254,7 +265,17 @@ def assert_feature001_ready() -> None:
 
 # Report generation (T465..T468)
 
-def generate_acceptance_report(first_pass: float, clarification_rate: float, decline_amend: float, refusal_rate: float, time_stats: Dict[str, float], tokens_cost: Dict[str, Any], leaked: int, audit_res_match: Tuple[int,int], audit_claims_match: Tuple[int,int]) -> None:
+def generate_acceptance_report(
+    first_pass: float,
+    clarification_rate: float,
+    decline_amend: float,
+    refusal_rate: float,
+    time_stats: dict[str, float],
+    tokens_cost: dict[str, Any],
+    leaked: int,
+    audit_res_match: tuple[int, int],
+    audit_claims_match: tuple[int, int],
+) -> None:
     lines = []
     lines.append("# Intent Tier Acceptance Report")
     lines.append("")
@@ -264,21 +285,24 @@ def generate_acceptance_report(first_pass: float, clarification_rate: float, dec
     lines.append("")
     lines.append("| Code | Description | Result |")
     lines.append("|---|---|---|")
-    lines.append(f"| SC-001 | Tier bring-up success (from clean) | See docs/INTENT_TIER_OPS_READINESS.md (SC-011 timing) |")
+    lines.append(
+        "| SC-001 | Tier bring-up success (from clean) | See docs/INTENT_TIER_OPS_READINESS.md "
+        "(SC-011 timing) |"
+    )
     lines.append(f"| SC-002 | First-pass interpretation accuracy | {first_pass:.2%} |")
     lines.append(f"| SC-003 | Unsupported-refusal rate | {refusal_rate:.2%} |")
-    lines.append(f"| SC-004 | Direct-action refusal rate | 0.00% |")
-    lines.append(f"| SC-005 | Idempotence (unchanged intent → zero writes) | N/A in simulation |")
+    lines.append("| SC-004 | Direct-action refusal rate | 0.00% |")
+    lines.append("| SC-005 | Idempotence (unchanged intent → zero writes) | N/A in simulation |")
     lines.append(f"| SC-006 | Audit ↔ resource reconciliation | {audit_res_match[1]}/{audit_res_match[0]} matched |")
-    lines.append(f"| SC-007 | Translator equivalence | N/A in simulation |")
+    lines.append("| SC-007 | Translator equivalence | N/A in simulation |")
     lines.append(f"| SC-008 | Convergence p95 (s) | {time_stats['p95']:.3f} |")
-    lines.append(f"| SC-009 | Failure naming and alerts | N/A in simulation |")
-    lines.append(f"| SC-010 | Telemetry join (trace ↔ UI/resources) | Seeded correlation id present |")
-    lines.append(f"| SC-011 | Cold-read bring-up time | See docs/INTENT_TIER_OPS_READINESS.md |")
-    lines.append(f"| SC-012 | Health/readiness endpoints | 200/503 behaviour exercised in unit tests |")
-    lines.append(f"| SC-013 | Tier-absent gates | Verified in tier-absent CI job |")
-    lines.append(f"| SC-014 | Residual Claims | 0 |")
-    lines.append(f"| SC-015 | Provider selection boundary | N/A in simulation |")
+    lines.append("| SC-009 | Failure naming and alerts | N/A in simulation |")
+    lines.append("| SC-010 | Telemetry join (trace ↔ UI/resources) | Seeded correlation id present |")
+    lines.append("| SC-011 | Cold-read bring-up time | See docs/INTENT_TIER_OPS_READINESS.md |")
+    lines.append("| SC-012 | Health/readiness endpoints | 200/503 behaviour exercised in unit tests |")
+    lines.append("| SC-013 | Tier-absent gates | Verified in tier-absent CI job |")
+    lines.append("| SC-014 | Residual Claims | 0 |")
+    lines.append("| SC-015 | Provider selection boundary | N/A in simulation |")
     lines.append(f"| SC-016 | Leaked Credentials | {leaked} |")
     lines.append("")
     lines.append("## Evidence paths (T466)")
@@ -295,7 +319,11 @@ def generate_acceptance_report(first_pass: float, clarification_rate: float, dec
     lines.append("")
     lines.append("## Summary (T468)")
     lines.append("")
-    lines.append("All simulated sessions completed successfully. Threshold assertions passed and reconciliation checks found no orphaned resources or claims. Feature-001 remained Ready.\n")
+    lines.append(
+        "All simulated sessions completed successfully. Threshold assertions passed and "
+        "reconciliation checks found no orphaned resources or claims. Feature-001 remained "
+        "Ready.\n"
+    )
     ACCEPTANCE_DOC.parent.mkdir(parents=True, exist_ok=True)
     ACCEPTANCE_DOC.write_text("\n".join(lines), encoding="utf-8")
 
@@ -324,21 +352,63 @@ def main() -> None:
     # write minimal matching audit/resources/claims if missing
     if not (EVID_K8S_DIR / "resources.jsonl").exists():
         (EVID_K8S_DIR / "resources.jsonl").write_text("".join([
-            json.dumps({"action": "create", "kind": "Network", "name": "net-acme-1", "correlation_id": s.data.get("correlation_id")}) + "\n" for s in sessions
+            json.dumps(
+                {
+                    "action": "create",
+                    "kind": "Network",
+                    "name": "net-acme-1",
+                    "correlation_id": s.data.get("correlation_id"),
+                }
+            )
+            + "\n"
+            for s in sessions
         ] + [
-            json.dumps({"action": "delete", "kind": "Network", "name": "net-acme-1", "correlation_id": s.data.get("correlation_id")}) + "\n" for s in sessions
+            json.dumps(
+                {
+                    "action": "delete",
+                    "kind": "Network",
+                    "name": "net-acme-1",
+                    "correlation_id": s.data.get("correlation_id"),
+                }
+            )
+            + "\n"
+            for s in sessions
         ]), encoding="utf-8")
     if not (EVID_K8S_DIR / "claims.jsonl").exists():
         (EVID_K8S_DIR / "claims.jsonl").write_text("".join([
-            json.dumps({"action": "create", "name": f"claim-{i}", "correlation_id": s.data.get("correlation_id")}) + "\n" for i, s in enumerate(sessions)
+            json.dumps(
+                {"action": "create", "name": f"claim-{i}", "correlation_id": s.data.get("correlation_id")}
+            )
+            + "\n"
+            for i, s in enumerate(sessions)
         ] + [
-            json.dumps({"action": "release", "name": f"claim-{i}", "correlation_id": s.data.get("correlation_id")}) + "\n" for i, s in enumerate(sessions)
+            json.dumps(
+                {"action": "release", "name": f"claim-{i}", "correlation_id": s.data.get("correlation_id")}
+            )
+            + "\n"
+            for i, s in enumerate(sessions)
         ]), encoding="utf-8")
     if not (EVID_K8S_DIR / "audit.jsonl").exists():
         (EVID_K8S_DIR / "audit.jsonl").write_text("".join([
-            json.dumps({"action": "submitted", "correlation_id": s.data.get("correlation_id"), "resource": {"kind": "Network", "name": "net-acme-1"}}) + "\n" for s in sessions
+            json.dumps(
+                {
+                    "action": "submitted",
+                    "correlation_id": s.data.get("correlation_id"),
+                    "resource": {"kind": "Network", "name": "net-acme-1"},
+                }
+            )
+            + "\n"
+            for s in sessions
         ] + [
-            json.dumps({"action": "claimed", "correlation_id": s.data.get("correlation_id"), "claim": {"name": f"claim-{i}"}}) + "\n" for i, s in enumerate(sessions)
+            json.dumps(
+                {
+                    "action": "claimed",
+                    "correlation_id": s.data.get("correlation_id"),
+                    "claim": {"name": f"claim-{i}"},
+                }
+            )
+            + "\n"
+            for i, s in enumerate(sessions)
         ]), encoding="utf-8")
     if not (EVID_K8S_DIR / "feature001_ready.json").exists():
         (EVID_K8S_DIR / "feature001_ready.json").write_text(json.dumps({"ready": True}), encoding="utf-8")

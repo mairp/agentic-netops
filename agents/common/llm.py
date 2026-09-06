@@ -16,17 +16,16 @@ active thread id, subsequent calls raise ``RuntimeError('token-budget-exceeded: 
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import os
-import contextvars
-from typing import Optional
 
 from langchain_litellm import ChatLiteLLM
-from common.metrics import get_metrics
-from common.redaction import redact_prompt, redact_model_response
 from opentelemetry import trace
 
 import common.chat_lite_llm_shim as chat_lite_llm_shim  # our drop-in client
+from common.metrics import get_metrics
+from common.redaction import redact_model_response, redact_prompt
 from config.config import LLM_MODEL
 
 logger = logging.getLogger(__name__)
@@ -36,7 +35,7 @@ logger = logging.getLogger(__name__)
 _TOK_BUDGET = int(os.getenv("AGENTIC_NETOPS_LLM_TOKENS_PER_THREAD", "0") or 0)
 
 # ContextVar carrying the LangGraph conversation thread id (configurable.thread_id)
-_THREAD_CTX: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+_THREAD_CTX: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "agentic_netops_conversation_thread_id", default=None
 )
 
@@ -45,7 +44,7 @@ _THREAD_CTX: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
 _token_usage: dict[str, int] = {}
 
 
-def set_current_thread_id(thread_id: Optional[str]) -> None:
+def set_current_thread_id(thread_id: str | None) -> None:
     """Set the current conversation thread id for token accounting (T414).
 
     The supervisor graph must call this with the active ``thread_id`` from
@@ -57,7 +56,7 @@ def set_current_thread_id(thread_id: Optional[str]) -> None:
         pass
 
 
-def _current_thread_id() -> Optional[str]:
+def _current_thread_id() -> str | None:
     try:
         return _THREAD_CTX.get()
     except Exception:
@@ -80,7 +79,7 @@ def _add_tokens(n: int) -> None:
     _token_usage[tid] = int(_token_usage.get(tid, 0)) + max(0, int(n))
 
 
-def reset_token_budget(thread_id: Optional[str] = None) -> None:
+def reset_token_budget(thread_id: str | None = None) -> None:
     """Reset the counted tokens for the given (or current) conversation thread id."""
     tid = thread_id if thread_id is not None else _current_thread_id()
     if not tid:

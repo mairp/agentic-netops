@@ -22,11 +22,9 @@ initialized: they construct instruments on first use and no-op on failure.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from opentelemetry import metrics
 from opentelemetry.metrics import Counter, Histogram
-
 
 _PREFIX = "agentic_netops_agent_"
 
@@ -47,7 +45,6 @@ class _StageInstruments:
 
 class Metrics:
     def __init__(self) -> None:
-        mp = metrics.get_meter_provider()
         self._meter = metrics.get_meter("agentic-netops.intent_tier")
         # Stage instruments (per stage label)
         self._stage_req = self._meter.create_counter(
@@ -107,7 +104,7 @@ class Metrics:
     def inc_stage_request(self, stage: str) -> None:
         self._stage_req.add(1, attributes={"stage": stage})
 
-    def record_stage_result(self, *, stage: str, success: bool, latency_seconds: Optional[float] = None) -> None:
+    def record_stage_result(self, *, stage: str, success: bool, latency_seconds: float | None = None) -> None:
         if success:
             self._stage_ok.add(1, attributes={"stage": stage})
         else:

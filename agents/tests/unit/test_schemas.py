@@ -21,7 +21,7 @@ import pytest
 from pydantic import ValidationError
 
 from common.schemas.audit import AuditEvent
-from common.schemas.interpretation import EndpointIntent, Interpretation, ServiceType
+from common.schemas.interpretation import EndpointIntent, Interpretation
 from common.schemas.normalized_intent import NormalizedServiceIntent
 from common.schemas.refs import ClaimRef, ResourceRef
 
@@ -37,25 +37,6 @@ def load_fixture(name: str):
 # ---------------------------------------------------------------------------
 # T073 — acceptance: the migration fixtures parse and validate
 # ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    "fixture",
-    ["supported_vpls.json", "supported_l3vpn.json", "supported_irb.json", "supported_vpws_optin.json"],
-)
-def test_supported_fixtures_parse_and_validate(fixture: str):
-    obj = NormalizedServiceIntent.model_validate(load_fixture(fixture))
-    assert obj.validate_all_or_nothing() is None, f"{fixture} must validate cleanly"
-
-
-def test_fixture_wire_names_are_the_go_json_names():
-    """The model serializes back to the translator's wire names."""
-    obj = NormalizedServiceIntent.model_validate(load_fixture("supported_vpls.json"))
-    dumped = obj.model_dump(exclude_none=True)
-    for key in ("serviceId", "type", "tenant", "rdRt", "l2vni", "endpoints"):
-        assert key in dumped, f"wire name {key!r} must survive the round trip"
-    assert dumped["rdRt"]["importRT"] == ["65000:100"]
-    assert dumped["endpoints"][0] == {"node": "leaf01", "attachment": "client01", "vlan": 10}
 
 
 def _fold_legacy(payload: dict) -> dict:

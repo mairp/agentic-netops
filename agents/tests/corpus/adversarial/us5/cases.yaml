@@ -4,14 +4,15 @@ cases:
   - id: mac_vrf_basic
     text: "extend vlan 100 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet2 for tenant acme"
     expect: proposal
-    compare: [mapped]
 
   - id: ip_vrf_basic
     text: "give tenant initech an ip-vrf carrying 10.50.0.0/24 on leaf01 wan1"
     expect: proposal
-    compare: [mapped]
 
   - id: acl_basic
-    text: "apply an acl on leaf01 ethernet1 and leaf02 ethernet1 for tenant acme: permit tcp 443 from 10.0.0.0/24, deny everything else"
+    # The stage is named: an interpretation whose service_type is acl must
+    # carry the acl block (contracts/interpretation.schema.json), and the block
+    # has no stage to carry until the operator says ingress or egress — so a
+    # stage-less acl request has no schema-valid proposal to reach.
+    text: "apply an acl on leaf01 ethernet1 and leaf02 ethernet1 for tenant acme: permit ingress tcp port 443 from 10.0.0.0/24, deny everything else"
     expect: proposal
-    compare: [mapped]

@@ -20,7 +20,6 @@ from typing import Any
 
 from ioa_observe.sdk import Observe
 
-
 # Single OTLP endpoint for every agent process (T314/T315): the tier-owned
 # collector in namespace agentic-netops-agents, OTLP/HTTP on 4318.
 OTLP_HTTP_ENDPOINT = os.getenv(

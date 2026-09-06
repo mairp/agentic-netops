@@ -12,7 +12,7 @@ import logging
 
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
-from a2a.types import Message, Task, UnsupportedOperationError
+from a2a.types import Task, UnsupportedOperationError
 from a2a.utils import new_task
 from a2a.utils.errors import ServerError
 
@@ -43,7 +43,11 @@ class MappingAgentExecutor(AgentExecutor):
 
         # The mapper expects the user content already fenced by the supervisor
         # (T094); forward it verbatim.
-        user_text = getattr(context.message, "parts", [])[0].root.text if context.message and context.message.parts else ""
+        user_text = (
+            getattr(context.message, "parts", [])[0].root.text
+            if context.message and context.message.parts
+            else ""
+        )
 
         try:
             message, _interp = await self._agent.ainvoke(user_text)

@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+# These assertions read files by their repo-relative path. pytest runs with
+# ``agents/`` as its rootdir (pyproject.toml), so resolving them against the
+# process's working directory only worked when the suite happened to be started
+# from the repository root — from anywhere else every one of them failed on
+# FileNotFoundError. Anchor on this file instead.
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
 
 def test_single_exporter_conformance():
     """Agent processes emit OTLP to exactly one endpoint (the tier collector).
@@ -11,7 +18,7 @@ def test_single_exporter_conformance():
     - Observe.init is called exactly once in that module
     - Each process server calls init_telemetry() exactly once.
     """
-    telemetry_py = Path("agents/config/telemetry.py").read_text(encoding="utf-8")
+    telemetry_py = (REPO_ROOT / "agents/config/telemetry.py").read_text(encoding="utf-8")
     assert "agent-otel-collector.agentic-netops-agents.svc:4318" in telemetry_py
     assert telemetry_py.count("Observe.init(") == 1
     # No upstream collector in agents — only the tier collector is referenced
@@ -24,7 +31,7 @@ def test_single_exporter_conformance():
         "agents/provisioning/deployer/server.py",
     ]
     for f in files:
-        content = Path(f).read_text(encoding="utf-8")
+        content = (REPO_ROOT / f).read_text(encoding="utf-8")
         assert content.count("init_telemetry(") == 1, f"expected single init_telemetry in {f}"
 
 
@@ -34,7 +41,7 @@ def test_two_sink_fanout_configuration():
     Validate through the telemetry.yaml content that the traces pipeline exports
     to both clickhouse and otlp/feature001.
     """
-    text = Path("deploy/agents/telemetry.yaml").read_text(encoding="utf-8")
+    text = (REPO_ROOT / "deploy/agents/telemetry.yaml").read_text(encoding="utf-8")
     # The traces pipeline uses both exporters
     assert "pipelines:" in text and "traces:" in text
     assert "exporters: [clickhouse, otlp/feature001]" in text
@@ -56,18 +63,25 @@ def test_two_sink_trace_id_equality():
     This ensures one request is recoverable as one trace across both sinks
     without timestamp matching.
     """
-    text = Path("deploy/agents/telemetry.yaml").read_text(encoding="utf-8")
+    text = (REPO_ROOT / "deploy/agents/telemetry.yaml").read_text(encoding="utf-8")
     assert "receivers: [otlp]" in text
     assert "processors: [batch]" in text
     assert "exporters: [clickhouse, otlp/feature001]" in text
-    # Sanity: no processors present that could rewrite ids or spans
-    assert "attributes:" not in text
-    assert "transform:" not in text
-    assert "tail_sampling" not in text
-    assert "spanmetrics" not in text
+    # Sanity: no processors present that could rewrite ids or spans. The scan
+    # skips comments — telemetry.yaml documents the span attributes the SDK
+    # emits, and reading that prose as a configured `attributes:` processor
+    # failed this assertion on a file that configures only `batch`.
+    configured = "\n".join(
+        line for line in text.splitlines() if not line.lstrip().startswith("#")
+    )
+    for rewriting_processor in ("attributes:", "transform:", "tail_sampling", "spanmetrics"):
+        assert rewriting_processor not in configured, (
+            f"{rewriting_processor!r} is configured in the collector; a processor that can "
+            "rewrite ids or spans breaks the one-trace-across-both-sinks property"
+        )
 
     # The correlation-id binding is the W3C trace id (32 lowercase hex)
-    telem = Path("agents/common/telemetry.py").read_text(encoding="utf-8")
+    telem = (REPO_ROOT / "agents/common/telemetry.py").read_text(encoding="utf-8")
     assert 'format(ctx.trace_id, "032x")' in telem
 
     # Documentation in telemetry.yaml captures the trace_id-as-correlation-id contract

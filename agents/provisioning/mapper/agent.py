@@ -43,6 +43,7 @@ from typing import Any
 from uuid import uuid4
 
 from a2a.types import DataPart, Message, Part, Role, TextPart
+from ioa_observe.sdk.decorators import agent
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END, MessagesState, StateGraph
 from pydantic import ValidationError
@@ -57,14 +58,13 @@ MAPPER_MARKER = "MAPPED_JSON"
 
 
 # -------------------- Helpers --------------------
+# Order matters. "extend vlan 150 as a mac-vrf across ..." names both a
+# construct and the tag it carries, and the construct is the request: the vlan
+# is an attribute of the mac-vrf. With VLAN first — where it used to be — every
+# overlay phrasing the tier itself suggests mapped to a plain vlan, dropping the
+# EVPN service the operator asked for. VLAN is therefore matched last, exactly
+# as the corpus runner's parser does.
 _SERVICE_PATTERNS: list[tuple[ServiceType, list[re.Pattern[str]]]] = [
-    (
-        ServiceType.VLAN,
-        [
-            re.compile(r"\bvlan\b", re.I),
-            re.compile(r"access\s+port|untagged", re.I),
-        ],
-    ),
     (
         ServiceType.MAC_VRF,
         [
@@ -84,6 +84,13 @@ _SERVICE_PATTERNS: list[tuple[ServiceType, list[re.Pattern[str]]]] = [
         ServiceType.ACL,
         [
             re.compile(r"\bacl\b|access[- ]list|filter", re.I),
+        ],
+    ),
+    (
+        ServiceType.VLAN,
+        [
+            re.compile(r"\bvlan\b", re.I),
+            re.compile(r"access\s+port|untagged", re.I),
         ],
     ),
 ]
@@ -108,8 +115,14 @@ _UNSUPPORTED_SERVICE_TYPES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bpbb[- ]?evpn\b", re.I), "PBB-EVPN"),
 ]
 
+# "between A and B" and "across A and B" are the same two-attachment clause.
+# "across" is the phrasing the served suggestions use for a mac-vrf, and the
+# one DEFAULT_SUGGESTION and CLARIFICATION_HINT tell a refused operator to use,
+# so a parser that knew only "between" answered three of the six suggested
+# prompts — and its own worked example — with "Before I can map this service I
+# need: endpoints", naming the endpoints the operator had just given.
 _ENDPOINT_BETWEEN = re.compile(
-    r"between\s+(?P<left>[^,;\n]+?)\s+and\s+(?P<right>[^,;\n]+)", re.I
+    r"(?:between|across)\s+(?P<left>[^,;\n]+?)\s+and\s+(?P<right>[^,;\n]+)", re.I
 )
 _ENDPOINT_ATTACH = re.compile(
     r"\battach(?:ing)?\s+(?P<left>[^,;.\n]+?)\s+and\s+(?P<right>[^,;.\n]+)", re.I
@@ -120,6 +133,22 @@ _ENDPOINT_ATTACH = re.compile(
 # node name the fabric could not resolve.
 _ATTACHMENT_ON_NODE = re.compile(
     r"^(?P<attachment>\S+)\s+on\s+(?P<node>\S+)(?:\s.*)?$", re.I | re.DOTALL
+)
+# A single attachment: "on leaf01 ethernet1", "on leaf01 wan1". Three of the
+# four constructs attach to one port (research.md Decision 11: vlan >=1,
+# ip-vrf >=1, acl >=1, mac-vrf >=2), and without this clause every one-port
+# request — "provision a vlan 130 on leaf01 ethernet1 for tenant acme", the
+# first prompt the tier suggests — was answered by asking for the endpoints it
+# had just been given.
+# The node is any name that is not one of the words an operator puts after
+# "on" when they are not naming a node ("on vlan 160", "on the fabric"); the
+# attachment has to look like a port, which is what keeps this from reading
+# "on 10.0.0.0/24 for tenant acme" as an endpoint.
+_ENDPOINT_SINGLE_ON = re.compile(
+    r"\bon\s+(?!vlan\b|the\b|a\b|an\b|its\b|both\b|each\b|all\b|every\b|port\b)"
+    r"(?P<node>[A-Za-z][\w.-]*)\s+"
+    r"(?P<attachment>(?:ethernet|eth|wan|port|xe|ge|te)[\w./-]*)",
+    re.I,
 )
 _ATTACHMENT_SPLIT = re.compile(r"\s+")
 _TENANT_RE = re.compile(r"tenant[:\s]+(?P<tenant>[a-z0-9-]+)", re.I)
@@ -198,10 +227,126 @@ def _detect_unsupported(text: str) -> list[str]:
     return props
 
 
+# --- access lists (US2) ---------------------------------------------------
+# An interpretation whose service_type is acl MUST carry the acl block
+# (contracts/interpretation.schema.json). Nothing here built one, so every acl
+# request failed schema validation inside the mapper and the operator was told
+# their endpoints were missing — a message about the one part of the request
+# that was complete.
+_ACL_STAGE_RE = re.compile(r"\b(?P<stage>ingress|egress)\b", re.I)
+_ACL_PROTO_RE = re.compile(r"\b(?P<proto>tcp|udp|icmp|igmp|rsvp|gre|ah|pim|l2tp)\b", re.I)
+# "port 443", "443/tcp" and the bare "tcp 443" an operator actually types.
+_ACL_PORT_RE = re.compile(
+    r"\bport\s+(?P<port>\d{1,5})\b"
+    r"|\b(?P<slashed>\d{1,5})\s*/\s*(?:tcp|udp)\b"
+    r"|\b(?:tcp|udp)\s+(?P<bare>\d{1,5})\b",
+    re.I,
+)
+_ACL_SRC_PREFIX_RE = re.compile(r"\bfrom\s+(?P<prefix>[0-9A-Fa-f:.]+/\d{1,3})", re.I)
+_ACL_DST_PREFIX_RE = re.compile(r"\bto\s+(?P<prefix>[0-9A-Fa-f:.]+/\d{1,3})", re.I)
+_ACL_PERMIT_RE = re.compile(r"\b(?:permit|permitting|allow|allowing)\b", re.I)
+_ACL_DENY_RE = re.compile(r"\b(?:deny|denying|drop|block)\b", re.I)
+_ACL_DENY_REST_RE = re.compile(
+    r"\b(?:deny|drop|block)\s+(?:everything\s+else|all\s+else|all\s+other|the\s+rest|everything|all)\b"
+    r"|\bonly\b",
+    re.I,
+)
+# A filter clause riding on another construct's request. Deliberately narrow:
+# these words name a filter, and _parse_acl still has to find a rule in the
+# text before anything is attached.
+_ACL_FILTER_CLAUSE_RE = re.compile(
+    r"\bacl\b|access[- ]list|\bpermitting\b|\bpermit\b|\ballowing\b|\ballow\b|\bdenying\b|\bdeny\b",
+    re.I,
+)
+_ACL_V6_RE = re.compile(r"\bipv6\b|\bl3v6\b|[0-9A-Fa-f]{0,4}:[0-9A-Fa-f:]*/\d{1,3}", re.I)
+
+
+def _parse_acl(text: str) -> tuple[dict[str, Any] | None, list[str]]:
+    """The filter the request describes, or the fields it is missing.
+
+    A stage and at least one rule are required; neither is ever guessed, so a
+    request that names neither clarifies instead of being filled in.
+    """
+
+    missing: list[str] = []
+    stage_match = _ACL_STAGE_RE.search(text)
+    if stage_match is None:
+        missing.append("acl.stage")
+
+    rules: list[dict[str, Any]] = []
+    proto = _ACL_PROTO_RE.search(text)
+    port = _ACL_PORT_RE.search(text)
+    src = _ACL_SRC_PREFIX_RE.search(text)
+    dst = _ACL_DST_PREFIX_RE.search(text)
+    if proto or port or src:
+        rule: dict[str, Any] = {
+            "name": "rule-1",
+            "priority": 100,
+            # An explicit permit wins: "permit tcp 443 ..., deny everything
+            # else" is a permit rule plus a default deny, not a deny rule.
+            "action": "permit" if _ACL_PERMIT_RE.search(text) else "deny",
+        }
+        if proto:
+            rule["protocol"] = proto.group("proto").lower()
+        if port:
+            rule["destinationPort"] = port.group("port") or port.group("slashed") or port.group("bare")
+        if src:
+            rule["sourcePrefix"] = src.group("prefix")
+        if dst:
+            rule["destinationPrefix"] = dst.group("prefix")
+        rules.append(rule)
+    if not rules:
+        missing.append("acl.rules")
+    if missing:
+        return None, missing
+
+    acl: dict[str, Any] = {
+        "stage": stage_match.group("stage").lower(),
+        "type": "l3v6" if _ACL_V6_RE.search(text) else "l3",
+        "rules": rules,
+    }
+    if _ACL_DENY_REST_RE.search(text) and rules[0]["action"] == "permit":
+        acl["default_action"] = "deny"
+    return acl, []
+
+
+# --- anycast gateway (US3) ------------------------------------------------
+# Naming a gateway is what makes a mac-vrf route. It is never invented and
+# never dropped: an address makes the service symmetric IRB, and a gateway
+# named without one is a clarification.
+_GATEWAY_RE = re.compile(r"anycast\s+gateway", re.I)
+_GATEWAY_ADDR_RE = re.compile(
+    r"anycast\s+gateway\b[^.;]{0,24}?(?P<addr>[0-9A-Fa-f:.]+/\d{1,3}|\d{1,3}(?:\.\d{1,3}){3})",
+    re.I,
+)
+
+
+def _parse_anycast_gateway(text: str) -> tuple[dict[str, str] | None, bool]:
+    if _GATEWAY_RE.search(text) is None:
+        return None, False
+    m = _GATEWAY_ADDR_RE.search(text)
+    if m is None:
+        return None, True
+    addr = m.group("addr")
+    family = "ipv6" if ":" in addr else "ipv4"
+    return {family: addr}, True
+
+
 def _parse_endpoints(text: str) -> list[EndpointIntent]:
     m = _ENDPOINT_BETWEEN.search(text) or _ENDPOINT_ATTACH.search(text)
     if not m:
-        return []
+        single = _ENDPOINT_SINGLE_ON.search(text)
+        if single is None:
+            return []
+        vlan = None
+        vlan_match = _VLAN_RE.search(text)
+        if vlan_match:
+            try:
+                vlan = int(vlan_match.group("vlan"))
+            except ValueError:
+                vlan = None
+        endpoint = _endpoint_or_none(single.group("node"), single.group("attachment"), vlan)
+        return [endpoint] if endpoint is not None else []
     left = m.group("left").strip()
     right = m.group("right").strip()
     global_vlan = None
@@ -295,7 +440,6 @@ def _detect_tenant(text: str) -> str | None:
 
 
 # -------------------- MappingAgent --------------------
-from ioa_observe.sdk.decorators import agent
 
 
 @agent(name="Network Mapping Agent", method_name="ainvoke")
@@ -333,7 +477,7 @@ class MappingAgent:
             interp = Interpretation.model_validate(payload)
         except ValidationError as exc:
             # Should not happen — _map_node validates — but keep the refusal explicit
-            raise ValueError(f"mapper produced invalid interpretation: {exc}")
+            raise ValueError(f"mapper produced invalid interpretation: {exc}") from exc
         # T204/T206: Emit DataPart only when complete (no missing/unsupported)
         parts = [Part(TextPart(text=self._format_summary_with_marker(summary, interp)))]
         if not interp.missing_fields and not interp.unsupported_properties:
@@ -378,12 +522,54 @@ class MappingAgent:
             missing.append("tenant")
             tenant = "missing"  # RFC 1123-valid placeholder; named in missing_fields
         eps = _parse_endpoints(low)
-        if len(eps) < 2:
+        # The per-construct endpoint minimum (research.md Decision 11): a
+        # mac-vrf extends a bridge domain and needs two attachments; a vlan, an
+        # ip-vrf and an acl are legitimately single-attachment. Requiring two of
+        # everything — the feature-002 rule left in place here — made
+        # "provision a vlan 130 on leaf01 ethernet1 for tenant acme"
+        # unmappable.
+        minimum = 2 if st is ServiceType.MAC_VRF else 1
+        if len(eps) < minimum:
             missing.append("endpoints")
-            # Try to salvage at least two placeholders for schema validity
-            while len(eps) < 2:
+            # Placeholders keep the payload schema-valid; missing_fields is what
+            # makes it terminal.
+            while len(eps) < max(minimum, 1):
                 eps.append(EndpointIntent(site_or_node="missing", attachment="missing"))
         ipv4_prefixes, ipv6_prefixes = _parse_prefixes(low)
+        # Only an ip-vrf routes prefixes. Every other construct still mentions
+        # CIDRs — an anycast gateway address, an access-list match — and
+        # carrying those into ipv4_prefixes put address families in the
+        # proposal that the operator never asked for, next to a clarification
+        # text promising that nothing is substituted for them.
+        if st is not ServiceType.IP_VRF:
+            ipv4_prefixes, ipv6_prefixes = [], []
+
+        # The acl construct IS the filter; every other construct may carry one
+        # that binds to its own attachment ports (contracts/interpretation.
+        # schema.json: "optional on any other construct"). The composed shape —
+        # "extend vlan 170 as a mac-vrf across ... , permitting only ingress tcp
+        # 443 from 10.0.0.0/24" — is a suggestion this tier serves, so dropping
+        # the filter clause and provisioning the bare mac-vrf would hand the
+        # operator a service that forwards everything they asked to block.
+        acl_block: dict[str, Any] | None = None
+        if st is ServiceType.ACL:
+            acl_block, acl_missing = _parse_acl(low)
+            missing.extend(acl_missing)
+        elif _ACL_FILTER_CLAUSE_RE.search(low):
+            attached, attached_missing = _parse_acl(low)
+            if attached is not None:
+                acl_block = attached
+            elif "acl.rules" not in attached_missing:
+                # A filter clause with a readable rule but no stage: ask, never
+                # guess which direction it binds.
+                missing.extend(attached_missing)
+
+        gateway, gateway_named = _parse_anycast_gateway(low)
+        if gateway_named and st is not ServiceType.MAC_VRF:
+            unsupported.append("anycastGateway: only a mac-vrf carries an anycast gateway")
+            gateway = None
+        elif gateway_named and gateway is None:
+            missing.append("anycast_gateway")
 
         payload = {
             "service_id": _gen_service_id(),
@@ -395,6 +581,10 @@ class MappingAgent:
             "missing_fields": [] if unsupported else missing,
             "unsupported_properties": unsupported,
         }
+        if acl_block is not None:
+            payload["acl"] = acl_block
+        if gateway is not None:
+            payload["anycast_gateway"] = gateway
 
         # Optional hints (bandwidth/SLA) from catalogue keywords (best-effort)
         try:

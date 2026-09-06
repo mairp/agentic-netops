@@ -19,13 +19,13 @@ import re
 from typing import Any
 
 import httpx
+from ioa_observe.sdk.decorators import tool
 
 logger = logging.getLogger("agentic_netops.network_deployer.tools")
 
 TRANSLATOR_ENDPOINT = "http://127.0.0.1:8090"
 
 
-from ioa_observe.sdk.decorators import tool
 
 
 @tool(name="deployer.query_fabric_inventory")
@@ -256,7 +256,9 @@ def get_service_status(*, service_id: str | None = None, correlation_id: str | N
 
 
 @tool(name="deployer.remove_service")
-def remove_service(*, correlation_id: str | None, service_id: str | None = None, confirmed: bool = False) -> dict[str, Any]:
+def remove_service(
+    *, correlation_id: str | None, service_id: str | None = None, confirmed: bool = False
+) -> dict[str, Any]:
     """T254/T255 — remove by correlation id.
 
     - Precondition (T254): require confirmed=True (the supervisor asks for

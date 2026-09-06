@@ -64,6 +64,7 @@ from typing import Annotated, Any, Literal, Protocol
 
 import aiosqlite
 from a2a.types import DataPart, TextPart
+from ioa_observe.sdk.decorators import graph
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -288,9 +289,15 @@ DEVICE_FAMILY_SUGGESTIONS: dict[str, str] = {
         "The fabric controllers apply the resulting configuration through reconciliation."
     ),
     DEVICE_FAMILY_PROTOCOL: (
-        "name the service, not the protocol — e.g. 'apply an acl on <siteA> ethernet1: "
-        "permit tcp 443 from 10.0.0.0/24, deny everything else'. This tier expresses services "
-        "as declarative intent only; device protocols are the control plane's business."
+        # The example names the tenant and the stage because the mapper requires
+        # both: tenant is never defaulted (FR-010) and an interpretation whose
+        # service_type is acl must carry the acl block, which has no stage to
+        # put in it until the operator says ingress or egress. Without them the
+        # offered phrasing could only earn a clarification.
+        "name the service, not the protocol — e.g. 'apply an acl on <siteA> ethernet1 for "
+        "tenant <tenant>: permit ingress tcp port 443 from 10.0.0.0/24, deny everything else'. "
+        "This tier expresses services as declarative intent only; device protocols are the "
+        "control plane's business."
     ),
     DEVICE_FAMILY_ACTION: (
         "state the desired outcome as a service request — e.g. 'provision a vlan 120 on <siteA> ethernet1 "
@@ -444,10 +451,52 @@ def detect_direct_device(text: str) -> DetectionHit | None:
 _CONSTRUCT_TOKEN = re.compile(r"\b(vlan|mac[- ]?vrf|ip[- ]?vrf|acl)\b", re.I)
 _SUPPORTED_CONSTRUCTS = "vlan, mac-vrf, ip-vrf, acl"
 
+# T072 counts the constructs a message asks for AS SEPARATE SERVICES. Two of
+# the four are also named as parts of another construct's request, and counting
+# those mentions refused requests that ask for exactly one thing:
+#
+#   vlan — its own service when it carries a determiner ("provision a vlan 130
+#     on leaf01 ethernet1"); the tag an overlay carries when it does not
+#     ("extend vlan 150 as a mac-vrf", "create a mac-vrf on vlan 160", "a mac
+#     vrf ... for tenant acme vlan 100" — the mapper catalogue's own example).
+#   acl — its own service when the request is the access list ("apply an acl on
+#     leaf01 wan1 ..."); a filter riding on a service when an attachment
+#     preposition introduces it ("provision a mac vrf ... with an ingress ACL
+#     that allows tcp port 80"), which is the attached shape US2/T050 requires
+#     the mapper to handle and the acl phrasing corpus blesses.
+#
+# The overlay phrasing is the canonical one everywhere in this repo — the
+# served suggestions, the US5 corpus, DEFAULT_SUGGESTION and CLARIFICATION_HINT
+# all use it — so counting its "vlan" as a second construct refused the
+# product's own advice, and following that advice earned the same refusal.
+# The corpus runner's stub mapper resolves the same phrasings the same way
+# (``_SERVICE_TYPE_WORDS`` puts "vlan" last for exactly this reason).
+_VLAN_AS_ITS_OWN_SERVICE = re.compile(r"\b(?:a|an|the|another|new|second)\s+vlan\b", re.I)
+_ACL_ATTACHED_TO_A_SERVICE = re.compile(
+    r"\b(?:with|bearing|carrying|including|under|behind)\s+(?:an?\s+|the\s+)?(?:\w+\s+){0,2}?acl\b",
+    re.I,
+)
+
+
 def _find_constructs(text: str) -> set[str]:
+    """The constructs the message asks for as separate services (US5/T072).
+
+    "a mac-vrf and an ip-vrf" is two requests and is refused. "extend vlan 150
+    as a mac-vrf" and "a mac-vrf ... with an ingress acl" are one request each —
+    the vlan is the mac-vrf's tag and the acl is bound to its ports — and are
+    not.
+    """
+
     if not text:
         return set()
-    return {t.lower().replace(" ", "-") for t in _CONSTRUCT_TOKEN.findall(text)}
+    found = {t.lower().replace(" ", "-") for t in _CONSTRUCT_TOKEN.findall(text)}
+    if len(found) < 2:
+        return found
+    if "vlan" in found and not _VLAN_AS_ITS_OWN_SERVICE.search(text):
+        found.discard("vlan")
+    if "acl" in found and len(found) > 1 and _ACL_ATTACHED_TO_A_SERVICE.search(text):
+        found.discard("acl")
+    return found
 
 
 # A question about the outcome of *this thread's* deployment. It is answered
@@ -801,9 +850,6 @@ async def default_checkpointer() -> AsyncSqliteSaver:
 # ---------------------------------------------------------------------------
 # The graph
 # ---------------------------------------------------------------------------
-from ioa_observe.sdk.decorators import graph
-
-
 @graph(name="ProvisioningSupervisorGraph", method_name="build_graph")
 class ProvisioningGraph:
     """LangGraph supervisor graph (the subject's shape + the US2 layer).
@@ -1454,8 +1500,17 @@ class ProvisioningGraph:
             logger.info("supervisor classified request as informational")
             return {"next_node": NodeStates.GENERAL_INFO, "classification": classification.value}
         if classification is RequestClassification.UNSUPPORTED:
+            # The classifier's "unsupported" class covers three different
+            # requests (prompts/system.py CLASSIFIER_PROMPT): a direct device
+            # action, a property this fabric cannot express, and an instruction
+            # to skip the confirmations. Only the second is about the service
+            # type, so naming every one of them "unknown or unsupported service
+            # type" told an operator asking to bypass approvals that their
+            # mac-vrf was the problem.
             reason = (
-                f"unknown or unsupported service type; supported constructs are: {_SUPPORTED_CONSTRUCTS}"
+                "the request is outside the declarative service contract; supported constructs are: "
+                f"{_SUPPORTED_CONSTRUCTS}, each provisioned declaratively and only after the two "
+                "explicit confirmations"
             )
             return self._refuse(state, config, reason, DEFAULT_SUGGESTION, stage="supervisor")
         # Unparseable: never route to a worker.
@@ -1755,6 +1810,25 @@ class ProvisioningGraph:
                 stage="deployer",
             )
 
+        # The intent is validated here as well as at the allocator stage. The
+        # allocator's own validation (T101/T102) guards the payload that stage
+        # returns, but this node also runs on a thread resumed from a
+        # checkpoint, where ``allocated_resources`` is whatever the checkpoint
+        # holds. Submitting an unvalidated blob is the one thing this node must
+        # never do: it reached the worker and raised there instead of refusing
+        # here, which is a crash where the contract calls for a named refusal.
+        try:
+            NormalizedServiceIntent.model_validate(json.loads(intent_json))
+        except (TypeError, ValueError, ValidationError) as exc:
+            reason = _format_validation_error(exc) if isinstance(exc, ValidationError) else str(exc)
+            return self._refuse(
+                state, config,
+                f"submission precondition failed: the allocated intent is not a valid "
+                f"normalized service intent ({reason})",
+                DEFAULT_SUGGESTION,
+                stage="deployer",
+            )
+
         # The production deployment envelope (docs/INTENT_TIER_DEPLOYMENT_
         # TRANSACTION.md): the validated intent plus the immutable request
         # context, so every submitted resource carries the conversation's
@@ -2009,7 +2083,8 @@ class ProvisioningGraph:
         status = state.get("workflow_status") or NetworkProvisioningStatus.RECEIVED_REQUEST.value
         text = (
             "I provision declarative network services on the SONiC EVPN/VXLAN fabric: "
-            "vlan (local L2), mac-vrf (L2 over EVPN), ip-vrf (routed instance) and acl (filter bound to service ports), "
+            "vlan (local L2), mac-vrf (L2 over EVPN), ip-vrf (routed instance) "
+            "and acl (filter bound to service ports), "
             "each between two or more attachment points for a named tenant. "
             f"The current status of this request thread is {status}. "
             "I never act directly on devices: every change flows through declarative service "

@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import types
-import pytest
-
 
 class DummyAResponse:
     def __init__(self, status_code: int = 200):
@@ -58,12 +55,11 @@ def test_worker_down_resume_when_workers_recover(monkeypatch):
     We monkeypatch httpx.AsyncClient to a dummy that always returns 200 so /v1/health
     reports status ok with all workers ok.
     """
+    # Patch AsyncClient class used by the endpoint to return 200 for all GETs
+    import httpx
     from fastapi.testclient import TestClient
 
     import supervisors.provisioning.main as main_mod
-
-    # Patch AsyncClient class used by the endpoint to return 200 for all GETs
-    import httpx
 
     monkeypatch.setattr(httpx, "AsyncClient", lambda timeout=5: DummyAClient(status_code=200))  # type: ignore[attr-defined]
 

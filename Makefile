@@ -2,6 +2,14 @@ SHELL := /bin/bash
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
+# Every recipe below runs a script by absolute path. $(PWD) is the INVOKING
+# SHELL's directory (make inherits it from the environment), so `make -C
+# /root/agentic-netops verify-pins` from any other directory looked for
+# <that other directory>/scripts/lib/verify_pins.sh and failed with 127 —
+# which is how the lifecycle-idempotence CI job, whose working directory is
+# agents/, broke. $(CURDIR) is the directory make itself is running in.
+REPO_ROOT := $(CURDIR)
+
 .PHONY: help verify-pins verify-intent-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest build build-migration-cli build-intent-translator supply-chain security-audit acceptance suites test-all
 
 help:
@@ -21,25 +29,25 @@ help:
 
 verify-pins:
 	@echo "[verify-pins] validating versions.lock.yaml"
-	@"$(PWD)/scripts/lib/verify_pins.sh"
+	@"$(REPO_ROOT)/scripts/lib/verify_pins.sh"
 
 validate-crds:
 	@echo "[validate-crds] server-side validating CRDs and examples"
 	@mkdir -p .wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs
-	@"$(PWD)/scripts/lib/validate_crds.sh" 2>&1 | tee .wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log
+	@"$(REPO_ROOT)/scripts/lib/validate_crds.sh" 2>&1 | tee .wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log
 
 verify-intent-pins:
 	@echo "[verify-intent-pins] validating intent_tier: image digests in versions.lock.yaml"
-	@"$(PWD)/scripts/lib/verify_pins.sh" intent-tier
+	@"$(REPO_ROOT)/scripts/lib/verify_pins.sh" intent-tier
 
 verify-compat: verify-pins validate-crds verify-register verify-intent-pins
 	@echo "[verify-compat] pins, intent_tier digests, CRD, and register validations passed"
 
 supply-chain:
-	@"$(PWD)/scripts/ci/supply_chain.sh"
+	@"$(REPO_ROOT)/scripts/ci/supply_chain.sh"
 
 security-audit:
-	@"$(PWD)/scripts/ci/security_audit.sh"
+	@"$(REPO_ROOT)/scripts/ci/security_audit.sh"
 
 acceptance: supply-chain security-audit
 	@echo "[acceptance] supply-chain and security checks passed"
@@ -66,18 +74,18 @@ TIMEOUT ?= 180s
 
 # T078: quickstart wrappers
 quickstart:
-	@"$(PWD)/scripts/provision.sh" --profile $(PROF) --cluster-name $(CLUSTER) --timeout $(TIMEOUT)
+	@"$(REPO_ROOT)/scripts/provision.sh" --profile $(PROF) --cluster-name $(CLUSTER) --timeout $(TIMEOUT)
 	@$(MAKE) -s verify-compat lab-qualify
 
 provision:
-	@"$(PWD)/scripts/provision.sh" --profile $(PROF) --cluster-name $(CLUSTER) --timeout $(TIMEOUT)
+	@"$(REPO_ROOT)/scripts/provision.sh" --profile $(PROF) --cluster-name $(CLUSTER) --timeout $(TIMEOUT)
 
 off:
-	@AGENTIC_NETOPS_DELETE_KIND=$(DELETE_KIND) AGENTIC_NETOPS_CAPTURE_EVIDENCE=$(CAPTURE) "$(PWD)/scripts/off.sh" --cluster-name $(CLUSTER)
+	@AGENTIC_NETOPS_DELETE_KIND=$(DELETE_KIND) AGENTIC_NETOPS_CAPTURE_EVIDENCE=$(CAPTURE) "$(REPO_ROOT)/scripts/off.sh" --cluster-name $(CLUSTER)
 
 lab-qualify:
 	@echo "[lab-qualify] Running capability gate"
-	@"$(PWD)/scripts/lib/qualify.sh"
+	@"$(REPO_ROOT)/scripts/lib/qualify.sh"
 
 # verify-register: build a representative spec using current renderer scaffolds
 # and fail if any rendered path is not present in pkg/register/oc_vs_sonic.yaml.
@@ -120,7 +128,7 @@ test-envtest:
 # suites — Phase 8: run all test suites and capture logs under gates/proofs
 suites:
 	@echo "[suites] running Phase 8 suites"
-	@bash "$(PWD)/scripts/ci/run_suites.sh"
+	@bash "$(REPO_ROOT)/scripts/ci/run_suites.sh"
 
 # test-all — include suites plus static/envtest
 test-all: test suites

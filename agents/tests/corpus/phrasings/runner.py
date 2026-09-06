@@ -34,13 +34,15 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable
 
 import yaml
 from langchain_core.messages import AIMessage
+from langchain_core.runnables import RunnableLambda
 
+from common.provisioning_states import NetworkProvisioningStatus
 from supervisors.provisioning.graph.graph import (
     ProvisioningGraph,
     default_deadline,
@@ -53,8 +55,6 @@ from tests.corpus.adversarial.runner import (
     _run_once,
     check_case,
 )
-from common.provisioning_states import NetworkProvisioningStatus
-from langchain_core.runnables import RunnableLambda
 
 # ----------------------------------------------------------------------------
 # Unsupported-phrasings runner (US2 T119–T123).
@@ -190,7 +190,11 @@ def _load_positive_file(path: Path) -> Iterable[PositiveCase]:
     assert construct in ("vlan", "mac-vrf", "ip-vrf", "acl"), f"{path.name}: unsupported service_type {declared!r}"
     # US4/T066: allow an explicit provenance in the corpus; fall back to inference.
     explicit_src = data.get("source_service_type")
-    explicit_src_s = str(explicit_src).strip().upper() if isinstance(explicit_src, str) and str(explicit_src).strip() else None
+    explicit_src_s = (
+        str(explicit_src).strip().upper()
+        if isinstance(explicit_src, str) and str(explicit_src).strip()
+        else None
+    )
     inferred_src = declared.upper() if construct != declared.lower() else None
     expected_src = explicit_src_s or inferred_src
     for raw in data.get("cases", []):

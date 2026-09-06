@@ -210,12 +210,19 @@ _LEGACY_ALIASES = {
     "IRB": "mac-vrf",
     "L2L3-IRB": "mac-vrf",
 }
-_TENANT_RE = re.compile(r"for tenant\s+([a-z0-9][a-z0-9-]*)")
-_BETWEEN_RE = re.compile(r"between\s+(\S+)\s+(\S+)\s+and\s+(\S+)\s+(\S+)")
+# "for tenant acme" and "give tenant acme an ip-vrf" name the tenant the same
+# way; only the preposition differs, and the second is the phrasing
+# DEFAULT_SUGGESTION offers for an ip-vrf.
+_TENANT_RE = re.compile(r"\btenant\s+([a-z0-9][a-z0-9-]*)")
+# "between A B and C D" and "across A B and C D" are the same two-attachment
+# shape. "across" is the phrasing the served suggestions, the US5 corpus and
+# DEFAULT_SUGGESTION all use for a mac-vrf, so a parse that knows only "between"
+# cannot read the product's own examples.
+_BETWEEN_RE = re.compile(r"(?:between|across)\s+(\S+)\s+(\S+)\s+and\s+(\S+)\s+(\S+)")
 _DUAL_ON_RE = re.compile(r"on\s+(\S+)\s+(\S+)\s+and\s+(\S+)\s+(\S+)")
 _ON_RE = re.compile(r"on\s+(\S+)\s+(\S+)")
 _VLAN_RE = re.compile(r"vlan[-_ ]?(\d+)")
-_PREFIX_RE = re.compile(r"(?:prefix|from)\s+(\S+/\d+)")
+_PREFIX_RE = re.compile(r"(?:prefix|carrying|from)\s+(\S+/\d+)")
 _ACL_STAGE_RE = re.compile(r"\b(ingress|egress)\b")
 _ACL_PHRASE_RE = re.compile(r"\b(acl|allow|permit|deny)\b")
 _GATEWAY_WORDS_RE = re.compile(r"anycast\s+gateway")
@@ -225,8 +232,8 @@ _PORT_RE = re.compile(r"(?:port\s+(\d+))|(?:\b(\d+)\s+(?:tcp|udp|icmp)\b)", re.I
 
 
 def _endpoints_from_text(low: str, vlan: int) -> list[dict[str, Any]] | None:
-    """Structural attachments: `between A B and C D` (two), `on A B and C D`
-    (two), or `on A B` (one — a vlan or an acl binds to a single port)."""
+    """Structural attachments: `between|across A B and C D` (two), `on A B and
+    C D` (two), or `on A B` (one — a vlan or an acl binds to a single port)."""
     m = _BETWEEN_RE.search(low)
     if m:
         n1, a1, n2, a2 = m.groups()
@@ -301,7 +308,7 @@ def _parse_gateway(low: str) -> tuple[dict[str, str] | None, bool]:
         return None, False
     gw: dict[str, str] = {}
     for tok in low[m.end():].split()[:6]:
-        if tok in ("is", "and", "with", "the", "a", "an", "ipv6", "v6", "ipv4", "v4"):
+        if tok in ("is", "at", "of", "to", "and", "with", "the", "a", "an", "ipv6", "v6", "ipv4", "v4"):
             continue
         if ":" in tok and tok.replace(":", "").replace("::", ""):
             if "ipv6" not in gw:
@@ -831,7 +838,12 @@ def _check_proposal(result: CaseResult) -> None:
     if state.get("refusal_reason"):
         v.append(f"unexpected refusal: {state.get('refusal_reason')!r}")
     if result.baseline_state is None:
-        v.append("missing baseline run for an injection pair")
+        # Only an injection pair has a clean baseline to be byte-identical to.
+        # A plain proposal case (the US5 construct-vocabulary shapes) declares
+        # no baseline, and demanding one failed every such case on a comparison
+        # that was never part of what it asserts.
+        if result.case.baseline or result.case.injection:
+            v.append("missing baseline run for an injection pair")
         return
     for what in (result.case.compare or ("mapped",)):
         key = "mapped_parameters" if what == "mapped" else "allocated_resources"

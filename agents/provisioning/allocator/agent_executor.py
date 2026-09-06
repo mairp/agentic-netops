@@ -11,16 +11,11 @@ never allocates anything locally (FR-013).
 from __future__ import annotations
 
 import logging
-from uuid import uuid4
 
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
 from a2a.types import (
-    Message,
-    Part,
-    Role,
     Task,
-    TextPart,
     UnsupportedOperationError,
 )
 from a2a.utils import new_task
@@ -51,7 +46,11 @@ class AllocatorAgentExecutor(AgentExecutor):
             await event_queue.enqueue_event(task)
 
         # The supervisor fences worker-returned text with the validated Interpretation
-        interp_text = getattr(context.message, "parts", [])[0].root.text if context.message and context.message.parts else ""
+        interp_text = (
+            getattr(context.message, "parts", [])[0].root.text
+            if context.message and context.message.parts
+            else ""
+        )
 
         try:
             message, _intent = await self._agent.ainvoke(interp_text)

@@ -14,10 +14,8 @@ They do not import HTTP clients or touch the transport.
 
 from __future__ import annotations
 
-from typing import Optional
 
-
-def provider_unavailable_message(provider_label: str, detail: Optional[str] = None) -> str:
+def provider_unavailable_message(provider_label: str, detail: str | None = None) -> str:
     """T377 — provider-unavailable degradation message.
 
     Args:
@@ -38,7 +36,7 @@ def provider_unavailable_message(provider_label: str, detail: Optional[str] = No
     return base
 
 
-def transport_unavailable_message(transport_label: str = "SLIM", detail: Optional[str] = None) -> str:
+def transport_unavailable_message(transport_label: str = "SLIM", detail: str | None = None) -> str:
     """T378 — transport-unavailable degradation message.
 
     Args:
@@ -55,7 +53,7 @@ def transport_unavailable_message(transport_label: str = "SLIM", detail: Optiona
     return base
 
 
-def cluster_api_unavailable_message(detail: Optional[str] = None) -> str:
+def cluster_api_unavailable_message(detail: str | None = None) -> str:
     """T379 — cluster-API-unavailable degradation message.
 
     Returns an operator-facing explanation that the Kubernetes API could not be

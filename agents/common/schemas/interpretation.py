@@ -13,9 +13,9 @@ from __future__ import annotations
 import ipaddress
 import re
 from enum import StrEnum
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from typing import Any, Literal
 
 # RFC 1123 label: DNS-label rules for the tenant name (FR-010: required,
 # never defaulted).
@@ -121,7 +121,7 @@ class AnycastGatewayIntent(BaseModel):
     ipv6: str | None = None
 
     @model_validator(mode="after")
-    def _at_least_one_family(self) -> "AnycastGatewayIntent":
+    def _at_least_one_family(self) -> AnycastGatewayIntent:
         if self.ipv4 is None and self.ipv6 is None:
             raise ValueError(
                 "anycast_gateway: name at least one of ipv4/ipv6 — a gateway with no address routes nothing"
@@ -255,7 +255,7 @@ class Interpretation(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def _gateway_scoped_to_mac_vrf(self) -> "Interpretation":
+    def _gateway_scoped_to_mac_vrf(self) -> Interpretation:
         """US3 (T055): only a mac-vrf carries an anycast gateway.
 
         Naming one on ``vlan``, ``ip-vrf`` or ``acl`` is refused here, before
@@ -270,7 +270,7 @@ class Interpretation(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def _acl_required_and_bounded(self) -> "Interpretation":
+    def _acl_required_and_bounded(self) -> Interpretation:
         # When the construct is acl, require the acl field and bound rule shapes
         if self.service_type == ServiceType.ACL:
             if self.acl is None:
@@ -282,7 +282,9 @@ class Interpretation(BaseModel):
                     allowed = {"any", "tcp", "udp", "icmp", "igmp", "rsvp", "gre", "ah", "pim", "l2tp"}
                     if p and p not in allowed and not p.isdigit():
                         raise ValueError(
-                            f"acl.rules[{i}].protocol: one of any, tcp, udp, icmp, igmp, rsvp, gre, ah, pim, l2tp or a numeric IP protocol 0-255 (got {r.protocol!r})"
+                            f"acl.rules[{i}].protocol: one of any, tcp, udp, icmp, igmp, rsvp, "
+                            f"gre, ah, pim, l2tp or a numeric IP protocol 0-255 (got "
+                            f"{r.protocol!r})"
                         )
                     if p in {"icmpv6", "ipv6-icmp"}:
                         raise ValueError(

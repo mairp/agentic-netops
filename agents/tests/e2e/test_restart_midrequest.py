@@ -24,9 +24,15 @@ async def test_supervisor_restart_setup_and_resume(monkeypatch):
     db_fd, db_path = tempfile.mkstemp(prefix="supervisor-checkpoints-", suffix=".sqlite")
     os.close(db_fd)
     monkeypatch.setenv("SUPERVISOR_CHECKPOINT_DB", db_path)
-    # Also patch the module-level path used by the graph (evaluated at import)
+    # The graph reads SUPERVISOR_CHECKPOINT_DB at import time, so the module
+    # attribute is what every later graph uses — and it must be restored when
+    # this test ends. Assigning it directly (which this test used to do) left
+    # every graph built afterwards in the process, the whole of tests/unit
+    # included, sharing this file: threads like "unit-thread" then carried
+    # state between unrelated tests, and ten refusal-path tests failed
+    # depending only on which directory pytest collected first.
     import supervisors.provisioning.graph.graph as graph_mod
-    graph_mod.CHECKPOINT_DB_PATH = db_path
+    monkeypatch.setattr(graph_mod, "CHECKPOINT_DB_PATH", db_path)
 
     tr = StubTransport()
     llm = StubClassifierLLM()
@@ -40,7 +46,10 @@ async def test_supervisor_restart_setup_and_resume(monkeypatch):
                 "messages": [
                     {
                         "type": "human",
-                        "content": "provision a VPWS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 100",
+                        "content": (
+                            "provision a VPWS between leaf01 ethernet1 and leaf02 ethernet2 "
+                            "for tenant acme vlan 100"
+                        ),
                     }
                 ],
             },
@@ -76,6 +85,10 @@ async def test_post_restart_no_double_submit(monkeypatch):
     db_fd, db_path = tempfile.mkstemp(prefix="supervisor-checkpoints-", suffix=".sqlite")
     os.close(db_fd)
     monkeypatch.setenv("SUPERVISOR_CHECKPOINT_DB", db_path)
+    # Same reason as above, and the env var alone would not have bound this
+    # test to its own file: the module read it at import time.
+    import supervisors.provisioning.graph.graph as graph_mod
+    monkeypatch.setattr(graph_mod, "CHECKPOINT_DB_PATH", db_path)
 
     tr = StubTransport()
     llm = StubClassifierLLM()
@@ -89,7 +102,10 @@ async def test_post_restart_no_double_submit(monkeypatch):
                 "messages": [
                     {
                         "type": "human",
-                        "content": "provision a VPWS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 100",
+                        "content": (
+                            "provision a VPWS between leaf01 ethernet1 and leaf02 ethernet2 "
+                            "for tenant acme vlan 100"
+                        ),
                     }
                 ],
             },

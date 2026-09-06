@@ -381,7 +381,11 @@ class TestMalformedPayloadRejection:
             "serviceId": payload["service_id"],
             "type": "mac-vrf",
             "tenant": payload["tenant"],
-            "rdRt": {"rd": f"64512:{ep['vlan']}", "importRT": [f"64512:{ep['vlan']}"], "exportRT": [f"64512:{ep['vlan']}"]},
+            "rdRt": {
+                "rd": f"64512:{ep['vlan']}",
+                "importRT": [f"64512:{ep['vlan']}"],
+                "exportRT": [f"64512:{ep['vlan']}"],
+            },
             "l2vni": 10004,
             "endpoints": [
                 {"node": ep["site_or_node"], "attachment": ep["attachment"], "vlan": ep["vlan"]}

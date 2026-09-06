@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-import pytest
 
+import pytest
 from langchain_core.runnables import RunnableLambda
 
 from common.provisioning_states import NetworkProvisioningStatus
@@ -28,6 +28,17 @@ class _CountingTransport(StubTransport):
         return await super().call_deployer(text)
 
 
+def _config(thread: str) -> dict:
+    """LangGraph refuses to run with a checkpointer attached and no thread id,
+    and ``ProvisioningGraph`` always attaches one. Without this every ainvoke
+    in this module raised ``ValueError: Checkpointer requires one or more of
+    the following 'configurable' keys: thread_id ...`` before the assertion
+    under test ever ran.
+    """
+
+    return {"configurable": {"thread_id": thread}}
+
+
 @pytest.mark.asyncio
 async def test_decline_at_first_confirmation():
     """T367 — declining at first confirmation ends the thread FAILED and calls no workers beyond mapper."""
@@ -40,7 +51,10 @@ async def test_decline_at_first_confirmation():
         "pending_action": "confirm_1",
         "mapped_parameters": json.dumps({"serviceType": "VPWS"}),
     }
-    out = await g.ainvoke(state)
+    try:
+        out = await g.ainvoke(state, config=_config("decline-first"))
+    finally:
+        await g.close()
     assert out.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
     assert "confirmation_1" in (out.get("refusal_reason") or "")
 
@@ -58,10 +72,20 @@ async def test_decline_at_second_confirmation_releases_claims():
         "workflow_status": NetworkProvisioningStatus.ALLOCATED.value,
         "awaiting_confirmation": True,
         "pending_action": "confirm_2",
-        "allocated_resources": json.dumps({"serviceId": "svc-abc12345", "type": "VPWS", "tenant": "acme", "rdRt": {"rd": "65000:1", "importRT": ["65000:1"], "exportRT": ["65000:1"]}}),
+        "allocated_resources": json.dumps(
+            {
+                "serviceId": "svc-abc12345",
+                "type": "VPWS",
+                "tenant": "acme",
+                "rdRt": {"rd": "65000:1", "importRT": ["65000:1"], "exportRT": ["65000:1"]},
+            }
+        ),
         "claimed_ids": claims,
     }
-    out = await g.ainvoke(state)
+    try:
+        out = await g.ainvoke(state, config=_config("decline-second"))
+    finally:
+        await g.close()
     assert out.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
     # T370: zero-claims-after-decline — any present claims are marked released (no active claims remain)
     released = out.get("claimed_ids") or []
@@ -82,7 +106,7 @@ async def test_zero_resources_after_decline():
         "pending_action": "confirm_1",
         "mapped_parameters": json.dumps({"serviceType": "VPWS"}),
     }
-    out1 = await g.ainvoke(state1)
+    out1 = await g.ainvoke(state1, config=_config("decline-zero-1"))
     assert out1.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
     # Second-confirmation decline
     state2 = {
@@ -90,9 +114,17 @@ async def test_zero_resources_after_decline():
         "workflow_status": NetworkProvisioningStatus.ALLOCATED.value,
         "awaiting_confirmation": True,
         "pending_action": "confirm_2",
-        "allocated_resources": json.dumps({"serviceId": "svc-abc12345", "type": "VPWS", "tenant": "acme", "rdRt": {"rd": "65000:1", "importRT": ["65000:1"], "exportRT": ["65000:1"]}}),
+        "allocated_resources": json.dumps(
+            {
+                "serviceId": "svc-abc12345",
+                "type": "VPWS",
+                "tenant": "acme",
+                "rdRt": {"rd": "65000:1", "importRT": ["65000:1"], "exportRT": ["65000:1"]},
+            }
+        ),
     }
-    out2 = await g.ainvoke(state2)
+    out2 = await g.ainvoke(state2, config=_config("decline-zero-2"))
+    await g.close()
     assert out2.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
     # No deployer calls must have occurred
     assert tr.counts["deployer"] == 0
