@@ -270,8 +270,18 @@ func TestIRBPlanRendersBothHalves(t *testing.T) {
 	if len(gcu) == 0 {
 		t.Error("IRB plan never declares a VRF through the GCU")
 	}
-	if !strings.Contains(joinedRedis, "map_10006_Vlan4006") {
-		t.Errorf("IRB plan is missing the L3VNI tunnel map:\n%s", joinedRedis)
+	// The L3VNI tunnel map is written from the shell op, after sviShell has
+	// created Vlan4006: vxlanmgrd only attempts the vtep build once, so the row
+	// must not land before the VLAN device exists.
+	joinedShell := allShell(np)
+	if !strings.Contains(joinedShell, "map_10006_Vlan4006") {
+		t.Errorf("IRB plan is missing the L3VNI tunnel map:\n%s", joinedShell)
+	}
+	if strings.Contains(joinedRedis, "map_10006_Vlan4006") {
+		t.Errorf("L3VNI tunnel map is still written before its SVI exists:\n%s", joinedRedis)
+	}
+	if idx, mapIdx := strings.Index(joinedShell, "ip link add Vlan4006"), strings.Index(joinedShell, "map_10006_Vlan4006"); idx >= 0 && mapIdx >= 0 && mapIdx < idx {
+		t.Error("tunnel map is written before the SVI is created")
 	}
 	if !slices.Contains(vty, "vni 10006") {
 		t.Errorf("IRB plan never binds the L3VNI to the VRF in FRR: %#v", vty)
@@ -694,5 +704,78 @@ func TestRollbackNeverDeletesAManagerOwnedDevice(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// TestL3VLANForVNIStaysInBand pins the fold that Vlan4250 broke. The original
+// derivation was a straight offset (4000 + vni-10000), so any l3vni above
+// 10094 walked out of the 12-bit VLAN space: l3vni 10250 produced "Vlan4250".
+// l3OverlayRedis writes VLAN rows through raw redis rather than the GCU, so
+// that invalid row reached CONFIG_DB unvalidated and then failed every later
+// GCU patch on the node with "Data Loading Failed", blocking services that had
+// nothing to do with the offending one.
+func TestL3VLANForVNIStaysInBand(t *testing.T) {
+	for vni := evpnVNIMin; vni <= evpnVNIMax; vni++ {
+		got, err := L3VLANForVNI(vni)
+		if err != nil {
+			t.Fatalf("L3VLANForVNI(%d): unexpected error %v", vni, err)
+		}
+		if got <= l3VLANBase || got > 4094 {
+			t.Fatalf("L3VLANForVNI(%d) = %d, outside the reserved %d-4094 band", vni, got, l3VLANBase+1)
+		}
+	}
+	if _, err := L3VLANForVNI(evpnVNIMin - 1); err == nil {
+		t.Error("L3VLANForVNI accepted an l3vni below the evpn-vni range")
+	}
+	if _, err := L3VLANForVNI(evpnVNIMax + 1); err == nil {
+		t.Error("L3VLANForVNI accepted an l3vni above the evpn-vni range")
+	}
+	// The specific value observed on leaf01.
+	if got, _ := L3VLANForVNI(10250); got == 4250 {
+		t.Fatal("l3vni 10250 still derives the invalid Vlan4250")
+	}
+}
+
+// TestCollidingL3VNIsAreRefused covers the cost of folding: two l3vnis exactly
+// one band apart derive the same L3VLAN, which would put two VRFs on one SVI.
+func TestCollidingL3VNIsAreRefused(t *testing.T) {
+	net := &kubenet.Network{Spec: map[string]any{
+		"routers": []any{
+			map[string]any{"name": "vrf-a", "l3vni": float64(10010), "prefixes": []any{"10.0.0.0/24"}},
+			map[string]any{"name": "vrf-b", "l3vni": float64(10010 + l3VLANBandSize), "prefixes": []any{"10.1.0.0/24"}},
+		},
+		"attachments": []any{map[string]any{"node": "leaf01", "attachment": "wan1", "vrf": "vrf-a"}},
+	}}
+	_, err := ForNetwork(net, Options{Ports: PortMapper{"wan1": "eth4"}})
+	if err == nil {
+		t.Fatal("ForNetwork accepted two l3vnis that derive the same L3VLAN")
+	}
+	if !strings.Contains(err.Error(), "derive L3VLAN") {
+		t.Errorf("error does not explain the collision: %v", err)
+	}
+}
+
+// TestVTEPPlanBouncesAStuckTunnelMap covers the vxlanmgrd create-once behaviour:
+// re-applying an identical VXLAN_TUNNEL_MAP row logs "Map already present" and
+// skips creating the device, so a service that lost its vtep device could never
+// recover through a plain reconcile — every pass rewrote the row that was
+// already there. The plan must delete and re-add the row when the device is
+// still missing after the wait.
+func TestVTEPPlanBouncesAStuckTunnelMap(t *testing.T) {
+	plan, err := ForNetwork(l2Network(100, 10100), Options{Ports: PortMapper{"ethernet1": "eth3"}})
+	if err != nil {
+		t.Fatalf("ForNetwork: %v", err)
+	}
+	shell := allShell(plan.Nodes["leaf01"])
+	key := "VXLAN_TUNNEL_MAP|vtep1|map_10100_Vlan100"
+	if !strings.Contains(shell, "del '"+key+"'") {
+		t.Errorf("plan never bounces the tunnel-map row when the vtep is missing:\n%s", shell)
+	}
+	if !strings.Contains(shell, "hset '"+key+"' vni '10100' vlan 'Vlan100'") {
+		t.Errorf("plan deletes the tunnel-map row without re-adding it:\n%s", shell)
+	}
+	// The bounce must be conditional: a healthy device must not be churned.
+	if !strings.Contains(shell, "ip link show vtep1-100 >/dev/null 2>&1 || {") {
+		t.Errorf("the bounce is unconditional; it must only run when the device is absent:\n%s", shell)
 	}
 }

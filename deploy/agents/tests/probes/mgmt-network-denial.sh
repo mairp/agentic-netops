@@ -45,7 +45,7 @@ POD=mgmt-net-probe
 TARGET=172.31.0.21
 PORT=57400
 TIMEOUT_S=5
-NODE_IMAGE=ghcr.io/kindest/node@sha256:28b7cbb993dfe093c76641a0c95807637213c9109b761f1d422c2400e22b8e87
+NODE_IMAGE=kindest/node@sha256:28b7cbb993dfe093c76641a0c95807637213c9109b761f1d422c2400e22b8e87
 
 cleanup() { K -n "$NS" delete pod "$POD" --ignore-not-found --wait=false >/dev/null 2>&1 || true; }
 trap cleanup EXIT
@@ -67,7 +67,7 @@ spec:
   automountServiceAccountToken: false
   containers:
   - name: probe
-    image: ghcr.io/kindest/node@sha256:28b7cbb993dfe093c76641a0c95807637213c9109b761f1d422c2400e22b8e87
+    image: ${NODE_IMAGE}
     imagePullPolicy: IfNotPresent
     command: ["/bin/bash", "-c"]
     args:

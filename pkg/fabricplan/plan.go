@@ -178,6 +178,32 @@ func ForNetwork(net *kubenet.Network, opts Options) (*Plan, error) {
 		}
 		routers[r.Name] = r
 	}
+	// L3VLANForVNI folds a 10001-wide VNI range into a 94-wide VLAN band, so
+	// two l3vnis exactly l3VLANBandSize apart derive the same L3VLAN. Sharing
+	// it would put two VRFs on one SVI and one tunnel-map row — a silent
+	// tenant merge. Refuse it here, in deterministic name order so the error
+	// is reproducible.
+	l3vlanOwner := map[int64]string{}
+	routerNames := make([]string, 0, len(routers))
+	for name := range routers {
+		routerNames = append(routerNames, name)
+	}
+	sort.Strings(routerNames)
+	for _, name := range routerNames {
+		r := routers[name]
+		if r.L3VNI == 0 {
+			continue
+		}
+		vlan, err := L3VLANForVNI(r.L3VNI)
+		if err != nil {
+			return nil, err
+		}
+		if prev, ok := l3vlanOwner[vlan]; ok {
+			return nil, errf("routers %q (l3vni %d) and %q (l3vni %d) both derive L3VLAN %d; l3vnis that differ by a multiple of %d collide in the reserved band — renumber one",
+				prev, routers[prev].L3VNI, name, r.L3VNI, vlan, l3VLANBandSize)
+		}
+		l3vlanOwner[vlan] = name
+	}
 	bds := map[int64]kubenet.BridgeDomain{}
 	for _, bd := range net.BridgeDomains() {
 		if bd.VLAN == 0 {
@@ -309,13 +335,41 @@ func (p *Plan) node(name string) *NodePlan {
 // at l3VLANBase+1 .. 4094, which the kuid fabric-vlan index can never hand out.
 const l3VLANBase int64 = 4000
 
+// l3VLANBandSize is the width of that reserved band (4001..4094 inclusive).
+// The VNI space is far wider, so the derivation folds into it (see
+// L3VLANForVNI) and ForNetwork refuses a fold collision rather than letting
+// two VRFs share one VLAN.
+const l3VLANBandSize int64 = 94
+
+// evpnVNIMin/evpnVNIMax bound the kuid evpn-vni index, per the package comment.
+const (
+	evpnVNIMin int64 = 10000
+	evpnVNIMax int64 = 20000
+)
+
 // L3VLANForVNI maps an L3VNI (kuid evpn-vni range) into the reserved 4001-4094
-// VLAN band. See the package comment for why this band cannot collide.
+// VLAN band. See the package comment for why this band cannot collide with an
+// allocated L2 VLAN.
+//
+// The mapping folds: the VNI range is 10001 wide and the band only 94, so a
+// straight offset (the original form) walked straight out of the 12-bit VLAN
+// space — l3vni 10250 derived "Vlan4250", which no SONiC YANG model accepts.
+// Because l3OverlayRedis writes VLAN rows through raw redis rather than the
+// GCU, that invalid row landed in CONFIG_DB unvalidated and then failed every
+// subsequent GCU patch image-wide ("Data Loading Failed"), which is how a
+// single ip-vrf could block unrelated services on the same node.
+// The fold is offset by one so that the first VNI past evpnVNIMin lands on the
+// first VLAN in the band. That is not cosmetic: it reproduces exactly what the
+// straight offset produced for every VNI whose result happened to stay in range
+// (l3vni 10007 still derives Vlan4007), so fixing the overflow does not renumber
+// services already programmed on the fabric. Only the VNIs that were previously
+// deriving an invalid VLAN change, and those never converged in the first place.
 func L3VLANForVNI(vni int64) (int64, error) {
-	if vni < 10000 || vni > 14094 {
-		return 0, errf("l3vni %d outside kuid evpn-vni range 10000-14094; cannot derive an L3VLAN", vni)
+	if vni < evpnVNIMin || vni > evpnVNIMax {
+		return 0, errf("l3vni %d outside kuid evpn-vni range %d-%d; cannot derive an L3VLAN", vni, evpnVNIMin, evpnVNIMax)
 	}
-	return l3VLANBase + (vni - 10000), nil
+	slot := ((vni-evpnVNIMin-1)%l3VLANBandSize + l3VLANBandSize) % l3VLANBandSize
+	return l3VLANBase + 1 + slot, nil
 }
 
 // declaredVLANs renders the bridge domains a network actually declares, so a
@@ -404,8 +458,19 @@ func (c l3Context) vrfOp() Op {
 func (c l3Context) l3OverlayRedis(opts Options) []string {
 	return []string{
 		fmt.Sprintf("hset 'VLAN|%s' vlanid '%d'", c.L3VLANDev, c.L3VLAN),
-		fmt.Sprintf("hset 'VXLAN_TUNNEL_MAP|%s|map_%d_%s' vni '%d' vlan '%s'", opts.VTEPName, c.L3VNI, c.L3VLANDev, c.L3VNI, c.L3VLANDev),
 	}
+}
+
+// l3TunnelMapShell writes the L3VNI's tunnel-map row. It is deliberately NOT
+// part of l3OverlayRedis: vxlanmgrd builds vtep1-<vlan> when it sees this row,
+// and it only tries once. Writing the row before sviShell has created the
+// Vlan<n> kernel device means that single attempt happens against a VLAN that
+// does not exist yet, so the vtep is never built and every later reconcile
+// re-writes the row vxlanmgrd already believes it handled. Ordering the write
+// after the device exists is what makes the first attempt the successful one.
+func (c l3Context) l3TunnelMapShell(opts Options) []string {
+	return []string{fmt.Sprintf("redis-cli -n 4 hset 'VXLAN_TUNNEL_MAP|%s|map_%d_%s' vni '%d' vlan '%s' >/dev/null 2>&1; true",
+		opts.VTEPName, c.L3VNI, c.L3VLANDev, c.L3VNI, c.L3VLANDev)}
 }
 
 // waitMaster enslaves iface to master, waiting for a device that a SONiC
@@ -487,10 +552,22 @@ func accessPortShell(port string, vid int64) []string {
 // silent no-op against a device that does not exist. vxlanmgrd usually does
 // this itself but does not always win the race against Bridge (observed:
 // leaf01 had vtep1-100 with no master while leaf02 had it bridged).
-func vtepShell(vtep string, vid int64) []string {
+func vtepShell(vtep string, vid, vni int64, vlanName string) []string {
 	dev := fmt.Sprintf("%s-%d", vtep, vid)
+	mapKey := fmt.Sprintf("VXLAN_TUNNEL_MAP|%s|map_%d_%s", vtep, vni, vlanName)
 	return []string{
-		fmt.Sprintf("for i in $(seq 1 60); do ip link show %s >/dev/null 2>&1 && exit 0; sleep 1; done; exit 1", dev),
+		// vxlanmgrd creates this device from the tunnel-map row, but only on a
+		// row it considers new: re-applying an identical row logs "Map already
+		// present" and skips the create. A service whose device was lost — a
+		// vxlanmgrd restart, an earlier apply that failed after writing the row
+		// — therefore never gets it back, because every later reconcile writes
+		// exactly the row that is already there. Wait first, and only if the
+		// device is still missing bounce the row so the daemon sees a create.
+		fmt.Sprintf("for i in $(seq 1 30); do ip link show %s >/dev/null 2>&1 && break; sleep 1; done; "+
+			"ip link show %s >/dev/null 2>&1 || { redis-cli -n 4 del '%s' >/dev/null 2>&1; sleep 3; "+
+			"redis-cli -n 4 hset '%s' vni '%d' vlan '%s' >/dev/null 2>&1; }; true",
+			dev, dev, mapKey, mapKey, vni, vlanName),
+		fmt.Sprintf("for i in $(seq 1 30); do ip link show %s >/dev/null 2>&1 && exit 0; sleep 1; done; exit 1", dev),
 		// Every write here is guarded on the state being wrong. A converged
 		// service is reconciled repeatedly, and re-issuing bridge membership
 		// on a healthy VXLAN device churns netlink for no reason — churn
@@ -667,7 +744,9 @@ func renderL3(np *NodePlan, r kubenet.NetworkRouter, att kubenet.NetworkAttachme
 	}
 	shell := sviShell(c.L3VLANDev, c.L3VLAN, c.VRFName, addrs)
 	shell = append(shell, accessPortShell(port, c.L3VLAN)...)
-	shell = append(shell, vtepShell(opts.VTEPName, c.L3VLAN)...)
+	// Only now that Vlan<n> exists is it safe to hand vxlanmgrd the tunnel map.
+	shell = append(shell, c.l3TunnelMapShell(opts)...)
+	shell = append(shell, vtepShell(opts.VTEPName, c.L3VLAN, c.L3VNI, c.L3VLANDev)...)
 	np.Ops = append(np.Ops, Op{Shell: shell})
 	// 4. FRR: bind the L3VNI to the VRF and originate the connected prefixes.
 	vty, frr := c.frrOps(afis, opts.BGPASN)
@@ -920,7 +999,7 @@ func renderL2(np *NodePlan, bd kubenet.BridgeDomain, att kubenet.NetworkAttachme
 	shell = append(shell, accessPortShell(port, bd.VLAN)...)
 	// Proactively clear any stale VXLAN_TUNNEL_MAP rows for this VLAN that point to the wrong VNI
 	shell = append(shell, cleanupVXLANMapShell(opts.VTEPName, vlanName, bd.L2VNI)...)
-	shell = append(shell, vtepShell(opts.VTEPName, bd.VLAN)...)
+	shell = append(shell, vtepShell(opts.VTEPName, bd.VLAN, bd.L2VNI, vlanName)...)
 	np.Ops = append(np.Ops, Op{Shell: shell})
 
 	if op, ok := l2EVPNOp(bd); ok {
@@ -960,16 +1039,18 @@ func renderIRB(np *NodePlan, bd kubenet.BridgeDomain, r kubenet.NetworkRouter, a
 	np.Ops = append(np.Ops, c.vrfOp())
 	// 2. Overlay rows: the bridge domain's L2VNI and the router's L3VNI.
 	np.Ops = append(np.Ops, Op{Redis: append(l2Overlay(bd, vlanName, opts), c.l3OverlayRedis(opts)...)})
+	// (the L3VNI's tunnel map is written in step 3, once its SVI exists)
 	// 3. Kernel: the L3VNI's own SVI (no address — it is the symmetric-IRB
 	//    transit vlan), then the bridge domain's SVI carrying the tenant
 	//    gateway inside the VRF, then the access port and the L2VNI's VXLAN
 	//    device in the service vlan.
 	shell := sviShell(c.L3VLANDev, c.L3VLAN, c.VRFName, nil)
 	shell = append(shell, sviShell(vlanName, bd.VLAN, c.VRFName, gateways)...)
+	shell = append(shell, c.l3TunnelMapShell(opts)...)
 	shell = append(shell, accessPortShell(port, bd.VLAN)...)
 	// Proactively clear any stale VXLAN_TUNNEL_MAP rows for this VLAN that point to the wrong VNI
 	shell = append(shell, cleanupVXLANMapShell(opts.VTEPName, vlanName, bd.L2VNI)...)
-	shell = append(shell, vtepShell(opts.VTEPName, bd.VLAN)...)
+	shell = append(shell, vtepShell(opts.VTEPName, bd.VLAN, bd.L2VNI, vlanName)...)
 	np.Ops = append(np.Ops, Op{Shell: shell})
 	// 4. FRR: the L2VNI's RD/RT, then the VRF's L3VNI and its Type-5 origination.
 	if op, ok := l2EVPNOp(bd); ok {
