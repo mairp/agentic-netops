@@ -220,21 +220,21 @@ UNSUPPORTED_FEATURE_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
 # T091 — supported declarative-equivalent suggestions for refusals.
 # ---------------------------------------------------------------------------
 DEFAULT_SUGGESTION = (
-    "provision it declaratively instead — e.g. 'provision a point-to-point "
-    "1G L2 service (VPWS) between <siteA> <portA> and <siteB> <portB> for "
-    "tenant <tenant>'. I will map it into an interpretation, allocate from "
-    "the allocation authority, and submit it to the cluster only after your "
-    "two explicit confirmations."
+    "provision it declaratively instead — e.g. 'extend vlan 100 as a mac-vrf "
+    "across <siteA> <portA> and <siteB> <portB> for tenant <tenant>' or "
+    "'give tenant <tenant> an ip-vrf carrying 10.50.0.0/24 on <siteA> wan1'. "
+    "I will map it into an interpretation, allocate from the allocation authority, "
+    "and submit it to the cluster only after your two explicit confirmations."
 )
 # FR-010 companion (live finding, 2026-09-04): a clarification that only
 # names the missing fields invites an equally vague restatement ("provision
 # a mac vrf across all leafs" -> same clarification loop). Name the accepted
 # vocabulary and a worked example so the restatement is mappable.
 CLARIFICATION_HINT = (
-    " Service types: VPLS (full-mesh L2), VPWS (point-to-point L2 / E-Line), "
-    "L3VPN, IRB (integrated L2+L3) — each between two named attachment "
-    "points for one named tenant. Example: 'Create a VPWS between leaf01 "
-    "ethernet1 and leaf02 ethernet2 for tenant acme'."
+    " Constructs: vlan (local broadcast domain), mac-vrf (L2VNI over EVPN), "
+    "ip-vrf (routed instance with L3VNI), acl (filter bound to service ports) — "
+    "each between named attachment points for one tenant. Example: 'Extend vlan 100 "
+    "as a mac-vrf across leaf01 ethernet2 and leaf02 ethernet2 for tenant acme'."
 )
 
 def clarification_prompt(missing_fields: list[str] | None) -> str:
@@ -278,40 +278,38 @@ def redact_unsupplied(interpretation: dict, missing_fields: list[str] | None) ->
 DEVICE_FAMILY_SUGGESTIONS: dict[str, str] = {
     DEVICE_FAMILY_ACCESS: (
         "describe the service you want on that device and I will provision it "
-        "declaratively — e.g. 'provision a VPLS/VPWS/L3VPN service between "
-        "<siteA> <portA> and <siteB> <portB> for tenant <tenant>'. The control "
-        "plane reconciles the devices; no one logs in for you or on your behalf."
+        "declaratively — e.g. 'extend vlan 100 as a mac-vrf across <siteA> <portA> "
+        "and <siteB> <portB> for tenant <tenant>'. The control plane reconciles the devices; "
+        "no one logs in for you or on your behalf."
     ),
     DEVICE_FAMILY_CONFIG: (
         "state the desired service state instead of the configuration write — "
-        "e.g. 'provision a point-to-point 1G L2 service between <siteA> <portA> "
-        "and <siteB> <portB> for tenant <tenant>'. The fabric controllers apply "
-        "the resulting configuration through reconciliation."
+        "e.g. 'give tenant <tenant> an ip-vrf carrying 10.50.0.0/24 on <siteA> wan1'. "
+        "The fabric controllers apply the resulting configuration through reconciliation."
     ),
     DEVICE_FAMILY_PROTOCOL: (
-        "name the service, not the protocol — e.g. 'provision an L3VPN between "
-        "<siteA> and <siteB> for tenant <tenant>'. This tier expresses services "
-        "as declarative intent only; device protocols are the control plane's "
-        "business."
+        "name the service, not the protocol — e.g. 'apply an acl on <siteA> ethernet1: "
+        "permit tcp 443 from 10.0.0.0/24, deny everything else'. This tier expresses services "
+        "as declarative intent only; device protocols are the control plane's business."
     ),
     DEVICE_FAMILY_ACTION: (
-        "state the desired outcome as a service request — e.g. 'provision a "
-        "VPWS between <siteA> <portA> and <siteB> <portB> for tenant <tenant>'."
+        "state the desired outcome as a service request — e.g. 'provision a vlan 120 on <siteA> ethernet1 "
+        "for tenant <tenant>'."
     ),
 }
 UNSUPPORTED_PROPERTY_SUGGESTIONS: dict[str, str] = {
     "tePolicy": (
-        "provision the same endpoints as a plain VPLS/VPWS/L3VPN — traffic "
+        "provision the same endpoints as a plain mac-vrf or ip-vrf — traffic "
         "engineering is not expressible in this fabric, but the service itself "
         "is provisionable without it."
     ),
     "pseudowireOAM": (
-        "provision the pseudowire as a VPWS without OAM — the fabric delivers "
-        "the L2 service; OAM signaling is not part of the contract."
+        "provision the L2 service as a mac-vrf without OAM — the fabric delivers "
+        "the L2 connectivity; OAM signaling is not part of the contract."
     ),
     "multicastVPN": (
-        "provision the unicast services your multicast use case needs (L3VPN "
-        "or VPLS between the relevant endpoints) — multicast is not supported."
+        "provision the unicast services your multicast use case needs (ip-vrf "
+        "or mac-vrf between the relevant endpoints) — multicast is not supported."
     ),
     "serviceChain": (
         "provision the individual services as separate declarative requests — "
@@ -440,6 +438,16 @@ def detect_direct_device(text: str) -> DetectionHit | None:
         reason=f"the request asks for {family}",
         suggestion=DEVICE_FAMILY_SUGGESTIONS.get(family, DEFAULT_SUGGESTION),
     )
+
+
+# Recognize construct tokens in free text (US5/T072).
+_CONSTRUCT_TOKEN = re.compile(r"\b(vlan|mac[- ]?vrf|ip[- ]?vrf|acl)\b", re.I)
+_SUPPORTED_CONSTRUCTS = "vlan, mac-vrf, ip-vrf, acl"
+
+def _find_constructs(text: str) -> set[str]:
+    if not text:
+        return set()
+    return {t.lower().replace(" ", "-") for t in _CONSTRUCT_TOKEN.findall(text)}
 
 
 # A question about the outcome of *this thread's* deployment. It is answered
@@ -738,7 +746,7 @@ _FALLBACK_PROVISION_ACTION = re.compile(
     re.I,
 )
 _FALLBACK_SERVICE_TYPE = re.compile(
-    r"\b(?:vpws|vpls|l3vpn|irb|e-?line|point[- ]to[- ]point|full[- ]mesh)\b",
+    r"\b(?:vlan|mac[- ]?vrf|ip[- ]?vrf|acl)\b",
     re.I,
 )
 
@@ -1125,6 +1133,21 @@ class ProvisioningGraph:
         user_content = user_message.content
         user_content_l = user_content.lower().strip()
 
+        # ---------- T072: one construct per request when two are named -----
+        constructs = _find_constructs(user_content)
+        if len(constructs) >= 2:
+            return self._refuse(
+                state,
+                config,
+                reason=(
+                    "one construct per request; you named: "
+                    + ", ".join(sorted(constructs))
+                    + f". Supported constructs: {_SUPPORTED_CONSTRUCTS}"
+                ),
+                suggestion=DEFAULT_SUGGESTION,
+                stage="supervisor",
+            )
+
         # ---------- T256/T257: status-query and remove-service routing -----
         # A status question on a thread that already submitted something is
         # answered from that transaction, by its correlation id — the label
@@ -1426,7 +1449,9 @@ class ProvisioningGraph:
             logger.info("supervisor classified request as informational")
             return {"next_node": NodeStates.GENERAL_INFO, "classification": classification.value}
         if classification is RequestClassification.UNSUPPORTED:
-            reason = "the request is outside the declarative service contract (classifier: unsupported/unsafe)"
+            reason = (
+                f"unknown or unsupported service type; supported constructs are: {_SUPPORTED_CONSTRUCTS}"
+            )
             return self._refuse(state, config, reason, DEFAULT_SUGGESTION, stage="supervisor")
         # Unparseable: never route to a worker.
         logger.warning("unparseable classifier reply; falling back to general_info")
@@ -1979,8 +2004,8 @@ class ProvisioningGraph:
         status = state.get("workflow_status") or NetworkProvisioningStatus.RECEIVED_REQUEST.value
         text = (
             "I provision declarative network services on the SONiC EVPN/VXLAN fabric: "
-            "VPLS (full-mesh L2 bridge), VPWS (point-to-point L2 / E-Line), L3VPN, and IRB "
-            "(integrated L2+L3), each between two or more attachment points for a named tenant. "
+            "vlan (local L2), mac-vrf (L2 over EVPN), ip-vrf (routed instance) and acl (filter bound to service ports), "
+            "each between two or more attachment points for a named tenant. "
             f"The current status of this request thread is {status}. "
             "I never act directly on devices: every change flows through declarative service "
             "intent and the two-confirmation pipeline."

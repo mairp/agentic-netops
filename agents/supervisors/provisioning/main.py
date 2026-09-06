@@ -184,7 +184,7 @@ async def handle_stream_prompt(request: PromptRequest):
                             # streamed for it. Showing one meant rendering the
                             # mapper's schema-validity placeholders as though
                             # they were the operator's request — a service_type
-                            # of "VPWS" nobody asked for, sitting next to
+                            # of "vlan/mac-vrf/ip-vrf/acl" nobody asked for, sitting next to
                             # missing_fields naming service_type. Only the
                             # clarification goes out.
                             missing = node_state.get("missing_fields") or []

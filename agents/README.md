@@ -123,6 +123,10 @@ fallbacks. Credentials are never committed.
 - Container base images are pinned by digest under `intent_tier:` in
   `versions.lock.yaml`; the Dockerfiles in `docker/` use those digests.
 
+## Vocabulary
+
+The operator-facing vocabulary is the four constructs: vlan, mac-vrf, ip-vrf, acl. Legacy names (VPLS, VPWS/E-Line, L3VPN, IRB) are accepted only as migration aliases and are recorded as provenance; they are not askable types.
+
 ## Develop
 
 ```bash

@@ -1,4 +1,7 @@
+<!-- vocabulary: historical -->
 # Fabric BGP/EVPN — implemented, and what is deliberately deferred
+
+Note: This document describes the fabric and operator surfaces as they existed before feature 003 (Datacenter Service Constructs). Service names in this file are historical provenance, not vocabulary an operator can ask for.
 
 **Date:** 2026-09-01 (reconciliation update, end of day)
 **Touches:** `lab/profiles/sonic-vs/bootstrap/configure-fabric-bgp.sh` (new),

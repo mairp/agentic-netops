@@ -56,8 +56,7 @@ from tests.corpus.adversarial.runner import (
 )
 
 CLEAN_REQUEST = (
-    "provision a point-to-point 1Gbps VPWS service between leaf01 ethernet1 "
-    "and leaf02 ethernet2 for tenant acme, vlan 100"
+    "extend vlan 100 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet2 for tenant acme"
 )
 
 
@@ -196,7 +195,9 @@ class TestClassifier:
         state = await _run(CLEAN_REQUEST, llm, transport)
         assert state.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
         assert state.get("next_node") == "__end__"
-        assert "classifier: unsupported/unsafe" in (state.get("refusal_reason") or "")
+        assert "supported constructs" in (state.get("refusal_reason") or "")
+        for c in ("vlan", "mac-vrf", "ip-vrf", "acl"):
+            assert c in (state.get("refusal_reason") or "")
         assert transport.calls == []
         from common.audit import get_audit_sink
 
@@ -211,6 +212,19 @@ class TestClassifier:
         all_ai = "\n".join(m.content for m in state.get("messages", []) if isinstance(m, AIMessage))
         assert "could not classify" in all_ai.lower()
         assert state.get("classification") is None
+
+    async def test_two_constructs_in_one_request_refused(self):
+        llm = FixedWordLLM("provisionable")
+        transport = StubTransport()
+        text = (
+            "provision a vlan and an ip-vrf between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme"
+        )
+        state = await _run(text, llm, transport)
+        assert state.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
+        assert "one construct per request" in (state.get("refusal_reason") or "")
+        for c in ("vlan", "mac-vrf", "ip-vrf", "acl"):
+            assert c in (state.get("refusal_reason") or "")
+        assert transport.calls == []
 
     async def test_unavailable_provider_uses_narrow_informational_fallback(self):
         class UnavailableLLM:
@@ -296,13 +310,16 @@ class TestDirectActionRefusal:
         llm = FixedWordLLM("provisionable")  # the model's word must not matter
         transport = StubTransport()
         state = await _run(
-            "provision a VPLS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme "
+            "extend vlan 100 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet2 for tenant acme "
             "with a traffic engineering policy",
             llm,
             transport,
         )
         assert state.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
         assert "tePolicy" in (state.get("refusal_reason") or "")
+        # The suggestion offers the nearest construct by its construct name (FR-023)
+        msg = _last_ai(state)
+        assert any(x in msg for x in ["mac-vrf", "ip-vrf"])
         assert transport.calls == []
 
 

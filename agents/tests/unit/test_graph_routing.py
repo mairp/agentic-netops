@@ -67,7 +67,7 @@ async def test_conditional_edges_and_routing_flow():
                     {
                         "type": "human",
                         "content": (
-                            "provision a VPWS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 100"
+                            "extend vlan 100 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet2 for tenant acme"
                         ),
                     }
                 ]
@@ -106,7 +106,7 @@ async def test_missing_attachment_points_stop_for_clarification():
                 "messages": [
                     {
                         "type": "human",
-                        "content": "provision a VPWS between leaf01 and leaf02 for tenant acme",
+                        "content": "extend vlan 100 as a mac-vrf across leaf01 and leaf02 for tenant acme",
                     }
                 ]
             },
@@ -146,7 +146,7 @@ async def test_wall_clock_deadline_bounded_exit(monkeypatch):
                 {
                     "type": "human",
                     "content": (
-                        "provision a VPLS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 200"
+                        "extend vlan 200 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet2 for tenant acme"
                     ),
                 }
             ],

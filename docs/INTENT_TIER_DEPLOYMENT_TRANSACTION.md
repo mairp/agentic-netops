@@ -24,7 +24,7 @@ and immutable request context:
 ```json
 {
   "action": "submit",
-  "intent": {"serviceId": "...", "type": "VPWS", "tenant": "..."},
+  "intent": {"serviceId": "...", "type": "mac-vrf", "tenant": "..."},
   "context": {
     "correlationId": "32-lowercase-hex",
     "threadId": "conversation-thread-id",

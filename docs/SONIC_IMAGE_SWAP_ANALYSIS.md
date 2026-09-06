@@ -1,4 +1,7 @@
+<!-- vocabulary: historical -->
 # Can a different SONiC image fix D-A2 and D-A3?
+
+Note: This document describes the fabric and operator surfaces as they existed before feature 003 (Datacenter Service Constructs). Service names in this file are historical provenance, not vocabulary an operator can ask for.
 
 **Date:** 2026-09-04
 **Question:** `docs/FABRIC_BGP_EVPN_DEFERRED.md` accepts EVPN Type-5 origination

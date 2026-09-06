@@ -37,13 +37,14 @@ Adjustments:
 
 ## EVPN/SRv6 mapping limitations
 
-- Supported EVPN mappings per spec:
-  - VPLS/multipoint L2VPN → EVPN bridge domain with unique L2VNI, attachment VLANs, import/export RTs
-  - L3VPN → Tenant VRF with L3VNI, RD/RTs, Type-5 routes where supported
-  - VPWS/E-Line → Dedicated two-attachment bridge domain and L2VNI (limited equivalence; not full pseudowire parity)
-  - Symmetric IRB for integrated L2/L3
-- Unsupported or limited features are rejected with structured findings before any device mutation: RSVP-TE, SR-MPLS policy, pseudowire OAM/control-word, multicast VPN, complex QoS/OAM, service chaining, and unknown properties.
-- Translation is all-or-nothing; no partial intent is applied on failure.
+- Supported EVPN constructs:
+  - mac‑vrf (datacenter L2 over EVPN) — EVPN bridge domain with unique L2VNI, attachment VLANs, route targets.
+  - ip‑vrf (datacenter L3 instance) — Tenant VRF with L3VNI, RD/RTs, Type‑5 routes where supported.
+  - vlan — local broadcast domain on a node.
+  - acl — filter bound to service ports at INGRESS/EGRESS.
+  - Legacy names such as VPLS, VPWS/E‑Line, L3VPN, IRB are migration aliases only and must not be used as operator vocabulary (migration alias).
+- Unsupported or limited features are rejected with structured findings before any device mutation: RSVP‑TE, SR‑MPLS policy, pseudowire OAM/control‑word, multicast VPN, complex QoS/OAM, service chaining, and unknown properties.
+- Translation is all‑or‑nothing; no partial intent is applied on failure.
 
 ## Telemetry pipeline
 

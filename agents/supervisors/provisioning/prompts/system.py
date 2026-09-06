@@ -90,12 +90,12 @@ PROVISIONABLE_CLASSIFICATION_PROMPT = """PROVISIONABLE — the request describes
 through the declarative pipeline. A provisionable request:
 - asks to provision/create/set up a service BETWEEN two or more attachment
   points (site/node + port), for a named tenant;
-- names a service type the fabric can express: VPLS (full-mesh L2 bridge),
-  VPWS (point-to-point L2 / E-Line), L3VPN, or IRB (L2+L3 integrated);
+- names a construct the fabric can express: vlan (local broadcast domain),
+  mac-vrf (L2VNI over EVPN), ip-vrf (routed instance with L3VNI), or acl
+  (filter bound to the service's attachment ports);
 - may mention bandwidth or SLA class;
-- is expressed as desired state: "provision a ... service between X and Y
-  for tenant Z". It never asks anyone to log into, run a command on, or push
-  configuration to a device."""
+- is expressed as desired state: "provision a ... between X and Y for tenant Z".
+  It never asks anyone to log into, run a command on, or push configuration to a device."""
 
 # ---------------------------------------------------------------------------
 # T087 — informational question classification prompt.

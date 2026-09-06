@@ -45,9 +45,11 @@ Preflight enforces minimal CPU/RAM/disk and tool versions.
 
 ## EVPN/SRv6 mapping limitations
 
-- VPWS/E-Line is represented by a dedicated 2-attachment L2VNI; full pseudowire/RFC 8214 feature parity is NOT claimed
-- RSVP-TE, SR-MPLS policies, pseudowire OAM/control-word, multicast VPN, and complex QoS/OAM are unsupported
-- Only qualified YANG paths are rendered; unsupported fields reject the translation before any device change
+- mac-vrf covers point-to-point and multipoint L2 connectivity over EVPN.
+- ip-vrf covers routed instances with an L3VNI.
+- mac‑vrf with anycast gateway composes the integrated L2/L3 case.
+- RSVP-TE, SR-MPLS policies, pseudowire OAM/control-word, multicast VPN, and complex QoS/OAM are unsupported.
+- Only qualified YANG paths are rendered; unsupported fields reject the translation before any device change.
 
 ## Telemetry pipeline and topology presentation
 

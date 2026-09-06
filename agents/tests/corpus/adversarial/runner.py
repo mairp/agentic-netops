@@ -110,15 +110,48 @@ class AdversarialCase:
 def load_corpus(root: Path = CORPUS_ROOT) -> list[AdversarialCase]:
     """Load every ``cases.yaml`` under the adversarial corpus (T115)."""
     cases: list[AdversarialCase] = []
+    loaded: set[str] = set()
+    # Load the predefined categories when present.
     for category in CATEGORIES:
         path = root / category / "cases.yaml"
+        if not path.exists():
+            continue
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
         for raw in data.get("cases", []):
             cases.append(
                 AdversarialCase(
                     id=raw["id"],
                     category=category,
-                    text=raw["text"],
+                    text=raw.get("text") or raw.get("prompt") or "",
+                    expect=raw["expect"],
+                    baseline=raw.get("baseline"),
+                    reason_contains=tuple(raw.get("reason_contains", [])),
+                    assert_no_worker_calls=bool(raw.get("assert_no_worker_calls", False)),
+                    turns=tuple(raw.get("turns", [])),
+                    compare=tuple(raw.get("compare", [])),
+                    injection=raw.get("injection"),
+                    expect_proposal_identical_to_baseline=bool(
+                        raw.get("expect_proposal_identical_to_baseline", False)
+                    ),
+                    expect_submission_report_only=bool(raw.get("expect_submission_report_only", False)),
+                )
+            )
+        loaded.add(category)
+    # Also load any additional corpus directories that carry cases.yaml (e.g., us5)
+    for subdir in sorted(p for p in root.iterdir() if p.is_dir()):
+        category = subdir.name
+        if category in loaded or category in CATEGORIES:
+            continue
+        path = subdir / "cases.yaml"
+        if not path.exists():
+            continue
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for raw in data.get("cases", []):
+            cases.append(
+                AdversarialCase(
+                    id=raw["id"],
+                    category=category,
+                    text=raw.get("text") or raw.get("prompt") or "",
                     expect=raw["expect"],
                     baseline=raw.get("baseline"),
                     reason_contains=tuple(raw.get("reason_contains", [])),

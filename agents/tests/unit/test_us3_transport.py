@@ -289,14 +289,14 @@ class TestSupervisorHttp:
             assert body["endpoint"] == "http://slim.agentic-netops-agents.svc:46357"
 
     def test_suggested_prompts_file(self):
-        """T160 — four prompts covering VPLS, VPWS/E-Line, L3VPN, IRB."""
+        """T160 — supervisor suggested prompts now cover vlan, mac-vrf, ip-vrf, acl."""
         data = json.loads(
             (Path(__file__).resolve().parents[2] / "supervisors/provisioning/suggested_prompts.json").read_text()
         )
-        assert len(data) == 4
-        text = " ".join(data).upper()
-        for service in ("VPLS", "VPWS", "L3VPN", "IRB"):
-            assert service in text
+        assert len(data) >= 4
+        text = " ".join(data).lower()
+        for construct in ("vlan", "mac-vrf", "ip-vrf", "acl"):
+            assert construct in text
 
 
 # ---------------------------------------------------------------------------

@@ -23,7 +23,7 @@ objects is the Go translator used in the deployer).
 
 NetworkMapping shape (subject parity; citation for Interpretation docs):
 - service_id (<=15 chars),
-- service_type (VPLS | VPWS | L3VPN | IRB),
+- service_type (vlan | mac-vrf | ip-vrf | acl),
 - tenant (RFC 1123 label),
 - endpoints: list of {site_or_node, attachment, vlan?},
 - optional: bandwidth, sla,

@@ -1,4 +1,7 @@
+<!-- vocabulary: historical -->
 # Cluster rebuild on the committed pins — findings and pending work
+
+Note: This document describes the fabric and operator surfaces as they existed before feature 003 (Datacenter Service Constructs). Service names in this file are historical provenance, not vocabulary an operator can ask for.
 
 **Date:** 2026-09-04
 **Trigger:** a provisioning request failed with

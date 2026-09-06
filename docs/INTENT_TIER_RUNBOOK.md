@@ -1,6 +1,6 @@
 # Intent Tier Runbook
 
-This runbook covers bring-up, teardown, and per-stage failure diagnosis for the AGNTCY multi-agent intent tier (the `agentic-netops-intent` fabric-intent tier in this repository). It assumes the Agentic NetOps SONiC EVPN/VXLAN fabric is managed by this repository and that the Kind cluster and observability stack are provisioned by the standard scripts.
+This runbook covers bring-up, teardown, and per-stage failure diagnosis for the AGNTCY multi-agent intent tier (the `agentic-netops-intent` fabric-intent tier in this repository). It assumes the Agentic NetOps SONiC EVPN/VXLAN fabric is managed by this repository and that the Kind cluster and observability stack are provisioned by the standard scripts. Operator-facing vocabulary throughout uses the constructs (vlan, mac‑vrf, ip‑vrf, acl). Legacy names, when mentioned, appear only as migration aliases/provenance.
 
 ## Bring-up
 

@@ -1,4 +1,7 @@
+<!-- vocabulary: historical -->
 # Issue: the operator never receives a final deployment status
+
+Note: This document describes the fabric and operator surfaces as they existed before feature 003 (Datacenter Service Constructs). Service names in this file are historical provenance, not vocabulary an operator can ask for.
 
 **State:** fixed — documented 2026-09-04 after live reproduction, closed the
 same day.

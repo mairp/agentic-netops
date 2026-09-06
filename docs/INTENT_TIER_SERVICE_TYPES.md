@@ -1,146 +1,68 @@
-# What each service type actually renders on the fabric
+# Construct reference — what each construct renders on the fabric
 
-**Date:** 2026-09-04
-**Touches:** `pkg/fabricplan/plan.go`, `pkg/kubenet/network.go`, `pkg/migration/`,
+Date: 2026-09-06
+Touches: `pkg/fabricplan/plan.go`, `pkg/kubenet/network.go`, `pkg/migration/`,
 `cmd/fabric-executor/main.go`, `controllers/sonicprovider/network_controller.go`,
 `agents/provisioning/{mapper,allocator}/agent.py`
 
-The tier advertises four service types (VPWS, VPLS, L3VPN, L2L3-IRB). Until
-this change **only L3VPN could ever converge**: every VPLS, VPWS and IRB ever
-submitted failed at the fabric, after the objects were already on the cluster
-and after the deployer had reported a successful submission. This document
-records what each type renders now, what was broken, and what is still limited.
+The intent tier expresses four datacenter constructs and nothing else:
 
-## Per-type render contract
+- vlan — a local broadcast domain: a VLAN and the ports in it
+- mac-vrf — a VLAN extended over the fabric by an L2VNI with EVPN route targets
+- ip-vrf — a routed instance: a VRF with an L3VNI and route targets
+- acl — a filter bound to the ports a service attaches on
 
-| Type | CONFIG_DB / redis | Kernel | FRR | Verified by |
-| --- | --- | --- | --- | --- |
-| **L3VPN** | `VRF` row (GCU), `VLAN\|Vlan<L3VLAN>`, `VXLAN_TUNNEL_MAP` for the L3VNI | `Vlan<L3VLAN>` SVI in the VRF carrying the service prefix; access port in the Bridge on that vlan; the L3VNI's `vtep1-<L3VLAN>` bridged | `vrf/vni`, `router bgp <asn> vrf`, `redistribute connected`, `advertise <afi>`, RD/RT | VRF row, tunnel map, SVI master + address, vtep master + VNI, `Tenant VRF`, RD-scoped Type-5 |
-| **VPLS / VPWS** | `VLAN\|Vlan<vlan>`, `VXLAN_TUNNEL_MAP` for the L2VNI | access port in the Bridge on the service vlan; the L2VNI's `vtep1-<vlan>` bridged | `router bgp <node asn>` → `address-family l2vpn evpn` → `vni <l2vni>` with RD/RT | VXLAN tunnel present, VLAN row, tunnel map, port master + vid, vtep master + vid + VNI, `RD:` under the VNI |
-| **L2L3-IRB** | both of the above | both of the above, plus the bridge domain's own SVI in the VRF carrying the tenant gateway | both of the above | both of the above, plus gateway SVI master + every gateway address, plus a Type-5 route per gateway |
+Legacy service-provider names are migration aliases only; see “Migration aliases” below.
 
-VPWS renders as VPLS with an explicit `vpwsLimitedEquivalence` opt-in — the
-limited-equivalence mapping the translator has always annotated.
+## Required variables and render contract per construct
 
-## What was broken
+| Construct | Required variables | Optional variables | CONFIG_DB / redis | Kernel | FRR | Verified by |
+|---|---|---|---|---|---|---|
+| vlan | tenant, 1 endpoint (node+port), vlan id (if operator-supplied) | — | `VLAN|Vlan<vlan>` (raw redis) | access port enslaved into Bridge with PVID `<vlan>` | — | `redis-hget` on `VLAN`, bridge membership + `bridge-vid` |
+| mac-vrf | tenant, ≥2 endpoints (or 1 with anycast gateway), service vlan | anycast gateway (IPv4/IPv6), policies.vpwsLimitedEquivalence | `VLAN|Vlan<vlan>`, `VXLAN_TUNNEL_MAP|vtep1|map_<l2vni>_Vlan<vlan>` (raw redis) | access ports enslaved to Bridge on `<vlan>`; `vtep1-<vlan>` bridged | `router bgp <leaf-asn>` → `address-family l2vpn evpn` → `vni <l2vni>` with RD/RT | VLAN row, tunnel map, port master+vid, vtep master+vid+VNI, EVPN VNI present |
+| ip-vrf | tenant, ≥1 endpoint (node+wan1/port), address family prefixes | — | `VRF` row (GCU); `VLAN|Vlan<l3vlan>` + `VXLAN_TUNNEL_MAP` for L3VNI (raw redis) | `Vlan<l3vlan>` SVI enslaved to the VRF; access port bridged on service vlan | `vrf/vni`, `router bgp <asn> vrf`, `redistribute connected`, advertise AFI, RD/RT | VRF row, SVI up+addressed+master, VNI in bgpd, RD‑scoped Type‑5 |
+| acl | tenant, ≥1 endpoint (ports), acl.name, acl.stage (ingress/egress), acl.type (l3/l3v6), acl.rules[] | default_action | `ACL_TABLE|<table>` and `ACL_RULE|<rule>` (raw redis only) | bound to each node’s own ports only | — | config side: table+rule rows with exact fields; applied side: table/entry objects in ASIC_DB |
 
-**Every L2 service allocated a VLAN per endpoint.** A bridge domain is one
-broadcast domain and the translator renders exactly one `bridgeDomain`, taking
-its vlan from the first endpoint. The allocator handed endpoint 2 a different
-vlan, so the second attachment referenced a vlan no bridge domain declared and
-the fabric rejected the object at render time. VPLS carried a partial guard
-against this; VPWS and IRB had none. Fixed in the allocator (one service vlan,
-and two *requested* vlans are a rejection rather than a silent pick) and
-enforced for all three types in the Go validator.
+Notes:
+- For mac-vrf with anycast gateway, a per-service ip-vrf is composed: the bridge domain’s SVI is addressed and the VRF binds the L3VNI; both are verified.
+- An acl-only request renders on every node that has an attachment in the same `Network`, bound to that node’s own attachment ports only.
 
-**The L2 path addressed the VXLAN device by VNI.** SONiC's vxlanmgrd names it
-after the VLAN (`vni 1000` lands as `vtep1-2000`). Every `vtep1-<l2vni>`
-command was a silent no-op against a device that does not exist, so the bridge
-domain would have stayed local-only even once it rendered. The renderer now
-waits for `vtep1-<vlan>`, ensures it is a Bridge port in the service vlan, and
-**verifies the VNI it actually carries** — a new `link-vxlan-id` check, because
-membership checks alone cannot tell a service's own device from one it
-inherited from a service that already held that vlan (seen live: leaf01
-`vtep1-300` carrying vni 10021 for a service allocated 10022, with every other
-check passing).
+## Migration aliases (for provenance only)
 
-**`address-family l2vpn evpn` was sent to vtysh at top level.** It is not a
-command there — `% Unknown command`. It lives inside the node's own *default*
-BGP instance, whose ASN is the leaf's fabric eBGP ASN (65101/65102), not the
-65000 the routed path uses for its per-VRF instances; `router bgp` with no ASN
-is refused outright. The node is now asked for its own ASN before the vtysh
-call is made, and the same block is appended to `bgpd.conf` for durability.
+Use only the constructs above in operator-facing vocabulary. Legacy names are accepted as migration aliases and recorded as provenance; they must never be presented as something an operator can ask for:
 
-**IRB silently rendered as a VPLS.** `kubenet.BridgeDomain` had no `irb` field,
-so the gateway and its VRF were dropped on the floor; and the translator set
-`irb.vrf` to a tenant-scoped label that never matched the per-service router it
-emitted. Both are fixed, and a bridge domain whose `irb.vrf` names no router in
-the same Network is now a rejection rather than a half-rendered service.
+- VPLS → mac-vrf (migration alias)
+- VPWS / E‑Line → mac-vrf with `policies.vpwsLimitedEquivalence=true` (migration alias)
+- L3VPN → ip-vrf (migration alias)
+- IRB / L2L3‑IRB → mac-vrf with anycast-gateway composition (migration alias)
 
-**A port's untagged role was stolen by each new service.** The L2 path probed
-for an existing PVID through a JSON key iproute2 does not emit (the flags are a
-list), so it always concluded "no PVID" and claimed untagged for itself. Both
-paths now claim untagged only when no service holds it, and land tagged
-otherwise — one physical port carries several services without the newest one
-silently breaking the others.
+## Unsupported or out-of-scope (refused before any device change)
 
-**Nothing checked the intent against the site until after submission.** An
-endpoint naming a node or port this fabric does not have was translated,
-submitted, and only then rejected by the controller — leaving a stranded
-Network, nothing rolled back, and a message that never said what the valid
-names were. The Go translator (the last gate before objects exist) now
-validates endpoints against the site's own two maps and refuses with the real
-names listed; the renderer's own rejection lists them too; and case and
-separators are folded, so `Ethernet1` resolves like `ethernet1` at the port
-map, the executor's node map, and the site validator alike.
+These are refused explicitly with named causes; there is no hidden partial behavior:
+- ICMPv6 as an ACL protocol (the pinned image cannot express it in `ACL_RULE`) — declare IPv6 rules with other protocols instead.
+- L2/MAC forwarding tables as a manageable object; packet mirroring; policers and complex QoS; control‑plane ACLs; NAT.
+- VLAN‑wide or fabric‑wide ACL binding targets: an acl binds to service ports only, never to a whole VLAN or to the entire fabric.
 
-**The L3VNI pool could hand out unrenderable ids.** SONiC needs a VLAN per VNI
-and the renderer derives one as `4000 + (vni - 10000)`, so only 10000-14094 has
-a VLAN to derive — while the pool's ceiling was 20000. The pool now stops at
-14094 and the translator refuses an L3VNI outside the band.
+## ACL convergence and the applied view
 
-**The renderer raced vlanmgrd for ownership of the Vlan device — and won.**
-vlanmgrd builds `Vlan<id>` from the CONFIG_DB `VLAN` row and only then marks
-the vlan ready in STATE_DB (`VLAN_TABLE|Vlan<id>`), which is the signal
-vxlanmgrd waits on before building the VXLAN device. The renderer created the
-device itself, so when it got there first vlanmgrd's own create failed — and
-vlanmgrd does **not** retry: the vlan never became ready and the VXLAN device
-was never built at all (observed live: `Vlan115` present, no
-`VLAN_TABLE|Vlan115`, no `vtep1-115`, service dead). The L3 path had been
-losing that race and getting away with it for its whole life. The renderer now
-waits for the manager and builds the device itself only if it never appears.
+An acl is converged only when the filter is both present in CONFIG_DB and applied on the device ports it is bound to on every bound node. On SONiC VS the applied view is read from ASIC_DB — the supervisor verifies the ACL table object has a `SAI_ACL_BIND_POINT_TYPE_PORT` bind point for the declared stage and counts at least one `SAI_OBJECT_TYPE_ACL_ENTRY` object per rendered rule. Where the applied view cannot be read, the operator‑facing status names that property and the node rather than claiming it as verified.
 
-**bgpd could miss an L3VNI that zebra knew about.** A service with a correct
-VRF row, SVI, bridged VXLAN device and `vrf X / vni N` in FRR still answered
-`VNI not found` to `show bgp l2vpn evpn vni N`, and no reconcile could heal it
-because every op was already a no-op. The plan now re-issues the VRF→VNI
-binding when — and only when — bgpd has not adopted it, so the reconcile loop
-converges instead of failing the same check forever. This healed a live L3VPN
-that had been stuck on it.
+## What was broken (now corrected)
 
-**A rollback could kill vlanmgrd, and with it every future L2 service.** The
-teardown ran `ip link del Vlan<id>` on devices vlanmgrd owns. When vlanmgrd
-later ran its own delete for the withdrawn CONFIG_DB row and found the device
-already gone, it treated the shell failure as fatal and **exited**
-(`Cannot find device "Vlan4031"` … `exited: vlanmgrd (exit status 255)`), and
-supervisord did not bring it back. From then on no VLAN on that node got a
-device or a `VLAN_TABLE` entry, so no VXLAN device was ever built and every
-subsequent L2 service on that leaf failed — a fault whose cause was one
-service's *deletion*. Rollback now withdraws the declared rows and lets each
-device's own manager remove the device; it only unwinds the port vlan
-membership, which is genuinely the renderer's.
+The earlier service‑type vocabulary hid several defects that prevented L2 services from converging. All are corrected in this tree:
 
-**A converged service was never looked at again.** The controller returned no
-requeue once a Network was Ready, so device state that drifted afterwards — a
-manager daemon that died, a reboot, another service's teardown taking a shared
-device with it — left the Network claiming `Ready=True` over a fabric that no
-longer matched it (observed live: nine L3VPNs Ready with their SVIs gone).
-Every op and check is idempotent, so converged Networks are now re-applied and
-re-verified every five minutes: a resync either confirms the service or repairs
-it and says so.
+- One VLAN per endpoint: a bridge domain is one broadcast domain; allocation and validation enforce one service VLAN (second named VLAN is a refusal).
+- VXLAN device addressing used the VNI; SONiC names it after the VLAN. The renderer now waits for `vtep1-<vlan>`, bridges it, and verifies the VNI the kernel device actually carries.
+- EVPN AF configuration went to the wrong FRR context; it is now placed under the node’s default BGP instance using the leaf’s own ASN and persisted to `bgpd.conf`.
+- IRB lost the routed half; the data model carries `irb` and the translator rejects a bridge domain whose `irb.vrf` names no router in the same Network.
+- PVID stealing on access ports; ports now keep an existing PVID and later services land tagged.
+- Site inventory validation moved to the translator (last gate before objects exist) and names the site’s real node/port choices.
+- L3VNI pool upper bound matched the image’s renderable band (10000–14094); out‑of‑band values are refused.
+- Rollback never deletes devices the managers own; it withdraws rows and unwinds only the bridge memberships it set.
+- Converged services are re‑applied and re‑verified every 5 minutes; drift is repaired or reported truthfully.
 
-**An object naming an unknown node could not be deleted.** The rollback held
-the finalizer forever on an executor error, including the executor's permanent
-`node "leaf1" not in site map` refusal. A 4xx from the executor is now
-distinguished from an outage: nothing was ever applied on a node the site does
-not have, so the finalizer is released instead of held.
+## Known limitations
 
-## Still limited
-
-**IPv6 IRB gateways.** An IRB now carries only the address families the
-operator asked for. If IPv6 *is* requested, the address is put on the SVI and
-`advertise ipv6 unicast` is configured, but on this sonic-vs FRR build zebra
-sometimes registers the global IPv6 address as a **kernel** rather than a
-**connected** route (observed on leaf02 while leaf01 was correct for the same
-service), and `redistribute connected` then never originates the Type-5. The
-service reports `Ready=False` naming the missing route — truthfully — rather
-than claiming success. `ip addr replace`, a del/add cycle, and a VRF-membership
-bounce were all tried live and none re-registered it.
-
-**One untagged service per port.** Inherent: a port has one PVID. The first
-service on a port claims it; later ones are tagged.
-
-**One L2VNI per VLAN per node.** SONiC keys the VXLAN device by VLAN, so two
-services cannot share a vlan on one node. The allocator's pool keeps them
-distinct; an operator who names the same vlan twice gets the collision, and the
-`link-vxlan-id` check is what makes it visible instead of silent.
+- IPv6 anycast gateways: on this sonic‑vs build zebra may register a global IPv6 address as a kernel route rather than connected; `redistribute connected` then originates no Type‑5. The condition is reported truthfully as not Ready.
+- One untagged service per port (inherent; a port has one PVID). Later services land tagged.
+- One L2VNI per VLAN per node (inherent to SONiC’s VTEP device keying).

@@ -28,7 +28,7 @@
         "create an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant acme with prefix 10.0.10.0/24",
         "provision a vrf for tenant blue across leaf01 and leaf02"
       ],
-      "keywords": ["ip-vrf", "l3vni", "vrf", "routing", "layer3", "l3vpn"],
+      "keywords": ["ip-vrf", "l3vni", "vrf", "routing", "layer3"],
       "hints": { "bandwidth": ["gbps", "mbps", "g", "m"] }
     },
     "acl": {

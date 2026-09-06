@@ -1,6 +1,8 @@
 [
-  "Provision a point-to-point VPWS between leaf01 ethernet1 and leaf02 ethernet1 for tenant acme",
-  "Create a full-mesh VPLS between leaf01 ethernet2 and leaf02 ethernet2 for tenant blue vlan 100",
-  "Create an L3VPN between site-a wan1 and site-b wan1 for tenant initech with prefix 10.50.0.0/24",
-  "Set up an IRB service between ethernet3 on leaf01 and ethernet3 on leaf02 for tenant umbrella with prefix 10.60.0.0/24"
+  "Provision a vlan 120 on leaf01 ethernet1 for tenant acme",
+  "Extend vlan 100 as a mac-vrf across leaf01 ethernet2 and leaf02 ethernet2 for tenant blue",
+  "Give tenant initech an ip-vrf carrying 10.50.0.0/24 on leaf01 wan1",
+  "Create a mac-vrf on vlan 110 across leaf01 ethernet3 and leaf02 ethernet3 for tenant umbrella with an anycast gateway at 10.60.0.1/24",
+  "Apply an acl on leaf01 ethernet1 and leaf02 ethernet1 for tenant acme: permit tcp 443 from 10.0.0.0/24, deny everything else",
+  "Extend vlan 130 as a mac-vrf across leaf01 ethernet2 and leaf02 ethernet2 for tenant acme, permitting only tcp 443 from 10.0.0.0/24"
 ]

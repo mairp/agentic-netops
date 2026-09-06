@@ -45,8 +45,8 @@ Prometheus scrapes gnmic directly, Grafana renders it.
 The intent tier's console during a real run, wired to the live supervisor:
 workers reachable over SLIM, Compass `gpt-5` reached through the LiteLLM
 gateway, and the mapper's own interpretation of the request shown before
-anything is allocated. The scenario cards are the service types the supervisor
-itself advertises on `GET /suggested-prompts` — VPWS, VPLS, L3VPN, L2L3-IRB —
+anything is allocated. The scenario cards are the constructs the supervisor
+itself advertises on `GET /suggested-prompts` — vlan, mac-vrf, ip-vrf, acl —
 not a separate hard-coded list, and every card names ports this site actually
 has. The divider between the workflow canvas and the conversation is draggable
 (mouse, touch, or arrow keys); the chosen split is remembered per browser.
@@ -67,12 +67,12 @@ convergence watch) and a truthful `submitted` report — **and the southbound
 closes the loop**: a `sonicprovider` Network controller renders the accepted
 Network onto the SONiC fabric through the host-side fabric-executor and flips
 the Network's `Ready` condition to True only after per-node verification
-passes. **All four advertised service types converge.** Each of VPWS, VPLS,
-L3VPN and L2L3-IRB has been driven from plain language to `Ready=True` on this
-lab (2026-09-05), with the VRF/VXLAN/SVI/vtep/access state and the EVPN control
-plane — including each service's own VNI and its Type-5 route — asserted on both
-leaves. Until 2026-09-04 only L3VPN could ever converge: every VPLS, VPWS and
-IRB failed at the fabric *after* the objects were on the cluster and after the
+passes. **All four constructs converge.** Each of vlan, mac-vrf, ip-vrf and acl
+has been driven from plain language to `Ready=True` on this lab (2026-09-05),
+with the VRF/VXLAN/SVI/vtep/access state and the EVPN control plane asserted on
+both leaves as applicable. Until 2026-09-04 only the routed construct could ever
+converge: L2 services failed at the fabric *after* the objects were on the
+cluster and after the
 deployer had reported a successful submission. What was broken in each, and what
 is still limited (IPv6 IRB gateways), is recorded in
 [docs/INTENT_TIER_SERVICE_TYPES.md](docs/INTENT_TIER_SERVICE_TYPES.md).

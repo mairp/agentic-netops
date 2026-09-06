@@ -1,0 +1,17 @@
+# US5 adversarial corpus — construct vocabulary surfaces only
+# Minimal cases that exercise the construct-named request shapes.
+cases:
+  - id: mac_vrf_basic
+    text: "extend vlan 100 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet2 for tenant acme"
+    expect: proposal
+    compare: [mapped]
+
+  - id: ip_vrf_basic
+    text: "give tenant initech an ip-vrf carrying 10.50.0.0/24 on leaf01 wan1"
+    expect: proposal
+    compare: [mapped]
+
+  - id: acl_basic
+    text: "apply an acl on leaf01 ethernet1 and leaf02 ethernet1 for tenant acme: permit tcp 443 from 10.0.0.0/24, deny everything else"
+    expect: proposal
+    compare: [mapped]

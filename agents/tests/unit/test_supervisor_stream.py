@@ -157,7 +157,7 @@ class _ClarifyingMapperGraph:
 def test_an_incomplete_request_streams_no_interpretation_card(monkeypatch):
     """An incomplete interpretation is not an interpretation (FR-010). The
     MAPPED card used to render the mapper's schema-validity placeholders as
-    the operator's request — a service_type of "VPWS" nobody asked for."""
+    the operator's request — a construct service_type nobody asked for."""
 
     chunks = _stream(monkeypatch, _ClarifyingMapperGraph())
     assert not [c for c in chunks if c["type"] == "stage"], "no interpretation card for an incomplete request"
@@ -195,7 +195,7 @@ class _CompleteMapperGraph:
             "mapper": {
                 "workflow_status": NetworkProvisioningStatus.MAPPED.value,
                 "mapped_parameters": json.dumps(
-                    {"service_type": "VPWS", "tenant": "acme", "missing_fields": []}
+                    {"service_type": "mac-vrf", "tenant": "acme", "missing_fields": []}
                 ),
                 "messages": [AIMessage(content="Confirm this interpretation? Reply 'confirm' ...")],
             }
@@ -208,7 +208,7 @@ def test_a_complete_request_still_gets_its_interpretation_card(monkeypatch):
 
     chunks = _stream(monkeypatch, _CompleteMapperGraph())
     stage = next(c for c in chunks if c["type"] == "stage" and c["stage"] == "mapper")
-    assert stage["payload"]["service_type"] == "VPWS"
+    assert stage["payload"]["service_type"] == "mac-vrf"
     assert stage["payload"]["tenant"] == "acme"
     assert any(c["type"] == "confirmation_request" for c in chunks)
 

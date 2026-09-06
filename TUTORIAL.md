@@ -66,6 +66,15 @@ grep -E '\[fabric-bgp\]' provision.log
 
 ## 2. State intent
 
+Walk one of each construct. These are the shapes the tier accepts — vlan, mac-vrf, ip-vrf and acl — and both ACL shapes (standalone and attached):
+
+- vlan: "Provision a vlan 120 on leaf01 ethernet1 for tenant acme"
+- mac-vrf: "Extend vlan 100 as a mac-vrf across leaf01 ethernet2 and leaf02 ethernet2 for tenant blue"
+- ip-vrf: "Give tenant initech an ip-vrf carrying 10.50.0.0/24 on leaf01 wan1"
+- acl (standalone): "Apply an acl on leaf01 ethernet1 and leaf02 ethernet1 for tenant acme: permit tcp 443 from 10.0.0.0/24, deny everything else"
+- mac-vrf + acl: "Extend vlan 130 as a mac-vrf across leaf01 ethernet2 and leaf02 ethernet2 for tenant acme, permitting only tcp 443 from 10.0.0.0/24"
+
+
 Open the chat UI at <http://localhost:30000>, or watch the tier reason:
 
 ```bash
@@ -76,7 +85,7 @@ The supervisor classifies every request before acting. Try one of each class:
 
 | Say | Class | Expected behaviour |
 | --- | --- | --- |
-| "Create a full-mesh VPLS between leaf01 ethernet2 and leaf02 ethernet2 for tenant blue vlan 100" | provisionable | interprets → claims IDs → submits a `Network` |
+| "Extend vlan 100 as a mac-vrf across leaf01 ethernet2 and leaf02 ethernet2 for tenant blue" | provisionable | interprets → claims IDs → submits a `Network` |
 | "What service types do you support?" | informational | answers; provisions nothing |
 | something outside the declarative model | unsupported | refuses, names the supported equivalent |
 
