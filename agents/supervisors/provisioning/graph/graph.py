@@ -741,8 +741,13 @@ _FALLBACK_INFORMATIONAL = re.compile(
     r"^\s*(?:what|which|who|where|when|why|how|can|could|do|does|is|are|show|list|describe|explain|help)\b",
     re.I,
 )
+# The verbs an operator actually uses to ask for a construct. "extend", "give"
+# and "apply" are here because DEFAULT_SUGGESTION advertises exactly those
+# phrasings ("extend vlan 100 as a mac-vrf ...", "give tenant <t> an ip-vrf
+# ..."): without them, an operator who followed the refusal's own advice fell
+# through this fallback and was refused a second time for the same reason.
 _FALLBACK_PROVISION_ACTION = re.compile(
-    r"\b(?:provision|create|set\s*up|deploy|add|need|want)\b",
+    r"\b(?:provision|create|set\s*up|deploy|add|need|want|extend|give|apply)\b",
     re.I,
 )
 _FALLBACK_SERVICE_TYPE = re.compile(

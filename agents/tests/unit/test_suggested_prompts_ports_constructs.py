@@ -180,3 +180,87 @@ def test_ui_fallback_prompts_match_the_served_set():
         assert not STALE_FRAMING.search(s), (
             f"ui fallback uses the framing constructs replaced: {s!r}"
         )
+
+
+# The deployment mounts a ConfigMap over the JSON file baked into the image, so
+# deploy/agents/supervisor.yaml — not agents/.../suggested_prompts.json — is
+# what /suggested-prompts actually returns. Editing only the file changes
+# nothing at runtime, which is how the served set stayed on VPWS/VPLS/L3VPN/IRB
+# long after the vocabulary migration: every one of those is answered by the
+# mapper with "unknown or unsupported service type".
+SUPERVISOR_MANIFEST = ROOT / "deploy" / "agents" / "supervisor.yaml"
+
+
+def _configmap_prompts() -> list[str]:
+    text = SUPERVISOR_MANIFEST.read_text(encoding="utf-8")
+    marker = "suggested_prompts.json: |"
+    i = text.index(marker) + len(marker)
+    block: list[str] = []
+    for line in text[i:].splitlines()[1:]:
+        if line.strip() == "---":
+            break
+        if line.strip() and not line.startswith("    "):
+            break
+        block.append(line.strip())
+    return json.loads("\n".join(block))
+
+
+def test_configmap_prompts_match_the_served_file():
+    assert _configmap_prompts() == _prompts(), (
+        "deploy/agents/supervisor.yaml and "
+        "agents/supervisors/provisioning/suggested_prompts.json disagree. The "
+        "ConfigMap is mounted over the file, so the ConfigMap is what operators "
+        "actually get; the file alone changes nothing."
+    )
+
+
+# A prompt only reaches the provisioning path if the supervisor classifies it as
+# a provisioning request. When the LLM classifier is unavailable or its reply is
+# unparseable, that decision falls to two regexes in graph.py: one for the
+# action verb, one for the construct. A suggested prompt that misses either is
+# answered with "unknown or unsupported service type" — the suggestion the
+# product itself offered, refused by the product itself.
+#
+# The patterns are read out of graph.py rather than imported, so this runs
+# without the supervisor's runtime dependencies, and out of the source rather
+# than copied, so it cannot drift from what actually classifies.
+GRAPH_PY = ROOT / "agents" / "supervisors" / "provisioning" / "graph" / "graph.py"
+
+
+def _fallback_patterns() -> tuple[re.Pattern[str], re.Pattern[str]]:
+    src = GRAPH_PY.read_text(encoding="utf-8")
+
+    def grab(name: str) -> re.Pattern[str]:
+        m = re.search(
+            rf"^{name} = re\.compile\(\s*\n\s*r\"(.+?)\",\s*\n\s*re\.I,\s*\n\)",
+            src,
+            re.M | re.S,
+        )
+        assert m, f"could not read {name} out of graph.py"
+        return re.compile(m.group(1), re.I)
+
+    return grab("_FALLBACK_PROVISION_ACTION"), grab("_FALLBACK_SERVICE_TYPE")
+
+
+def test_every_prompt_classifies_as_a_provisioning_request():
+    action, service = _fallback_patterns()
+    for s in _prompts():
+        assert action.search(s), (
+            "no recognised action verb, so the supervisor's fallback classifier "
+            f"refuses this with 'unknown or unsupported service type': {s!r}"
+        )
+        assert service.search(s), f"no recognised construct in: {s!r}"
+
+
+def test_the_refusal_suggestion_itself_classifies():
+    """DEFAULT_SUGGESTION tells the operator how to rephrase; that phrasing must work."""
+    action, service = _fallback_patterns()
+    src = GRAPH_PY.read_text(encoding="utf-8")
+    m = re.search(r"DEFAULT_SUGGESTION = \(\s*(.*?)\)\n", src, re.S)
+    assert m, "could not read DEFAULT_SUGGESTION out of graph.py"
+    suggestion = " ".join(re.findall(r'"([^"]*)"', m.group(1)))
+    for example in re.findall(r"'([^']+)'", suggestion):
+        assert action.search(example) and service.search(example), (
+            "the refusal suggests a phrasing its own fallback classifier rejects: "
+            f"{example!r}"
+        )

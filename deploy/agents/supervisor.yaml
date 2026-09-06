@@ -26,19 +26,27 @@ metadata:
     agentic-netops.owner: agentic-netops
     agentic-netops.io/tier: intent
 data:
-  # Every prompt here must resolve against the SITE's own maps — the nodes in
+  # This ConfigMap is mounted OVER
+  # /app/supervisors/provisioning/suggested_prompts.json, so it — not the file
+  # baked into the image — is what /suggested-prompts actually serves. The two
+  # must stay identical; test_suggested_prompts_ports_constructs.py fails if
+  # they drift, because when they did the UI offered retired service names
+  # (VPWS, VPLS, L3VPN, IRB) that the mapper answers with "unknown or
+  # unsupported service type".
+  #
+  # Every prompt must also resolve against the SITE's own maps — the nodes in
   # FABRIC_NODE_MAP (scripts/provision.sh) and the attachments in
-  # FABRIC_PORT_MAP (deploy/agentic-netops/manifests/provider.yaml). The cards
-  # shipped here named ethernet4/5/6, which this fabric does not have, so the
-  # VPLS and IRB cards were unprovisionable: they translated, submitted, and
-  # only then failed to render. The translator now refuses them up front, which
-  # makes a wrong card an immediate dead end rather than a stranded Network.
+  # FABRIC_PORT_MAP (deploy/agentic-netops/manifests/provider.yaml). Note that
+  # ethernet1-4 all resolve to eth3, the single client-facing port per leaf, so
+  # only one prompt may bind an ingress access list to it.
   suggested_prompts.json: |
     [
-      "Provision a point-to-point VPWS between leaf01 ethernet1 and leaf02 ethernet1 for tenant acme",
-      "Create a full-mesh VPLS between leaf01 ethernet2 and leaf02 ethernet2 for tenant blue vlan 100",
-      "Create an L3VPN between site-a wan1 and site-b wan1 for tenant initech with prefix 10.50.0.0/24",
-      "Set up an IRB service between ethernet3 on leaf01 and ethernet3 on leaf02 for tenant umbrella with prefix 10.60.0.0/24"
+      "Provision a vlan 130 on leaf01 ethernet1 for tenant acme",
+      "Extend vlan 150 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant blue",
+      "Deploy an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant initech with prefix 10.50.0.0/24",
+      "Create a mac-vrf on vlan 160 across leaf01 ethernet1 and leaf02 ethernet1 for tenant umbrella with an anycast gateway at 10.60.0.1/24",
+      "Apply an acl on leaf01 wan1 for tenant acme: allow ingress tcp port 443 from 10.0.0.0/24, deny everything else",
+      "Extend vlan 170 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme, permitting only tcp 443 from 10.0.0.0/24"
     ]
 ---
 apiVersion: v1
