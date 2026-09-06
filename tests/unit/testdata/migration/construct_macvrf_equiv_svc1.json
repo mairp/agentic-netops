@@ -1,0 +1,11 @@
+{
+  "serviceId": "svc1",
+  "type": "mac-vrf",
+  "tenant": "A",
+  "rdRt": {"rd": "65000:100", "importRT": ["65000:100"], "exportRT": ["65000:100"]},
+  "l2vni": 10010,
+  "endpoints": [
+    {"node": "leaf01", "attachment": "client01", "vlan": 10},
+    {"node": "leaf02", "attachment": "client02", "vlan": 10}
+  ]
+}

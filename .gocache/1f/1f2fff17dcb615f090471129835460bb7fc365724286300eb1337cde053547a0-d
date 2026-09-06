@@ -1,0 +1,3 @@
+./compat.go
+./matrix.go
+./pins.go

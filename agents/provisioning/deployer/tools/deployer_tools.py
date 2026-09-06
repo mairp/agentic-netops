@@ -64,6 +64,51 @@ def _service_id_from_object(obj: dict[str, Any]) -> str:
     return name.removeprefix("migr-") if name.startswith("migr-") else ""
 
 
+# --- US4 type folding: same alias table as the mapper (construct-vocabulary) ---
+_DEF_TYPES = {
+    "vlan": "vlan",
+    "macvrf": "mac-vrf",
+    "l2vni": "mac-vrf",
+    "ipvrf": "ip-vrf",
+    "l3vni": "ip-vrf",
+    "acl": "acl",
+    "accesslist": "acl",
+    # legacy aliases (migration sources)
+    "vpls": "mac-vrf",
+    "vpws": "mac-vrf",
+    "eline": "mac-vrf",
+    "l3vpn": "ip-vrf",
+    "l2l3irb": "mac-vrf",
+    "irb": "mac-vrf",
+}
+
+
+def _type_key(s: str) -> str:
+    out = []
+    for ch in str(s or "").lower():
+        if ch in "-_ .+":
+            continue
+        out.append(ch)
+    return "".join(out)
+
+
+def _derive_construct_and_provenance(annotations: dict[str, Any]) -> tuple[str | None, str | None]:
+    if not isinstance(annotations, dict):
+        return None, None
+    stored: str | None = annotations.get("agentic-netops.io/service-type")  # may be legacy or construct
+    src: str | None = annotations.get("agentic-netops.io/source-service-type")
+    if not stored:
+        return None, src
+    key = _type_key(stored)
+    construct = _DEF_TYPES.get(key)
+    # Provenance: prefer the explicit source-service-type when present; otherwise
+    # if the stored service-type is not already a construct spelling, surface it.
+    provenance: str | None = src
+    if not provenance and construct and key != _type_key(construct):
+        provenance = stored
+    return construct, provenance
+
+
 def _condition_summary(obj: dict[str, Any]) -> dict[str, Any]:
     """Reduce one intent object to its Ready and Degraded conditions, verbatim.
 
@@ -81,6 +126,7 @@ def _condition_summary(obj: dict[str, Any]) -> dict[str, Any]:
     """
 
     meta = obj.get("metadata") if isinstance(obj.get("metadata"), dict) else {}
+    annotations = meta.get("annotations") if isinstance(meta.get("annotations"), dict) else {}
     status = obj.get("status") if isinstance(obj.get("status"), dict) else {}
     conditions = status.get("conditions") if isinstance(status.get("conditions"), list) else []
     found: dict[str, dict[str, Any]] = {}
@@ -123,10 +169,15 @@ def _condition_summary(obj: dict[str, Any]) -> dict[str, Any]:
         )
         if did_not_run:
             unverified.append({"node": node, "property": check_type})
+
+    construct, provenance = _derive_construct_and_provenance(annotations)
+
     return {
         "kind": str(obj.get("kind") or ""),
         "name": str(meta.get("name") or ""),
         "namespace": str(meta.get("namespace") or ""),
+        "serviceType": construct or "",
+        "sourceServiceType": provenance or "",
         "ready": ready_condition.get("status"),
         "reason": ready_condition.get("reason", ""),
         "message": ready_condition.get("message", ""),

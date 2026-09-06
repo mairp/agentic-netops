@@ -1,8 +1,9 @@
-# T358 — IRB phrasing corpus.
+# T358 — IRB phrasing corpus (US4 legacy alias, folds to construct).
 #
-# Natural-language requests that should map to an IRB (integrated L2+L3) service
-# on the first pass (complete: tenant + two endpoints with attachments) unless noted.
-service_type: IRB
+# These requests name IRB (legacy). The mapper folds them to mac-vrf and records
+# the IRB arrival vocabulary as provenance.
+service_type: mac-vrf
+source_service_type: IRB
 cases:
   - id: irb-001
     text: "provision an IRB between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 100"

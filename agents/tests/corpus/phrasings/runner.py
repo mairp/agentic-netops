@@ -188,11 +188,16 @@ def _load_positive_file(path: Path) -> Iterable[PositiveCase]:
     declared = str(data.get("service_type") or "").strip()
     construct = _FOLD_TO_CONSTRUCT.get(declared.upper(), declared.lower())
     assert construct in ("vlan", "mac-vrf", "ip-vrf", "acl"), f"{path.name}: unsupported service_type {declared!r}"
+    # US4/T066: allow an explicit provenance in the corpus; fall back to inference.
+    explicit_src = data.get("source_service_type")
+    explicit_src_s = str(explicit_src).strip().upper() if isinstance(explicit_src, str) and str(explicit_src).strip() else None
+    inferred_src = declared.upper() if construct != declared.lower() else None
+    expected_src = explicit_src_s or inferred_src
     for raw in data.get("cases", []):
         yield PositiveCase(
             id=raw["id"],
             service_type=construct,
-            source_service_type=declared.upper() if construct != declared.lower() else None,
+            source_service_type=expected_src,
             text=raw["text"],
             first_pass=bool(raw.get("first_pass", True)),
         )

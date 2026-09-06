@@ -1,0 +1,16 @@
+./customresourcecolumndefinition.go
+./customresourceconversion.go
+./customresourcedefinition.go
+./customresourcedefinitioncondition.go
+./customresourcedefinitionnames.go
+./customresourcedefinitionspec.go
+./customresourcedefinitionstatus.go
+./customresourcedefinitionversion.go
+./customresourcesubresources.go
+./customresourcesubresourcescale.go
+./customresourcevalidation.go
+./externaldocumentation.go
+./jsonschemaprops.go
+./servicereference.go
+./validationrule.go
+./webhookclientconfig.go

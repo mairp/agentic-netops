@@ -1,5 +1,5 @@
 spec:
-  description: Migrated service svc2 (L3VPN)
+  description: Migrated service svc2 (ip-vrf)
   routers:
   - name: vrf-svc2
     rd: 65000:200

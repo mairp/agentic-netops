@@ -1,0 +1,13 @@
+{
+  "serviceId": "irb1",
+  "type": "mac-vrf",
+  "tenant": "B",
+  "rdRt": {"rd": "65000:401", "importRT": ["65000:401"], "exportRT": ["65000:401"]},
+  "l2vni": 10401,
+  "l3vni": 14001,
+  "anycastGateway": {"gatewayIPv4": "10.0.20.1/24", "gatewayIPv6": "2001:db8:20::1/64"},
+  "endpoints": [
+    {"node": "leaf01", "attachment": "client01", "vlan": 20},
+    {"node": "leaf02", "attachment": "client02", "vlan": 20}
+  ]
+}

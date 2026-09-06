@@ -1,0 +1,12 @@
+{
+  "serviceId": "svc2",
+  "type": "ip-vrf",
+  "tenant": "A",
+  "rdRt": {"rd": "65000:200", "importRT": ["65000:200"], "exportRT": ["65000:200"]},
+  "l3vni": 10200,
+  "addressFamilies": {"ipv4Prefixes": ["10.0.10.0/24"], "ipv6Prefixes": ["2001:db8:10::/64"]},
+  "endpoints": [
+    {"node": "leaf01", "attachment": "client01", "vrf": "vrf-svc2"},
+    {"node": "leaf02", "attachment": "client02", "vrf": "vrf-svc2"}
+  ]
+}

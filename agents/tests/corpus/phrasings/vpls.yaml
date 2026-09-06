@@ -1,8 +1,9 @@
-# T355 — VPLS phrasing corpus.
+# T355 — VPLS phrasing corpus (US4 legacy alias, folds to construct).
 #
-# Natural-language requests that should map to a VPLS service on the first
-# pass (complete: tenant + two endpoints with attachments) unless noted.
-service_type: VPLS
+# These natural-language requests name VPLS (legacy vocabulary). The mapper folds them
+# to the mac-vrf construct and records the arrival vocabulary as provenance.
+service_type: mac-vrf
+source_service_type: VPLS
 cases:
   - id: vpls-001
     text: "provision a VPLS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 200"

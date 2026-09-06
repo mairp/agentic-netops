@@ -112,6 +112,36 @@ func TestIRBTranslation(t *testing.T) {
 
 func TestUnsupportedAndUnknownRejected(t *testing.T) {}
 
+// US4 (T061): source-scoped constraints — a VPWS-sourced input with three endpoints or
+// without vpwsLimitedEquivalence is refused, while a mac-vrf with three endpoints is accepted.
+func TestUS4_SourceScopedConstraints(t *testing.T) {
+	// VPWS source with three endpoints: refused (exactly two required)
+	inVPWS := migration.ServiceInput{
+		ServiceID: "svc-vpws-3ep",
+		Type:      migration.ServiceVPWS,
+		Tenant:    "A",
+		RDRT:      &migration.RdRt{RD: "65000:301", ImportRT: []string{"65000:301"}, ExportRT: []string{"65000:301"}},
+		L2VNI:     10301,
+		Policies:  migration.Policies{VPWSLimitedEquivalence: true},
+		Endpoints: []migration.Endpoint{{Node: "leaf01", Attachment: "c1", VLAN: 31}, {Node: "leaf02", Attachment: "c2", VLAN: 31}, {Node: "leaf03", Attachment: "c3", VLAN: 31}},
+	}
+	if err := inVPWS.ValidateAllOrNothing(0, false); err == nil {
+		t.Fatalf("expected validation error for VPWS with three endpoints")
+	}
+	// mac-vrf with three endpoints: accepted
+	inMAC := migration.ServiceInput{
+		ServiceID: "svc-mac-3ep",
+		Type:      migration.ServiceMACVRF,
+		Tenant:    "A",
+		RDRT:      &migration.RdRt{RD: "65000:302", ImportRT: []string{"65000:302"}, ExportRT: []string{"65000:302"}},
+		L2VNI:     10302,
+		Endpoints: []migration.Endpoint{{Node: "leaf01", Attachment: "c1", VLAN: 32}, {Node: "leaf02", Attachment: "c2", VLAN: 32}, {Node: "leaf03", Attachment: "c3", VLAN: 32}},
+	}
+	if err := inMAC.ValidateAllOrNothing(0, false); err != nil {
+		t.Fatalf("mac-vrf with three endpoints should be accepted: %v", err)
+	}
+}
+
 // US2 refusals: ACL-specific causes via CLI to assert stderr carries causes and stdout is empty.
 func TestUS2_ACLRefusals_CLI(t *testing.T) {
 	cases := []struct {
@@ -239,6 +269,12 @@ func TestDeterministicHash(t *testing.T) {
 	h2, _ := in2.CanonicalHash()
 	if h1 != h2 {
 		t.Fatalf("hashes differ: %s vs %s", h1, h2)
+	}
+	// US4/T063: vocabulary-agnostic — same service hashes identically when named as mac-vrf
+	in2.Type = migration.ServiceMACVRF
+	h3, _ := in2.CanonicalHash()
+	if h1 != h3 {
+		t.Fatalf("hash differs across vocabularies: legacy=%s canonical=%s", h1, h3)
 	}
 }
 

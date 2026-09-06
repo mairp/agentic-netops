@@ -1,8 +1,9 @@
-# T357 — L3VPN phrasing corpus.
+# T357 — L3VPN phrasing corpus (US4 legacy alias, folds to construct).
 #
-# Natural-language requests that should map to an L3VPN service on the first
-# pass (complete: tenant + two endpoints with attachments/VRFs) unless noted.
-service_type: L3VPN
+# These requests name L3VPN (legacy). The mapper folds them to ip-vrf and records
+# the arrival vocabulary as provenance.
+service_type: ip-vrf
+source_service_type: L3VPN
 cases:
   - id: l3vpn-001
     text: "provision an L3VPN between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme"

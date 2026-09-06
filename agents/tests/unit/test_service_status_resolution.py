@@ -118,6 +118,29 @@ def test_service_id_is_recovered_from_a_translated_network(patch_client):
     assert deployer_tools.get_service_status(correlation_id=CID)["serviceId"] == "abc123"
 
 
+def test_retired_type_reported_as_construct_with_provenance_and_no_writeback(patch_client):
+    # A stored record naming a retired type (VPLS) must be reported by its construct (mac-vrf)
+    # with the retired name shown as provenance, and the object must not be rewritten.
+    obj = _network("migr-svc1", True, "ApplySucceeded", "ok")
+    # The translator annotates service-type and may carry source-service-type; simulate a legacy
+    # record that only has a stored legacy service-type.
+    obj.setdefault("metadata", {}).setdefault("annotations", {})[
+        "agentic-netops.io/service-type"
+    ] = "VPLS"
+    patch_client([obj])
+
+    result = deployer_tools.get_service_status(correlation_id=CID)
+    assert result["phase"] == "Deployed"
+    res = result["resources"][0]
+    assert res["serviceType"] == "mac-vrf"
+    assert res["sourceServiceType"] == "VPLS"
+    # No write back: the stored object annotations remain unchanged
+    assert (
+        obj["metadata"]["annotations"].get("agentic-netops.io/service-type") == "VPLS"
+    )
+    assert "agentic-netops.io/source-service-type" not in obj["metadata"]["annotations"]
+
+
 def test_one_failure_among_many_is_a_failed_transaction(patch_client):
     patch_client(
         [

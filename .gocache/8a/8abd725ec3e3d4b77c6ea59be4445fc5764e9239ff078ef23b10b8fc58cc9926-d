@@ -1,0 +1,7 @@
+./nd_basic_test.go
+./provider_compat_envtest_test.go
+./provider_events_test.go
+./provider_finalization_envtest_test.go
+./provider_finalization_test.go
+./provider_sdc_status_propagation_test.go
+./srv6service_crd_envtest_test.go

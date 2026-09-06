@@ -1,5 +1,5 @@
 spec:
-  description: Migrated service svc3 (VPWS)
+  description: Migrated service svc3 (mac-vrf)
   bridgeDomains:
   - name: bd-svc3
     vlan: 30

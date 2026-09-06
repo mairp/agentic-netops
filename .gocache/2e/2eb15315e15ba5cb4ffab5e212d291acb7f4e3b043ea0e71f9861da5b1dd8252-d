@@ -1,0 +1,4 @@
+./apiextensions_client.go
+./customresourcedefinition.go
+./doc.go
+./generated_expansion.go

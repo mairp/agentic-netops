@@ -1,8 +1,10 @@
-# T356 — VPWS/E-Line phrasing corpus.
+# T356 — VPWS/E-Line phrasing corpus (US4 legacy alias, folds to construct).
 #
-# Natural-language requests that should map to a VPWS (E-Line) service on the
-# first pass (complete: tenant + two endpoints with attachments) unless noted.
-service_type: VPWS
+# These requests name VPWS/E-Line (legacy). The mapper folds them to mac-vrf and records
+# the VPWS arrival vocabulary as provenance. Limited equivalence is opt-in (policy) and
+# is validated by the translator; the phrasing corpus covers mapping only.
+service_type: mac-vrf
+source_service_type: VPWS
 cases:
   - id: vpws-001
     text: "provision a point-to-point VPWS between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 100"

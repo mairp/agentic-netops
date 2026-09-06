@@ -186,12 +186,9 @@ func Translate(in *ServiceInput) (*OutputBundle, error) {
 		Metadata:   metadata,
 		Spec:       spec,
 	}
-	// Adjust description shape for legacy vs construct labelling to match golden fixtures.
-	if in.SourceType != "" {
-		net.Spec.Description = fmt.Sprintf("Migrated service %s (%s)", in.ServiceID, in.SourceType)
-	} else {
-		net.Spec.Description = fmt.Sprintf("Migrated service %s (%s)", in.ServiceID, in.Type)
-	}
+	// Description is vocabulary-agnostic: the same service expressed in
+	// legacy or construct words emits the same spec block (US4/T058).
+	net.Spec.Description = fmt.Sprintf("Migrated service %s (%s)", in.ServiceID, in.Type)
 	// Manually assemble YAML to achieve deterministic key order for golden tests.
 	yml := buildYAML(&net)
 

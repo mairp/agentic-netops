@@ -121,7 +121,11 @@ func (in *ServiceInput) CanonicalHash() (string, error) {
 	if in == nil {
 		return "", errors.New("nil input")
 	}
-	// Marshal the typed struct (no maps) to stable JSON and hash it.
+	// Fold to the canonical vocabulary before hashing so the same service
+	// expressed in legacy or construct words hashes identically (US4/T063).
+	in.Canonicalize()
+	// Marshal the typed struct (no maps) to stable JSON and hash it. SourceType
+	// is json:"-" and is not included.
 	b, err := json.Marshal(in)
 	if err != nil {
 		return "", err

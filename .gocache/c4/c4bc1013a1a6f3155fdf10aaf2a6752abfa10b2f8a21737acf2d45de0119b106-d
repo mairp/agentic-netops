@@ -1,0 +1,3 @@
+./doc.go
+./errors.go
+./flock_unix.go
