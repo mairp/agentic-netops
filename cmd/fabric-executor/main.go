@@ -501,7 +501,7 @@ func (s *server) verifyOne(ctx context.Context, container string, ck struct {
 	if strings.TrimSpace(db) == "" {
 		db = redisDB
 	}
-	
+
 	switch ck.Type {
 	case "redis-hget":
 		got, err := run(fmt.Sprintf("redis-cli -n %s hget %q %q", db, ck.RedisKey, ck.RedisField))
@@ -735,13 +735,26 @@ func (s *server) dockerStream(ctx context.Context, method, url string, body io.R
 	return resp, nil
 }
 
-func (s *server) dockerDo(ctx context.Context, method, url string, body io.Reader, stream bool) (io.ReadCloser, func(), error) {
-	tr := &http.Transport{
+// One transport and client for the whole process. A fresh http.Transport per
+// call (the previous shape) parks every finished connection in a pool that is
+// never closed, so each docker API call leaked one unix socket; the daemon hit
+// its 524k descriptor cap after ~14 h on 2026-09-06 and every docker command
+// on the host hung. Hijacked exec streams are closed by their owner; plain
+// responses return to this pool and are reused.
+var (
+	dockerTransport = &http.Transport{
 		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
 			return net.DialTimeout("unix", dockerSock, 5*time.Second)
 		},
+		MaxIdleConns:        8,
+		MaxIdleConnsPerHost: 8,
+		IdleConnTimeout:     60 * time.Second,
 	}
-	client := &http.Client{Transport: tr, Timeout: execTimeout}
+	dockerClient = &http.Client{Transport: dockerTransport, Timeout: execTimeout}
+)
+
+func (s *server) dockerDo(ctx context.Context, method, url string, body io.Reader, stream bool) (io.ReadCloser, func(), error) {
+	client := dockerClient
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, nil, err
