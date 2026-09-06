@@ -99,7 +99,8 @@ _UNSUPPORTED_FEATURES: list[tuple[re.Pattern[str], str]] = [
 
 # Service types explicitly unsupported in US1 (T202): detect and flag distinctly
 # from "missing". Examples: E-TREE, E-LAN, PBB-EVPN are outside the supported
-# set (VPLS, VPWS, L3VPN, IRB) and must be reported as an unsupported service
+# set (VPLS, VPWS, L3VPN, IRB) (migration alias)
+# and must be reported as an unsupported service
 # type rather than a missing service_type.
 _UNSUPPORTED_SERVICE_TYPES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\be-?tree\b", re.I), "E-TREE"),

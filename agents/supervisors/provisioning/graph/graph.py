@@ -262,10 +262,10 @@ def redact_unsupplied(interpretation: dict, missing_fields: list[str] | None) ->
     has to fill them to produce a schema-valid object even when they are
     exactly what is missing. tenant and endpoints get an obvious ``"missing"``
     placeholder, but service_type is an enum with no sentinel available, so it
-    gets a real, plausible value (VPWS) that the operator never asked for —
-    displayed next to "no defaults are substituted for service-defining
-    fields". Nothing downstream may carry that: a value nobody supplied is
-    reported as absent, not as a choice.
+    gets a real, plausible value — a retired service name — that the operator
+    never asked for, displayed next to "no defaults are substituted for
+    service-defining fields". Nothing downstream may carry that: a value
+    nobody supplied is reported as absent, not as a choice.
     """
 
     redacted = dict(interpretation)
