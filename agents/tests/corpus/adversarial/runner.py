@@ -143,16 +143,144 @@ def load_corpus(root: Path = CORPUS_ROOT) -> list[AdversarialCase]:
 # match — which is exactly what the byte-identical assertion guards.
 # ---------------------------------------------------------------------------
 _SERVICE_TYPE_WORDS = (
+    # legacy aliases first (feature 001 migration sources): a request naming
+    # VPLS/VPWS/L3VPN/IRB parses the alias and the mapper's model folds it,
+    # recording source_service_type provenance (US4).
     ("vpws", "VPWS"),
     ("e-line", "VPWS"),
+    ("eline", "VPWS"),
     ("vpls", "VPLS"),
     ("l3vpn", "L3VPN"),
     ("l3 vpn", "L3VPN"),
+    ("l2l3-irb", "L2L3-IRB"),
     ("irb", "IRB"),
+    # construct vocabulary (US1): parsed verbatim — no fold needed
+    ("mac-vrf", "mac-vrf"),
+    ("mac vrf", "mac-vrf"),
+    ("mac_vrf", "mac-vrf"),
+    ("macvrf", "mac-vrf"),
+    ("ip-vrf", "ip-vrf"),
+    ("ip vrf", "ip-vrf"),
+    ("ip_vrf", "ip-vrf"),
+    ("ipvrf", "ip-vrf"),
+    ("access-list", "acl"),
+    ("access list", "acl"),
+    ("acl", "acl"),
+    # "vlan" last: a VPWS request also says "vlan 100" and the alias is the
+    # service construct there, not the bridge-domain construct.
+    ("vlan", "vlan"),
 )
+_LEGACY_ALIASES = {
+    "VPWS": "mac-vrf",
+    "VPLS": "mac-vrf",
+    "L3VPN": "ip-vrf",
+    "IRB": "mac-vrf",
+    "L2L3-IRB": "mac-vrf",
+}
 _TENANT_RE = re.compile(r"for tenant\s+([a-z0-9][a-z0-9-]*)")
 _BETWEEN_RE = re.compile(r"between\s+(\S+)\s+(\S+)\s+and\s+(\S+)\s+(\S+)")
-_VLAN_RE = re.compile(r"vlan\s+(\d+)")
+_DUAL_ON_RE = re.compile(r"on\s+(\S+)\s+(\S+)\s+and\s+(\S+)\s+(\S+)")
+_ON_RE = re.compile(r"on\s+(\S+)\s+(\S+)")
+_VLAN_RE = re.compile(r"vlan[-_ ]?(\d+)")
+_PREFIX_RE = re.compile(r"(?:prefix|from)\s+(\S+/\d+)")
+_ACL_STAGE_RE = re.compile(r"\b(ingress|egress)\b")
+_ACL_PHRASE_RE = re.compile(r"\b(acl|allow|permit|deny)\b")
+_GATEWAY_WORDS_RE = re.compile(r"anycast\s+gateway")
+_ADDR_V4_RE = re.compile(r"^\d+\.\d+\.\d+\.\d+")
+_PROTO_RE = re.compile(r"\b(tcp|udp|icmp)\b", re.IGNORECASE)
+_PORT_RE = re.compile(r"(?:port\s+(\d+))|(?:\b(\d+)\s+(?:tcp|udp|icmp)\b)", re.IGNORECASE)
+
+
+def _endpoints_from_text(low: str, vlan: int) -> list[dict[str, Any]] | None:
+    """Structural attachments: `between A B and C D` (two), `on A B and C D`
+    (two), or `on A B` (one — a vlan or an acl binds to a single port)."""
+    m = _BETWEEN_RE.search(low)
+    if m:
+        n1, a1, n2, a2 = m.groups()
+        return [
+            {"site_or_node": n1, "attachment": a1, "vlan": vlan},
+            {"site_or_node": n2, "attachment": a2, "vlan": vlan},
+        ]
+    m = _DUAL_ON_RE.search(low)
+    if m:
+        n1, a1, n2, a2 = m.groups()
+        return [
+            {"site_or_node": n1, "attachment": a1, "vlan": vlan},
+            {"site_or_node": n2, "attachment": a2, "vlan": vlan},
+        ]
+    m = _ON_RE.search(low)
+    if m:
+        n1, a1 = m.groups()
+        return [{"site_or_node": n1, "attachment": a1, "vlan": vlan}]
+    return None
+
+
+def _parse_acl_phrasing(low: str) -> tuple[dict | None, list[str]]:
+    """Deterministic ACL phrasing parse (US2): returns (acl, missing). The
+    acl's stage and at least one rule are required before the interpretation
+    is complete; anything less is a clarification, never a guess."""
+    missing: list[str] = []
+    stage_m = _ACL_STAGE_RE.search(low)
+    stage = stage_m.group(1) if stage_m else None
+    if stage is None:
+        missing.append("acl.stage")
+    proto_m = _PROTO_RE.search(low)
+    port_m = _PORT_RE.search(low)
+    prefix_m = _PREFIX_RE.search(low)
+    deny_all = re.search(r"\bdeny\s+all\b|\bdenies\s+all\b", low) is not None
+    rules: list[dict[str, Any]] = []
+    if (proto_m or port_m) and not deny_all:
+        action = "deny" if re.search(r"\bdeny\b", low) else "permit"
+        rule: dict[str, Any] = {
+            "name": "rule-1",
+            "priority": 100,
+            "action": action,
+        }
+        if proto_m:
+            rule["protocol"] = proto_m.group(1).lower()
+        if port_m:
+            rule["destinationPort"] = port_m.group(1) or port_m.group(2)
+        if prefix_m:
+            rule["sourcePrefix"] = prefix_m.group(1)
+        rules.append(rule)
+    if deny_all:
+        rules.append({"name": "deny-all", "priority": 200, "action": "deny"})
+    if not rules:
+        missing.append("acl.rules")
+    if missing:
+        return None, missing
+    acl: dict[str, Any] = {
+        "stage": stage,
+        "type": "l3",
+        "rules": rules,
+    }
+    if re.search(r"denies all else|deny all else", low):
+        acl["defaultAction"] = "deny"
+    return acl, []
+
+
+def _parse_gateway(low: str) -> tuple[dict[str, str] | None, bool]:
+    """Deterministic anycast-gateway parse (US3): returns (gateway, mentioned).
+    ``gateway`` is None while ``mentioned`` is True when the operator named a
+    gateway without an address — a clarification, never a guess."""
+    m = _GATEWAY_WORDS_RE.search(low)
+    if not m:
+        return None, False
+    gw: dict[str, str] = {}
+    for tok in low[m.end():].split()[:6]:
+        if tok in ("is", "and", "with", "the", "a", "an", "ipv6", "v6", "ipv4", "v4"):
+            continue
+        if ":" in tok and tok.replace(":", "").replace("::", ""):
+            if "ipv6" not in gw:
+                gw["ipv6"] = tok.rstrip(".,")
+        elif _ADDR_V4_RE.match(tok):
+            if "ipv4" not in gw:
+                gw["ipv4"] = tok.rstrip(".,")
+        else:
+            break
+        if len(gw) == 2:
+            break
+    return (gw or None), True
 
 
 def parse_service_request(text: str) -> dict | None:
@@ -164,69 +292,152 @@ def parse_service_request(text: str) -> dict | None:
             service_type = t
             break
     m_tenant = _TENANT_RE.search(low)
-    m_endpoints = _BETWEEN_RE.search(low)
-    if service_type is None or m_tenant is None or m_endpoints is None:
+    if service_type is None and m_tenant is not None and _ACL_PHRASE_RE.search(low) is not None:
+        # An allow/deny phrasing that names no construct IS an access list:
+        # the acl construct is the vocabulary for exactly this request shape.
+        service_type = "acl"
+    if service_type is None or m_tenant is None:
         return None
     tenant = m_tenant.group(1)
-    n1, a1, n2, a2 = m_endpoints.groups()
     m_vlan = _VLAN_RE.search(low)
     vlan = int(m_vlan.group(1)) if m_vlan else 10
+    endpoints = _endpoints_from_text(low, vlan)
+    if endpoints is None:
+        return None
+    # An ACL riding on another construct's request ("a mac vrf ... with an
+    # ingress ACL") needs the operator to say where it attaches: clarify.
+    acl_phrase = _ACL_PHRASE_RE.search(low) is not None
+    missing: list[str] = []
+    acl_payload = None
+    if service_type == "acl":
+        acl_payload, missing = _parse_acl_phrasing(low)
+    elif acl_phrase:
+        missing = ["acl"]
+    gateway, gateway_mentioned = _parse_gateway(low)
+    if gateway_mentioned and gateway is None:
+        missing.append("anycast_gateway")
+    n1 = endpoints[0]["site_or_node"]
+    a1 = endpoints[0]["attachment"]
+    n2 = endpoints[-1]["site_or_node"]
+    a2 = endpoints[-1]["attachment"]
     service_id = "svc-" + hashlib.sha1(f"{service_type}|{tenant}|{n1}|{a1}|{n2}|{a2}".encode()).hexdigest()[:8]
-    return {
+    payload: dict[str, Any] = {
         "service_id": service_id,
         "service_type": service_type,
         "tenant": tenant,
-        "endpoints": [
+        "endpoints": endpoints,
+    }
+    if len(endpoints) > 1:
+        payload["endpoints"] = [
             {"site_or_node": n1, "attachment": a1, "vlan": vlan},
             {"site_or_node": n2, "attachment": a2, "vlan": vlan},
-        ],
-    }
+        ]
+    # Provenance (US4): a legacy alias records what the operator said before
+    # the mapper folds it to the construct.
+    if service_type in _LEGACY_ALIASES:
+        payload["source_service_type"] = service_type
+    if acl_payload is not None:
+        payload["acl"] = acl_payload
+    if gateway is not None:
+        payload["anycast_gateway"] = gateway
+    if service_type == "ip-vrf":
+        pfx = _PREFIX_RE.search(low)
+        if pfx:
+            payload["ipv4_prefixes"] = [pfx.group(1)]
+    if missing:
+        payload["missing_fields"] = missing
+    return payload
 
 
 def build_normalized_intent(interpretation: dict) -> dict:
     """Deterministic stand-in for the allocator: a valid
     ``NormalizedServiceIntent`` derived only from the (validated)
-    interpretation. KUID-claim values are simulated deterministically."""
+    interpretation. Speaks the construct vocabulary (US1): the interpretation's
+    service_type is already the folded construct, so every branch below emits
+    one of vlan / mac-vrf / ip-vrf / acl. KUID-claim values are simulated
+    deterministically."""
     st = interpretation["service_type"]
-    itype = "L2L3-IRB" if st == "IRB" else st
+    # Direct callers may pass the raw parse output (legacy alias names);
+    # the real allocator receives the validated, folded interpretation, so
+    # fold here the same way the mapper's model does.
+    st = _LEGACY_ALIASES.get(st, st)
     sid = interpretation["service_id"]
     tenant = interpretation["tenant"]
+    source = interpretation.get("source_service_type")
     n = int(hashlib.sha1(sid.encode()).hexdigest()[:4], 16)
     rd = f"65000:{1 + n % 999}"
     base: dict[str, Any] = {
         "serviceId": sid,
-        "type": itype,
+        "type": st,
         "tenant": tenant,
-        "rdRt": {"rd": rd, "importRT": [rd], "exportRT": [rd]},
     }
-    vlan = 10 + n % 4000
+    vlan = 10 + n % 3990
     eps = [
         {"node": e["site_or_node"], "attachment": e["attachment"]}
         for e in interpretation["endpoints"]
     ]
-    if itype in ("VPLS", "VPWS"):
+    if st == "vlan":
+        # A vlan is local to the node: no VNI, no route targets.
+        for ep in eps:
+            ep["vlan"] = vlan
+        base["endpoints"] = eps
+    elif st == "mac-vrf":
+        base["rdRt"] = {"rd": rd, "importRT": [rd], "exportRT": [rd]}
         base["l2vni"] = 10000 + int(hashlib.sha1((sid + "vni").encode()).hexdigest()[:4], 16) % 89999
         for ep in eps:
             ep["vlan"] = vlan
-        if itype == "VPWS":
+        if source == "VPWS":
+            # Legacy VPWS mapping: limited equivalence, opt-in (parity with Go).
             base["policies"] = {"vpwsLimitedEquivalence": True}
+        gw = interpretation.get("anycast_gateway")
+        if source in ("IRB", "L2L3-IRB") or gw:
+            # Symmetric IRB: the mac-vrf carries the anycast gateway and the
+            # L3VNI of the ip-vrf it routes into (L3VNI band 10000-14094).
+            base["l3vni"] = 10000 + n % 4094
+            gateway: dict[str, Any] = {"ipVrf": f"vrf-{tenant}"}
+            if gw:
+                if gw.get("ipv4"):
+                    gateway["gatewayIPv4"] = gw["ipv4"]
+                if gw.get("ipv6"):
+                    gateway["gatewayIPv6"] = gw["ipv6"]
+            else:
+                gateway["gatewayIPv4"] = "10.250.1.1"
+                gateway["gatewayIPv6"] = "2001:db8::1"
+            base["anycastGateway"] = gateway
         base["endpoints"] = eps
-    elif itype == "L3VPN":
-        base["l3vni"] = 10000 + n % 89999
-        base["addressFamilies"] = {"ipv4Prefixes": ["10.250.0.0/16"]}
+    elif st == "ip-vrf":
+        base["rdRt"] = {"rd": rd, "importRT": [rd], "exportRT": [rd]}
+        base["l3vni"] = 10000 + n % 4094
+        af: dict[str, list[str]] = {}
+        prefixes = interpretation.get("ipv4_prefixes") or []
+        if prefixes:
+            af["ipv4Prefixes"] = list(prefixes)
+        else:
+            af["ipv4Prefixes"] = ["10.250.0.0/16"]
+        base["addressFamilies"] = af
         for ep in eps:
             ep["vrf"] = f"vrf-{tenant}"
         base["endpoints"] = eps
-    else:  # L2L3-IRB
-        base["l2vni"] = 10000 + n % 89999
-        base["l3vni"] = 20000 + n % 79999
-        base["irbGateway"] = {
-            "vrf": f"vrf-{tenant}",
-            "gatewayIPv4": "10.250.1.1",
-            "gatewayIPv6": "2001:db8::1",
+    else:  # acl
+        acl_in = interpretation.get("acl") or {}
+        acl: dict[str, Any] = {
+            "name": f"acl-{sid}",
+            "stage": acl_in.get("stage") or "ingress",
+            "type": acl_in.get("type") or "l3",
+            "rules": acl_in.get("rules")
+            or [
+                {
+                    "name": "permit-ntp",
+                    "priority": 100,
+                    "action": "permit",
+                    "protocol": "udp",
+                    "destinationPort": "123",
+                }
+            ],
         }
-        for ep in eps:
-            ep["vlan"] = vlan
+        if acl_in.get("default_action"):
+            acl["defaultAction"] = acl_in["default_action"]
+        base["acl"] = acl
         base["endpoints"] = eps
     return base
 
@@ -278,18 +489,19 @@ class StubClassifierLLM:
         for pattern in REDIRECT_PATTERNS:
             if pattern.search(text.lower()):
                 return "unsupported"
-        if _PROVISIONABLE_RE.search(text.lower()):
-            # Treat a structural service request as provisionable even when some
-            # fields (e.g., tenant) are missing so the mapper can ask to clarify
-            # (Phase 9 positive phrasing corpus, T361).
-            parsed = parse_service_request(text)
-            if parsed is not None:
-                return "provisionable"
-            low = text.lower()
-            has_between = _BETWEEN_RE.search(low) is not None
-            has_type = any(word in low for (word, _t) in _SERVICE_TYPE_WORDS)
-            if has_between and has_type:
-                return "provisionable"
+        # A request the deterministic parser can interpret is provisionable
+        # regardless of its leading verb — the corpora include verb-less
+        # shapes ("IRB between ...") and "deploy ..." alongside "provision
+        # ..." — and an allow/deny phrasing names its action instead of a
+        # provisioning verb. Missing fields (e.g., tenant) stay provisionable
+        # so the mapper can ask to clarify (Phase 9 corpus, T361).
+        if parse_service_request(text) is not None:
+            return "provisionable"
+        low = text.lower()
+        has_between = _BETWEEN_RE.search(low) is not None or _ON_RE.search(low) is not None
+        has_type = any(word in low for (word, _t) in _SERVICE_TYPE_WORDS) or _ACL_PHRASE_RE.search(low) is not None
+        if has_between and has_type:
+            return "provisionable"
         return "informational"
 
     async def ainvoke(self, input: Any, config: Any = None) -> AIMessage:
@@ -336,12 +548,16 @@ class StubTransport:
         self.calls.append(("mapper", text))
         payload = parse_service_request(self._fenced_body(text))
         if payload is None:
+            # Schema-valid clarification shape (graph.py redact_unsupplied):
+            # the enum has no sentinel so service_type carries a plausible
+            # placeholder; tenant/endpoints get the obvious "missing" marker
+            # and are named in missing_fields so the graph redacts them.
             payload = {
                 "service_id": "svc-unknown",
                 "service_type": "VPWS",
-                "tenant": "unknown",
-                "endpoints": [],
-                "missing_fields": ["endpoints"],
+                "tenant": "missing",
+                "endpoints": [{"site_or_node": "missing", "attachment": "missing"}],
+                "missing_fields": ["tenant", "endpoints"],
             }
         interp = Interpretation.model_validate(payload)
         if self.stage == "mapper":

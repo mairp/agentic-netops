@@ -101,6 +101,8 @@ class IntentAPI(Protocol):
 
     def list_by_correlation(self, correlation_id: str) -> list[dict[str, Any]]: ...
 
+    def list_networks(self) -> list[dict[str, Any]]: ...
+
     def delete(self, ref: ResourceRef) -> bool: ...
 
     def close(self) -> None: ...
@@ -308,6 +310,22 @@ class KubernetesIntentClient:
                 found.extend(item for item in body.get("items", []) if isinstance(item, dict))
         return found
 
+    def list_networks(self) -> list[dict[str, Any]]:
+        """List Network objects in the intent namespace."""
+        api_version, kind = ("network.kubenet.dev/v1alpha1", "Network")
+        url = self._collection_url(api_version, kind)
+        response = self._client.get(url, headers=self._headers)
+        if response.status_code == 404:
+            return []
+        if response.status_code // 100 != 2:
+            raise RuntimeError(
+                f"list {api_version}/{kind}: HTTP {response.status_code}: {self._api_error(response)}"
+            )
+        body = response.json()
+        if isinstance(body, dict):
+            return [item for item in body.get("items", []) if isinstance(item, dict)]
+        return []
+
     def delete(self, ref: ResourceRef) -> bool:
         url = self._object_url(ref.apiVersion, ref.kind, ref.name)
         response = self._client.delete(
@@ -419,6 +437,89 @@ def dry_run_all(manifests: Iterable[dict[str, Any]], client: IntentAPI) -> list[
                 "dry-run", str(exc), resource=_resource_identity(manifest)
             ) from exc
     return checked
+
+
+def _preflight_acl_binding(client: IntentAPI, manifests: Iterable[dict[str, Any]]) -> None:
+    """Refuse binding a second ACL to the same port/stage across services.
+
+    Lists existing Network objects in the intent namespace, reads their
+    spec.accessLists and spec.attachments, and rejects a request that would
+    bind a second list to a port already carrying one at the same stage,
+    naming the service that holds it (FR-018).
+    """
+    # Build map of port->stage->(serviceName, aclName) from existing Networks.
+    port_stage_to_holder: dict[tuple[str, str], tuple[str, str]] = {}
+    try:
+        existing = client.list_networks()
+    except Exception as exc:  # surface as pre-flight failure
+        raise DeploymentTransactionError("pre-flight", f"could not list existing Networks: {exc}") from exc
+    for obj in existing:
+        meta = obj.get("metadata") if isinstance(obj.get("metadata"), dict) else {}
+        spec = obj.get("spec") if isinstance(obj.get("spec"), dict) else {}
+        name = str(meta.get("name") or "")
+        # attachments: [{node, attachment}]
+        atts = spec.get("attachments") if isinstance(spec.get("attachments"), list) else []
+        ports: list[str] = []
+        for a in atts:
+            if isinstance(a, dict):
+                att = str(a.get("attachment") or "")
+                if att:
+                    ports.append(att)
+        # accessLists: [{name, stage}]
+        acls = spec.get("accessLists") if isinstance(spec.get("accessLists"), list) else []
+        for a in acls:
+            if isinstance(a, dict):
+                stage = str(a.get("stage") or "").lower()
+                acl_name = str(a.get("name") or "")
+                if stage in ("ingress", "egress"):
+                    for p in ports:
+                        port_stage_to_holder[(p, stage)] = (name, acl_name)
+    # Now evaluate new manifests about to apply. A service's own binding is
+    # never a conflict: re-applying a bundle that already carries the list is
+    # idempotent, and FR-018 refuses only a SECOND list, from another service,
+    # on the same port at the same stage.
+    for m in manifests:
+        if m.get("apiVersion") != "network.kubenet.dev/v1alpha1" or m.get("kind") != "Network":
+            continue
+        meta = m.get("metadata") if isinstance(m.get("metadata"), dict) else {}
+        spec = m.get("spec") if isinstance(m.get("spec"), dict) else {}
+        svc = str(meta.get("name") or "")
+        atts = spec.get("attachments") if isinstance(spec.get("attachments"), list) else []
+        ports: list[str] = []
+        for a in atts:
+            if isinstance(a, dict):
+                att = str(a.get("attachment") or "")
+                if att:
+                    ports.append(att)
+        acls = spec.get("accessLists") if isinstance(spec.get("accessLists"), list) else []
+        own_bindings: list[tuple[str, str, str]] = []
+        for a in acls:
+            if not isinstance(a, dict):
+                continue
+            stage = str(a.get("stage") or "").lower()
+            acl_name = str(a.get("name") or "")
+            if stage not in ("ingress", "egress"):
+                continue
+            for p in ports:
+                holder = port_stage_to_holder.get((p, stage))
+                if holder is not None:
+                    holder_svc, holder_acl = holder
+                    if holder_svc == svc:
+                        continue  # the service re-states its own binding
+                    raise DeploymentTransactionError(
+                        "pre-flight",
+                        (
+                            f"refuse_acl_port_binding: port {p} already bound to an ACL at {stage} stage "
+                            f"by service {holder_svc} (acl {holder_acl}); refusing to bind a second ACL"
+                        ),
+                    )
+                own_bindings.append((p, stage, acl_name))
+        # Register this manifest's own bindings so a later manifest in the
+        # same bundle cannot bind a second list to the same port/stage.
+        for p, stage, acl_name in own_bindings:
+            port_stage_to_holder[(p, stage)] = (svc, acl_name)
+    # If no conflicts, pre-flight passes.
+    return None
 
 
 def _ref_from_object(obj: dict[str, Any]) -> ResourceRef:
@@ -595,6 +696,24 @@ def run_deployment_transaction(
 
     # Step 3 — validate and stamp manifests.
     prepared = validate_and_stamp_manifests(manifests, envelope.context, submitted_at=submitted_at)
+
+    # Pre-flight: cross-service ACL port-binding refusal (FR-018, Decision 6).
+    # Refuse before the first apply a request binding a second ACL to a port already
+    # carrying one at the same stage; name the service that holds it.
+    # Use provided client if any; else create one just for pre-flight and close it afterwards.
+    pf_client = client or build_default_client()
+    try:
+        _preflight_acl_binding(pf_client, prepared)
+    except DeploymentTransactionError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise DeploymentTransactionError("pre-flight", f"acl port-binding pre-flight failed: {exc}") from exc
+    finally:
+        if client is None and hasattr(pf_client, "close"):
+            try:
+                pf_client.close()  # type: ignore[attr-defined]
+            except Exception:  # noqa: BLE001
+                pass
 
     owns_client = client is None
     client = client or build_default_client()

@@ -33,6 +33,7 @@ import (
 	"strings"
 
 	"github.com/mairp/agentic-netops/pkg/kubenet"
+	"github.com/mairp/agentic-netops/pkg/migration"
 )
 
 // Plan is the full device work order for one Network.
@@ -65,8 +66,16 @@ type Op struct {
 // Check verifies one piece of applied state on the node.
 type Check struct {
 	// redis-hget: KEY then FIELD, Expect exact match.
-	RedisKey   string `json:"redisKey,omitempty"`
-	RedisField string `json:"redisField,omitempty"`
+	RedisKey   string            `json:"redisKey,omitempty"`
+	RedisField string            `json:"redisField,omitempty"`
+	// RedisDB optionally overrides the database number for redis reads
+	// (defaulting to CONFIG_DB on the executor when empty). This allows
+	// applied-state checks to address ASIC_DB (db 1) while configuration-side
+	// checks continue to read CONFIG_DB (db 4).
+	RedisDB string `json:"redisDB,omitempty"`
+	// For redis-keys-match: match attributes and require at least MinCount matches.
+	MatchFields map[string]string `json:"matchFields,omitempty"`
+	MinCount    int               `json:"minCount,omitempty"`
 	// redis-exists: key must exist in db 4.
 	// ip-master: Iface must be enslaved to Master.
 	Iface  string `json:"iface,omitempty"`
@@ -206,6 +215,7 @@ func ForNetwork(net *kubenet.Network, opts Options) (*Plan, error) {
 		return atts[i].Attachment < atts[j].Attachment
 	})
 
+	als := net.AccessLists()
 	for _, att := range atts {
 		np := plan.node(att.Node)
 		switch {
@@ -248,7 +258,35 @@ func ForNetwork(net *kubenet.Network, opts Options) (*Plan, error) {
 			return nil, errf("attachment %s@%s references vlan %d with no bridgeDomain or local VLAN (this network declares %s)",
 				att.Attachment, att.Node, att.VLAN, declaredVLANs(bds, vls))
 		default:
+			// ACL-only attachment: allowed when the Network declares accessLists.
+			// Rendering of ACLs happens separately; an ACL-only Network that produces
+			// no node plans is still an error (checked after the loop).
+			if len(als) > 0 {
+				continue
+			}
 			return nil, errf("attachment %s@%s has neither vrf nor vlan", att.Attachment, att.Node)
+		}
+	}
+
+	// Render ACLs onto nodes with attachments, bound to that node's ports only.
+	if len(als) > 0 {
+		// Build attachment ports per node for this network.
+		portsByNode := map[string][]string{}
+		for _, att := range atts {
+			p, err := opts.Ports.Port(att.Attachment)
+			if err != nil {
+				return nil, errf("attachment %s@%s: %v", att.Attachment, att.Node, err)
+			}
+			portsByNode[att.Node] = append(portsByNode[att.Node], p)
+		}
+		for _, al := range als {
+			// Render on nodes that have at least one attachment in this network.
+			for node, ports := range portsByNode {
+				np := plan.node(node)
+				if err := renderACL(np, al, dedupStrings(ports), net.ObjectMeta.Name, net.ObjectMeta.Namespace); err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
 
@@ -749,6 +787,19 @@ func renderVLAN(np *NodePlan, v kubenet.NetworkVLAN, att kubenet.NetworkAttachme
 }
 
 // l2RT is the bridge domain's route target, or "" when it declares none.
+func dedupStrings(in []string) []string {
+	m := map[string]bool{}
+	out := []string{}
+	for _, s := range in {
+		if !m[s] {
+			m[s] = true
+			out = append(out, s)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
 func l2RT(bd kubenet.BridgeDomain) string {
 	var rts *kubenet.RouteTargets
 	if bd.EVPN != nil {
@@ -940,6 +991,202 @@ func renderIRB(np *NodePlan, bd kubenet.BridgeDomain, r kubenet.NetworkRouter, a
 	return nil
 }
 
+// renderACL renders an ACL table and its rules as raw redis ops, plus config- and applied-side checks and rollback.
+// ports are the kernel port names this network binds on THIS node only.
+func renderACL(np *NodePlan, al kubenet.AccessList, ports []string, serviceID, tenant string) error {
+	if len(ports) == 0 {
+		return nil // nothing to bind on this node
+	}
+	stage := strings.ToUpper(al.Stage)
+	atype := strings.ToUpper(strings.ReplaceAll(al.Type, "v", "V"))
+	table, err := DeviceACLTableName(serviceID, al.Stage)
+	if err != nil {
+		return err
+	}
+	portsCSV := strings.Join(ports, ",")
+	policy := fmt.Sprintf("%s/%s", tenant, serviceID)
+	// 1. Table row in CONFIG_DB
+	np.Ops = append(np.Ops, Op{Redis: []string{
+		fmt.Sprintf("hset 'ACL_TABLE|%s' stage '%s'", table, stage),
+		fmt.Sprintf("hset 'ACL_TABLE|%s' type '%s'", table, strings.ToUpper(al.Type)),
+		fmt.Sprintf("hset 'ACL_TABLE|%s' ports@ '%s'", table, portsCSV),
+		fmt.Sprintf("hset 'ACL_TABLE|%s' policy_desc '%s'", table, policy),
+	}})
+	// 2. Rules
+	for _, r := range al.Rules {
+		ruleKey := fmt.Sprintf("ACL_RULE|%s|%s", table, r.Name)
+		redis := []string{
+			fmt.Sprintf("hset '%s' PRIORITY '%d'", ruleKey, r.Priority),
+			fmt.Sprintf("hset '%s' PACKET_ACTION '%s'", ruleKey, actionToPacket(r.Action)),
+		}
+		if rp := protoToNumber(r.Protocol); rp != "" {
+			redis = append(redis, fmt.Sprintf("hset '%s' IP_PROTOCOL '%s'", ruleKey, rp))
+		}
+		// Address family specific SRC/DST
+		if strings.EqualFold(al.Type, "l3v6") {
+			if r.SourcePrefix != "" {
+				redis = append(redis, fmt.Sprintf("hset '%s' SRC_IPV6 '%s'", ruleKey, r.SourcePrefix))
+			}
+			if r.DestinationPrefix != "" {
+				redis = append(redis, fmt.Sprintf("hset '%s' DST_IPV6 '%s'", ruleKey, r.DestinationPrefix))
+			}
+		} else {
+			if r.SourcePrefix != "" {
+				redis = append(redis, fmt.Sprintf("hset '%s' SRC_IP '%s'", ruleKey, r.SourcePrefix))
+			}
+			if r.DestinationPrefix != "" {
+				redis = append(redis, fmt.Sprintf("hset '%s' DST_IP '%s'", ruleKey, r.DestinationPrefix))
+			}
+		}
+		// L4 ports
+		if r.SourcePort != "" {
+			if strings.Contains(r.SourcePort, "-") {
+				redis = append(redis, fmt.Sprintf("hset '%s' L4_SRC_PORT_RANGE '%s'", ruleKey, r.SourcePort))
+			} else {
+				redis = append(redis, fmt.Sprintf("hset '%s' L4_SRC_PORT '%s'", ruleKey, r.SourcePort))
+			}
+		}
+		if r.DestinationPort != "" {
+			if strings.Contains(r.DestinationPort, "-") {
+				redis = append(redis, fmt.Sprintf("hset '%s' L4_DST_PORT_RANGE '%s'", ruleKey, r.DestinationPort))
+			} else {
+				redis = append(redis, fmt.Sprintf("hset '%s' L4_DST_PORT '%s'", ruleKey, r.DestinationPort))
+			}
+		}
+		if r.Description != "" {
+			redis = append(redis, fmt.Sprintf("hset '%s' RULE_DESCRIPTION '%s'", ruleKey, r.Description))
+		}
+		np.Ops = append(np.Ops, Op{Redis: redis})
+		// Config-side checks per rule
+		np.Checks = append(np.Checks,
+			Check{Type: "redis-exists", RedisKey: ruleKey},
+			Check{Type: "redis-hget", RedisKey: ruleKey, RedisField: "PRIORITY", Expect: fmt.Sprintf("%d", r.Priority)},
+			Check{Type: "redis-hget", RedisKey: ruleKey, RedisField: "PACKET_ACTION", Expect: actionToPacket(r.Action)},
+		)
+		if rp := protoToNumber(r.Protocol); rp != "" {
+			np.Checks = append(np.Checks, Check{Type: "redis-hget", RedisKey: ruleKey, RedisField: "IP_PROTOCOL", Expect: rp})
+		}
+		if strings.EqualFold(al.Type, "l3v6") {
+			if r.SourcePrefix != "" {
+				np.Checks = append(np.Checks, Check{Type: "redis-hget", RedisKey: ruleKey, RedisField: "SRC_IPV6", Expect: r.SourcePrefix})
+			}
+			if r.DestinationPrefix != "" {
+				np.Checks = append(np.Checks, Check{Type: "redis-hget", RedisKey: ruleKey, RedisField: "DST_IPV6", Expect: r.DestinationPrefix})
+			}
+		} else {
+			if r.SourcePrefix != "" {
+				np.Checks = append(np.Checks, Check{Type: "redis-hget", RedisKey: ruleKey, RedisField: "SRC_IP", Expect: r.SourcePrefix})
+			}
+			if r.DestinationPrefix != "" {
+				np.Checks = append(np.Checks, Check{Type: "redis-hget", RedisKey: ruleKey, RedisField: "DST_IP", Expect: r.DestinationPrefix})
+			}
+		}
+		// L4 ports (declared match fields)
+		if r.SourcePort != "" {
+			if strings.Contains(r.SourcePort, "-") {
+				np.Checks = append(np.Checks, Check{Type: "redis-hget", RedisKey: ruleKey, RedisField: "L4_SRC_PORT_RANGE", Expect: r.SourcePort})
+			} else {
+				np.Checks = append(np.Checks, Check{Type: "redis-hget", RedisKey: ruleKey, RedisField: "L4_SRC_PORT", Expect: r.SourcePort})
+			}
+		}
+		if r.DestinationPort != "" {
+			if strings.Contains(r.DestinationPort, "-") {
+				np.Checks = append(np.Checks, Check{Type: "redis-hget", RedisKey: ruleKey, RedisField: "L4_DST_PORT_RANGE", Expect: r.DestinationPort})
+			} else {
+				np.Checks = append(np.Checks, Check{Type: "redis-hget", RedisKey: ruleKey, RedisField: "L4_DST_PORT", Expect: r.DestinationPort})
+			}
+		}
+	}
+	// Default action rule at priority 1
+	if al.DefaultAction != "" {
+		ruleKey := fmt.Sprintf("ACL_RULE|%s|default", table)
+		np.Ops = append(np.Ops, Op{Redis: []string{
+			fmt.Sprintf("hset '%s' PRIORITY '1'", ruleKey),
+			fmt.Sprintf("hset '%s' PACKET_ACTION '%s'", ruleKey, actionToPacket(al.DefaultAction)),
+		}})
+		np.Checks = append(np.Checks,
+			Check{Type: "redis-exists", RedisKey: ruleKey},
+			Check{Type: "redis-hget", RedisKey: ruleKey, RedisField: "PRIORITY", Expect: "1"},
+			Check{Type: "redis-hget", RedisKey: ruleKey, RedisField: "PACKET_ACTION", Expect: actionToPacket(al.DefaultAction)},
+		)
+	}
+	// Config-side table checks
+	np.Checks = append(np.Checks,
+		Check{Type: "redis-exists", RedisKey: fmt.Sprintf("ACL_TABLE|%s", table)},
+		Check{Type: "redis-hget", RedisKey: fmt.Sprintf("ACL_TABLE|%s", table), RedisField: "stage", Expect: stage},
+		Check{Type: "redis-hget", RedisKey: fmt.Sprintf("ACL_TABLE|%s", table), RedisField: "type", Expect: atype},
+		Check{Type: "redis-hget-contains", RedisKey: fmt.Sprintf("ACL_TABLE|%s", table), RedisField: "ports@", Expect: portsCSV},
+	)
+	// Applied-side checks: ASIC_DB enumeration
+	stageSAI := "SAI_ACL_STAGE_INGRESS"
+	if strings.EqualFold(al.Stage, "egress") {
+		stageSAI = "SAI_ACL_STAGE_EGRESS"
+	}
+	minEntries := len(al.Rules)
+	if al.DefaultAction != "" {
+		minEntries++
+	}
+	np.Checks = append(np.Checks,
+		Check{Type: "redis-keys-match", RedisDB: "1", RedisKey: "ASIC_STATE:SAI_OBJECT_TYPE_ACL_TABLE:*",
+			MatchFields: map[string]string{
+				"SAI_ACL_TABLE_ATTR_ACL_STAGE":               stageSAI,
+				"SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST": "SAI_ACL_BIND_POINT_TYPE_PORT",
+			},
+		},
+		Check{Type: "redis-keys-match", RedisDB: "1", RedisKey: "ASIC_STATE:SAI_OBJECT_TYPE_ACL_ENTRY:*", MinCount: minEntries},
+	)
+
+	// Rollback: delete rendered rules then the table
+	// Note: do not touch any other table's ports@; cross-service safety.
+	for _, r := range al.Rules {
+		ruleKey := fmt.Sprintf("ACL_RULE|%s|%s", table, r.Name)
+		np.Rollback = append(np.Rollback, Op{Redis: []string{fmt.Sprintf("del '%s'", ruleKey)}})
+	}
+	if al.DefaultAction != "" {
+		np.Rollback = append(np.Rollback, Op{Redis: []string{fmt.Sprintf("del 'ACL_RULE|%s|default'", table)}})
+	}
+	np.Rollback = append(np.Rollback, Op{Redis: []string{fmt.Sprintf("del 'ACL_TABLE|%s'", table)}})
+
+	return nil
+}
+
+func actionToPacket(a string) string {
+	switch strings.ToLower(a) {
+	case "permit", "allow", "forward":
+		return "FORWARD"
+	default:
+		return "DROP"
+	}
+}
+
+func protoToNumber(p string) string {
+	switch strings.ToLower(p) {
+	case "tcp":
+		return "6"
+	case "udp":
+		return "17"
+	case "icmp":
+		return "1"
+	case "igmp":
+		return "2"
+	case "rsvp":
+		return "46"
+	case "gre":
+		return "47"
+	case "ah":
+		return "51"
+	case "pim":
+		return "103"
+	case "l2tp":
+		return "115"
+	case "any", "":
+		return ""
+	default:
+		// assume numeric passed through
+		return p
+	}
+}
+
 // --- small helpers -----------------------------------------------------------
 
 // sviAddr derives the SVI address from a declared prefix: first usable host
@@ -994,4 +1241,9 @@ func asnOr(asn, def string) string {
 		return asn
 	}
 	return def
+}
+
+// DeviceACLTableName delegates to migration.DeviceACLTableName for determinism across apply/verify/rollback.
+func DeviceACLTableName(serviceID, stage string) (string, error) {
+	return migration.DeviceACLTableName(serviceID, stage)
 }

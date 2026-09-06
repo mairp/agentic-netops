@@ -51,3 +51,11 @@ entries:
     prefer: sonic
     native_path: /sonic-vlan:sonic-vlan/VLAN_MEMBER
     justification: VLAN_MEMBER binds kernel ports to VLANs; OpenConfig leafrefs would fail YANG validation
+  - path: /sonic-acl:sonic-acl/ACL_TABLE
+    prefer: sonic
+    native_path: /sonic-acl:sonic-acl/ACL_TABLE
+    justification: OpenConfig ACL is not exposed by the pinned image's gNMI surface and the binding target is outside the OpenConfig interface tree
+  - path: /sonic-acl:sonic-acl/ACL_RULE
+    prefer: sonic
+    native_path: /sonic-acl:sonic-acl/ACL_RULE
+    justification: OpenConfig ACL is not exposed by the pinned image's gNMI surface and the binding target is outside the OpenConfig interface tree

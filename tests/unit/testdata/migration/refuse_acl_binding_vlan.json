@@ -5,11 +5,12 @@
   "acl": {
     "stage": "ingress",
     "type": "l3",
+    "bindTo": "vlan",
     "rules": [
       {"name": "r1", "priority": 10, "action": "permit"}
     ]
   },
   "endpoints": [
-    {"node": "leaf01", "attachment": "ethernet1", "vlan": 120}
+    {"node": "leaf01", "attachment": "ethernet1"}
   ]
 }

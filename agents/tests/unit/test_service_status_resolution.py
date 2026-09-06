@@ -138,6 +138,20 @@ def test_nothing_labelled_is_not_found(patch_client):
     assert deployer_tools.get_service_status(correlation_id=CID)["phase"] == "NotFound"
 
 
+def test_unverified_indicator_is_derived_from_ready_message(patch_client):
+    # Ready False with a message naming a check that did not run — executor unreachable
+    obj = _network(
+        "net-svc-alpha",
+        False,
+        "ApplyFailed",
+        "node leaf01 checks[3].redis-keys-match: executor unreachable",
+    )
+    patch_client([obj])
+    result = deployer_tools.get_service_status(correlation_id=CID)
+    assert result["phase"] == "Failed"
+    assert result["resources"][0]["unverified"] == [{"node": "leaf01", "property": "redis-keys-match"}]
+
+
 def test_an_unreadable_cluster_is_unknown_with_the_error_named(patch_client):
     patch_client(RuntimeError("HTTP 403: forbidden"))
     result = deployer_tools.get_service_status(correlation_id=CID)

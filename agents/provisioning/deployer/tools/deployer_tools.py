@@ -71,6 +71,13 @@ def _condition_summary(obj: dict[str, Any]) -> dict[str, Any]:
     network_controller.go): ``ApplySucceeded``/``ApplyFailed`` with the real
     operation output. This never paraphrases it — a status answer that
     invents a message is worse than no answer.
+
+    Additionally, carry an "unverified" indicator when a plan-declared check
+    did not run on a node (FR-017/T049a). The controller's Ready message
+    includes the failing check in the form "node <node> checks[<i>].<type>: <err>";
+    this helper extracts (node, type) and records it under "unverified" so the
+    operator-facing layer can name what was not observed instead of implying it
+    was verified.
     """
 
     meta = obj.get("metadata") if isinstance(obj.get("metadata"), dict) else {}
@@ -92,6 +99,30 @@ def _condition_summary(obj: dict[str, Any]) -> dict[str, Any]:
         }
     ready_condition = found.get("Ready", {})
     degraded_condition = found.get("Degraded", {})
+
+    # T049a — derive unverified property/node from the Ready message when present.
+    unverified: list[dict[str, str]] = []
+    msg = str(ready_condition.get("message") or "")
+    # Expected shape from the controller: "node <node> checks[<i>].<type>: <err>"
+    m = re.search(r"node\s+([a-z0-9-]+)\s+checks\[\d+\]\.([a-z0-9-]+):\s*(.+)", msg)
+    if m:
+        node, check_type, err = m.group(1), m.group(2), m.group(3)
+        # Heuristic: treat executor/transport errors as "did not run" — unknown check type,
+        # unreachable executor, command not found, or timeouts. A pure mismatch remains a
+        # verification failure, not an unverified property.
+        low_err = err.lower()
+        did_not_run = any(
+            key in low_err
+            for key in (
+                "unknown check type",
+                "unreachable",
+                "timeout",
+                "not found",
+                "exit code",
+            )
+        )
+        if did_not_run:
+            unverified.append({"node": node, "property": check_type})
     return {
         "kind": str(obj.get("kind") or ""),
         "name": str(meta.get("name") or ""),
@@ -104,6 +135,7 @@ def _condition_summary(obj: dict[str, Any]) -> dict[str, Any]:
         "degradedReason": degraded_condition.get("reason", ""),
         "degradedMessage": degraded_condition.get("message", ""),
         "degradedLastTransitionTime": degraded_condition.get("lastTransitionTime", ""),
+        "unverified": unverified,
     }
 
 

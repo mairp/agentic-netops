@@ -140,13 +140,38 @@ def run_unsupported(root: Path = UNSUPPORTED_DIR) -> list[UnsupportedResult]:
 # Positive phrasings runner (Phase 9 T355–T361).
 # ----------------------------------------------------------------------------
 POS_DIR = Path(__file__).resolve().parent
-POS_FILES = ("vpls.yaml", "vpws.yaml", "l3vpn.yaml", "irb.yaml")
+POS_FILES = (
+    # legacy alias corpora (US4): the request names an alias; the mapper folds
+    # it and records source_service_type provenance.
+    "vpls.yaml",
+    "vpws.yaml",
+    "l3vpn.yaml",
+    "irb.yaml",
+    # construct corpora (US1/T057): the request names the construct itself.
+    "vlan.yaml",
+    "macvrf.yaml",
+    "ipvrf.yaml",
+    "acl.yaml",
+    "macvrf_gateway.yaml",
+)
+
+# The fold the mapper's model performs (contracts/interpretation.schema.json):
+# an operator-named alias maps to the construct it folds to.
+_FOLD_TO_CONSTRUCT = {
+    "VPLS": "mac-vrf",
+    "VPWS": "mac-vrf",
+    "ELINE": "mac-vrf",
+    "IRB": "mac-vrf",
+    "L2L3-IRB": "mac-vrf",
+    "L3VPN": "ip-vrf",
+}
 
 
 @dataclass(frozen=True)
 class PositiveCase:
     id: str
-    service_type: str  # VPLS | VPWS | L3VPN | IRB
+    service_type: str  # the construct the request folds to, e.g. mac-vrf
+    source_service_type: str | None  # the legacy alias the operator named, if any
     text: str
     first_pass: bool
 
@@ -160,12 +185,14 @@ class PositiveResult:
 
 def _load_positive_file(path: Path) -> Iterable[PositiveCase]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    st = str(data.get("service_type") or "").strip().upper()
-    assert st in ("VPLS", "VPWS", "L3VPN", "IRB"), f"{path.name}: unsupported service_type {st!r}"
+    declared = str(data.get("service_type") or "").strip()
+    construct = _FOLD_TO_CONSTRUCT.get(declared.upper(), declared.lower())
+    assert construct in ("vlan", "mac-vrf", "ip-vrf", "acl"), f"{path.name}: unsupported service_type {declared!r}"
     for raw in data.get("cases", []):
         yield PositiveCase(
             id=raw["id"],
-            service_type=st,
+            service_type=construct,
+            source_service_type=declared.upper() if construct != declared.lower() else None,
             text=raw["text"],
             first_pass=bool(raw.get("first_pass", True)),
         )
@@ -229,9 +256,16 @@ def run_positive(root: Path = POS_DIR) -> list[PositiveResult]:
                 if mapped_json:
                     interp = json.loads(mapped_json)
                     st = interp.get("service_type") or interp.get("serviceType")
-                    if (st or "").upper() != case.service_type:
+                    if str(st or "").lower() != case.service_type:
                         v.append(
-                            f"mapped service_type {st!r} does not match expected {case.service_type!r}"
+                            f"mapped service_type {st!r} does not match expected construct {case.service_type!r}"
+                        )
+                    # Provenance (US4/T066): a legacy alias is recorded as the
+                    # source of the fold; a construct-named request records none.
+                    src = interp.get("source_service_type")
+                    if src != case.source_service_type:
+                        v.append(
+                            f"source_service_type {src!r} does not match expected {case.source_service_type!r}"
                         )
                 else:
                     v.append("missing mapped_parameters JSON on first pass")

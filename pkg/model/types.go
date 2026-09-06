@@ -92,3 +92,29 @@ type SRPolicy struct {
 	Selector   string // match expression or interface
 	SIDListRef string
 }
+
+// ACL represents an access-list table with rules.
+// Kept minimal for renderer/register coverage; not used by fabric planner.
+type ACL struct {
+	Name        string
+	Stage       string // ingress | egress
+	Type        string // l3 | l3v6
+	Ports       []string
+	PolicyDesc  string
+	DefaultAction string
+	Rules       []ACLRule
+}
+
+// ACLRule is one match/action entry in an ACL table.
+// Field names follow SONiC CONFIG_DB naming where straightforward.
+type ACLRule struct {
+	Name              string
+	Priority          int
+	Action            string // permit|deny
+	Protocol          string // tcp|udp|icmp|...|any|numeric
+	SourcePrefix      string
+	DestinationPrefix string
+	SourcePort        string
+	DestinationPort   string
+	Description       string
+}

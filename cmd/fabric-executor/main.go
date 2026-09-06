@@ -79,17 +79,20 @@ type ApplyResponse struct {
 type VerifyRequest struct {
 	Node   string `json:"node"`
 	Checks []struct {
-		Type       string `json:"type"`
-		RedisKey   string `json:"redisKey,omitempty"`
-		RedisField string `json:"redisField,omitempty"`
-		Iface      string `json:"iface,omitempty"`
-		Master     string `json:"master,omitempty"`
-		Addr       string `json:"addr,omitempty"`
-		Vid        int64  `json:"vid,omitempty"`
-		Path       string `json:"path,omitempty"`
-		Line       string `json:"line,omitempty"`
-		Command    string `json:"command,omitempty"`
-		Expect     string `json:"expect,omitempty"`
+		Type        string            `json:"type"`
+		RedisKey    string            `json:"redisKey,omitempty"`
+		RedisField  string            `json:"redisField,omitempty"`
+		RedisDB     string            `json:"redisDB,omitempty"`
+		MatchFields map[string]string `json:"matchFields,omitempty"`
+		MinCount    int               `json:"minCount,omitempty"`
+		Iface       string            `json:"iface,omitempty"`
+		Master      string            `json:"master,omitempty"`
+		Addr        string            `json:"addr,omitempty"`
+		Vid         int64             `json:"vid,omitempty"`
+		Path        string            `json:"path,omitempty"`
+		Line        string            `json:"line,omitempty"`
+		Command     string            `json:"command,omitempty"`
+		Expect      string            `json:"expect,omitempty"`
 	} `json:"checks"`
 }
 
@@ -474,31 +477,40 @@ func (s *server) handleVerify(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) verifyOne(ctx context.Context, container string, ck struct {
-	Type       string `json:"type"`
-	RedisKey   string `json:"redisKey,omitempty"`
-	RedisField string `json:"redisField,omitempty"`
-	Iface      string `json:"iface,omitempty"`
-	Master     string `json:"master,omitempty"`
-	Addr       string `json:"addr,omitempty"`
-	Vid        int64  `json:"vid,omitempty"`
-	Path       string `json:"path,omitempty"`
-	Line       string `json:"line,omitempty"`
-	Command    string `json:"command,omitempty"`
-	Expect     string `json:"expect,omitempty"`
+	Type        string            `json:"type"`
+	RedisKey    string            `json:"redisKey,omitempty"`
+	RedisField  string            `json:"redisField,omitempty"`
+	RedisDB     string            `json:"redisDB,omitempty"`
+	MatchFields map[string]string `json:"matchFields,omitempty"`
+	MinCount    int               `json:"minCount,omitempty"`
+	Iface       string            `json:"iface,omitempty"`
+	Master      string            `json:"master,omitempty"`
+	Addr        string            `json:"addr,omitempty"`
+	Vid         int64             `json:"vid,omitempty"`
+	Path        string            `json:"path,omitempty"`
+	Line        string            `json:"line,omitempty"`
+	Command     string            `json:"command,omitempty"`
+	Expect      string            `json:"expect,omitempty"`
 }) VerifyResult {
 	run := func(cmd string) (string, error) {
 		out, stderr, err := s.exec(ctx, container, []string{"bash", "-c", cmd})
 		return strings.TrimSpace(out), firstErr(err, stderr)
 	}
+	// default redis DB
+	db := ck.RedisDB
+	if strings.TrimSpace(db) == "" {
+		db = redisDB
+	}
+	
 	switch ck.Type {
 	case "redis-hget":
-		got, err := run(fmt.Sprintf("redis-cli -n %s hget %q %q", redisDB, ck.RedisKey, ck.RedisField))
+		got, err := run(fmt.Sprintf("redis-cli -n %s hget %q %q", db, ck.RedisKey, ck.RedisField))
 		if err != nil {
 			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
 		}
 		return VerifyResult{OK: got == ck.Expect, Actual: got, Error: neqMsg(got, ck.Expect)}
 	case "redis-exists":
-		got, err := run(fmt.Sprintf("redis-cli -n %s exists %q", redisDB, ck.RedisKey))
+		got, err := run(fmt.Sprintf("redis-cli -n %s exists %q", db, ck.RedisKey))
 		if err != nil {
 			return VerifyResult{OK: false, Error: err.Error()}
 		}
@@ -546,6 +558,45 @@ func (s *server) verifyOne(ctx context.Context, container string, ck struct {
 		}
 		ok := strings.Contains(got, ck.Expect)
 		return VerifyResult{OK: ok, Actual: got, Error: neqContainsMsg(got, ck.Expect)}
+	case "redis-hget-contains":
+		got, err := run(fmt.Sprintf("redis-cli -n %s hget %q %q", db, ck.RedisKey, ck.RedisField))
+		if err != nil {
+			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
+		}
+		ok := strings.Contains(got, ck.Expect)
+		return VerifyResult{OK: ok, Actual: got, Error: neqContainsMsg(got, ck.Expect)}
+	case "redis-keys-match":
+		keysRaw, err := run(fmt.Sprintf("redis-cli -n %s keys %q", db, ck.RedisKey))
+		if err != nil {
+			return VerifyResult{OK: false, Error: err.Error(), Actual: keysRaw}
+		}
+		keys := []string{}
+		for _, k := range strings.Split(strings.TrimSpace(keysRaw), "\n") {
+			k = strings.TrimSpace(k)
+			if k != "" {
+				keys = append(keys, k)
+			}
+		}
+		matched := 0
+		for _, k := range keys {
+			valsRaw, err := run(fmt.Sprintf("redis-cli -n %s hgetall %q", db, k))
+			if err != nil {
+				return VerifyResult{OK: false, Error: err.Error(), Actual: valsRaw}
+			}
+			if satisfiesAll(valsRaw, ck.MatchFields) {
+				matched++
+			}
+		}
+		min := ck.MinCount
+		if min <= 0 {
+			min = 1
+		}
+		ok := matched >= min
+		msg := ""
+		if !ok {
+			msg = fmt.Sprintf("expected at least %d object(s) matching %v; enumerated %d, matched %d", min, ck.MatchFields, len(keys), matched)
+		}
+		return VerifyResult{OK: ok, Actual: fmt.Sprintf("keys=%d matched=%d", len(keys), matched), Error: msg}
 	default:
 		return VerifyResult{OK: false, Error: "unknown check type " + ck.Type}
 	}
@@ -555,7 +606,7 @@ func neqContainsMsg(got, want string) string {
 	if strings.Contains(got, want) {
 		return ""
 	}
-	return fmt.Sprintf("expected output to contain %q", want)
+	return fmt.Sprintf("expected value to contain %q, got %q", want, got)
 }
 
 func neqMsg(got, want string) string {
@@ -573,6 +624,30 @@ func firstErr(err error, stderr string) error {
 		return fmt.Errorf("%s", strings.TrimSpace(stderr))
 	}
 	return nil
+}
+
+// satisfiesAll returns true when valsRaw (output of redis-cli hgetall) contains
+// every key=value pair in match.
+func satisfiesAll(valsRaw string, match map[string]string) bool {
+	if len(match) == 0 {
+		return false
+	}
+	// hgetall prints alternating key and value tokens, one per line.
+	lines := strings.Split(strings.TrimSpace(valsRaw), "\n")
+	pairs := map[string]string{}
+	for i := 0; i+1 < len(lines); i += 2 {
+		k := strings.TrimSpace(lines[i])
+		v := strings.TrimSpace(lines[i+1])
+		if k != "" {
+			pairs[k] = v
+		}
+	}
+	for k, want := range match {
+		if got, ok := pairs[k]; !ok || got != want {
+			return false
+		}
+	}
+	return true
 }
 
 // ---- docker exec over the raw API -------------------------------------------

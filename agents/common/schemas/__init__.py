@@ -8,11 +8,11 @@ its stage in FAILED and submits nothing.
 from __future__ import annotations
 
 from .audit import AuditEvent
-from .interpretation import EndpointIntent, Interpretation, ServiceType
+from .interpretation import AnycastGatewayIntent, EndpointIntent, Interpretation, ServiceType
 from .normalized_intent import (
     AddressFamilies,
+    AnycastGateway,
     Endpoint,
-    IRBGateway,
     NormalizedServiceIntent,
     Policies,
     RdRt,
@@ -22,11 +22,12 @@ from .refs import ClaimRef, ResourceRef
 
 __all__ = [
     "AddressFamilies",
+    "AnycastGateway",
+    "AnycastGatewayIntent",
     "AuditEvent",
     "ClaimRef",
     "Endpoint",
     "EndpointIntent",
-    "IRBGateway",
     "Interpretation",
     "NormalizedServiceIntent",
     "Policies",

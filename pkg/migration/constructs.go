@@ -238,8 +238,10 @@ func (in *ServiceInput) Canonicalize() {
 	// way, so only the addresses carry over.
 	if in.IRBGateway != nil {
 		if in.AnycastGateway == nil {
+			// Only the addresses carry over: the legacy `vrf` label named no
+			// router the translator emits, and the ip-vrf is resolved at
+			// translation time as one per-service router either way.
 			in.AnycastGateway = &AnycastGateway{
-				IPVRF:     in.IRBGateway.VRF,
 				GatewayV4: in.IRBGateway.GatewayV4,
 				GatewayV6: in.IRBGateway.GatewayV6,
 			}

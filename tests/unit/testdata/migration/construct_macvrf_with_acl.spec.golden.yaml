@@ -1,0 +1,33 @@
+spec:
+  description: Migrated service c_macvrf_acl_120 (mac-vrf)
+  bridgeDomains:
+  - name: bd-c_macvrf_acl_120
+    vlan: 120
+    l2vni: 10120
+    evpn:
+      routeTargets:
+        import:
+        - "65000:120"
+        export:
+        - "65000:120"
+  accessLists:
+  - name: allow-web
+    stage: ingress
+    type: l3
+    rules:
+    - name: allow-http
+      priority: 100
+      action: permit
+      protocol: tcp
+      destinationPort: 80
+    - name: deny-rest
+      priority: 200
+      action: deny
+      protocol: any
+  attachments:
+  - node: leaf01
+    vlan: 120
+    attachment: ethernet2
+  - node: leaf02
+    vlan: 120
+    attachment: ethernet2

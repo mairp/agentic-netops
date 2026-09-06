@@ -24,6 +24,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from pydantic import BaseModel, ConfigDict, Field
+import ipaddress
+from typing import Literal
 
 
 class RdRt(BaseModel):
@@ -109,6 +111,29 @@ class ValidationError:
         return f"validation failed: {', '.join(self.causes)}"
 
 
+class ACLRule(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=1)
+    priority: int = Field(ge=2, le=65535)
+    action: Literal["permit", "deny"]
+    protocol: str | int | None = None
+    sourcePrefix: str | None = None
+    destinationPrefix: str | None = None
+    sourcePort: str | None = None
+    destinationPort: str | None = None
+    description: str | None = None
+
+
+class ACL(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str | None = None
+    stage: Literal["ingress", "egress"] | None = None
+    type: Literal["l3", "l3v6"] | None = None
+    defaultAction: Literal["permit", "deny"] | None = None
+    bindTo: str | None = None
+    rules: list[ACLRule] | None = None
+
+
 class NormalizedServiceIntent(BaseModel):
     """The normalized service-intent contract (data-model.md §3)."""
 
@@ -135,6 +160,9 @@ class NormalizedServiceIntent(BaseModel):
     # Explicit policy opt-ins / explicitly modeled unsupported features
     policies: Policies | None = None
     unsupported: UnsupportedClaims | None = None
+
+    # Access-list (US2): optional on normalized intent, validated in parity branch
+    acl: ACL | None = None
 
     # ------------------------------------------------------------------
     # Validation — mirrors pkg/migration/input.go ValidateAllOrNothing.
@@ -249,6 +277,132 @@ class NormalizedServiceIntent(BaseModel):
                 )
             if len(self.endpoints) < 1:
                 causes.append("endpoints: acl requires >=1 endpoint to bind to")
+            # Mirror aclCauses prefix family and port rules for parity (refusal before submit)
+            # These are a best-effort mirror; exact messages match Go causes.
+            # No defaultAction handling here; reserved priority 1 is per-rule refusal.
+            seen_names: set[str] = set()
+            seen_prios: set[int] = set()
+            a = getattr(self, "acl", None)
+            if a:
+                # Normalize to a dict view for parity with Go-side messages
+                if isinstance(a, BaseModel):
+                    ad = a.model_dump(mode="json", by_alias=True)
+                else:
+                    ad = a  # assume dict-like
+                if ad.get("stage") not in ("ingress", "egress"):
+                    causes.append(f"acl.stage: required, one of ingress, egress (got {ad.get('stage')!r})")
+                if ad.get("type") not in ("l3", "l3v6"):
+                    causes.append(f"acl.type: required, one of l3, l3v6 (got {ad.get('type')!r})")
+                if ad.get("bindTo") and ad.get("bindTo") != "port":
+                    causes.append(
+                        f"acl.bindTo: {ad.get('bindTo')!r} is unsupported; an access list binds to ports"
+                    )
+                rules = ad.get("rules") or []
+                if not rules:
+                    causes.append("acl.rules: at least one rule is required")
+                    if ad.get("name"):
+                        causes.append(
+                            "acl: a service carries its own rules and its name is a label; provide rules instead of referencing by name"
+                        )
+                for i, r in enumerate(rules):
+                    # r may be a dict or a pydantic object; use getattr/[] tolerant access
+                    if isinstance(r, BaseModel):
+                        rd = r.model_dump(mode="json", by_alias=True)
+                    else:
+                        rd = r
+                    name = str((rd.get("name") if isinstance(rd, dict) else "") or "")
+                    if not name:
+                        causes.append(f"acl.rules[{i}].name: required")
+                    elif name in seen_names:
+                        causes.append(f"acl.rules[{i}].name: duplicate rule name {name!r}")
+                    else:
+                        seen_names.add(name)
+                    prio = int((rd.get("priority") if isinstance(rd, dict) else 0) or 0)
+                    if prio == 1:
+                        causes.append(
+                            f"acl.rules[{i}].priority: 1 is reserved for the default action; usable priorities are 2-65535"
+                        )
+                    elif prio < 2 or prio > 65535:
+                        causes.append(f"acl.rules[{i}].priority: must be 2-65535 (got {prio})")
+                    elif prio in seen_prios:
+                        causes.append(
+                            f"acl.rules[{i}].priority: {prio} is already used by another rule; priorities must be distinct"
+                        )
+                    else:
+                        seen_prios.add(prio)
+                    action_raw = (rd.get("action") if isinstance(rd, dict) else None)
+                    action = str(action_raw or "").lower()
+                    if action not in ("permit", "deny"):
+                        causes.append(
+                            f"acl.rules[{i}].action: required, one of permit, deny (got {action_raw!r})"
+                        )
+                    proto_raw = rd.get("protocol") if isinstance(rd, dict) else None
+                    proto = str(proto_raw or "").lower()
+                    if proto and proto not in ("any", "tcp", "udp", "icmp", "igmp", "rsvp", "gre", "ah", "pim", "l2tp"):
+                        try:
+                            n = int(proto)
+                            if n < 0 or n > 255:
+                                raise ValueError
+                        except Exception:
+                            causes.append(
+                                f"acl.rules[{i}].protocol: one of any, tcp, udp, icmp, igmp, rsvp, gre, ah, pim, l2tp or an IP protocol number 0-255 (got {proto_raw!r})"
+                            )
+                    if proto in ("icmpv6", "ipv6-icmp"):
+                        causes.append(
+                            f"acl.rules[{i}].protocol: one of any, tcp, udp, icmp, igmp, rsvp, gre, ah, pim, l2tp or an IP protocol number 0-255 (got {proto_raw!r})"
+                        )
+                    # Prefix family check
+                    for field in ("sourcePrefix", "destinationPrefix"):
+                        prefix = rd.get(field) if isinstance(rd, dict) else None
+                        if not prefix:
+                            continue
+                        try:
+                            net = ipaddress.ip_network(str(prefix), strict=False)
+                        except Exception:
+                            causes.append(f"acl.rules[{i}].{field}: not a CIDR prefix ({prefix!r})")
+                            continue
+                        if ad.get("type") == "l3" and net.version != 4:
+                            causes.append(
+                                f"acl.rules[{i}].{field}: {prefix} is IPv6 but the acl type is l3 (IPv4); use type l3v6"
+                            )
+                        if ad.get("type") == "l3v6" and net.version != 6:
+                            causes.append(
+                                f"acl.rules[{i}].{field}: {prefix} is IPv4 but the acl type is l3v6; use type l3"
+                            )
+                    # L4 port rules
+                    for field in ("sourcePort", "destinationPort"):
+                        port = str((rd.get(field) if isinstance(rd, dict) else "") or "")
+                        if not port:
+                            continue
+                        if proto not in ("tcp", "udp"):
+                            causes.append(
+                                f"acl.rules[{i}].{field}: L4 ports require protocol tcp or udp (got {proto_raw!r})"
+                            )
+                            continue
+                        if "-" in port:
+                            lo, hi = port.split("-", 1)
+                            try:
+                                lo_n = int(lo.strip())
+                                hi_n = int(hi.strip())
+                                if lo_n < 0 or lo_n > 65535 or hi_n < 0 or hi_n > 65535:
+                                    raise ValueError
+                                if hi_n < lo_n:
+                                    causes.append(
+                                        f"acl.rules[{i}].{field}: range {port!r} ends below where it starts"
+                                    )
+                            except Exception:
+                                causes.append(
+                                    f"acl.rules[{i}].{field}: not a port range in 0-65535 ({port!r})"
+                                )
+                        else:
+                            try:
+                                n = int(port)
+                                if n < 0 or n > 65535:
+                                    raise ValueError
+                            except Exception:
+                                causes.append(
+                                    f"acl.rules[{i}].{field}: not a port in 0-65535 ({port!r})"
+                                )
         else:
             causes.append(f"type: unsupported '{self.type}'")
 

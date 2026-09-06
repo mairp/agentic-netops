@@ -40,12 +40,15 @@ class _CountingKUID:
 
     def __init__(self) -> None:
         self.vlans: list[int] = []
+        self.l3vnis: list[int] = []
 
     def allocate_l2vni(self, _correlation_id: str) -> int:
         return 10004
 
     def allocate_l3vni(self, _correlation_id: str) -> int:
-        return 10006
+        # The real pool hands out the 10000-14094 sub-band (KUID_L3VNI_MAX).
+        self.l3vnis.append(10000 + len(self.l3vnis))
+        return self.l3vnis[-1]
 
     def allocate_rd_rt(self, _correlation_id: str) -> tuple[str, list[str], list[str]]:
         return "65000:5", ["65000:5"], ["65000:5"]
@@ -113,42 +116,116 @@ def test_two_different_requested_vlans_are_a_rejection_not_a_guess():
         raise AssertionError("the allocator silently picked one of two requested vlans")
 
 
-def test_irb_gateway_comes_from_the_operators_prefix():
-    intent = _allocator(_CountingKUID())._build_intent(
-        _interpretation("IRB", ipv4_prefixes=["10.30.0.0/24"], ipv6_prefixes=["fd00:30::/64"]),
-        "c" * 32,
-    )
-    assert intent.irbGateway is not None
-    assert intent.irbGateway.gatewayIPv4 == "10.30.0.1/24"
-    assert intent.irbGateway.gatewayIPv6 == "fd00:30::1/64"
+def test_macvrf_gateway_carries_the_addresses_the_operator_named():
+    """The gateway carries exactly the addresses the operator named.
 
-
-def test_irb_carries_only_the_address_families_that_were_asked_for():
-    """An IPv4-only request gets an IPv4-only IRB.
-
-    Handing every IRB a fd00::1/64 gateway put an address family on the SVI
-    that nobody requested, asked FRR to originate a Type-5 route for it, and
-    then held the service to that route — which is how an IPv4 IRB failed to
-    converge on a leaf whose zebra registered the address as a kernel rather
-    than a connected route.
+    A mac-vrf asks for a gateway by naming it on the same request; there is no
+    fifth service name and no address invented from an unrelated prefix pool.
     """
 
     intent = _allocator(_CountingKUID())._build_intent(
-        _interpretation("IRB", ipv4_prefixes=["10.30.0.0/24"]), "c" * 32
+        _interpretation(
+            "mac-vrf",
+            anycast_gateway={"ipv4": "10.30.0.1/24", "ipv6": "fd00:30::1/64"},
+        ),
+        "c" * 32,
     )
-    assert intent.irbGateway.gatewayIPv4 == "10.30.0.1/24"
-    assert intent.irbGateway.gatewayIPv6 == ""
+    assert intent.anycastGateway is not None
+    assert intent.anycastGateway.gatewayIPv4 == "10.30.0.1/24"
+    assert intent.anycastGateway.gatewayIPv6 == "fd00:30::1/64"
+
+
+def test_gateway_carries_only_the_address_families_that_were_asked_for():
+    """An IPv4-only request gets an IPv4-only gateway.
+
+    Handing every gateway a fd00::1/64 address put an address family on the
+    SVI that nobody requested, asked FRR to originate a Type-5 route for it,
+    and then held the service to that route — which is how an IPv4 gateway
+    failed to converge on a leaf whose zebra registered the address as a
+    kernel rather than a connected route.
+    """
+
+    intent = _allocator(_CountingKUID())._build_intent(
+        _interpretation("mac-vrf", anycast_gateway={"ipv4": "10.30.0.1/24"}), "c" * 32
+    )
+    assert intent.anycastGateway.gatewayIPv4 == "10.30.0.1/24"
+    assert intent.anycastGateway.gatewayIPv6 == ""
 
     v6_only = _allocator(_CountingKUID())._build_intent(
-        _interpretation("IRB", ipv6_prefixes=["fd00:30::/64"]), "c" * 32
+        _interpretation("mac-vrf", anycast_gateway={"ipv6": "fd00:30::1/64"}), "c" * 32
     )
-    assert v6_only.irbGateway.gatewayIPv4 == ""
-    assert v6_only.irbGateway.gatewayIPv6 == "fd00:30::1/64"
+    assert v6_only.anycastGateway.gatewayIPv4 == ""
+    assert v6_only.anycastGateway.gatewayIPv6 == "fd00:30::1/64"
 
-    # A request that named no addressing at all still gets somewhere to route.
-    neither = _allocator(_CountingKUID())._build_intent(_interpretation("IRB"), "c" * 32)
-    assert neither.irbGateway.gatewayIPv4 == "10.0.0.1/24"
-    assert neither.irbGateway.gatewayIPv6 == ""
+    # A gateway naming no family at all is refused before anything is claimed.
+    try:
+        _allocator(_CountingKUID())._build_intent(
+            _interpretation("mac-vrf", anycast_gateway={}), "c" * 32
+        )
+    except Exception as exc:
+        assert "at least one of ipv4/ipv6" in str(exc)
+    else:
+        raise AssertionError("a gateway with no address was accepted")
+
+
+def test_l3vni_is_claimed_only_when_a_macvrf_declares_a_gateway():
+    """Routing is composition, not implication (US3, claim profiles §2).
+
+    A gatewayless mac-vrf claims VLAN + L2VNI + RT and never an L3VNI; the
+    same construct with a gateway claims the L3VNI from the 10000-14094
+    sub-band; and a vlan or an acl claims no L3 identifier at all.
+    """
+
+    gatewayless = _allocator(_CountingKUID())._build_intent(
+        _interpretation("mac-vrf"), "c" * 32
+    )
+    assert gatewayless.l3vni is None, "a gatewayless mac-vrf claimed an L3VNI"
+
+    routed_kuid = _CountingKUID()
+    routed = _allocator(routed_kuid)._build_intent(
+        _interpretation("mac-vrf", anycast_gateway={"ipv4": "10.30.0.1/24"}), "c" * 32
+    )
+    assert routed.l3vni is not None
+    assert 10000 <= routed.l3vni <= 14094, "L3VNI left the KUID_L3VNI sub-band"
+    assert len(routed_kuid.l3vnis) == 1
+
+    vlan_kuid = _CountingKUID()
+    vlan_intent = _allocator(vlan_kuid)._build_intent(
+        _interpretation("vlan"), "c" * 32
+    )
+    assert vlan_intent.l3vni is None
+    assert vlan_kuid.l3vnis == [], "a vlan claimed an L3VNI"
+
+
+def test_anycast_gateway_is_refused_on_every_other_construct():
+    """The gateway belongs to the mac-vrf whose SVI carries it.
+
+    Naming it on a vlan, an ip-vrf or an acl is refused at the interpretation
+    boundary — before anything routes — with the construct named.
+    """
+
+    for service_type in ("vlan", "ip-vrf", "acl"):
+        payload = {
+            "service_id": "svc-gw",
+            "service_type": service_type,
+            "tenant": "acme",
+            "endpoints": [{"site_or_node": "leaf01", "attachment": "ethernet1"}],
+            "anycast_gateway": {"ipv4": "10.30.0.1/24"},
+        }
+        if service_type == "acl":
+            payload["acl"] = {
+                "stage": "ingress",
+                "type": "l3",
+                "rules": [
+                    {"name": "allow-web", "priority": 100, "action": "permit", "protocol": "tcp", "destinationPort": "80"}
+                ],
+            }
+        try:
+            Interpretation.model_validate(payload)
+        except Exception as exc:
+            assert "only a mac-vrf carries an anycast gateway" in str(exc), service_type
+        else:
+            raise AssertionError(f"{service_type} accepted an anycast gateway")
 
 
 def test_vlan_claim_profile_strands_no_l2vni():

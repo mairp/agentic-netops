@@ -2,9 +2,12 @@
 package fabricplan
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/mairp/agentic-netops/pkg/kubenet"
 )
@@ -333,6 +336,223 @@ func TestPortMapperFoldsSpelling(t *testing.T) {
 		t.Fatal("Port accepted a port the site does not have")
 	} else if !strings.Contains(err.Error(), "ethernet1, wan1") {
 		t.Errorf("rejection does not name the site's ports: %v", err)
+	}
+}
+
+// --- ACL (US2) ----------------------------------------------------------------
+
+func TestACLPlan_RendersRedisOnly_WithDefaultRuleAndChecks_NoGCU(t *testing.T) {
+	// Strengthened per-rule config-side assertions: assert PRIORITY, PACKET_ACTION,
+	// IP_PROTOCOL and L4_DST_PORT checks are present for declared fields.
+
+	// Build a Network with accessLists and attachments only (ACL-only service)
+	net := &kubenet.Network{
+		ObjectMeta: metav1.ObjectMeta{Name: "svc-acl", Namespace: "tenant-a"},
+		Spec: map[string]any{
+			"accessLists": []any{map[string]any{
+				"name": "allow-web",
+				"stage": "ingress",
+				"type":  "l3",
+				"defaultAction": "deny",
+				"rules": []any{map[string]any{
+					"name": "allow-https", "priority": float64(100), "action": "permit", "protocol": "tcp", "destinationPort": "443",
+				}},
+			}},
+			"attachments": []any{map[string]any{"node": "leaf01", "attachment": "ethernet1"}},
+		},
+	}
+	plan, err := ForNetwork(net, Options{Ports: PortMapper{"ethernet1": "eth3"}})
+	if err != nil {
+		t.Fatalf("ForNetwork: %v", err)
+	}
+	np := plan.Nodes["leaf01"]
+	if np == nil {
+		t.Fatal("leaf01 plan missing")
+	}
+	// Assert no GCU ops were emitted for ACL
+	for _, op := range np.Ops {
+		if len(op.GCU) > 0 {
+			t.Fatalf("ACL plan must not use GCU ops: %#v", op.GCU)
+		}
+	}
+	// Collect redis ops
+	var redis [][]string
+	for _, op := range np.Ops {
+		if len(op.Redis) > 0 {
+			redis = append(redis, op.Redis)
+		}
+	}
+	// Expect table and rule rows, including default rule with PRIORITY 1
+	var haveTable, haveRule, haveDefault bool
+	for _, cmds := range redis {
+		joined := strings.Join(cmds, "\n")
+		if strings.Contains(joined, "ACL_TABLE|") {
+			if !strings.Contains(joined, "stage '") || !strings.Contains(joined, "type '") || !strings.Contains(joined, "ports@ '") {
+				t.Errorf("ACL_TABLE missing required fields: %s", joined)
+			}
+			haveTable = true
+		}
+		if strings.Contains(joined, "ACL_RULE|") && strings.Contains(joined, "PRIORITY '100'") {
+			haveRule = true
+		}
+		if strings.Contains(joined, "ACL_RULE|") && strings.Contains(joined, "|default' PRIORITY '1'") {
+			haveDefault = true
+		}
+	}
+	if !haveTable || !haveRule || !haveDefault {
+		t.Fatalf("missing expected ACL rows: table=%v rule=%v default=%v", haveTable, haveRule, haveDefault)
+	}
+	// Configuration-side checks include redis-exists/hget on table and rules, and redis-hget-contains on ports@
+	var haveCfgChecks, haveAppliedTable, haveAppliedEntries bool
+	var tableStageOK, tableBindOK bool
+	var entriesMinOK bool
+	for _, ck := range np.Checks {
+		if ck.Type == "redis-exists" || ck.Type == "redis-hget" || ck.Type == "redis-hget-contains" {
+			haveCfgChecks = true
+		}
+		if ck.Type == "redis-keys-match" && ck.RedisDB == "1" && strings.HasPrefix(ck.RedisKey, "ASIC_STATE:SAI_OBJECT_TYPE_ACL_TABLE:") {
+			haveAppliedTable = true
+			// stage must match ingress and bind point must be port
+			if ck.MatchFields != nil {
+				if ck.MatchFields["SAI_ACL_TABLE_ATTR_ACL_STAGE"] == "SAI_ACL_STAGE_INGRESS" {
+					tableStageOK = true
+				}
+				if ck.MatchFields["SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST"] == "SAI_ACL_BIND_POINT_TYPE_PORT" {
+					tableBindOK = true
+				}
+			}
+		}
+		if ck.Type == "redis-keys-match" && ck.RedisDB == "1" && strings.HasPrefix(ck.RedisKey, "ASIC_STATE:SAI_OBJECT_TYPE_ACL_ENTRY:") {
+			haveAppliedEntries = true
+			// 1 declared rule + 1 defaultAction
+			if ck.MinCount == 2 {
+				entriesMinOK = true
+			}
+		}
+	}
+	if !haveCfgChecks || !haveAppliedTable || !haveAppliedEntries || !tableStageOK || !tableBindOK || !entriesMinOK {
+		t.Fatalf("missing expected checks or attributes: cfg=%v asicTable=%v asicEntries=%v stageOK=%v bindOK=%v entriesMinOK=%v", haveCfgChecks, haveAppliedTable, haveAppliedEntries, tableStageOK, tableBindOK, entriesMinOK)
+	}
+	// Assert per-rule config-side checks: PRIORITY=100, PACKET_ACTION=FORWARD, IP_PROTOCOL=6, L4_DST_PORT=443
+	havePriority := false
+	havePacket := false
+	haveProto := false
+	haveDstPort := false
+	for _, ck := range np.Checks {
+		if ck.Type == "redis-hget" && strings.Contains(ck.RedisKey, "ACL_RULE|") {
+			switch ck.RedisField {
+			case "PRIORITY":
+				if ck.Expect == "100" {
+					havePriority = true
+				}
+			case "PACKET_ACTION":
+				if ck.Expect == "FORWARD" {
+					havePacket = true
+				}
+			case "IP_PROTOCOL":
+				if ck.Expect == "6" {
+					haveProto = true
+				}
+			case "L4_DST_PORT":
+				if ck.Expect == "443" {
+					haveDstPort = true
+				}
+			}
+		}
+	}
+	if !(havePriority && havePacket && haveProto && haveDstPort) {
+		t.Fatalf("missing per-rule config-side checks: PRIORITY=%v PACKET_ACTION=%v IP_PROTOCOL=%v L4_DST_PORT=%v\nchecks=%#v", havePriority, havePacket, haveProto, haveDstPort, np.Checks)
+	}
+	// Rollback deletes ACL_RULE then ACL_TABLE, in that order and nothing else ACL-related.
+	var idxRuleFirst, idxTable int = -1, -1
+	var extraACLDeletes []string
+	for i, op := range np.Rollback {
+		for _, cmd := range op.Redis {
+			if strings.Contains(cmd, "del 'ACL_RULE|") {
+				if idxRuleFirst < 0 { idxRuleFirst = i }
+			} else if strings.Contains(cmd, "del 'ACL_TABLE|") {
+				idxTable = i
+			} else if strings.Contains(cmd, "ACL_") {
+				extraACLDeletes = append(extraACLDeletes, cmd)
+			}
+		}
+	}
+	if idxRuleFirst < 0 || idxTable < 0 {
+		t.Fatalf("rollback must delete rules then table: ruleIndex=%d tableIndex=%d", idxRuleFirst, idxTable)
+	}
+	if !(idxRuleFirst <= idxTable) {
+		t.Fatalf("rollback deletes table before rules: ruleIndex=%d tableIndex=%d", idxRuleFirst, idxTable)
+	}
+	if len(extraACLDeletes) != 0 {
+		t.Fatalf("rollback contains unexpected ACL deletions: %v", extraACLDeletes)
+	}
+}
+
+func TestACLPlan_RendersOnNodesWithAttachments_BindsPerNodePorts(t *testing.T) {
+	net := &kubenet.Network{
+		ObjectMeta: metav1.ObjectMeta{Name: "svc-acl2", Namespace: "tenant-b"},
+		Spec: map[string]any{
+			"accessLists": []any{map[string]any{
+				"name": "deny-all-egress",
+				"stage": "egress",
+				"type":  "l3",
+				"rules": []any{map[string]any{"name": "deny", "priority": float64(100), "action": "deny"}},
+			}},
+			"attachments": []any{
+				map[string]any{"node": "leaf01", "attachment": "ethernet1"},
+				map[string]any{"node": "leaf02", "attachment": "ethernet2"},
+			},
+		},
+	}
+	ports := PortMapper{"ethernet1": "Eth1", "ethernet2": "Eth2"}
+	plan, err := ForNetwork(net, Options{Ports: ports})
+	if err != nil {
+		t.Fatalf("ForNetwork: %v", err)
+	}
+	// Each node must have a plan and the ACL_TABLE ports@ must contain only its own ports
+	for node, np := range plan.Nodes {
+		if np == nil {
+			t.Fatalf("node %s missing plan", node)
+		}
+		// Find the ACL_TABLE hset of ports@
+		found := false
+		for _, op := range np.Ops {
+			for _, cmd := range op.Redis {
+				if strings.Contains(cmd, "ACL_TABLE|") && strings.Contains(cmd, " ports@ ") {
+					// expect the right port for this node
+					want := map[string]string{"leaf01": "Eth1", "leaf02": "Eth2"}[node]
+					if want == "" {
+						t.Fatalf("unexpected node %s in test", node)
+					}
+					if !strings.Contains(cmd, fmt.Sprintf("'%s'", want)) {
+						t.Errorf("node %s ACL_TABLE ports@ does not contain its own port %q: %s", node, want, cmd)
+					}
+					found = true
+				}
+			}
+		}
+		if !found {
+			t.Errorf("node %s had no ACL_TABLE ports@ write", node)
+		}
+	}
+}
+
+func TestACLOnlyNetwork_WithNoAttachmentsIsError(t *testing.T) {
+	net := &kubenet.Network{
+		ObjectMeta: metav1.ObjectMeta{Name: "svc-acl3", Namespace: "tenant-c"},
+		Spec: map[string]any{
+			"accessLists": []any{map[string]any{
+				"name": "deny-all",
+				"stage": "ingress",
+				"type":  "l3",
+				"rules": []any{map[string]any{"name": "deny", "priority": float64(100), "action": "deny"}},
+			}},
+			"attachments": []any{},
+		},
+	}
+	_, err := ForNetwork(net, Options{Ports: PortMapper{"ethernet1": "Eth1"}})
+	if err == nil {
+		t.Fatal("expected error for ACL-only network with no attachments")
 	}
 }
 

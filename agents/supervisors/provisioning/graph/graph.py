@@ -613,7 +613,11 @@ def validate_allocator_payload(
     verr = intent.validate_all_or_nothing()
     if verr is not None:
         return None, str(verr)
-    expected_type = "L2L3-IRB" if interpretation.service_type.value == "IRB" else interpretation.service_type.value
+    # The interpretation's service_type is already the folded construct
+    # (US1): the stage type-match rule of data-model.md §3 compares it to the
+    # allocator's type verbatim, so a legacy-typed payload from a compromised
+    # or broken allocator cannot slip through on an alias.
+    expected_type = interpretation.service_type.value
     if intent.type != expected_type:
         return None, (
             f"type mismatch between stages: interpretation service_type="
@@ -668,6 +672,10 @@ def _describe_convergence(observations: list[dict]) -> str:
     The deployer's ``detail`` is the controller's own condition message
     (``ApplySucceeded`` / ``ApplyFailed`` with the real operation output);
     it is quoted, never paraphrased.
+
+    When an observation carries an ``unverified`` list (T049a), append a
+    short note naming the unverified property and node so the operator is
+    never shown a property the tier did not observe.
     """
 
     parts: list[str] = []
@@ -676,7 +684,23 @@ def _describe_convergence(observations: list[dict]) -> str:
             continue
         resource = str(observation.get("resource") or "resource")
         detail = str(observation.get("detail") or "").strip()
-        parts.append(f"{resource} ({detail})" if detail else resource)
+        suffix = ""
+        unver = observation.get("unverified")
+        if isinstance(unver, list) and unver:
+            items: list[str] = []
+            for it in unver:
+                if isinstance(it, dict):
+                    prop = str(it.get("property") or "property")
+                    node = str(it.get("node") or "node")
+                    items.append(f"{prop}@{node}")
+            if items:
+                suffix = "; unverified: " + ", ".join(items)
+        text = resource
+        if detail:
+            text += f" ({detail}{suffix})"
+        elif suffix:
+            text += f" ({suffix.lstrip('; ')})"
+        parts.append(text)
     return ", ".join(parts) or "no resource named"
 
 
@@ -1616,7 +1640,40 @@ class ProvisioningGraph:
                 return self._reject_out_of_contract(
                     state, config, stage="deployer", error="no contract tools report", worker_text=worker_text
                 )
-            summary = redact_model_response(worker_text.split("<!--")[0].strip()) or "Tools result."
+            # Build an operator-facing summary. Prefer the worker's text, but augment
+            # status answers with unverified-property hints (T049a) carried in the payload.
+            status_report = payload.get("status") if isinstance(payload, dict) else None
+            if tool_action == "status" and isinstance(status_report, dict):
+                phase = str(status_report.get("phase") or "Unknown")
+                resources = status_report.get("resources") if isinstance(status_report.get("resources"), list) else []
+                # Compose a short summary including any unverified properties so the
+                # operator never sees a property as verified when the check did not run.
+                parts: list[str] = []
+                for r in resources:
+                    if not isinstance(r, dict):
+                        continue
+                    name = f"{r.get('kind')}/{r.get('name')}"
+                    detail = str(r.get("message") or r.get("reason") or "").strip()
+                    suffix = ""
+                    unver = r.get("unverified")
+                    if isinstance(unver, list) and unver:
+                        items: list[str] = []
+                        for it in unver:
+                            if isinstance(it, dict):
+                                prop = str(it.get("property") or "property")
+                                node = str(it.get("node") or "node")
+                                items.append(f"{prop}@{node}")
+                        if items:
+                            suffix = "; unverified: " + ", ".join(items)
+                    text = name
+                    if detail:
+                        text += f" ({detail}{suffix})"
+                    elif suffix:
+                        text += f" ({suffix.lstrip('; ')})"
+                    parts.append(text)
+                summary = redact_model_response((phase + ". " + "; ".join(parts)).strip())
+            else:
+                summary = redact_model_response(worker_text.split("<!--")[0].strip()) or "Tools result."
             out: dict[str, Any] = {
                 "next_node": END,
                 "tool_action": tool_action,
@@ -1627,7 +1684,6 @@ class ProvisioningGraph:
             # becomes the cluster's verdict, so the operator is never told
             # "PROVISIONING" about a transaction that has already converged
             # (or already failed).
-            status_report = payload.get("status")
             if tool_action == "status" and isinstance(status_report, dict):
                 resolved = _STATUS_PHASE_TO_WORKFLOW.get(str(status_report.get("phase") or ""))
                 if resolved is not None:

@@ -1,0 +1,20 @@
+service_type: ACL
+cases:
+  - id: allow_https_ingress
+    text: "for tenant acme allow ingress tcp port 443 from 10.0.0.0/24 on leaf01 ethernet1"
+    first_pass: true
+  - id: deny_all_egress_two_nodes
+    text: "for tenant blue deny all egress on leaf01 ethernet2 and leaf02 ethernet2"
+    first_pass: true
+  - id: clarify_missing_tenant
+    # The interpretation contract (T046) hard-requires the acl block whenever
+    # service_type is acl, so a stage-less acl request has no schema-valid
+    # clarify shape; acl clarifications ride on the required top-level fields.
+    # A tenant-less acl request still classifies provisionable and clarifies.
+    text: "allow ingress tcp port 53 on leaf01 ethernet3"
+    first_pass: false
+  - id: attached_shape_macvrf_with_acl
+    # Attached-shape phrasing: a MAC-VRF bearing an ingress ACL. This exercises
+    # mapping an ACL attached to another construct (US2 T050 requirement).
+    text: "for tenant acme provision a mac vrf between leaf01 ethernet1 and leaf02 ethernet2 vlan 120 with an ingress ACL that allows tcp port 80 and denies all else"
+    first_pass: false

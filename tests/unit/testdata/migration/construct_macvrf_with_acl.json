@@ -1,0 +1,20 @@
+{
+  "serviceId": "c_macvrf_acl_120",
+  "type": "mac-vrf",
+  "tenant": "blue",
+  "rdRt": {"rd": "65000:120", "importRT": ["65000:120"], "exportRT": ["65000:120"]},
+  "l2vni": 10120,
+  "acl": {
+    "name": "allow-web",
+    "stage": "ingress",
+    "type": "l3",
+    "rules": [
+      {"name": "allow-http", "priority": 100, "action": "permit", "protocol": "tcp", "destinationPort": "80"},
+      {"name": "deny-rest", "priority": 200, "action": "deny"}
+    ]
+  },
+  "endpoints": [
+    {"node": "leaf01", "attachment": "ethernet2", "vlan": 120},
+    {"node": "leaf02", "attachment": "ethernet2", "vlan": 120}
+  ]
+}

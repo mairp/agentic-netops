@@ -112,6 +112,52 @@ func TestIRBTranslation(t *testing.T) {
 
 func TestUnsupportedAndUnknownRejected(t *testing.T) {}
 
+// US2 refusals: ACL-specific causes via CLI to assert stderr carries causes and stdout is empty.
+func TestUS2_ACLRefusals_CLI(t *testing.T) {
+	cases := []struct {
+		file string
+		want []string
+	}{
+		{file: "refuse_acl_dup_priority.json", want: []string{"acl.rules[1].priority", "priorities must be distinct"}},
+		{file: "refuse_acl_family_mismatch.json", want: []string{"acl.rules[0].sourcePrefix", "IPv6 but the acl type is l3"}},
+		{file: "refuse_acl_l4_on_icmp.json", want: []string{"acl.rules[0].destinationPort", "L4 ports require protocol tcp or udp"}},
+		{file: "refuse_acl_no_rules.json", want: []string{"acl.rules: at least one rule is required"}},
+		{file: "refuse_acl_icmpv6.json", want: []string{"acl.rules[0].protocol", "one of any, tcp, udp, icmp, igmp, rsvp, gre, ah, pim, l2tp or an IP protocol number"}},
+		{file: "refuse_acl_type_l2.json", want: []string{"acl.type: required, one of l3, l3v6"}},
+		{file: "refuse_acl_priority_reserved.json", want: []string{"acl.rules[0].priority: 1 is reserved", "usable priorities are 2-65535"}},
+		{file: "refuse_acl_reference_by_name.json", want: []string{"acl: a service carries its own rules and its name is a label"}},
+		{file: "refuse_acl_binding_vlan.json", want: []string{"acl.bindTo:", "binds to ports"}},
+		{file: "refuse_acl_no_stage.json", want: []string{"acl.stage: required, one of ingress, egress"}},
+		{file: "refuse_acl_port_range_inverted.json", want: []string{"acl.rules[0].sourcePort", "ends below where it starts"}},
+		{file: "refuse_acl_no_endpoints.json", want: []string{"endpoints: acl requires \\u003e=1 endpoint to bind to", "endpoints: at least one endpoint is required"}},
+	}
+	for _, tc := range cases {
+		repoRoot := filepath.Join("..", "..")
+		cmd := exec.Command("go", "run", "./cmd/migration-translator", "--file", filepath.Join("tests", "unit", "testdata", "migration", tc.file))
+		cmd.Dir = repoRoot
+		cachePath := filepath.Join(repoRoot, ".gocache")
+		absCache, _ := filepath.Abs(cachePath)
+		env := append(os.Environ(), "GOCACHE="+absCache)
+		cmd.Env = env
+		out, err := cmd.CombinedOutput()
+		if err == nil {
+			t.Fatalf("%s: expected non-zero exit; output=%s", tc.file, string(out))
+		}
+		if !strings.Contains(string(out), "\"error\": \"validation\"") {
+			t.Fatalf("%s: missing structured error: %s", tc.file, string(out))
+		}
+		if bytes.Contains(out, []byte("spec:")) {
+			t.Fatalf("%s: unexpected YAML on stdout: %s", tc.file, string(out))
+		}
+		joined := string(out)
+		for _, w := range tc.want {
+			if !strings.Contains(joined, w) {
+				t.Fatalf("%s: missing cause %q in %s", tc.file, w, joined)
+			}
+		}
+	}
+}
+
 // US1 refusals: exercise the CLI so stdout stays empty and causes are on stderr.
 func TestUS1_Refusals_CLI(t *testing.T) {
 	cases := []struct {
@@ -193,5 +239,61 @@ func TestDeterministicHash(t *testing.T) {
 	h2, _ := in2.CanonicalHash()
 	if h1 != h2 {
 		t.Fatalf("hashes differ: %s vs %s", h1, h2)
+	}
+}
+
+// US3 (T052): a gateway naming only IPv4 emits only gatewayIPv4 — the service
+// is never held to an address family it did not ask for (spec US3 AS2).
+func TestGatewaySingleFamily(t *testing.T) {
+	in := migration.ServiceInput{
+		ServiceID:      "svc-gw4",
+		Type:           migration.ServiceMACVRF,
+		Tenant:         "blue",
+		RDRT:           &migration.RdRt{RD: "65000:410", ImportRT: []string{"65000:410"}, ExportRT: []string{"65000:410"}},
+		L2VNI:          10410,
+		L3VNI:          13410,
+		AnycastGateway: &migration.AnycastGateway{GatewayV4: "10.60.0.1/24"},
+		Endpoints:      []migration.Endpoint{{Node: "leaf01", Attachment: "ethernet3", VLAN: 110}},
+	}
+	in.Canonicalize()
+	if err := in.ValidateAllOrNothing(0, false); err != nil {
+		t.Fatalf("validate: %s", migration.MarshalError(err))
+	}
+	out, err := migration.Translate(&in)
+	if err != nil {
+		t.Fatalf("translate: %v", err)
+	}
+	if !strings.Contains(out.NetworkYAML, "gatewayIPv4: 10.60.0.1/24") {
+		t.Fatalf("expected the requested IPv4 gateway in the YAML:\n%s", out.NetworkYAML)
+	}
+	if strings.Contains(out.NetworkYAML, "gatewayIPv6") {
+		t.Fatalf("an unrequested IPv6 gateway was added to the SVI:\n%s", out.NetworkYAML)
+	}
+}
+
+// US3 (T053): a mac-vrf without an anycastGateway emits no routers entry and
+// claims no L3VNI (spec US3 AS3) — routing is composition, not implication.
+func TestMacVRFWithoutGatewayClaimsNoL3(t *testing.T) {
+	in := migration.ServiceInput{
+		ServiceID: "svc-gw0",
+		Type:      migration.ServiceMACVRF,
+		Tenant:    "blue",
+		RDRT:      &migration.RdRt{RD: "65000:411", ImportRT: []string{"65000:411"}, ExportRT: []string{"65000:411"}},
+		L2VNI:     10411,
+		Endpoints: []migration.Endpoint{{Node: "leaf01", Attachment: "ethernet2", VLAN: 111}, {Node: "leaf02", Attachment: "ethernet2", VLAN: 111}},
+	}
+	in.Canonicalize()
+	if err := in.ValidateAllOrNothing(0, false); err != nil {
+		t.Fatalf("validate: %s", migration.MarshalError(err))
+	}
+	out, err := migration.Translate(&in)
+	if err != nil {
+		t.Fatalf("translate: %v", err)
+	}
+	if strings.Contains(out.NetworkYAML, "routers:") {
+		t.Fatalf("a gatewayless mac-vrf emitted a routers entry:\n%s", out.NetworkYAML)
+	}
+	if strings.Contains(out.NetworkYAML, "l3vni") {
+		t.Fatalf("a gatewayless mac-vrf claimed an L3VNI:\n%s", out.NetworkYAML)
 	}
 }

@@ -1,0 +1,20 @@
+# T057 — mac-vrf anycast-gateway phrasing corpus (US3).
+#
+# Natural-language requests that ask a mac-vrf to route: naming a gateway
+# makes the service symmetric IRB, so the interpretation records the
+# anycast_gateway and the allocator claims an L3VNI. A gateway named with no
+# address is a clarification, never a guess (at least one family is required).
+service_type: mac-vrf
+cases:
+  - id: gateway-ipv4
+    first_pass: true
+    text: "provision a mac vrf between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 100 with anycast gateway 10.250.10.1"
+  - id: gateway-ipv6-only
+    first_pass: true
+    text: "create a MAC-VRF between leaf01 ethernet3 and leaf02 ethernet3 for tenant blue vlan 200 whose anycast gateway is 2001:db8:20::1"
+  - id: gateway-both-families
+    first_pass: true
+    text: "set up mac_vrf between leaf01 ethernet4 and leaf02 ethernet4 for tenant green vlan 300 with anycast gateway 10.250.30.1 and ipv6 2001:db8:30::1"
+  - id: gateway-no-address
+    first_pass: false   # a gateway with no address routes nothing: clarify
+    text: "provision a mac vrf between leaf01 ethernet5 and leaf02 ethernet5 for tenant red vlan 400 with an anycast gateway"

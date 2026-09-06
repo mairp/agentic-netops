@@ -353,13 +353,33 @@ class TestMalformedPayloadRejection:
         assert [c[0] for c in transport.calls] == ["mapper"]  # allocator never called
 
     async def test_mapper_single_endpoint_rejected(self):
+        # The interpretation schema carries min_length 1 (a vlan or an acl
+        # binds to one port), so the per-construct minimum fires where the
+        # construct is known: a gatewayless mac-vrf needs >=2 endpoints, and
+        # the refusal names exactly that at the allocator boundary (T024).
         payload = _valid_vpws_interpretation()
         payload["endpoints"] = payload["endpoints"][:1]
-        transport = _FixedPayloadTransport(mapper_payload=payload)
+        ep = payload["endpoints"][0]
+        intent = {
+            "serviceId": payload["service_id"],
+            "type": "mac-vrf",
+            "tenant": payload["tenant"],
+            "rdRt": {"rd": f"64512:{ep['vlan']}", "importRT": [f"64512:{ep['vlan']}"], "exportRT": [f"64512:{ep['vlan']}"]},
+            "l2vni": 10004,
+            "endpoints": [
+                {"node": ep["site_or_node"], "attachment": ep["attachment"], "vlan": ep["vlan"]}
+            ],
+        }
+        NormalizedServiceIntent.model_validate(intent)  # schema-valid alone...
+        assert intent["endpoints"][0]["node"]  # ...the construct rule is what fires
+        transport = _FixedPayloadTransport(mapper_payload=payload, allocator_payload=intent)
         state = await _run(CLEAN_REQUEST, StubClassifierLLM(), transport)
+        assert state.get("workflow_status") == NetworkProvisioningStatus.MAPPED.value  # confirm point
+        state = await _run_turn2(state, "confirm", StubClassifierLLM(), transport)
         assert state.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
-        assert "mapper payload out of contract" in (state.get("refusal_reason") or "")
-        assert [c[0] for c in transport.calls] == ["mapper"]
+        assert "allocator payload out of contract" in (state.get("refusal_reason") or "")
+        assert "mac-vrf requires >=2 endpoints" in (state.get("refusal_reason") or "")
+        assert [c[0] for c in transport.calls] == ["mapper", "allocator"]
 
     async def test_mapper_no_payload_rejected(self):
         transport = _FixedPayloadTransport(mapper_text="Interpretation ready but no payload.")
@@ -392,15 +412,18 @@ class TestMalformedPayloadRejection:
         assert [c[0] for c in transport.calls] == ["mapper", "allocator"]
 
     async def test_allocator_type_mismatch_rejected(self):
-        # A schema-valid L3VPN intent for a VPWS interpretation: the stage
-        # type-match rule (data-model.md §3) rejects it.
+        # A schema-valid ip-vrf intent for a mac-vrf interpretation: the stage
+        # type-match rule (data-model.md §3) rejects it. Both halves speak the
+        # construct vocabulary now — the VPWS request folds to mac-vrf, and an
+        # ip-vrf payload is valid alone but names a different construct than
+        # the one the operator confirmed.
         intent = _valid_vpws_intent(_valid_vpws_interpretation())
         intent = {
             "serviceId": intent["serviceId"],
-            "type": "L3VPN",
+            "type": "ip-vrf",
             "tenant": intent["tenant"],
             "rdRt": intent["rdRt"],
-            "l3vni": 30001,
+            "l3vni": 13410,
             "addressFamilies": {"ipv4Prefixes": ["10.250.0.0/16"]},
             "endpoints": [
                 {"node": e["node"], "attachment": e["attachment"], "vrf": f"vrf-{intent['tenant']}"}

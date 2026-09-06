@@ -11,12 +11,67 @@ import (
 
 func TestGolden_VPLS(t *testing.T) {}
 
+// US3 (T051): a mac-vrf carrying an anycast gateway composes — the bridge
+// domain's irb points at the per-service router emitted in the same Network,
+// so the operator never names a separate routed service.
+func TestGolden_MacVRF_Gateway_Composition(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join("testdata", "migration", "construct_macvrf_gateway.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	inputs, err := migration.ParseStrictBatch(b)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	outs, err := migration.RenderBatch(inputs)
+	if err != nil {
+		t.Fatalf("render: %s", migration.MarshalError(err))
+	}
+	if len(outs) != 1 {
+		t.Fatalf("expected 1 doc, got %d", len(outs))
+	}
+	spec := extractYAMLSnippet(outs[0], "spec:")
+	// The irb block names a vrf; the routers entry with the same name must
+	// exist in the same Network document.
+	irbIdx := strings.Index(spec, "  irb:")
+	if irbIdx < 0 {
+		t.Fatalf("expected an irb block on the bridge domain")
+	}
+	irbBlock := spec[irbIdx:]
+	end := strings.Index(irbBlock, "\n  routers:") // irb is the last bridgeDomain key before routers
+	if end < 0 {
+		end = len(irbBlock)
+	}
+	irbBlock = irbBlock[:end]
+	var vrf string
+	for _, line := range strings.Split(irbBlock, "\n") {
+		if strings.HasPrefix(line, "      vrf: ") {
+			vrf = strings.TrimSpace(strings.TrimPrefix(line, "      vrf: "))
+			break
+		}
+	}
+	if vrf == "" {
+		t.Fatalf("irb block names no vrf: %s", irbBlock)
+	}
+	if !strings.Contains(spec, "  routers:\n  - name: "+vrf+"\n") {
+		t.Fatalf("bridgeDomains[0].irb.vrf %q does not name a routers[] entry in the same Network:\n%s", vrf, spec)
+	}
+	// And the golden itself pins the composed shape.
+	gold, _ := os.ReadFile(filepath.Join("testdata", "migration", "construct_macvrf_gateway.spec.golden.yaml"))
+	if strings.TrimSpace(spec) != strings.TrimSpace(string(gold)) {
+		_ = os.WriteFile(filepath.Join(os.TempDir(), "construct_macvrf_gateway.json.actual.yaml"), []byte(spec), 0o644)
+		t.Fatalf("golden mismatch for construct_macvrf_gateway spec")
+	}
+}
+
 func TestGolden_Constructs(t *testing.T) {
 	cases := []struct{ file, gold string }{
 		{"construct_vlan.json", "construct_vlan.spec.golden.yaml"},
 		{"construct_macvrf.json", "construct_macvrf.spec.golden.yaml"},
 		{"construct_ipvrf.json", "construct_ipvrf.spec.golden.yaml"},
 		{"construct_acl.json", "construct_acl.spec.golden.yaml"},
+		{"construct_macvrf_with_acl.json", "construct_macvrf_with_acl.spec.golden.yaml"},
+		{"construct_macvrf_gateway.json", "construct_macvrf_gateway.spec.golden.yaml"},
 	}
 	for _, tc := range cases {
 		b, err := os.ReadFile(filepath.Join("testdata", "migration", tc.file))

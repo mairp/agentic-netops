@@ -58,21 +58,74 @@ def test_fixture_wire_names_are_the_go_json_names():
     assert dumped["endpoints"][0] == {"node": "leaf01", "attachment": "client01", "vlan": 10}
 
 
-def test_irb_uses_the_go_type_literal():
-    """The translator's IRB type is L2L3-IRB (pkg/migration/input.go:29)."""
-    obj = NormalizedServiceIntent.model_validate(load_fixture("supported_irb.json"))
-    assert obj.type == "L2L3-IRB"
+def _fold_legacy(payload: dict) -> dict:
+    """Client-side mirror of the Go ``Canonicalize`` fold (US4): a legacy
+    migration-source fixture is what an operator or a legacy system hands us;
+    the normalized agent contract carries the construct it folds to. The
+    legacy ``irbGateway`` block is the anycast gateway under its old name and
+    only its addresses carry over; ``sourceType`` is Go-side bookkeeping and
+    is not part of the agent wire contract."""
+    out = json.loads(json.dumps(payload))  # deep copy
+    aliases = {
+        "VPLS": "mac-vrf",
+        "VPWS": "mac-vrf",
+        "ELINE": "mac-vrf",
+        "L2L3-IRB": "mac-vrf",
+        "IRB": "mac-vrf",
+        "L3VPN": "ip-vrf",
+    }
+    t = out.get("type")
+    out["type"] = aliases.get(t, t)
+    gateway = out.pop("irbGateway", None)
+    if gateway is not None and out.get("anycastGateway") is None:
+        out["anycastGateway"] = {
+            k: gateway[k] for k in ("gatewayIPv4", "gatewayIPv6") if gateway.get(k)
+        }
+    out.pop("sourceType", None)
+    return out
+
+
+@pytest.mark.parametrize(
+    "fixture",
+    ["supported_vpls.json", "supported_l3vpn.json", "supported_irb.json", "supported_vpws_optin.json"],
+)
+def test_supported_fixtures_parse_and_validate(fixture: str):
+    obj = NormalizedServiceIntent.model_validate(_fold_legacy(load_fixture(fixture)))
+    assert obj.validate_all_or_nothing() is None, f"{fixture} must fold to a valid construct"
+
+
+def test_fixture_wire_names_are_the_go_json_names():
+    """The model serializes back to the translator's wire names."""
+    obj = NormalizedServiceIntent.model_validate(_fold_legacy(load_fixture("supported_vpls.json")))
+    dumped = obj.model_dump(exclude_none=True)
+    for key in ("serviceId", "type", "tenant", "rdRt", "l2vni", "endpoints"):
+        assert key in dumped, f"wire name {key!r} must survive the round trip"
+    assert dumped["type"] == "mac-vrf"
+    assert dumped["rdRt"]["importRT"] == ["65000:100"]
+    assert dumped["endpoints"][0] == {"node": "leaf01", "attachment": "client01", "vlan": 10}
+
+
+def test_irb_folds_to_macvrf_with_anycast_gateway():
+    """A legacy IRB input folds to a mac-vrf carrying the anycast gateway
+    (symmetric IRB): same VNIs, addresses carried over, the legacy ``vrf``
+    label dropped — the ip-vrf is resolved at translation time."""
+    obj = NormalizedServiceIntent.model_validate(_fold_legacy(load_fixture("supported_irb.json")))
+    assert obj.type == "mac-vrf"
     assert obj.l2vni == 10401 and obj.l3vni == 14001
-    assert obj.irbGateway is not None and obj.irbGateway.vrf == "vrf-b1"
+    assert obj.anycastGateway is not None
+    assert obj.anycastGateway.gatewayIPv4 == "10.0.20.1/24"
+    assert obj.anycastGateway.gatewayIPv6 == "2001:db8:20::1/64"
+    assert "vrf" not in obj.anycastGateway.model_dump(exclude_none=True)
 
 
 def test_batch_duplicate_service_id_is_a_collision():
-    """collision_duplicate.json: each item is valid alone; the duplicate
-    serviceId in the batch is a terminal collision (Go: dupServiceID)."""
+    """collision_duplicate.json: each item folds to a valid construct and is
+    valid alone; the duplicate serviceId in the batch is a terminal collision
+    (Go: dupServiceID)."""
     batch = load_fixture("collision_duplicate.json")
     assert isinstance(batch, list) and len(batch) == 2
-    first = NormalizedServiceIntent.model_validate(batch[0])
-    second = NormalizedServiceIntent.model_validate(batch[1])
+    first = NormalizedServiceIntent.model_validate(_fold_legacy(batch[0]))
+    second = NormalizedServiceIntent.model_validate(_fold_legacy(batch[1]))
     assert first.validate_all_or_nothing(dup_service_id=False) is None
     err = second.validate_all_or_nothing(dup_service_id=True)
     assert err is not None
@@ -109,38 +162,47 @@ def test_unsupported_feature_rejects_named():
     assert "unsupported: tePolicy" in err.causes
 
 
-def test_vpws_without_policy_optin_rejects():
-    """The VPWS limited-equivalence mapping requires the explicit opt-in
-    (policy rule, input.go ServiceVPWS branch)."""
-    obj = NormalizedServiceIntent.model_validate(load_fixture("supported_vpws_optin.json"))
+def test_vpws_optin_has_no_effect_on_the_macvrf_construct():
+    """The exactly-two-attachments and limited-equivalence opt-in rules are
+    VPWS-alias rules and live on the Go brownfield path (input.go, keyed on
+    SourceType == LegacyVPWS; covered by the Go unit tests). Asking for the
+    mac-vrf construct directly claims no pseudowire, so the policy is absent
+    and the construct validates."""
+    obj = NormalizedServiceIntent.model_validate(_fold_legacy(load_fixture("supported_vpws_optin.json")))
+    assert obj.type == "mac-vrf"
+    assert obj.policies is not None and obj.policies.vpwsLimitedEquivalence is True
+    # The construct itself needs no opt-in:
     obj.policies = None
-    err = obj.validate_all_or_nothing()
-    assert err is not None
-    assert any("vpwsLimitedEquivalence must be true" in c for c in err.causes)
+    assert obj.validate_all_or_nothing() is None
 
 
 def test_l3vpn_without_address_families_rejects():
-    obj = NormalizedServiceIntent.model_validate(load_fixture("supported_l3vpn.json"))
+    obj = NormalizedServiceIntent.model_validate(_fold_legacy(load_fixture("supported_l3vpn.json")))
+    assert obj.type == "ip-vrf"
     obj.addressFamilies = None
     err = obj.validate_all_or_nothing()
     assert err is not None
-    assert any("addressFamilies: at least one prefix is required for L3VPN" in c for c in err.causes)
+    assert any("addressFamilies: at least one prefix is required for ip-vrf" in c for c in err.causes)
 
 
 def test_vpls_mismatched_vlans_reject():
-    obj = NormalizedServiceIntent.model_validate(load_fixture("supported_vpls.json"))
+    obj = NormalizedServiceIntent.model_validate(_fold_legacy(load_fixture("supported_vpls.json")))
     obj.endpoints[1].vlan = 11
     err = obj.validate_all_or_nothing()
     assert err is not None
-    assert any("must be equal across all endpoints for VPLS" in c for c in err.causes)
+    assert any("mac-vrf is one bridge domain" in c for c in err.causes)
 
 
-def test_vpws_requires_exactly_two_endpoints():
-    obj = NormalizedServiceIntent.model_validate(load_fixture("supported_vpws_optin.json"))
+def test_macvrf_requires_two_endpoints():
+    """A gatewayless mac-vrf is a bridged service: one attachment extends
+    nothing. (With an anycast gateway the minimum drops to 1 — the SVI gives
+    the single attachment a routed reason to exist.)"""
+    obj = NormalizedServiceIntent.model_validate(_fold_legacy(load_fixture("supported_vpws_optin.json")))
+    obj.policies = None
     obj.endpoints = obj.endpoints[:1]
     err = obj.validate_all_or_nothing()
     assert err is not None
-    assert any("VPWS requires exactly 2 endpoints" in c for c in err.causes)
+    assert any("mac-vrf requires >=2 endpoints" in c for c in err.causes)
 
 
 def test_unknown_service_type_rejects_never_coerces():
@@ -182,8 +244,10 @@ VALID_INTERPRETATION = {
 def test_complete_interpretation_validates():
     interp = Interpretation.model_validate(VALID_INTERPRETATION)
     assert interp.is_complete
-    # ServiceType folding now maps service-provider aliases to constructs; accept legacy VPLS mapping
-    assert str(interp.service_type.value).lower() in ("vpls", "mac-vrf", "vlan", "ip-vrf", "acl")
+    # The legacy alias folds to the construct; provenance records what the
+    # operator actually said (US4).
+    assert interp.service_type.value == "mac-vrf"
+    assert interp.source_service_type == "VPLS"
     assert interp.endpoints[0].vlan == 10
 
 
@@ -195,9 +259,17 @@ def test_interpretation_required_fields_rejected(field: str):
         Interpretation.model_validate(data)
 
 
-def test_interpretation_requires_at_least_two_endpoints():
+def test_interpretation_requires_at_least_one_endpoint():
+    """FR-011 / T024: the schema minimum drops to 1 — a vlan, an ip-vrf or an
+    acl binds to a single port, and a mac-vrf with an anycast gateway needs
+    only one. Zero endpoints is no service at all. The per-construct minima
+    (a gatewayless mac-vrf needs >=2) fire where the construct is known: the
+    normalized intent (see test_macvrf_requires_two_endpoints)."""
     data = dict(VALID_INTERPRETATION)
     data["endpoints"] = [VALID_INTERPRETATION["endpoints"][0]]
+    interp = Interpretation.model_validate(data)
+    assert len(interp.endpoints) == 1
+    data["endpoints"] = []
     with pytest.raises(ValidationError):
         Interpretation.model_validate(data)
 

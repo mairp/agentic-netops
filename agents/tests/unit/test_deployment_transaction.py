@@ -133,6 +133,9 @@ class FakeIntentAPI:
             if obj["metadata"].get("labels", {}).get(CORRELATION_LABEL) == correlation_id
         ]
 
+    def list_networks(self) -> list[dict[str, Any]]:
+        return [obj for (api, kind, _), obj in self.objects.items() if api == "network.kubenet.dev/v1alpha1" and kind == "Network"]
+
     def delete(self, ref: Any) -> bool:
         if self.sticky_delete:
             return False
@@ -422,6 +425,54 @@ class TestConvergenceWatch:
 # Step 8 — truthful reporting at the agent boundary.
 # ---------------------------------------------------------------------------
 class TestDeployerAgentReporting:
+
+    def test_preflight_refuses_second_acl_on_same_port_stage(self, monkeypatch):
+        from provisioning.deployer import submit as submit_mod
+        # Build two Network manifests: existing with ACL ingress on ethernet1; new tries to bind another ACL on same port/stage
+        existing = _manifest("net-existing")
+        existing["spec"] = {
+            "accessLists": [{"name": "acl-a", "stage": "ingress", "type": "l3", "rules": [{"name": "r", "priority": 100, "action": "deny"}]}],
+            "attachments": [{"node": "leaf01", "attachment": "ethernet1"}],
+        }
+        new = _manifest("net-new")
+        new["spec"] = {
+            "accessLists": [{"name": "acl-b", "stage": "ingress", "type": "l3", "rules": [{"name": "r", "priority": 100, "action": "permit"}]}],
+            "attachments": [{"node": "leaf01", "attachment": "ethernet1"}],
+        }
+        def translator(_intent):
+            return {"manifests": [existing, new]}
+        client = FakeIntentAPI()
+        # seed existing object to simulate already applied service on cluster
+        client.apply(existing)
+        envelope = _envelope()
+        # Inject client factory
+        monkeypatch.setattr(submit_mod, "build_default_client", lambda: client)
+        with pytest.raises(DeploymentTransactionError) as excinfo:
+            run_deployment_transaction(envelope, client=client, translator=translator, watch=False)
+        assert excinfo.value.phase == "pre-flight"
+        assert "refuse_acl_port_binding" in str(excinfo.value)
+        assert "ethernet1" in str(excinfo.value) and "ingress" in str(excinfo.value)
+
+    def test_preflight_allows_distinct_ports_or_stages(self, monkeypatch):
+        from provisioning.deployer import submit as submit_mod
+        existing = _manifest("net-existing")
+        existing["spec"] = {
+            "accessLists": [{"name": "acl-a", "stage": "ingress", "type": "l3", "rules": [{"name": "r", "priority": 100, "action": "deny"}]}],
+            "attachments": [{"node": "leaf01", "attachment": "ethernet1"}],
+        }
+        new = _manifest("net-new")
+        new["spec"] = {
+            "accessLists": [{"name": "acl-b", "stage": "egress", "type": "l3", "rules": [{"name": "r", "priority": 100, "action": "permit"}]}],
+            "attachments": [{"node": "leaf01", "attachment": "ethernet1"}],
+        }
+        def translator(_intent):
+            return {"manifests": [existing, new]}
+        client = FakeIntentAPI()
+        client.apply(existing)
+        monkeypatch.setattr(submit_mod, "build_default_client", lambda: client)
+        # Should not raise
+        payload = run_deployment_transaction(_envelope(), client=client, translator=translator, watch=False)
+        assert payload["submitted"]
     async def _invoke(self, text: str, monkeypatch, client=None, client_factory=None, translator=_translator_ok):
         from provisioning.deployer import submit as submit_mod
         from provisioning.deployer.agent import DeployerAgent
@@ -511,6 +562,27 @@ def _deployer_parts(submitted: list[dict[str, Any]]) -> list[dict[str, Any]]:
         {"text": _marker_text("Submission report received.\n", payload)},
     ]
 
+
+def _fake_status_with_unverified() -> dict[str, Any]:
+    # Ready False with a message naming a check that did not run on leaf01
+    return {
+        "status": {
+            "serviceId": "svc-alpha",
+            "correlationId": CID,
+            "phase": "Failed",
+            "resources": [
+                        {
+                    "kind": "Network",
+                    "name": "net-svc-alpha",
+                    "ready": False,
+                    "reason": "ApplyFailed",
+                    "message": "node leaf01 checks[3].redis-keys-match: executor unreachable",
+                    "lastTransitionTime": "2026-09-05T00:00:00Z",
+                    "unverified": [{"node": "leaf01", "property": "redis-keys-match"}],
+                }
+            ],
+        }
+    }
 
 def _failed_parts() -> list[dict[str, Any]]:
     payload = {
@@ -929,6 +1001,21 @@ class TestStatusQuestionOnACompletedThread:
         assert "Deployed." in out["messages"][0].content
 
     async def test_a_resolved_failure_answer_names_the_responsible_stage(self, graph_llm):
+        report = {"status": {"correlationId": CID, "phase": "Failed", "resources": []}}
+    async def test_unverified_indicator_carries_through_supervisor_rendering(self, graph_llm):
+        # The deployer worker returns a status report with Ready False message naming a check that did not run.
+        parts = [{"data": _fake_status_with_unverified()}, {"text": _marker_text("Failed.\n", _fake_status_with_unverified())}]
+        state = {
+            **_deployer_state(),
+            "tool_action": "status",
+            "tool_request": canonical_json({"action": "status", "correlationId": CID}),
+        }
+        out = await _run_deployer_node(graph_llm, parts, state=state)
+        # The refusal_reason includes the supervisor-rendered convergence text with the unverified hint
+        assert out["workflow_status"] == NetworkProvisioningStatus.FAILED.value
+        text = out["messages"][0].content
+        assert "unverified" in text and "redis-keys-match@leaf01" in text
+
         report = {"status": {"correlationId": CID, "phase": "Failed", "resources": []}}
         parts = [{"data": report}, {"text": _marker_text("Failed.\n", report)}]
         state = {

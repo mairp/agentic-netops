@@ -42,7 +42,7 @@ from pydantic import ValidationError
 
 from common.redaction import redact_model_response
 from common.schemas.interpretation import Interpretation
-from common.schemas.normalized_intent import AddressFamilies, Endpoint, IRBGateway, NormalizedServiceIntent, Policies, RdRt
+from common.schemas.normalized_intent import AddressFamilies, AnycastGateway, Endpoint, NormalizedServiceIntent, Policies, RdRt
 from provisioning.allocator.kuid import KUIDClient
 from common.telemetry import get_trace_correlation_id
 
@@ -165,18 +165,29 @@ class AllocatorAgent:
                 endpoints=eps,
             )
         elif st == "mac-vrf":
-            # Claim L2VNI + RT; VLAN claimed unless operator named one
-            # VLAN allocation occurs in _l2_endpoints when not named
+            # Claim L2VNI + RT; VLAN claimed unless operator named one.
+            # L3VNI is claimed only when the operator asked the mac-vrf to
+            # route (anycast gateway): routing is composition, not implication
+            # (contracts/kuid-claim-profiles.md §2, US3 T056).
             eps = self._l2_endpoints(endpoints, correlation_id, "mac-vrf")
             l2vni = self.kuid.allocate_l2vni(correlation_id)
             rd, import_rt, export_rt = self.kuid.allocate_rd_rt(correlation_id)
             rd_rt = RdRt(rd=rd, importRT=import_rt, exportRT=export_rt)
+            gateway = None
+            if interp.anycast_gateway is not None:
+                l3vni = self.kuid.allocate_l3vni(correlation_id)
+                gateway = AnycastGateway(
+                    gatewayIPv4=interp.anycast_gateway.ipv4 or "",
+                    gatewayIPv6=interp.anycast_gateway.ipv6 or "",
+                )
             intent = NormalizedServiceIntent(
                 serviceId=interp.service_id,
                 type="mac-vrf",
                 tenant=interp.tenant,
                 rdRt=rd_rt,
                 l2vni=l2vni,
+                l3vni=l3vni,
+                anycastGateway=gateway,
                 endpoints=eps,
             )
         elif st == "ip-vrf":

@@ -162,3 +162,14 @@ def test_l2_and_l3_fallback_share_the_vni_pool(kuid, monkeypatch):
 
     assert client.allocate_l2vni("corr-1") == 5000
     assert client.allocate_l3vni("corr-1") == 5001
+
+
+
+def test_release_by_correlation_no_claims_is_success(kuid):
+    """Releasing by correlation when nothing was claimed is a success (0 deletions)."""
+    client = kuid.KUIDClient(kuid.KUIDIdentity("https://kubernetes.default.svc:443", "token", False))
+    fake = _FallbackHTTP()
+    # No created leases; served claim resources also enumerate to empty
+    client._client = fake
+
+    assert client.release_by_correlation("corr-absent") == 0
