@@ -66,8 +66,8 @@ type Op struct {
 // Check verifies one piece of applied state on the node.
 type Check struct {
 	// redis-hget: KEY then FIELD, Expect exact match.
-	RedisKey   string            `json:"redisKey,omitempty"`
-	RedisField string            `json:"redisField,omitempty"`
+	RedisKey   string `json:"redisKey,omitempty"`
+	RedisField string `json:"redisField,omitempty"`
 	// RedisDB optionally overrides the database number for redis reads
 	// (defaulting to CONFIG_DB on the executor when empty). This allows
 	// applied-state checks to address ASIC_DB (db 1) while configuration-side
@@ -490,7 +490,7 @@ func accessPortShell(port string, vid int64) []string {
 func vtepShell(vtep string, vid int64) []string {
 	dev := fmt.Sprintf("%s-%d", vtep, vid)
 	return []string{
-		fmt.Sprintf("for i in $(seq 1 15); do ip link show %s >/dev/null 2>&1 && exit 0; sleep 1; done; exit 1", dev),
+		fmt.Sprintf("for i in $(seq 1 60); do ip link show %s >/dev/null 2>&1 && exit 0; sleep 1; done; exit 1", dev),
 		// Every write here is guarded on the state being wrong. A converged
 		// service is reconciled repeatedly, and re-issuing bridge membership
 		// on a healthy VXLAN device churns netlink for no reason — churn
@@ -758,6 +758,18 @@ func l2Overlay(bd kubenet.BridgeDomain, vlanName string, opts Options) []string 
 	}
 }
 
+// cleanupVXLANMapShell removes any pre-existing VXLAN_TUNNEL_MAP rows for this VLAN
+// that do not match the service's declared L2VNI. On long-lived labs a stale map
+// can leave vtep1-<vid> carrying the wrong VNI even after the correct row is present
+// (observed: leaf01 vtep1-100 on vni 10045 while the service declared 10100).
+// This bounded deletion targets only rows for the same VLAN name and preserves the
+// expected key (map_<vni>_<vlanName>).
+func cleanupVXLANMapShell(vtepName, vlanName string, expectVNI int64) []string {
+	return []string{fmt.Sprintf(
+		"for k in $(redis-cli -n 4 keys 'VXLAN_TUNNEL_MAP|%s|map_*_%s'); do case \"$k\" in *map_%d_%s) ;; *) redis-cli -n 4 del \"$k\" >/dev/null ;; esac; done",
+		vtepName, vlanName, expectVNI, vlanName)}
+}
+
 // renderVLAN renders a local VLAN construct: a VLAN row and the access port's membership
 // in the vlan-aware Bridge. No VXLAN_TUNNEL_MAP rows, no vtep handling, no l2vpn evpn block.
 func renderVLAN(np *NodePlan, v kubenet.NetworkVLAN, att kubenet.NetworkAttachment, opts Options) error {
@@ -906,6 +918,8 @@ func renderL2(np *NodePlan, bd kubenet.BridgeDomain, att kubenet.NetworkAttachme
 	// vlan-aware Bridge in the service vlan.
 	shell := []string{"ip link show Bridge >/dev/null 2>&1 || { ip link add Bridge type bridge; ip link set Bridge up; }"}
 	shell = append(shell, accessPortShell(port, bd.VLAN)...)
+	// Proactively clear any stale VXLAN_TUNNEL_MAP rows for this VLAN that point to the wrong VNI
+	shell = append(shell, cleanupVXLANMapShell(opts.VTEPName, vlanName, bd.L2VNI)...)
 	shell = append(shell, vtepShell(opts.VTEPName, bd.VLAN)...)
 	np.Ops = append(np.Ops, Op{Shell: shell})
 
@@ -953,6 +967,8 @@ func renderIRB(np *NodePlan, bd kubenet.BridgeDomain, r kubenet.NetworkRouter, a
 	shell := sviShell(c.L3VLANDev, c.L3VLAN, c.VRFName, nil)
 	shell = append(shell, sviShell(vlanName, bd.VLAN, c.VRFName, gateways)...)
 	shell = append(shell, accessPortShell(port, bd.VLAN)...)
+	// Proactively clear any stale VXLAN_TUNNEL_MAP rows for this VLAN that point to the wrong VNI
+	shell = append(shell, cleanupVXLANMapShell(opts.VTEPName, vlanName, bd.L2VNI)...)
 	shell = append(shell, vtepShell(opts.VTEPName, bd.VLAN)...)
 	np.Ops = append(np.Ops, Op{Shell: shell})
 	// 4. FRR: the L2VNI's RD/RT, then the VRF's L3VNI and its Type-5 origination.
@@ -1129,7 +1145,7 @@ func renderACL(np *NodePlan, al kubenet.AccessList, ports []string, serviceID, t
 	np.Checks = append(np.Checks,
 		Check{Type: "redis-keys-match", RedisDB: "1", RedisKey: "ASIC_STATE:SAI_OBJECT_TYPE_ACL_TABLE:*",
 			MatchFields: map[string]string{
-				"SAI_ACL_TABLE_ATTR_ACL_STAGE":               stageSAI,
+				"SAI_ACL_TABLE_ATTR_ACL_STAGE":                stageSAI,
 				"SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST": "SAI_ACL_BIND_POINT_TYPE_PORT",
 			},
 		},
