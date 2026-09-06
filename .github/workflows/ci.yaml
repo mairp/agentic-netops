@@ -173,4 +173,9 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --frozen
       - name: Run idempotence tests (e2e marker)
+        # The pair provisions and purges for real. It is opt-in precisely so it
+        # cannot run by accident on a host whose lab is live; this runner is
+        # ephemeral, so it opts in.
+        env:
+          AGENTIC_NETOPS_ALLOW_DESTRUCTIVE_E2E: "1"
         run: uv run pytest -m "e2e" -k "lifecycle_idempotence"

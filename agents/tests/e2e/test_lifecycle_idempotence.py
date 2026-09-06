@@ -5,7 +5,30 @@ import subprocess
 
 import pytest
 
-pytestmark = pytest.mark.e2e
+# These two tests are not "end-to-end" in the read-only sense: they EXECUTE
+# scripts/provision.sh and scripts/off.sh --purge-intent-tier against whatever
+# cluster and lab the host is pointing at. On a workstation or a lab host that
+# means tearing down the running intent tier and the containerlab fabric, which
+# is exactly what happened on 2026-09-06 when the marker was run to reproduce
+# the CI job (docs/SUGGESTED_PROMPTS_POSTMORTEM.md). The `e2e` marker alone did
+# not say that: it is shared with read-only cluster tests.
+#
+# So the destructive pair is opt-in. CI's lifecycle-idempotence job sets
+# AGENTIC_NETOPS_ALLOW_DESTRUCTIVE_E2E=1 because its runner is ephemeral; on any
+# host where the lab is real, running `pytest -m e2e` now skips them instead of
+# purging it.
+DESTRUCTIVE_OPT_IN = "AGENTIC_NETOPS_ALLOW_DESTRUCTIVE_E2E"
+
+pytestmark = [
+    pytest.mark.e2e,
+    pytest.mark.skipif(
+        os.environ.get(DESTRUCTIVE_OPT_IN) != "1",
+        reason=(
+            f"runs provision.sh and off.sh --purge-intent-tier against the live host; "
+            f"set {DESTRUCTIVE_OPT_IN}=1 only where tearing the lab down is intended"
+        ),
+    ),
+]
 
 
 def _run(cmd: list[str]) -> tuple[int, str, str]:
