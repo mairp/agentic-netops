@@ -37,6 +37,11 @@ VLAN_ID = re.compile(r"\bvlan\s+(\d+)\b", re.I)
 ACL_INTENT = re.compile(r"\b(acl|access list|permit|permitting|allow|deny)\b", re.I)
 EGRESS = re.compile(r"\begress\b", re.I)
 
+# The framing the construct vocabulary replaced (US5). These name no retired
+# service, so the vocabulary guard does not see them, but they are exactly what
+# the stale UI fallback said.
+STALE_FRAMING = re.compile(r"\b(service[- ]types?|L2 service|L3 service)\b", re.I)
+
 # The site map the provider actually runs with; the test may be pointed at a
 # different site through FABRIC_PORT_MAP.
 DEFAULT_PORT_MAP = {
@@ -126,3 +131,52 @@ def test_no_two_prompts_bind_an_ingress_acl_to_the_same_port():
                     f"the deployer pre-flight refuses the second.\n  first:  {prev!r}\n  second: {s!r}"
                 )
                 claimed[key] = s
+
+
+# The UI keeps its own copy of a few prompts, shown when /suggested-prompts is
+# unreachable. Nothing else checks it, and it had drifted a whole vocabulary
+# behind the served set ("Create an L2 service ...", "What service types do you
+# support?") — the first thing an operator saw whenever the supervisor was down.
+APP_TSX = ROOT / "ui" / "src" / "App.tsx"
+FALLBACK_BLOCK = re.compile(r"const fallback = useMemo\(\s*\(\)\s*=>\s*\[(.*?)\]", re.S)
+QUOTED = re.compile(r"'((?:[^'\\]|\\.)*)'")
+
+
+def _ui_fallback_prompts() -> list[str]:
+    m = FALLBACK_BLOCK.search(APP_TSX.read_text(encoding="utf-8"))
+    assert m, "could not find the suggested-prompt fallback array in ui/src/App.tsx"
+    return [q.replace("\\'", "'") for q in QUOTED.findall(m.group(1))]
+
+
+def test_ui_fallback_prompts_match_the_served_set():
+    """The offline fallback must teach the same vocabulary as the served set.
+
+    Three rules, because the old fallback broke all of them without naming a
+    single retired service name (so the vocabulary guard never saw it):
+
+    1. at least one entry names a construct — otherwise the surface an operator
+       meets when the supervisor is down teaches no vocabulary at all;
+    2. an entry that names a construct must be one of the served prompts, so it
+       is covered by the port and conflict checks above;
+    3. no entry may use the framing constructs replaced ("service type").
+    """
+    served = set(_prompts())
+    fallback = _ui_fallback_prompts()
+    assert fallback, "ui fallback prompt list is empty"
+
+    named = [s for s in fallback if CONSTRUCT.search(s)]
+    assert named, (
+        "no ui fallback prompt names a construct; the offline surface teaches "
+        f"none of the vocabulary: {fallback!r}"
+    )
+
+    for s in named:
+        assert s in served, (
+            "ui/src/App.tsx offers a construct prompt that is not in "
+            f"suggested_prompts.json, so nothing checks it resolves here: {s!r}"
+        )
+
+    for s in fallback:
+        assert not STALE_FRAMING.search(s), (
+            f"ui fallback uses the framing constructs replaced: {s!r}"
+        )

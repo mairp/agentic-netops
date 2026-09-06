@@ -79,11 +79,19 @@ function useIntentHealth() {
 }
 
 function useSuggestedPrompts() {
+  // Shown only when /suggested-prompts is unreachable — which is the first
+  // thing a new operator sees if the supervisor is down, so it has to speak the
+  // same construct vocabulary as the served set rather than drift behind it.
+  // The two provisioning entries are copied verbatim from
+  // agents/supervisors/provisioning/suggested_prompts.json; the guard test in
+  // agents/tests/unit/test_suggested_prompts_ports_constructs.py fails if they
+  // stop matching, because a fallback that names a construct must be a scenario
+  // that actually runs at this site.
   const fallback = useMemo(
     () => [
-      'Create an L2 service for tenant blue between leaf01 eth3 and leaf02 eth3.',
-      'What service types do you support?',
-      'Show the status of my network services.',
+      'Provision a vlan 130 on leaf01 ethernet1 for tenant acme',
+      'Deploy an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant initech with prefix 10.50.0.0/24',
+      'Show the status of my services.',
     ],
     [],
   )
