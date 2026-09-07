@@ -65,8 +65,8 @@ collected live from `kubectl`, Redis and `vtysh` by `accept.py`, and the
 [driver's own record](docs/media/agentic-netops-intent-tier-demo-meta.json)
 of the take: every terminal and canvas frame check passed, and every
 command's shell prompt returned on screen before the next was typed. The
-full-speed take stays with the driver's output, outside the repository;
-`scripts/video-accelerate.sh` produced the 6x cut.
+full-speed take was not kept; `scripts/video-accelerate.sh` produced the 6x
+cut from it before it was deleted.
 
 ## The lab
 
