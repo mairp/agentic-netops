@@ -1,27 +1,27 @@
 {
- "generated_utc": "2026-09-07T05:22:04.197+00:00",
+ "generated_utc": "2026-09-07T08:44:38.492+00:00",
  "take": "final",
  "video": {
   "width": 1920,
   "height": 1080,
-  "duration": 2199.066667
+  "duration": 2328.133333
  },
  "prompts": [
   {
-   "id": "A",
-   "prompt": "Provision a vlan 130 on leaf01 ethernet1 for tenant acme",
+   "id": "A3",
+   "prompt": "Provision a vlan 170 on leaf01 ethernet1 for tenant acme",
    "construct": "vlan",
-   "correlation_id": "107850917f144efdbafea433c54d1b51",
-   "checked_utc": "2026-09-07T05:22:04.818+00:00",
-   "seconds_enter_to_deployed": 619.5,
+   "correlation_id": "ff2a87581a6d47719749b1cc989ff3db",
+   "checked_utc": "2026-09-07T08:44:39.822+00:00",
+   "seconds_enter_to_deployed": 642.7,
    "dom_outcome_text": "Deployed \u2014 1 resource verified Ready on the fabric.",
-   "t_enter_utc": "2026-09-07T04:45:36.583+00:00",
+   "t_enter_utc": "2026-09-07T07:59:41.613+00:00",
    "outcome_screenshots": [
-    "final-A-outcome-06.png"
+    "final-A3-outcome-05.png"
    ],
-   "network": "migr-831516cde2a8455",
+   "network": "migr-3c823baa74af4f8",
    "ready_condition": {
-    "lastTransitionTime": "2026-09-07T05:16:52Z",
+    "lastTransitionTime": "2026-09-07T08:38:03Z",
     "message": "applied and verified on all nodes",
     "observedGeneration": 1,
     "reason": "ApplySucceeded",
@@ -34,43 +34,43 @@
    "service_type": "vlan",
    "router_pass": true,
    "commands": {
-    "A-cmd1": {
-     "cmd": "kubectl -n agentic-netops-intent get networks.network.kubenet.dev -l agentic-netops.io/correlation-id=107850917f144efdbafea433c54d1b51 -o custom-columns=NAME:.metadata.name,TYPE:'.metadata.annotations.agentic-netops\\.io/service-type',READY:'.status.conditions[?(@.type==\"Ready\")].status',REASON:'.status.conditions[?(@.type==\"Ready\")].reason'",
+    "A3-cmd1": {
+     "cmd": "kubectl -n agentic-netops-intent get networks.network.kubenet.dev -l agentic-netops.io/correlation-id=ff2a87581a6d47719749b1cc989ff3db -o custom-columns=NAME:.metadata.name,TYPE:'.metadata.annotations.agentic-netops\\.io/service-type',READY:'.status.conditions[?(@.type==\"Ready\")].status',REASON:'.status.conditions[?(@.type==\"Ready\")].reason'",
      "rc": 0
     },
-    "A-cmd2": {
-     "cmd": "kubectl -n agentic-netops-intent get events --field-selector involvedObject.name=migr-831516cde2a8455",
+    "A3-cmd2": {
+     "cmd": "kubectl -n agentic-netops-intent get events --field-selector involvedObject.name=migr-3c823baa74af4f8",
      "rc": 0
     },
-    "A-cmd3": {
-     "cmd": "kubectl -n agentic-netops-intent get networks.network.kubenet.dev migr-831516cde2a8455 -o jsonpath='{.spec}' | python3 -m json.tool | head -40",
+    "A3-cmd3": {
+     "cmd": "kubectl -n agentic-netops-intent get networks.network.kubenet.dev migr-3c823baa74af4f8 -o jsonpath='{.spec}' | python3 -m json.tool | head -40",
      "rc": 0
     },
-    "A-cmd4": {
-     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 redis-cli -n 4 hgetall 'VLAN|Vlan130'",
+    "A3-cmd4": {
+     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 sh -c 'for k in $(redis-cli -n 4 keys \"VLAN|*\" | grep -i \"vlan170$\"); do echo \"$k\"; redis-cli -n 4 hgetall \"$k\"; done'",
      "rc": 0
     },
-    "A-cmd5": {
-     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 bridge vlan show dev eth3",
+    "A3-cmd5": {
+     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 bridge vlan show dev eth3 | grep -E 'vlan-id|^eth3|^ +170( |$)'",
      "rc": 0
     }
    }
   },
   {
-   "id": "B",
-   "prompt": "Deploy an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant initech with prefix 10.50.0.0/24",
+   "id": "B3",
+   "prompt": "Deploy an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant initech with prefix 10.53.0.0/24",
    "construct": "ip-vrf",
-   "correlation_id": "23bb98b9be654cb98e16771570c1610b",
-   "checked_utc": "2026-09-07T05:22:05.164+00:00",
-   "seconds_enter_to_deployed": 571.3,
+   "correlation_id": "335862bfc3414d9abfbaf986663e55fd",
+   "checked_utc": "2026-09-07T08:44:40.824+00:00",
+   "seconds_enter_to_deployed": 655.3,
    "dom_outcome_text": "Deployed \u2014 1 resource verified Ready on the fabric.",
-   "t_enter_utc": "2026-09-07T04:57:18.914+00:00",
+   "t_enter_utc": "2026-09-07T08:11:57.131+00:00",
    "outcome_screenshots": [
-    "final-B-outcome-15.png"
+    "final-B3-outcome-14.png"
    ],
-   "network": "migr-a655920e72cc411",
+   "network": "migr-ae94ab5761054bb",
    "ready_condition": {
-    "lastTransitionTime": "2026-09-07T05:17:27Z",
+    "lastTransitionTime": "2026-09-07T08:40:21Z",
     "message": "applied and verified on all nodes",
     "observedGeneration": 1,
     "reason": "ApplySucceeded",
@@ -83,32 +83,32 @@
    "service_type": "ip-vrf",
    "router_pass": true,
    "commands": {
-    "B-cmd1": {
-     "cmd": "kubectl -n agentic-netops-intent get networks.network.kubenet.dev -l agentic-netops.io/correlation-id=23bb98b9be654cb98e16771570c1610b -o custom-columns=NAME:.metadata.name,TYPE:'.metadata.annotations.agentic-netops\\.io/service-type',READY:'.status.conditions[?(@.type==\"Ready\")].status',REASON:'.status.conditions[?(@.type==\"Ready\")].reason'",
+    "B3-cmd1": {
+     "cmd": "kubectl -n agentic-netops-intent get networks.network.kubenet.dev -l agentic-netops.io/correlation-id=335862bfc3414d9abfbaf986663e55fd -o custom-columns=NAME:.metadata.name,TYPE:'.metadata.annotations.agentic-netops\\.io/service-type',READY:'.status.conditions[?(@.type==\"Ready\")].status',REASON:'.status.conditions[?(@.type==\"Ready\")].reason'",
      "rc": 0
     },
-    "B-cmd2": {
-     "cmd": "kubectl -n agentic-netops-intent get events --field-selector involvedObject.name=migr-a655920e72cc411",
+    "B3-cmd2": {
+     "cmd": "kubectl -n agentic-netops-intent get events --field-selector involvedObject.name=migr-ae94ab5761054bb",
      "rc": 0
     },
-    "B-cmd3": {
-     "cmd": "kubectl -n agentic-netops-intent get networks.network.kubenet.dev migr-a655920e72cc411 -o jsonpath='{.spec}' | python3 -m json.tool | head -40",
+    "B3-cmd3": {
+     "cmd": "kubectl -n agentic-netops-intent get networks.network.kubenet.dev migr-ae94ab5761054bb -o jsonpath='{.spec}' | python3 -m json.tool | head -40",
      "rc": 0
     },
-    "B-cmd4": {
+    "B3-cmd4": {
      "cmd": "docker exec clab-agentic-netops-fabric-leaf01 redis-cli -n 4 keys 'VRF|*'",
      "rc": 0
     },
-    "B-cmd5": {
+    "B3-cmd5": {
      "cmd": "docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show vrf'",
      "rc": 0
     },
-    "B-cmd6": {
-     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show evpn vni'",
+    "B3-cmd6": {
+     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show evpn vni' | grep -E 'VNI|L3'",
      "rc": 0
     },
-    "B-cmd7": {
-     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show bgp l2vpn evpn route type prefix' | head -40",
+    "B3-cmd7": {
+     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show bgp l2vpn evpn route type prefix' | grep -B3 -A4 -F '[10.53.0.0]'",
      "rc": 0
     },
     "authority-cmd1": {
@@ -126,20 +126,20 @@
    }
   },
   {
-   "id": "C1",
-   "prompt": "Extend vlan150 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant blue",
+   "id": "C3",
+   "prompt": "Extend vlan152 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant blue",
    "construct": "mac-vrf",
-   "correlation_id": "6c2460bf862e4a27ab0f59485b9bd70d",
-   "checked_utc": "2026-09-07T05:22:05.687+00:00",
-   "seconds_enter_to_deployed": 638.6,
+   "correlation_id": "455906efb797474e9cc4c9e830f88c77",
+   "checked_utc": "2026-09-07T08:44:42.118+00:00",
+   "seconds_enter_to_deployed": 668.3,
    "dom_outcome_text": "Deployed \u2014 1 resource verified Ready on the fabric.",
-   "t_enter_utc": "2026-09-07T05:09:09.300+00:00",
+   "t_enter_utc": "2026-09-07T08:25:05.408+00:00",
    "outcome_screenshots": [
-    "final-C1-outcome-29.png"
+    "final-C3-outcome-28.png"
    ],
-   "network": "migr-c7d4dd748f0b436",
+   "network": "migr-60cf2954063846d",
    "ready_condition": {
-    "lastTransitionTime": "2026-09-07T05:19:46Z",
+    "lastTransitionTime": "2026-09-07T08:43:50Z",
     "message": "applied and verified on all nodes",
     "observedGeneration": 1,
     "reason": "ApplySucceeded",
@@ -152,32 +152,32 @@
    "service_type": "mac-vrf",
    "router_pass": true,
    "commands": {
-    "C1-cmd1": {
-     "cmd": "kubectl -n agentic-netops-intent get networks.network.kubenet.dev -l agentic-netops.io/correlation-id=6c2460bf862e4a27ab0f59485b9bd70d -o custom-columns=NAME:.metadata.name,TYPE:'.metadata.annotations.agentic-netops\\.io/service-type',READY:'.status.conditions[?(@.type==\"Ready\")].status',REASON:'.status.conditions[?(@.type==\"Ready\")].reason'",
+    "C3-cmd1": {
+     "cmd": "kubectl -n agentic-netops-intent get networks.network.kubenet.dev -l agentic-netops.io/correlation-id=455906efb797474e9cc4c9e830f88c77 -o custom-columns=NAME:.metadata.name,TYPE:'.metadata.annotations.agentic-netops\\.io/service-type',READY:'.status.conditions[?(@.type==\"Ready\")].status',REASON:'.status.conditions[?(@.type==\"Ready\")].reason'",
      "rc": 0
     },
-    "C1-cmd2": {
-     "cmd": "kubectl -n agentic-netops-intent get events --field-selector involvedObject.name=migr-c7d4dd748f0b436",
+    "C3-cmd2": {
+     "cmd": "kubectl -n agentic-netops-intent get events --field-selector involvedObject.name=migr-60cf2954063846d",
      "rc": 0
     },
-    "C1-cmd3": {
-     "cmd": "kubectl -n agentic-netops-intent get networks.network.kubenet.dev migr-c7d4dd748f0b436 -o jsonpath='{.spec}' | python3 -m json.tool | head -40",
+    "C3-cmd3": {
+     "cmd": "kubectl -n agentic-netops-intent get networks.network.kubenet.dev migr-60cf2954063846d -o jsonpath='{.spec}' | python3 -m json.tool | head -40",
      "rc": 0
     },
-    "C1-cmd4": {
-     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 redis-cli -n 4 hgetall 'VLAN|Vlan150'",
+    "C3-cmd4": {
+     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 sh -c 'for k in $(redis-cli -n 4 keys \"VLAN|*\" | grep -i \"vlan152$\"); do echo \"$k\"; redis-cli -n 4 hgetall \"$k\"; done'",
      "rc": 0
     },
-    "C1-cmd5": {
-     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 redis-cli -n 4 keys 'VXLAN_TUNNEL_MAP|vtep1|map_*_Vlan150'",
+    "C3-cmd5": {
+     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 sh -c 'redis-cli -n 4 keys \"VXLAN_TUNNEL_MAP|*\" | grep -i \"vlan152$\"'",
      "rc": 0
     },
-    "C1-cmd6": {
-     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show evpn vni'",
+    "C3-cmd6": {
+     "cmd": "docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show evpn vni' | grep -E 'VNI|L2'",
      "rc": 0
     },
-    "C1-cmd7": {
-     "cmd": "docker exec clab-agentic-netops-fabric-leaf02 vtysh -c 'show evpn vni'",
+    "C3-cmd7": {
+     "cmd": "docker exec clab-agentic-netops-fabric-leaf02 vtysh -c 'show evpn vni' | grep -E 'VNI|L2'",
      "rc": 0
     }
    }
