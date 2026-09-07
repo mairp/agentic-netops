@@ -28,6 +28,39 @@ feeding back into it.
 Everything below is self-contained: the instructions live here rather than in
 a separate specification.
 
+## Watch it run
+
+[![Three services provisioned from plain-language prompts and proven on the fabric](docs/media/demo-intent-tier-poster.jpg)](docs/media/agentic-netops-intent-tier-demo.mp4)
+
+**[▶ Play the recording](docs/media/agentic-netops-intent-tier-demo.mp4)** — 36 min 39 s, 1920×1080, silent, uncut. One
+screen recording of the intent tier provisioning three services from prompts
+typed into the operator console, each followed by the operator proving the
+result with `kubectl` and inside the SONiC leaf itself. Recorded on
+2026-09-07 by the test-automation driver in `testautomation/video/`; every
+"deployed" claim was re-verified from `kubectl` JSON before the take was
+accepted.
+
+| # | Prompt typed into the console | Construct | Enter → Deployed |
+|---|---|---|---|
+| A | `Provision a vlan 130 on leaf01 ethernet1 for tenant acme` | vlan | 619.5 s |
+| B | `Deploy an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant initech with prefix 10.50.0.0/24` | ip-vrf | 571.3 s |
+| C | `Extend vlan150 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant blue` | mac-vrf | 638.6 s |
+
+After each `Deployed — 1 resource verified Ready on the fabric.` card the
+terminal shows the kubenet `Network` resource with `READY True` /
+`ApplySucceeded`, then the leaf's own state: the `VLAN|Vlan130` entry in
+CONFIG_DB and the bridge port, the tenant VRF's L3VNI and its Type-5 EVPN
+route (`RD 65000:43`, `RT:65101:10050`), and the VNI 10051 tunnel map with
+the L2VNI present on both leaves. The ten-minute convergence per service is
+real: the provider controller's single worker re-verifies ~27 pre-existing
+Networks every five minutes, so a fresh Network waits in its queue; the
+acceptance report explains the measurement and the runtime-only remediation
+that let the deployer wait it out instead of reporting "still converging".
+Read the full [acceptance report](docs/media/agentic-netops-intent-tier-demo-REPORT.md)
+and the [machine evidence](docs/media/agentic-netops-intent-tier-demo-evidence.json)
+collected live from `kubectl`, Redis and `vtysh`; the prompt that produced
+the recording is [`docs/DEMO_VIDEO_PROMPT.md`](docs/DEMO_VIDEO_PROMPT.md).
+
 ## The lab
 
 ![Fabric topology](docs/images/lab-topology.png)
