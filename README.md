@@ -30,9 +30,9 @@ a separate specification.
 
 ## Watch it run
 
-[![Three services provisioned from plain-language prompts and proven on the fabric](docs/media/demo-intent-tier-poster.jpg)](docs/media/agentic-netops-intent-tier-demo.mp4)
+https://github.com/user-attachments/assets/1568c5d4-9a05-4028-9c70-200ce6b6cd2b
 
-**[▶ Play the recording](docs/media/agentic-netops-intent-tier-demo.mp4)** — the
+The recording above is the
 uncut 38 min 48 s take played at 6x (about 6½ minutes), 1920×1080, silent.
 One screen recording of the intent tier provisioning three services from
 prompts typed into the operator console, each followed by the operator
@@ -66,7 +66,7 @@ collected live from `kubectl`, Redis and `vtysh` by `accept.py`, and the
 of the take: every terminal and canvas frame check passed, and every
 command's shell prompt returned on screen before the next was typed. The
 full-speed take was not kept; `scripts/video-accelerate.sh` produced the 6x
-cut from it before it was deleted.
+cut from it before it was deleted, and the cut is hosted as a GitHub asset.
 
 ## The lab
 
