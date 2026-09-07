@@ -28,45 +28,22 @@ feeding back into it.
 Everything below is self-contained: the instructions live here rather than in
 a separate specification.
 
-## Watch it run
+## Demo
 
-<video src="https://github.com/user-attachments/assets/1568c5d4-9a05-4028-9c70-200ce6b6cd2b" controls muted playsinline width="100%" poster="docs/media/demo-intent-tier-poster.jpg"></video>
+Full walkthrough (~6½ min, 6x) — the intent tier end to end: three services
+provisioned from plain-language prompts typed into the operator console (a
+**vlan**, an **ip-vrf** with its prefix, and a **mac-vrf** stretched across
+both leaves), each one confirmed through the mapper and allocator agents,
+reported deployed, and then proven in the terminal with `kubectl` (the
+`Network` resource `Ready`, its `ApplySucceeded` event, its spec) and inside
+the SONiC leaf itself (CONFIG_DB, the bridge, the tenant VRF's L3VNI and
+Type-5 EVPN route, the VNI tunnel map on both leaves).
 
-The recording is the
-uncut 38 min 48 s take played at 6x (about 6½ minutes), 1920×1080, silent.
-One screen recording of the intent tier provisioning three services from
-prompts typed into the operator console, each followed by the operator
-proving the result with `kubectl` and inside the SONiC leaf itself. Recorded
-on 2026-09-07 by the deterministic driver in `testautomation/video/`
-(`record.py`), run and accepted by a DeepSeek Harness session from
-[`docs/DEMO_VIDEO_RETAKE.md`](docs/DEMO_VIDEO_RETAKE.md); every "deployed"
-claim was re-verified from `kubectl` JSON before the take was accepted.
+https://github.com/user-attachments/assets/1568c5d4-9a05-4028-9c70-200ce6b6cd2b
 
-| # | Prompt typed into the console | Construct | Enter → Deployed (real time) |
-|---|---|---|---|
-| A | `Provision a vlan 170 on leaf01 ethernet1 for tenant acme` | vlan | 642.7 s |
-| B | `Deploy an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant initech with prefix 10.53.0.0/24` | ip-vrf | 655.3 s |
-| C | `Extend vlan152 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant blue` | mac-vrf | 668.3 s |
-
-After each `Deployed — 1 resource verified Ready on the fabric.` card the
-terminal shows the kubenet `Network` with `READY True` / `ApplySucceeded`,
-its event, its spec, and then the leaf's own state: the `VLAN|Vlan170` entry
-in CONFIG_DB and the bridge port, the tenant VRF's L3VNI and the Type-5 EVPN
-route for 10.53.0.0/24, and the VNI tunnel map for VLAN 152 with the L2VNI
-present on both leaves. The ten-minute convergence per service is real: the
-provider controller's single worker re-verifies the ~35 pre-existing
-Networks every five minutes, so a fresh Network waits in its queue (mean
-queue wait about four minutes, reconcile about nine seconds, no errors);
-the deployer's convergence watch is raised to 1200 s at runtime so it waits
-that out instead of reporting "still converging".
-
-Evidence for this take: the [machine evidence](docs/media/agentic-netops-intent-tier-demo-evidence.json)
-collected live from `kubectl`, Redis and `vtysh` by `accept.py`, and the
-[driver's own record](docs/media/agentic-netops-intent-tier-demo-meta.json)
-of the take: every terminal and canvas frame check passed, and every
-command's shell prompt returned on screen before the next was typed. The
-full-speed take was not kept; `scripts/video-accelerate.sh` produced the 6x
-cut from it before it was deleted, and the cut is hosted as a GitHub asset.
+Every "deployed" claim in the recording was re-verified from `kubectl` JSON;
+the collected evidence is in
+[`docs/media/agentic-netops-intent-tier-demo-evidence.json`](docs/media/agentic-netops-intent-tier-demo-evidence.json).
 
 ## The lab
 
