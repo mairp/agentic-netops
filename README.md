@@ -30,11 +30,9 @@ a separate specification.
 
 ## Watch it run
 
-[![Three services provisioned from plain-language prompts and proven on the fabric](docs/media/demo-intent-tier-poster.jpg)](https://github.com/user-attachments/assets/1568c5d4-9a05-4028-9c70-200ce6b6cd2b)
+<video src="https://github.com/user-attachments/assets/1568c5d4-9a05-4028-9c70-200ce6b6cd2b" controls muted playsinline width="100%" poster="docs/media/demo-intent-tier-poster.jpg"></video>
 
-https://github.com/user-attachments/assets/1568c5d4-9a05-4028-9c70-200ce6b6cd2b
-
-The cover opens the recording; the player above plays it in place. It is the
+The recording is the
 uncut 38 min 48 s take played at 6x (about 6½ minutes), 1920×1080, silent.
 One screen recording of the intent tier provisioning three services from
 prompts typed into the operator console, each followed by the operator
