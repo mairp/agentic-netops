@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="960" viewBox="0 0 1240 960" font-family="Lato, Manrope, 'DejaVu Sans', sans-serif">
+  <!--
+    Source for docs/images/lab-topology.png. Palette and layout follow the
+    srl-labs/srl-telemetry-lab topology drawing: slate canvas, navy routers with
+    the four-arrow L3 glyph, grey fabric links with numbered port badges, and a
+    green management network with the mgmt-ipv4 suffix from lab/topology.clab.yml.
+    Render: rsvg-convert -w 1860 docs/images/lab-topology.svg -o docs/images/lab-topology.png
+  -->
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.55"/>
+    </filter>
+    <!-- L3 switch glyph: navy square with four L-shaped arrows, chevron heads, 90-degree symmetry -->
+    <g id="arm" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+      <path d="M-36,-7 H-7 V-36"/>
+      <path d="M-15,-26 L-7,-36 L1,-26"/>
+    </g>
+    <g id="router">
+      <rect x="-48" y="-48" width="96" height="96" fill="#001135"/>
+      <use href="#arm"/>
+      <use href="#arm" transform="rotate(90)"/>
+      <use href="#arm" transform="rotate(180)"/>
+      <use href="#arm" transform="rotate(270)"/>
+    </g>
+    <!-- client laptop -->
+    <g id="laptop">
+      <rect x="-40" y="-30" width="80" height="52" rx="5" fill="#fff"/>
+      <rect x="-34" y="-24" width="68" height="40" rx="2" fill="#001135"/>
+      <path d="M-50,24 H50 L44,34 H-44 Z" fill="#fff"/>
+      <rect x="-12" y="26" width="24" height="3" fill="#001135"/>
+    </g>
+    <!-- port badge -->
+    <g id="port">
+      <circle r="13" fill="#4bdd33"/>
+    </g>
+  </defs>
+
+  <!-- outer frame like a draw.io export -->
+  <rect x="0" y="0" width="1240" height="960" fill="#fff"/>
+  <rect x="24" y="24" width="1192" height="912" fill="#4d5766" filter="url(#shadow)"/>
+
+  <!-- ===== management network (top) ===== -->
+  <text x="48" y="135" fill="#fff" font-size="28">mgmt net</text>
+  <text x="48" y="163" fill="#4bdd33" fill-opacity="0.85" font-family="'DejaVu Sans Mono', monospace" font-size="16">172.31.0.0/16</text>
+  <rect x="192" y="121" width="978" height="8" rx="4" fill="#4bdd33"/>
+
+  <!-- ===== management network (bottom) ===== -->
+  <text x="48" y="905" fill="#fff" font-size="28">mgmt net</text>
+  <rect x="192" y="891" width="978" height="8" rx="4" fill="#4bdd33"/>
+
+  <!-- ===== mgmt links (dashed green) ===== -->
+  <g stroke="#4bdd33" stroke-width="2" stroke-dasharray="7 7" stroke-opacity="0.6" fill="none">
+    <!-- spines: straight up from the top edge -->
+    <path d="M382,280 H350 V125"/>
+    <path d="M858,280 H890 V125"/>
+    <!-- leaves: stub sideways, then up outside the fabric -->
+    <path d="M242,530 H210 V125"/>
+    <path d="M998,530 H1030 V125"/>
+    <!-- clients: stub sideways, then down -->
+    <path d="M282,790 H360 V895"/>
+    <path d="M492,790 H570 V895"/>
+    <path d="M748,790 H670 V895"/>
+    <path d="M958,790 H880 V895"/>
+  </g>
+  <g fill="#4bdd33" fill-opacity="0.85" font-family="'DejaVu Sans Mono', monospace" font-size="17">
+    <text x="343" y="272" text-anchor="end">.11</text>
+    <text x="897" y="272">.12</text>
+    <text x="203" y="522" text-anchor="end">.21</text>
+    <text x="1037" y="522">.22</text>
+    <text x="304" y="782">.101</text>
+    <text x="514" y="782">.111</text>
+    <text x="680" y="782">.102</text>
+    <text x="890" y="782">.112</text>
+  </g>
+  <!-- attachment dots on the mgmt bars -->
+  <g fill="#4bdd33" fill-opacity="0.8" stroke="#3a4352" stroke-width="1.5">
+    <circle cx="350" cy="125" r="4"/><circle cx="890" cy="125" r="4"/>
+    <circle cx="210" cy="125" r="4"/><circle cx="1030" cy="125" r="4"/>
+    <circle cx="360" cy="895" r="4"/><circle cx="570" cy="895" r="4"/>
+    <circle cx="670" cy="895" r="4"/><circle cx="880" cy="895" r="4"/>
+  </g>
+
+  <!-- ===== fabric links (grey) ===== -->
+  <g stroke="#828c99" stroke-width="3" fill="none">
+    <!-- spine01:eth1 - leaf01:eth1 -->
+    <line x1="412" y1="330" x2="272" y2="480"/>
+    <!-- spine01:eth2 - leaf02:eth1 -->
+    <line x1="448" y1="330" x2="932" y2="480"/>
+    <!-- spine02:eth1 - leaf01:eth2 -->
+    <line x1="792" y1="330" x2="308" y2="480"/>
+    <!-- spine02:eth2 - leaf02:eth2 -->
+    <line x1="828" y1="330" x2="968" y2="480"/>
+    <!-- leaf01:eth3 - client01:eth1 -->
+    <path d="M272,580 V650 H230 V735"/>
+    <!-- leaf01:eth4 - srv6-client01:eth1 -->
+    <path d="M308,580 V650 H440 V735"/>
+    <!-- leaf02:eth3 - client02:eth1 -->
+    <path d="M932,580 V650 H800 V735"/>
+    <!-- leaf02:eth4 - srv6-client02:eth1 -->
+    <path d="M968,580 V650 H1010 V735"/>
+  </g>
+
+  <!-- ===== spines ===== -->
+  <text x="430" y="200" fill="#fff" font-size="30" text-anchor="middle">spine01</text>
+  <use href="#router" x="430" y="280"/>
+  <text x="810" y="200" fill="#fff" font-size="30" text-anchor="middle">spine02</text>
+  <use href="#router" x="810" y="280"/>
+
+  <!-- ===== leaves ===== -->
+  <use href="#router" x="290" y="530"/>
+  <text x="290" y="625" fill="#fff" font-size="30" text-anchor="middle">leaf01</text>
+  <use href="#router" x="950" y="530"/>
+  <text x="950" y="625" fill="#fff" font-size="30" text-anchor="middle">leaf02</text>
+
+  <!-- ===== clients ===== -->
+  <g fill="#fff" font-size="26" text-anchor="middle">
+    <use href="#laptop" x="230" y="760"/><text x="230" y="835">client01</text>
+    <use href="#laptop" x="440" y="760"/><text x="440" y="835">srv6-client01</text>
+    <use href="#laptop" x="800" y="760"/><text x="800" y="835">client02</text>
+    <use href="#laptop" x="1010" y="760"/><text x="1010" y="835">srv6-client02</text>
+  </g>
+  <!-- what each client exercises, drawn on the laptop screen -->
+  <g fill="#fff" font-size="14" font-weight="bold" text-anchor="middle" letter-spacing="1">
+    <text x="230" y="762">EVPN</text>
+    <text x="440" y="762">SRv6</text>
+    <text x="800" y="762">EVPN</text>
+    <text x="1010" y="762">SRv6</text>
+  </g>
+
+  <!-- ===== port badges ===== -->
+  <g font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">
+    <!-- spine01 -->
+    <use href="#port" x="412" y="330"/><text x="412" y="335">1</text>
+    <use href="#port" x="448" y="330"/><text x="448" y="335">2</text>
+    <!-- spine02 -->
+    <use href="#port" x="792" y="330"/><text x="792" y="335">1</text>
+    <use href="#port" x="828" y="330"/><text x="828" y="335">2</text>
+    <!-- leaf01 -->
+    <use href="#port" x="272" y="480"/><text x="272" y="485">1</text>
+    <use href="#port" x="308" y="480"/><text x="308" y="485">2</text>
+    <use href="#port" x="272" y="580"/><text x="272" y="585">3</text>
+    <use href="#port" x="308" y="580"/><text x="308" y="585">4</text>
+    <!-- leaf02 -->
+    <use href="#port" x="932" y="480"/><text x="932" y="485">1</text>
+    <use href="#port" x="968" y="480"/><text x="968" y="485">2</text>
+    <use href="#port" x="932" y="580"/><text x="932" y="585">3</text>
+    <use href="#port" x="968" y="580"/><text x="968" y="585">4</text>
+  </g>
+  <!-- client eth1 pills -->
+  <g font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">
+    <rect x="207" y="722" width="46" height="20" rx="5" fill="#4bdd33"/><text x="230" y="737">eth1</text>
+    <rect x="417" y="722" width="46" height="20" rx="5" fill="#4bdd33"/><text x="440" y="737">eth1</text>
+    <rect x="777" y="722" width="46" height="20" rx="5" fill="#4bdd33"/><text x="800" y="737">eth1</text>
+    <rect x="987" y="722" width="46" height="20" rx="5" fill="#4bdd33"/><text x="1010" y="737">eth1</text>
+  </g>
+</svg>
