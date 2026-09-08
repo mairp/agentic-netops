@@ -16,6 +16,11 @@ testautomation/*/generated/
 secrets/
 *.key
 *.pem
+# LLM provider credentials live in .env (copied from .env.example); the
+# provisioning scripts and python-dotenv read it, git never does.
+.env
+.env.local
+.env.*.local
 lab/clab-agentic-netops-fabric/.tls/
 
 # Wiggum harness working state -- not source. Holds a vendored toolchain

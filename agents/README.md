@@ -96,20 +96,30 @@ mounts the `intent-deployer` token and opts into API-server egress via the
 
 ## LLM provider configuration
 
-Model calls go through LiteLLM. Provisioning assembles Secret
-`llm-provider` (namespace `agentic-netops-agents`) from:
+Model calls go through LiteLLM. Settings live in `.env` at the repo root,
+copied from `.env.example` (the same convention as
+[coffeeAgntcy](https://github.com/agntcy/coffeeAgntcy)):
 
-- `AGENTIC_NETOPS_LLM_MODEL` (e.g. `openai/gpt-5`; the part before `/` is
-  the LiteLLM provider label),
-- `AGENTIC_NETOPS_LLM_API_KEY`,
-- `AGENTIC_NETOPS_LLM_BASE_URL` — optional but load-bearing: without it the
-  `openai` provider defaults to `https://api.openai.com/v1`, which rejects
-  gateway keys such as Compass/Core42's. A re-run that omits the variable
-  preserves the base URL already stored in the Secret (a whole-replacement
-  apply used to drop it silently).
+- `LLM_MODEL` is always the model variable, whatever the provider; the part
+  before `/` is the LiteLLM provider label (`openai/gpt-5`,
+  `anthropic/claude-sonnet-5`, `azure/<deployment>`, `oauth2/<model>` ...).
+- Each provider reads its own native credential names (`OPENAI_API_KEY`,
+  `ANTHROPIC_API_KEY`, `AZURE_API_KEY` + `AZURE_API_BASE` + `AZURE_API_VERSION`,
+  `OAUTH2_*`, ...). `.env.example` lists one block per supported provider.
+- `OPENAI_BASE_URL` is optional but load-bearing for OpenAI-compatible
+  gateways: without it the `openai` provider defaults to
+  `https://api.openai.com/v1`, which rejects gateway keys such as
+  Compass/Core42's. A re-run that omits it preserves the base URL already
+  stored in the Secret (a whole-replacement apply used to drop it silently).
 
-Plain `LLM_MODEL` / `OPENAI_API_KEY` / `OPENAI_BASE_URL` are accepted as
-fallbacks. Credentials are never committed.
+Provisioning (`scripts/lib/intent_tier.sh`) loads `.env` through
+`scripts/lib/dotenv.sh`, forwards `LLM_MODEL` and every provider variable
+that is set into Secret `llm-provider` (namespace `agentic-netops-agents`),
+and the supervisor consumes the whole Secret with `envFrom`. A local run of
+the agents loads the same file through python-dotenv (`config/config.py`).
+An exported shell variable always overrides the file. The pre-`.env`
+`AGENTIC_NETOPS_LLM_MODEL` / `_API_KEY` / `_BASE_URL` names are still
+accepted as deprecated aliases. Credentials are never committed.
 
 ## Pins and build
 

@@ -25,7 +25,9 @@ Flags:
   --timeout           Rollout wait timeout (default: 180s)
   --with-intent-tier  Also install the AGNTCY intent tier (supervisor +
                       mapper/allocator/deployer over SLIM) after the control
-                      plane readiness waits (T185/T186)
+                      plane readiness waits (T185/T186). LLM provider settings
+                      are read from .env at the repo root (copy .env.example;
+                      LLM_MODEL plus the provider's own key variables).
 EOF
 }
 

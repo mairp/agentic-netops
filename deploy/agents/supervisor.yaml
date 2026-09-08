@@ -155,61 +155,18 @@ spec:
             - name: DEPLOYER_CALL_TIMEOUT_SECONDS
               value: "210"
             # LLM provider selection is the LLM_MODEL prefix alone
-            # (common/llm.py); the credentials come from Secret/llm-provider.
-            # The classifier runs through LiteLLM, which for an `openai/` LLM_MODEL prefix
-            # reads OPENAI_API_KEY and OPENAI_BASE_URL from the environment. Only LLM_MODEL
-            # and the OAUTH2_* keys were mapped, so LiteLLM resolved the model
-            # (model=gpt-5, provider=openai) and then failed with "Missing credentials" on
-            # every prompt. Both come from the same provision-time Secret; neither is ever
-            # committed.
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: llm-provider
-                  key: OPENAI_API_KEY
-                  optional: true
-            - name: OPENAI_BASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: llm-provider
-                  key: OPENAI_BASE_URL
-                  optional: true
-            - name: LLM_MODEL
-              valueFrom:
-                secretKeyRef:
-                  name: llm-provider
-                  key: LLM_MODEL
-                  optional: true
-            - name: OAUTH2_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: llm-provider
-                  key: OAUTH2_CLIENT_ID
-                  optional: true
-            - name: OAUTH2_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: llm-provider
-                  key: OAUTH2_CLIENT_SECRET
-                  optional: true
-            - name: OAUTH2_TOKEN_URL
-              valueFrom:
-                secretKeyRef:
-                  name: llm-provider
-                  key: OAUTH2_TOKEN_URL
-                  optional: true
-            - name: OAUTH2_BASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: llm-provider
-                  key: OAUTH2_BASE_URL
-                  optional: true
-            - name: OAUTH2_APPKEY
-              valueFrom:
-                secretKeyRef:
-                  name: llm-provider
-                  key: OAUTH2_APPKEY
-                  optional: true
+            # (common/llm.py); the credentials come from Secret/llm-provider,
+            # which provisioning builds from the operator's .env. Every key in
+            # the Secret is injected (envFrom below) so each LiteLLM provider
+            # finds its own native credential names (OPENAI_API_KEY,
+            # ANTHROPIC_API_KEY, AZURE_API_*, OAUTH2_*, ...) without a per-key
+            # mapping here -- an earlier mapping that listed only LLM_MODEL and
+            # the OAUTH2_* keys left OPENAI_API_KEY unset and every prompt
+            # failed with "Missing credentials".
+          envFrom:
+            - secretRef:
+                name: llm-provider
+                optional: true
           # T177: trivial liveness on /health (no transport touch);
           # deep readiness on /v1/health (probes every worker).
           startupProbe:

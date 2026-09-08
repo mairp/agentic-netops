@@ -216,9 +216,9 @@ only ever writes Kubernetes resources; controllers do all southbound work.
 An agent that could reach a device directly would
 bypass every reconcile guarantee above.
 
-`LLM_MODEL` is empty in the committed manifest and materialized at provision time — the
-provider is chosen by the `LLM_MODEL` prefix alone, and no key is ever committed. With
-no model configured the tier deploys but cannot reason.
+`LLM_MODEL` is empty in the committed manifest and materialized at provision time from
+`.env` (copy `.env.example`) — the provider is chosen by the `LLM_MODEL` prefix alone,
+and no key is ever committed. With no model configured the tier deploys but cannot reason.
 
 ## Known limitations
 

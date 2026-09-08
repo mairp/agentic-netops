@@ -152,14 +152,11 @@ kubectl --context kind-agentic-netops get pods -A
 Add the agent tier:
 
 ```bash
-# LLM provider credentials — export these before provisioning.
-# AGENTIC_NETOPS_LLM_BASE_URL is optional but matters: without it LiteLLM's
-# `openai` provider defaults to https://api.openai.com/v1, which rejects
-# gateway keys (e.g. Compass/Core42). Re-running provisioning without the
-# base URL preserves whatever the existing Secret carries.
-export AGENTIC_NETOPS_LLM_MODEL=openai/gpt-5
-export AGENTIC_NETOPS_LLM_API_KEY=<your key>            # never committed
-export AGENTIC_NETOPS_LLM_BASE_URL=https://api.core42.ai/v1
+# LLM provider: copy the example, uncomment one provider block, fill in the key.
+# LLM_MODEL is always the model variable; its prefix picks the LiteLLM provider.
+# .env is gitignored and becomes Secret/llm-provider at provision time.
+cp .env.example .env
+$EDITOR .env        # e.g. LLM_MODEL=openai/gpt-5, OPENAI_API_KEY=..., OPENAI_BASE_URL=https://api.core42.ai/v1
 
 ./scripts/provision.sh --profile sonic-vs --cluster-name agentic-netops --with-intent-tier
 kubectl --context kind-agentic-netops -n agentic-netops-agents get deploy

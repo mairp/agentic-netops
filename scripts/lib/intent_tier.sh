@@ -62,10 +62,44 @@ intent::manifest() {
   echo "${base}/deploy/agents/${f}"
 }
 
+# Provider variables forwarded verbatim from the operator's .env (or exported
+# shell) into Secret/llm-provider. LLM_MODEL's prefix selects the LiteLLM
+# provider; each provider reads its own native credential names, so the list
+# is the union of what LiteLLM expects for the providers .env.example shows.
+INTENT_LLM_PROVIDER_VARS=(
+  LLM_MODEL
+  OPENAI_API_KEY OPENAI_BASE_URL
+  ANTHROPIC_API_KEY
+  AZURE_API_KEY AZURE_API_BASE AZURE_API_VERSION
+  GROQ_API_KEY
+  LITELLM_PROXY_API_KEY LITELLM_PROXY_API_BASE
+  NVIDIA_NIM_API_KEY NVIDIA_NIM_API_BASE
+  OAUTH2_CLIENT_ID OAUTH2_CLIENT_SECRET OAUTH2_TOKEN_URL OAUTH2_BASE_URL OAUTH2_APPKEY
+  AGENTIC_NETOPS_LLM_TOKENS_PER_THREAD
+)
+
 intent::configure_llm_provider() {
-  local model="${AGENTIC_NETOPS_LLM_MODEL:-${LLM_MODEL:-}}"
-  local api_key="${AGENTIC_NETOPS_LLM_API_KEY:-${OPENAI_API_KEY:-}}"
-  local base_url="${AGENTIC_NETOPS_LLM_BASE_URL:-${OPENAI_BASE_URL:-}}"
+  # Model settings come from .env at the repo root (copy .env.example), the
+  # same file python-dotenv loads for a local run of the agents. Exported
+  # shell variables take precedence over the file.
+  # shellcheck source=scripts/lib/dotenv.sh
+  source "$(dirname -- "${BASH_SOURCE[0]}")/dotenv.sh"
+  dotenv::load
+  if [[ -n "${DOTENV_LOADED_FROM:-}" ]]; then
+    intent::log "loaded LLM provider settings from ${DOTENV_LOADED_FROM}"
+  fi
+
+  # Pre-.env spelling (AGENTIC_NETOPS_LLM_MODEL / _API_KEY / _BASE_URL) is
+  # still honoured as an alias of the OpenAI-provider names so existing
+  # shells keep working; .env.example documents the native names only.
+  if [[ -n "${AGENTIC_NETOPS_LLM_MODEL:-}" || -n "${AGENTIC_NETOPS_LLM_API_KEY:-}" || -n "${AGENTIC_NETOPS_LLM_BASE_URL:-}" ]]; then
+    intent::log "WARN: AGENTIC_NETOPS_LLM_* is deprecated; put LLM_MODEL / OPENAI_API_KEY / OPENAI_BASE_URL in .env"
+    export LLM_MODEL="${LLM_MODEL:-${AGENTIC_NETOPS_LLM_MODEL:-}}"
+    export OPENAI_API_KEY="${OPENAI_API_KEY:-${AGENTIC_NETOPS_LLM_API_KEY:-}}"
+    export OPENAI_BASE_URL="${OPENAI_BASE_URL:-${AGENTIC_NETOPS_LLM_BASE_URL:-}}"
+  fi
+
+  local model="${LLM_MODEL:-}"
   # The regeneration below applies a whole replacement Secret: any key it
   # omits is DELETED from the live object. A re-run from a shell that set the
   # model and key but not the base URL therefore silently removed
@@ -73,40 +107,44 @@ intent::configure_llm_provider() {
   # call to api.openai.com -- where a Compass/Core42 key is rejected -- and
   # the tier only kept working through the supervisor's deterministic
   # fallbacks. Preserve whatever base URL the existing Secret carries.
-  if [[ -z "$base_url" ]]; then
-    base_url="$(intent::kubectl -n "$INTENT_TIER_NAMESPACE" get secret llm-provider \
-      -o jsonpath='{.data.OPENAI_BASE_URL}' 2>/dev/null | base64 -d 2>/dev/null)"
+  if [[ -z "${OPENAI_BASE_URL:-}" ]]; then
+    OPENAI_BASE_URL="$(intent::kubectl -n "$INTENT_TIER_NAMESPACE" get secret llm-provider \
+      -o jsonpath='{.data.OPENAI_BASE_URL}' 2>/dev/null | base64 -d 2>/dev/null || true)"
   fi
-  local -a secret_args
 
   if ! intent::kubectl -n "$INTENT_TIER_NAMESPACE" get secret llm-provider >/dev/null 2>&1; then
     intent::kubectl apply -f "$(intent::manifest llm-provider-secret.yaml)"
   fi
 
-  if [[ -z "$model" && -z "$api_key" ]]; then
-    intent::log "WARN: LLM provider is not configured; set AGENTIC_NETOPS_LLM_MODEL and AGENTIC_NETOPS_LLM_API_KEY"
-    return 0
+  local -a secret_args=()
+  local var
+  for var in "${INTENT_LLM_PROVIDER_VARS[@]}"; do
+    if [[ -n "${!var:-}" ]]; then
+      secret_args+=(--from-literal="${var}=${!var}")
+    fi
+  done
+
+  if [[ -z "$model" ]]; then
+    if (( ${#secret_args[@]} == 0 )); then
+      intent::log "WARN: LLM provider is not configured; copy .env.example to .env and set LLM_MODEL plus the provider's key"
+      return 0
+    fi
+    echo "[intent-tier] ERROR: provider credentials are set but LLM_MODEL is empty; set LLM_MODEL=<provider>/<model> in .env" >&2
+    return 1
   fi
-  if [[ -z "$model" || -z "$api_key" ]]; then
-    echo "[intent-tier] ERROR: both AGENTIC_NETOPS_LLM_MODEL and AGENTIC_NETOPS_LLM_API_KEY are required" >&2
+  if (( ${#secret_args[@]} < 2 )); then
+    echo "[intent-tier] ERROR: LLM_MODEL=$model has no credentials; set the provider's key in .env (see .env.example)" >&2
     return 1
   fi
 
-  secret_args=(
-    --from-literal="LLM_MODEL=$model"
-    --from-literal="OPENAI_API_KEY=$api_key"
-  )
-  if [[ -n "$base_url" ]]; then
-    secret_args+=(--from-literal="OPENAI_BASE_URL=$base_url")
-  fi
   intent::kubectl -n "$INTENT_TIER_NAMESPACE" create secret generic llm-provider \
     "${secret_args[@]}" --dry-run=client -o yaml | intent::kubectl apply -f - >/dev/null
   intent::kubectl -n "$INTENT_TIER_NAMESPACE" label secret llm-provider \
     agentic-netops.owner=agentic-netops agentic-netops.io/tier=intent --overwrite >/dev/null
   intent::kubectl -n "$INTENT_TIER_NAMESPACE" annotate secret llm-provider \
-    agentic-netops.io/populated-by="provision-time (LLM provider credentials; never committed)" \
+    agentic-netops.io/populated-by="provision-time (LLM provider credentials from .env; never committed)" \
     --overwrite >/dev/null
-  intent::log "configured LLM provider model $model"
+  intent::log "configured LLM provider model $model (${#secret_args[@]} keys in Secret/llm-provider)"
 }
 
 # T181 — install the tier in dependency order:
