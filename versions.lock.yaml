@@ -152,6 +152,22 @@ srlinux_yang:
     OpenConfig pin records the translation reference the path register in
     pkg/register documents alongside every rendered native path.
 
+# ---------------------------------------------------------------------------
+# Go modules added for the gNMI southbound (cmd/fabric-executor). Vendored;
+# `go build -mod=vendor` is the only supported build. grpc stays on the newest
+# line that requires only protobuf v1.33.0 so no k8s/controller-runtime pin moves.
+# ---------------------------------------------------------------------------
+go_modules:
+  gnmi:
+    module: github.com/openconfig/gnmi
+    version: v0.11.0
+  grpc:
+    module: google.golang.org/grpc
+    version: v1.63.2
+  genproto_rpc:
+    module: google.golang.org/genproto/googleapis/rpc
+    version: v0.0.0-20240227224415-6ceb2ff114de
+
 notes:
   redistribution: >
     Every runtime artifact is publicly pullable and pinned by immutable digest

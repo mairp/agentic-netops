@@ -35,6 +35,43 @@
           "gnmi": {
             "updates": [
               {
+                "path": "/interface[name=irb0]",
+                "value": {
+                  "admin-state": "enable"
+                }
+              },
+              {
+                "path": "/interface[name=irb0]/subinterface[index=200]",
+                "value": {
+                  "admin-state": "enable",
+                  "anycast-gw": {},
+                  "ipv4": {
+                    "address": [
+                      {
+                        "anycast-gw": true,
+                        "ip-prefix": "10.60.0.1/24"
+                      }
+                    ],
+                    "admin-state": "enable"
+                  },
+                  "ipv6": {
+                    "address": [
+                      {
+                        "anycast-gw": true,
+                        "ip-prefix": "fd00:60::1/64"
+                      }
+                    ],
+                    "admin-state": "enable"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
                 "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10200]",
                 "value": {
                   "egress": {
@@ -44,6 +81,24 @@
                     "vni": 10200
                   },
                   "type": "bridged"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10020]",
+                "value": {
+                  "egress": {
+                    "source-ip": "use-system-ipv4-address"
+                  },
+                  "ingress": {
+                    "vni": 10020
+                  },
+                  "type": "routed"
                 }
               }
             ]
@@ -94,61 +149,6 @@
                       "name": "vxlan1.10200"
                     }
                   ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "gnmi": {
-            "updates": [
-              {
-                "path": "/interface[name=irb0]",
-                "value": {
-                  "admin-state": "enable"
-                }
-              },
-              {
-                "path": "/interface[name=irb0]/subinterface[index=200]",
-                "value": {
-                  "admin-state": "enable",
-                  "anycast-gw": {},
-                  "ipv4": {
-                    "address": [
-                      {
-                        "anycast-gw": true,
-                        "ip-prefix": "10.60.0.1/24"
-                      }
-                    ],
-                    "admin-state": "enable"
-                  },
-                  "ipv6": {
-                    "address": [
-                      {
-                        "anycast-gw": true,
-                        "ip-prefix": "fd00:60::1/64"
-                      }
-                    ],
-                    "admin-state": "enable"
-                  }
-                }
-              }
-            ]
-          }
-        },
-        {
-          "gnmi": {
-            "updates": [
-              {
-                "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10020]",
-                "value": {
-                  "egress": {
-                    "source-ip": "use-system-ipv4-address"
-                  },
-                  "ingress": {
-                    "vni": 10020
-                  },
-                  "type": "routed"
                 }
               }
             ]
@@ -273,7 +273,7 @@
         {
           "gnmi": {
             "deletes": [
-              "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10020]"
+              "/network-instance[name=vlan200]"
             ]
           }
         },
@@ -287,7 +287,7 @@
         {
           "gnmi": {
             "deletes": [
-              "/network-instance[name=vlan200]"
+              "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10020]"
             ]
           }
         },
@@ -342,6 +342,43 @@
           "gnmi": {
             "updates": [
               {
+                "path": "/interface[name=irb0]",
+                "value": {
+                  "admin-state": "enable"
+                }
+              },
+              {
+                "path": "/interface[name=irb0]/subinterface[index=200]",
+                "value": {
+                  "admin-state": "enable",
+                  "anycast-gw": {},
+                  "ipv4": {
+                    "address": [
+                      {
+                        "anycast-gw": true,
+                        "ip-prefix": "10.60.0.1/24"
+                      }
+                    ],
+                    "admin-state": "enable"
+                  },
+                  "ipv6": {
+                    "address": [
+                      {
+                        "anycast-gw": true,
+                        "ip-prefix": "fd00:60::1/64"
+                      }
+                    ],
+                    "admin-state": "enable"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
                 "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10200]",
                 "value": {
                   "egress": {
@@ -351,6 +388,24 @@
                     "vni": 10200
                   },
                   "type": "bridged"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10020]",
+                "value": {
+                  "egress": {
+                    "source-ip": "use-system-ipv4-address"
+                  },
+                  "ingress": {
+                    "vni": 10020
+                  },
+                  "type": "routed"
                 }
               }
             ]
@@ -401,61 +456,6 @@
                       "name": "vxlan1.10200"
                     }
                   ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "gnmi": {
-            "updates": [
-              {
-                "path": "/interface[name=irb0]",
-                "value": {
-                  "admin-state": "enable"
-                }
-              },
-              {
-                "path": "/interface[name=irb0]/subinterface[index=200]",
-                "value": {
-                  "admin-state": "enable",
-                  "anycast-gw": {},
-                  "ipv4": {
-                    "address": [
-                      {
-                        "anycast-gw": true,
-                        "ip-prefix": "10.60.0.1/24"
-                      }
-                    ],
-                    "admin-state": "enable"
-                  },
-                  "ipv6": {
-                    "address": [
-                      {
-                        "anycast-gw": true,
-                        "ip-prefix": "fd00:60::1/64"
-                      }
-                    ],
-                    "admin-state": "enable"
-                  }
-                }
-              }
-            ]
-          }
-        },
-        {
-          "gnmi": {
-            "updates": [
-              {
-                "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10020]",
-                "value": {
-                  "egress": {
-                    "source-ip": "use-system-ipv4-address"
-                  },
-                  "ingress": {
-                    "vni": 10020
-                  },
-                  "type": "routed"
                 }
               }
             ]
@@ -580,7 +580,7 @@
         {
           "gnmi": {
             "deletes": [
-              "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10020]"
+              "/network-instance[name=vlan200]"
             ]
           }
         },
@@ -594,7 +594,7 @@
         {
           "gnmi": {
             "deletes": [
-              "/network-instance[name=vlan200]"
+              "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10020]"
             ]
           }
         },

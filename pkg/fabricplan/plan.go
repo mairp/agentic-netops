@@ -645,35 +645,44 @@ func l2RT(bd kubenet.BridgeDomain) string {
 	return normalizeRT(firstRT(rts))
 }
 
-// macVRFOps renders the L2 half of an overlay service: the tagged attachment
-// subinterface, the L2VNI's vxlan-interface and the mac-vrf network-instance.
-// extraInterfaces carries the IRB subinterface when this bridge domain has one.
-func macVRFOps(bd kubenet.BridgeDomain, ni, port string, extraInterfaces []string, opts Options) []Op {
+// macVRFAttachOp enables the physical port and creates the tagged L2
+// attachment subinterface. It comes first in every L2 plan: SR Linux resolves
+// the mac-vrf's interface leafrefs at commit, so the subinterface has to exist
+// before the network-instance that claims it.
+func macVRFAttachOp(bd kubenet.BridgeDomain, port string) Op {
+	return Op{GNMI: &GNMISet{Updates: []GNMIUpdate{
+		{Path: ifacePath(port), Value: portValue()},
+		{Path: subifPath(port, bd.VLAN), Value: bridgedSubifValue(bd.VLAN)},
+	}}}
+}
+
+// macVRFTunnelOp creates the L2VNI's own tunnel endpoint.
+func macVRFTunnelOp(bd kubenet.BridgeDomain, opts Options) Op {
+	return Op{GNMI: &GNMISet{Updates: []GNMIUpdate{
+		{Path: vxlanIfPath(opts.VXLANTunnel, bd.L2VNI), Value: vxlanIfValue("bridged", bd.L2VNI)},
+	}}}
+}
+
+// macVRFNIOp creates the mac-vrf itself. extraInterfaces carries the IRB
+// subinterface when this bridge domain has a gateway; every name it lists must
+// already exist on the node, which is why this op is always last.
+func macVRFNIOp(bd kubenet.BridgeDomain, ni, port string, extraInterfaces []string, opts Options) Op {
 	ifaces := []any{map[string]any{"name": subifName(port, bd.VLAN)}}
 	for _, extra := range extraInterfaces {
 		ifaces = append(ifaces, map[string]any{"name": extra})
 	}
-	return []Op{
-		{GNMI: &GNMISet{Updates: []GNMIUpdate{
-			{Path: ifacePath(port), Value: portValue()},
-			{Path: subifPath(port, bd.VLAN), Value: bridgedSubifValue(bd.VLAN)},
-		}}},
-		{GNMI: &GNMISet{Updates: []GNMIUpdate{
-			{Path: vxlanIfPath(opts.VXLANTunnel, bd.L2VNI), Value: vxlanIfValue("bridged", bd.L2VNI)},
-		}}},
-		{GNMI: &GNMISet{Updates: []GNMIUpdate{
-			{Path: niPath(ni), Value: map[string]any{
-				"type":            "mac-vrf",
-				"admin-state":     "enable",
-				"interface":       ifaces,
-				"vxlan-interface": []any{map[string]any{"name": vxlanIfName(opts.VXLANTunnel, bd.L2VNI)}},
-				// The kubenet bridgeDomain schema declares no RD, so the
-				// route-distinguisher object is omitted and SR Linux derives
-				// <system-ip>:<evi> for it.
-				"protocols": evpnProtocols(opts.VXLANTunnel, bd.L2VNI, "", l2RT(bd)),
-			}},
-		}}},
-	}
+	return Op{GNMI: &GNMISet{Updates: []GNMIUpdate{
+		{Path: niPath(ni), Value: map[string]any{
+			"type":            "mac-vrf",
+			"admin-state":     "enable",
+			"interface":       ifaces,
+			"vxlan-interface": []any{map[string]any{"name": vxlanIfName(opts.VXLANTunnel, bd.L2VNI)}},
+			// The kubenet bridgeDomain schema declares no RD, so the
+			// route-distinguisher object is omitted and SR Linux derives
+			// <system-ip>:<evi> for it.
+			"protocols": evpnProtocols(opts.VXLANTunnel, bd.L2VNI, "", l2RT(bd)),
+		}},
+	}}}
 }
 
 // macVRFChecks proves the L2 half converged. The last check is the only one
@@ -713,7 +722,11 @@ func renderL2(np *NodePlan, bd kubenet.BridgeDomain, att kubenet.NetworkAttachme
 	}
 	ni := DeviceBridgeNIName(bd.Name, bd.VLAN)
 
-	np.Ops = append(np.Ops, macVRFOps(bd, ni, port, nil, opts)...)
+	np.Ops = append(np.Ops,
+		macVRFAttachOp(bd, port),
+		macVRFTunnelOp(bd, opts),
+		macVRFNIOp(bd, ni, port, nil, opts),
+	)
 	np.Checks = append(np.Checks, macVRFChecks(bd, ni, port, opts)...)
 	np.Rollback = append(np.Rollback, macVRFRollback(bd, ni, port, opts)...)
 	return port, nil
@@ -882,18 +895,27 @@ func renderIRB(np *NodePlan, bd kubenet.BridgeDomain, r kubenet.NetworkRouter, a
 	ni := DeviceBridgeNIName(bd.Name, bd.VLAN)
 	irbSubif := subifName(irbInterface, bd.VLAN)
 
-	// 1. The L2 half, with the gateway subinterface joined to the mac-vrf.
-	np.Ops = append(np.Ops, macVRFOps(bd, ni, port, []string{irbSubif}, opts)...)
+	// Order is load-bearing: SR Linux resolves interface leafrefs at commit, so
+	// every subinterface exists before a network-instance claims it.
+	//
+	// 1. The L2 attachment.
+	np.Ops = append(np.Ops, macVRFAttachOp(bd, port))
 	// 2. The anycast gateway itself. Every leaf carries the same address, which
-	//    is what makes the gateway follow the workload instead of trombone.
+	//    is what makes the gateway follow the workload instead of tromboning.
 	np.Ops = append(np.Ops, Op{GNMI: &GNMISet{Updates: []GNMIUpdate{
 		{Path: ifacePath(irbInterface), Value: map[string]any{"admin-state": "enable"}},
 		{Path: subifPath(irbInterface, bd.VLAN), Value: irbSubifValue(gw4, gw6)},
 	}}})
-	// 3. The routed half: the L3VNI's tunnel endpoint and the ip-vrf that owns
-	//    the gateway. No wan subinterface — an IRB's routed attachment IS the
-	//    gateway.
-	np.Ops = append(np.Ops, c.vxlanRoutedOp(opts), c.ipVRFOp([]string{irbSubif}, opts))
+	// 3. Both tunnel endpoints, then the mac-vrf that holds the attachment and
+	//    the gateway.
+	np.Ops = append(np.Ops,
+		macVRFTunnelOp(bd, opts),
+		c.vxlanRoutedOp(opts),
+		macVRFNIOp(bd, ni, port, []string{irbSubif}, opts),
+	)
+	// 4. The routed half: the ip-vrf that owns the gateway. No wan subinterface
+	//    — an IRB's routed attachment IS the gateway.
+	np.Ops = append(np.Ops, c.ipVRFOp([]string{irbSubif}, opts))
 
 	np.Checks = append(np.Checks, macVRFChecks(bd, ni, port, opts)...)
 	np.Checks = append(np.Checks, c.baseChecks(opts)...)
@@ -904,12 +926,18 @@ func renderIRB(np *NodePlan, bd kubenet.BridgeDomain, r kubenet.NetworkRouter, a
 	}
 	np.Checks = append(np.Checks, type5...)
 
+	// Rollback mirrors that order: both network-instances first (they hold the
+	// references), then the gateway subinterface, then the tunnel endpoints and
+	// the attachment. Nothing this service did not create is touched — the
+	// physical port and every bootstrap object stay.
 	np.Rollback = append(np.Rollback,
 		Op{GNMI: &GNMISet{Deletes: []string{niPath(c.VRFName)}}},
-		Op{GNMI: &GNMISet{Deletes: []string{vxlanIfPath(opts.VXLANTunnel, c.L3VNI)}}},
+		Op{GNMI: &GNMISet{Deletes: []string{niPath(ni)}}},
 		Op{GNMI: &GNMISet{Deletes: []string{subifPath(irbInterface, bd.VLAN)}}},
+		Op{GNMI: &GNMISet{Deletes: []string{vxlanIfPath(opts.VXLANTunnel, c.L3VNI)}}},
+		Op{GNMI: &GNMISet{Deletes: []string{vxlanIfPath(opts.VXLANTunnel, bd.L2VNI)}}},
+		Op{GNMI: &GNMISet{Deletes: []string{subifPath(port, bd.VLAN)}}},
 	)
-	np.Rollback = append(np.Rollback, macVRFRollback(bd, ni, port, opts)...)
 	return port, nil
 }
 
