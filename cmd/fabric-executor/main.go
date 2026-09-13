@@ -16,7 +16,7 @@
 //     (agentic-netops-agents) still has NO route to the devices (SC-005) — only
 //     the SR Linux provider, through this service, can touch the fabric.
 //
-// There is no docker socket, no container exec, no CLI scraping: the SONiC
+// There is no docker socket, no container exec, no CLI scraping: the previous
 // target needed those because gNMI Set was broken on that image, and this
 // target is the one where it is not.
 package main

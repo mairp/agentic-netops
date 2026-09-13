@@ -61,8 +61,9 @@ split of the previous generation is gone. There is one profile, `srlinux`.
     with no vxlan-interface.
   - **acl** — an `acl-filter` bound on the input or output side of the service's
     subinterfaces.
-  - Legacy names such as VPLS, VPWS/E-Line, L3VPN and IRB are migration aliases
-    only and must not be used as operator vocabulary.
+  - Legacy service-provider names are accepted for provenance only and must
+    never be presented as operator vocabulary; the mapping is listed in
+    `docs/INTENT_TIER_SERVICE_TYPES.md` (migration alias).
 - **SRv6 is not applicable on this target** — the SR Linux container has no SRv6
   data plane. `SRv6Service` objects report `Ready=False` with
   `CapabilityMissing`.

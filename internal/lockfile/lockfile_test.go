@@ -90,18 +90,18 @@ func TestShellScriptsParse(t *testing.T) {
 	}
 }
 
-// The pinned SONiC image must actually be present on this host — a claim that
+// The pinned SR Linux image must actually be present on this host — a claim that
 // cannot be satisfied by writing a file.
-func TestPinnedSonicImagePresent(t *testing.T) {
+func TestPinnedFabricImagePresent(t *testing.T) {
 	root := repoRoot(t)
 	data, err := os.ReadFile(filepath.Join(root, "versions.lock.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	re := regexp.MustCompile(`sonic_vs:\s*\n\s*image:\s*(\S+)`)
+	re := regexp.MustCompile(`srlinux_images:\s*\n\s*srlinux:\s*\n\s*image:\s*(\S+)`)
 	m := re.FindStringSubmatch(string(data))
 	if m == nil {
-		t.Fatal("sonic_vs.image not pinned in versions.lock.yaml")
+		t.Fatal("srlinux_images.srlinux.image not pinned in versions.lock.yaml")
 	}
 	digest := m[1]
 	if i := strings.Index(digest, "@"); i >= 0 {
@@ -112,13 +112,13 @@ func TestPinnedSonicImagePresent(t *testing.T) {
 		t.Skipf("docker unavailable: %v", err)
 	}
 	if !strings.Contains(string(out), digest) {
-		// In constrained CI environments, the pinned SONiC image may not be
-		// preloaded. Allow an opt-out via AGENTIC_NETOPS_ENFORCE_SONIC_IMAGE=1 to keep
+		// In constrained CI environments, the pinned SR Linux image may not be
+		// preloaded. Allow an opt-out via AGENTIC_NETOPS_ENFORCE_FABRIC_IMAGE=1 to keep
 		// strict local enforcement while avoiding false negatives in CI.
-		if os.Getenv("AGENTIC_NETOPS_ENFORCE_SONIC_IMAGE") == "1" {
-			t.Errorf("pinned SONiC image %s is not loaded on this host", digest)
+		if os.Getenv("AGENTIC_NETOPS_ENFORCE_FABRIC_IMAGE") == "1" {
+			t.Errorf("pinned SR Linux image %s is not loaded on this host", digest)
 		} else {
-			t.Skipf("pinned SONiC image %s not present; skipping strict host-image check (set AGENTIC_NETOPS_ENFORCE_SONIC_IMAGE=1 to enforce)", digest)
+			t.Skipf("pinned SR Linux image %s not present; skipping strict host-image check (set AGENTIC_NETOPS_ENFORCE_FABRIC_IMAGE=1 to enforce)", digest)
 		}
 	}
 }

@@ -51,6 +51,12 @@ if command -v rg >/dev/null 2>&1; then
 else
   IMG_LINES=$(grep -RinE '^\s*image:\s*[^#]+' deploy 2>/dev/null || true)
 fi
+# Locally built intent-tier images (agentic-netops/intent-*:latest, built by
+# scripts/lib/intent_tier.sh from docker/Dockerfile.* whose BASE images are
+# digest-pinned in versions.lock.yaml intent_tier:) and the ${NODE_IMAGE}
+# placeholder the probe scripts substitute at run time carry no registry digest
+# by construction; everything else under deploy/ must.
+IMG_LINES=$(printf "%s\n" "$IMG_LINES" | grep -vE 'image:[[:space:]]*(agentic-netops/intent-[a-z-]+:latest|\$\{NODE_IMAGE\})' || true)
 MISSING_DIGEST=$(printf "%s" "$IMG_LINES" | awk -F: 'BEGIN{ok=1} {line=$0; if ($0 !~ /@sha256:[0-9a-f]{64}/) {print line; ok=0}} END{exit ok==1 ? 0 : 1}') || {
   echo "::error title=Unpinned images found::The following image lines are not pinned by digest:" | tee "$REPORT_DIR/supply-chain.unpinned-images.txt"
   printf "%s\n" "$IMG_LINES" | awk '$0 !~ /@sha256:[0-9a-f]{64}/' | tee -a "$REPORT_DIR/supply-chain.unpinned-images.txt"

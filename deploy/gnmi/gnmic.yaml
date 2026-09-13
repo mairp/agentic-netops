@@ -75,7 +75,7 @@ data:
           sample-interval: 30s
       outputs:
         # Native Prometheus output, scraped directly by Prometheus. The OTLP hop
-        # (gnmic -> otel-collector -> prometheus) was removed in the SONiC
+        # (gnmic -> otel-collector -> prometheus) was removed in the previous
         # generation because gnmic's otlp output takes `endpoint` not `url` and
         # silently discarded every sample; the single hop is kept here because
         # the collected data stays inspectable with one curl against

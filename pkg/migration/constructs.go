@@ -12,14 +12,15 @@ import (
 //
 // The tier used to advertise service-provider service names — VPLS, VPWS,
 // L3VPN, L2L3-IRB. The fabric underneath them is a datacenter EVPN/VXLAN
-// fabric running SONiC, and SONiC has no notion of any of those: it has
-// VLANs, VRFs, VXLAN tunnel maps and ACLs. The operator vocabulary is now the
-// datacenter one, taken from the four SONiC construct references:
+// fabric, and the fabric has no notion of any of those: on SR Linux it has
+// mac-vrf and ip-vrf network-instances, VXLAN tunnel interfaces and ACL
+// filters. The operator vocabulary is the datacenter one, matching the SR
+// Linux construct references:
 //
-//	vlan     https://developer.cisco.com/docs/sonic/vlan/
-//	mac-vrf  https://developer.cisco.com/docs/sonic/vxlan-evpn/
-//	ip-vrf   https://developer.cisco.com/docs/sonic/vrf/
-//	acl      https://developer.cisco.com/docs/sonic/acl/
+//	vlan     a mac-vrf with local subinterfaces (no VXLAN)
+//	mac-vrf  https://documentation.nokia.com/srlinux/ (EVPN-VXLAN Guide, Layer 2)
+//	ip-vrf   https://documentation.nokia.com/srlinux/ (EVPN-VXLAN Guide, Layer 3)
+//	acl      https://documentation.nokia.com/srlinux/ (ACL and Policy-Based Routing Guide)
 //
 // Four constructs, and the compositions between them, cover what this fabric
 // can express:
@@ -145,10 +146,10 @@ type AnycastGateway struct {
 	GatewayV6 string `json:"gatewayIPv6,omitempty"`
 }
 
-// ACLRule is one match/action row of an access list (SONiC ACL_RULE).
+// ACLRule is one match/action row of an access list (SR Linux acl-filter entry).
 //
-// Field names follow the operator vocabulary; the CONFIG_DB field names they
-// render to (SRC_IP, L4_DST_PORT, PACKET_ACTION, ...) are applied by the
+// Field names follow the operator vocabulary; the device field names they
+// render to (source-ip prefix, destination-port, accept/drop, ...) are applied by the
 // fabric planner, not here.
 type ACLRule struct {
 	// Name is the rule id within the table. Required and unique per ACL.

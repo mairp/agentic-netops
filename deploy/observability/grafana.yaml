@@ -675,7 +675,7 @@ data:
           },
           "options": {
             "mode": "markdown",
-            "content": "**No SRv6 data plane on this fabric.**\n\nThe lab runs `ghcr.io/nokia/srlinux` containers, which do not implement an SRv6 data plane. The capability gate records SRv6 entries as `not-applicable` with that reason rather than `pass`, the site pins carry `cap-sai-srv6: \"false\"`, and `SRv6Service` objects reconcile to `Ready=False` with reason `CapabilityMissing`.\n\nNothing here has been observed to work on SR Linux and nothing is charted as if it had. The panels below are retained, disabled, to show what the SONiC generation measured; see `docs/legacy/sonic/SRV6_GNMI_CAPABILITY_FINDINGS.md` for that record."
+            "content": "**No SRv6 data plane on this fabric.**\n\nThe lab runs `ghcr.io/nokia/srlinux` containers, which do not implement an SRv6 data plane. The capability gate records SRv6 entries as `not-applicable` with that reason rather than `pass`, the site pins carry `cap-sai-srv6: \"false\"`, and `SRv6Service` objects reconcile to `Ready=False` with reason `CapabilityMissing`.\n\nNothing here has been observed to work on SR Linux and nothing is charted as if it had. The panels below are retained, disabled, to show what the previous fabric generation measured; see the SRv6 capability findings record under `docs/legacy/` for that history."
           }
         },
         {

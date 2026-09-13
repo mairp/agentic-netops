@@ -42,5 +42,43 @@ replaced. The specification that drove the change lives in
 Listed below after the sweep in task T038; every entry is deliberate (history, the supply-chain deny pattern, or `docs/legacy/sonic/`).
 
 <!-- SWEEP:START -->
-(pending)
+Sweep of 2026-09-13 (`grep -rniE 'sonic|redis-cli|vtysh|config_db'`, excluding `vendor/`, `docs/legacy/`, `specs/`):
+
+| File | Lines | Why it stays |
+|---|---|---|
+| `.gitignore` | 2 | comments |
+| `README.md` | 3 | truthfulness notes about screenshots and the policy |
+| `agents/tests/e2e/test_lifecycle_idempotence.py` | 1 | link to a legacy postmortem |
+| `docs/DEMO_VIDEO_PROMPT.md` | 1 | documentation history |
+| `docs/DEPENDENCIES.md` | 2 | documentation history |
+| `docs/DEVELOPERS.md` | 1 | documentation history |
+| `docs/INTENT_TIER_ACCEPTANCE_REPORT.md` | 2 | documentation history |
+| `docs/INTENT_TIER_OPS_READINESS.md` | 2 | documentation history |
+| `docs/INTENT_TIER_SERVICE_TYPES.md` | 1 | documentation history |
+| `docs/README-OPERATORS-DEVELOPERS.md` | 1 | documentation history |
+| `docs/SUPPLY_CHAIN.md` | 6 | policy description |
+| `docs/images/README.md` | 3 | PNG provenance |
+| `pkg/compat/matrix.go` | 1 | history comment |
+| `pkg/fabricplan/plan.go` | 5 | history comments explaining what changed |
+| `pkg/fabricplan/plan_test.go` | 1 | history comment |
+| `pkg/kubenet/network.go` | 1 | history comment |
+| `pkg/migration/acl.go` | 1 | name rule kept for determinism (comment) |
+| `pkg/model/types.go` | 2 | retained model comments |
+| `pkg/render/acl.go` | 5 | retained SDC scaffold |
+| `pkg/render/bgp.go` | 1 | retained SDC scaffold |
+| `pkg/render/doc.go` | 1 | explains the scaffold |
+| `pkg/render/evpn_advanced.go` | 3 | retained SDC scaffold |
+| `pkg/render/srv6.go` | 4 | retained SDC scaffold |
+| `pkg/render/vlan.go` | 5 | retained SDC scaffold, see pkg/render/doc.go |
+| `pkg/sdc/offline.go` | 1 | retained SDC scaffold |
+| `pkg/sdc/validate.go` | 22 | embedded default register of the retained SDC scaffold (pkg/render, never the write path) |
+| `scripts/ci/supply_chain.sh` | 13 | the deny pattern itself |
+| `scripts/install-deps.sh` | 3 | refuses the old SONiC pin keys |
+| `scripts/lib/verify_pins.sh` | 5 | rejects any sonic_* pin section |
+| `testautomation/video/check_framing.py` | 1 | docstring history |
+| `testautomation/video/record.py` | 2 | docstring history |
+| `tests/unit/compat_fullvalidate_test.go` | 2 | asserts the old pin keys are gone |
+| `tests/unit/render_evpn_srv6_test.go` | 5 | register fixture for the SDC scaffold |
+
+Removed outright: `tools/agentic-netops-device/` (a SONiC redis-to-gNMI bridge, unneeded on SR Linux), `lab/images/sonic-vs-gnmi/`, `lab/profiles/sonic-*`, the SRv6 suites, and the tracked Go build cache. The SONiC walkthrough evidence moved to `docs/legacy/sonic/`.
 <!-- SWEEP:END -->

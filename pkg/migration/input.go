@@ -335,9 +335,10 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 	return nil
 }
 
-// l3vniRenderableCauses rejects an L3VNI the fabric cannot render. SONiC needs
-// a VLAN for every VNI and the renderer derives one as 4000 + (vni - 10000)
-// into the reserved 4001-4094 band, so only 10000-14094 has a VLAN to derive.
+// l3vniRenderableCauses rejects an L3VNI the fabric cannot render. The ip-vrf
+// attachment subinterface is tagged with a VLAN derived from the L3VNI as
+// 4000 + (vni - 10000) into the reserved 4001-4094 band, so only 10000-14094
+// has a tag to derive.
 // Outside it the object used to be accepted, submitted, and only then rejected
 // by the controller.
 func l3vniRenderableCauses(vni int) []string {
