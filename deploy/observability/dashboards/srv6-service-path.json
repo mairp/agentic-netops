@@ -1,13 +1,73 @@
 {
-  "annotations": {"list": []},
-  "editable": true,
-  "graphTooltip": 0,
-  "panels": [
-    {"type": "graph", "title": "SRv6 MySID Counters by Endpoint/Behavior", "targets": [{"expr": "sum by(endpoint,behavior,sid) (rate(sonic_srv6_mysid_packets_total[5m]))"}]},
-    {"type": "stat", "title": "Active Path State by Endpoint", "targets": [{"expr": "max by(path,endpoint) (agentic_netops_srv6_active_path{path=~'primary|alternate'})"}]},
-    {"type": "graph", "title": "Path Utilization by Endpoint/Behavior", "targets": [{"expr": "sum by(path,endpoint,behavior) (rate(sonic_srv6_mysid_packets_total[5m]))"}]}
-  ],
-  "schemaVersion": 39,
-  "title": "Agentic NetOps SRv6 Service Path",
-  "version": 2
+    "annotations": {
+        "list": []
+    },
+    "editable": true,
+    "graphTooltip": 0,
+    "uid": "agentic-netops-srv6-service-path",
+    "tags": ["agentic-netops", "srv6", "not-applicable"],
+    "description": "SRv6 is not applicable on this site. The Nokia SR Linux container image has no SRv6 data plane, so no MySID counters or SRv6 path state exist to chart. The dashboard is kept so the panel set and its history stay in the tree, and so an operator looking for SRv6 finds the reason instead of an empty graph.",
+    "panels": [
+        {
+            "type": "text",
+            "title": "SRv6: not applicable on the SR Linux site",
+            "gridPos": {
+                "h": 6,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            },
+            "options": {
+                "mode": "markdown",
+                "content": "**No SRv6 data plane on this fabric.**\n\nThe lab runs `ghcr.io/nokia/srlinux` containers, which do not implement an SRv6 data plane. The capability gate records SRv6 entries as `not-applicable` with that reason rather than `pass`, the site pins carry `cap-sai-srv6: \"false\"`, and `SRv6Service` objects reconcile to `Ready=False` with reason `CapabilityMissing`.\n\nNothing here has been observed to work on SR Linux and nothing is charted as if it had. The panels below are retained, disabled, to show what the SONiC generation measured; see `docs/legacy/sonic/SRV6_GNMI_CAPABILITY_FINDINGS.md` for that record."
+            }
+        },
+        {
+            "type": "stat",
+            "title": "SRv6Service objects reporting CapabilityMissing",
+            "gridPos": {
+                "h": 5,
+                "w": 8,
+                "x": 0,
+                "y": 6
+            },
+            "targets": [
+                {
+                    "expr": "count(agentic_netops_srv6service_capability_missing) or vector(0)",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "text",
+            "title": "MySID counters (retired panel)",
+            "gridPos": {
+                "h": 5,
+                "w": 8,
+                "x": 8,
+                "y": 6
+            },
+            "options": {
+                "mode": "markdown",
+                "content": "Not applicable on SR Linux: no MySID forwarding entries and therefore no counters to query."
+            }
+        },
+        {
+            "type": "text",
+            "title": "Active path state (retired panel)",
+            "gridPos": {
+                "h": 5,
+                "w": 8,
+                "x": 16,
+                "y": 6
+            },
+            "options": {
+                "mode": "markdown",
+                "content": "Not applicable on SR Linux: no SRv6 primary/alternate path state is programmed, so there is no signal to display."
+            }
+        }
+    ],
+    "schemaVersion": 39,
+    "title": "Agentic NetOps SRv6 Service Path (not applicable on SR Linux)",
+    "version": 3
 }

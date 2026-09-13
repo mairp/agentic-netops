@@ -1,0 +1,300 @@
+{
+  "nodes": [
+    {
+      "node": "leaf01",
+      "ops": [
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/interface[name=ethernet-1/3]",
+                "value": {
+                  "admin-state": "enable",
+                  "mtu": 9216,
+                  "vlan-tagging": true
+                }
+              },
+              {
+                "path": "/interface[name=ethernet-1/3]/subinterface[index=150]",
+                "value": {
+                  "admin-state": "enable",
+                  "type": "bridged",
+                  "vlan": {
+                    "encap": {
+                      "single-tagged": {
+                        "vlan-id": 150
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10150]",
+                "value": {
+                  "egress": {
+                    "source-ip": "use-system-ipv4-address"
+                  },
+                  "ingress": {
+                    "vni": 10150
+                  },
+                  "type": "bridged"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/network-instance[name=vlan150]",
+                "value": {
+                  "admin-state": "enable",
+                  "interface": [
+                    {
+                      "name": "ethernet-1/3.150"
+                    }
+                  ],
+                  "protocols": {
+                    "bgp-evpn": {
+                      "bgp-instance": [
+                        {
+                          "admin-state": "enable",
+                          "ecmp": 2,
+                          "evi": 10150,
+                          "id": 1,
+                          "vxlan-interface": "vxlan1.10150"
+                        }
+                      ]
+                    },
+                    "bgp-vpn": {
+                      "bgp-instance": [
+                        {
+                          "id": 1,
+                          "route-target": {
+                            "export-rt": "target:65000:150",
+                            "import-rt": "target:65000:150"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "type": "mac-vrf",
+                  "vxlan-interface": [
+                    {
+                      "name": "vxlan1.10150"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "checks": [
+        {
+          "type": "gnmi-equals",
+          "path": "/network-instance[name=vlan150]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-equals",
+          "path": "/interface[name=ethernet-1/3]/subinterface[index=150]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-equals",
+          "path": "/network-instance[name=vlan150]/protocols/bgp-evpn/bgp-instance[id=1]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-equals",
+          "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10150]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-list-min",
+          "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10150]/bridge-table/multicast-destinations/destination",
+          "minCount": 1
+        }
+      ],
+      "rollback": [
+        {
+          "gnmi": {
+            "deletes": [
+              "/network-instance[name=vlan150]"
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "deletes": [
+              "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10150]"
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "deletes": [
+              "/interface[name=ethernet-1/3]/subinterface[index=150]"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "node": "leaf02",
+      "ops": [
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/interface[name=ethernet-1/3]",
+                "value": {
+                  "admin-state": "enable",
+                  "mtu": 9216,
+                  "vlan-tagging": true
+                }
+              },
+              {
+                "path": "/interface[name=ethernet-1/3]/subinterface[index=150]",
+                "value": {
+                  "admin-state": "enable",
+                  "type": "bridged",
+                  "vlan": {
+                    "encap": {
+                      "single-tagged": {
+                        "vlan-id": 150
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10150]",
+                "value": {
+                  "egress": {
+                    "source-ip": "use-system-ipv4-address"
+                  },
+                  "ingress": {
+                    "vni": 10150
+                  },
+                  "type": "bridged"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/network-instance[name=vlan150]",
+                "value": {
+                  "admin-state": "enable",
+                  "interface": [
+                    {
+                      "name": "ethernet-1/3.150"
+                    }
+                  ],
+                  "protocols": {
+                    "bgp-evpn": {
+                      "bgp-instance": [
+                        {
+                          "admin-state": "enable",
+                          "ecmp": 2,
+                          "evi": 10150,
+                          "id": 1,
+                          "vxlan-interface": "vxlan1.10150"
+                        }
+                      ]
+                    },
+                    "bgp-vpn": {
+                      "bgp-instance": [
+                        {
+                          "id": 1,
+                          "route-target": {
+                            "export-rt": "target:65000:150",
+                            "import-rt": "target:65000:150"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "type": "mac-vrf",
+                  "vxlan-interface": [
+                    {
+                      "name": "vxlan1.10150"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "checks": [
+        {
+          "type": "gnmi-equals",
+          "path": "/network-instance[name=vlan150]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-equals",
+          "path": "/interface[name=ethernet-1/3]/subinterface[index=150]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-equals",
+          "path": "/network-instance[name=vlan150]/protocols/bgp-evpn/bgp-instance[id=1]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-equals",
+          "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10150]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-list-min",
+          "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10150]/bridge-table/multicast-destinations/destination",
+          "minCount": 1
+        }
+      ],
+      "rollback": [
+        {
+          "gnmi": {
+            "deletes": [
+              "/network-instance[name=vlan150]"
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "deletes": [
+              "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10150]"
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "deletes": [
+              "/interface[name=ethernet-1/3]/subinterface[index=150]"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -5,11 +5,11 @@
 # 1. Leader election. controller-runtime managers using --leader-elect need
 #    coordination.k8s.io leases in their own namespace. The shared Role
 #    `agentic-netops-controller` grants leases only to the secret-generator
-#    identity, so the srv6-controller and sonic-provider never won the lease:
+#    identity, so the srv6-controller and srlinux-provider never won the lease:
 #    their logs looped on "cannot get resource leases ... forbidden" and neither
 #    controller ever reconciled a single object.
 #
-# 2. The Network reconciler's API surface. sonic-provider watches
+# 2. The Network reconciler's API surface. srlinux-provider watches
 #    network.kubenet.dev Networks in agentic-netops-intent (where the intent
 #    tier's deployer submits them), maintains their status subresource, and
 #    records events on them. The system namespace's own Role does not and must
@@ -38,7 +38,7 @@ subjects:
   name: agentic-netops-srv6-controller
   namespace: agentic-netops-system
 - kind: ServiceAccount
-  name: agentic-netops-sonic-provider
+  name: agentic-netops-srlinux-provider
   namespace: agentic-netops-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -48,7 +48,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: sonic-provider-networks
+  name: srlinux-provider-networks
   namespace: agentic-netops-intent
 rules:
 # update/patch on the main resource: the finalizer add/remove is a plain
@@ -66,13 +66,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: sonic-provider-networks
+  name: srlinux-provider-networks
   namespace: agentic-netops-intent
 subjects:
 - kind: ServiceAccount
-  name: agentic-netops-sonic-provider
+  name: agentic-netops-srlinux-provider
   namespace: agentic-netops-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: sonic-provider-networks
+  name: srlinux-provider-networks

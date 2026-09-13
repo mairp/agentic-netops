@@ -13,7 +13,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/mairp/agentic-netops/controllers/sonicprovider"
+	"github.com/mairp/agentic-netops/controllers/srlprovider"
 	"github.com/mairp/agentic-netops/pkg/kubenet"
 	"github.com/mairp/agentic-netops/pkg/sdc"
 )
@@ -34,7 +34,7 @@ func TestProvider_EmitsDeviationObservedEvent(t *testing.T) {
 	nd := &kubenet.NetworkDevice{TypeMeta: metav1.TypeMeta{APIVersion: kubenet.GroupVersion.String(), Kind: "NetworkDevice"}, ObjectMeta: metav1.ObjectMeta{Name: "leaf01", Namespace: "default"}}
 	cfg := &sdc.Config{TypeMeta: metav1.TypeMeta{APIVersion: sdc.GroupVersion.String(), Kind: "Config"}, ObjectMeta: metav1.ObjectMeta{Name: "nd-leaf01", Namespace: "default"}, Status: sdc.ConfigStatus{Deviation: []sdc.DeviationRecord{{Path: "/if", Message: "drift"}}}}
 	c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&kubenet.NetworkDevice{}, &sdc.Config{}).WithObjects(nd, cfg).Build()
-	rec := &sonicprovider.Reconciler{Client: c, Scheme: scheme}
+	rec := &srlprovider.Reconciler{Client: c, Scheme: scheme}
 	cr := &capturingRecorder{}
 	rec.Recorder = cr
 

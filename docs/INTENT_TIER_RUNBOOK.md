@@ -1,6 +1,6 @@
 # Intent Tier Runbook
 
-This runbook covers bring-up, teardown, and per-stage failure diagnosis for the AGNTCY multi-agent intent tier (the `agentic-netops-intent` fabric-intent tier in this repository). It assumes the Agentic NetOps SONiC EVPN/VXLAN fabric is managed by this repository and that the Kind cluster and observability stack are provisioned by the standard scripts. Operator-facing vocabulary throughout uses the constructs (vlan, mac‑vrf, ip‑vrf, acl). Legacy names, when mentioned, appear only as migration aliases/provenance.
+This runbook covers bring-up, teardown, and per-stage failure diagnosis for the AGNTCY multi-agent intent tier (the `agentic-netops-intent` fabric-intent tier in this repository). It assumes the Agentic NetOps Nokia SR Linux EVPN/VXLAN fabric is managed by this repository and that the Kind cluster and observability stack are provisioned by the standard scripts. Operator-facing vocabulary throughout uses the constructs (vlan, mac‑vrf, ip‑vrf, acl). Legacy names, when mentioned, appear only as migration aliases/provenance.
 
 ## Bring-up
 
@@ -10,7 +10,7 @@ Preconditions:
 
 Steps:
 1. Provision the base fabric and control plane, then install the intent tier in the same run:
-   - ./scripts/provision.sh --profile sonic-vs --with-intent-tier
+   - ./scripts/provision.sh --profile srlinux --with-intent-tier
    - Environment overrides (optional): AGENTIC_NETOPS_CLUSTER_NAME (default: agentic-netops), AGENTIC_NETOPS_TIMEOUT.
 2. The script performs:
    - pins/CRD verification, Kind ensure/attach, containerlab deploy;

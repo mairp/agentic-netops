@@ -1,4 +1,7 @@
-# T067: Versioned topology ConfigMap generated from containerlab inspect output and annotations
+# Versioned topology ConfigMap generated from containerlab inspect output and
+# annotations. Regenerate with scripts/observability/gen-topology-configmap.sh;
+# node and interface names match lab/topology.clab.yml and the SR Linux
+# interface naming the collector reports (ethernet-1/N).
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -15,20 +18,20 @@ data:
   topology.json: |
     {
       "nodes": [
-        {"id": "spine01", "role": "spine", "labels": {"pod": "fabric", "device": "sonic"}},
-        {"id": "spine02", "role": "spine", "labels": {"pod": "fabric", "device": "sonic"}},
-        {"id": "leaf01", "role": "leaf", "labels": {"pod": "fabric", "device": "sonic"}},
-        {"id": "leaf02", "role": "leaf", "labels": {"pod": "fabric", "device": "sonic"}}
+        {"id": "spine01", "role": "spine", "labels": {"pod": "fabric", "device": "srlinux"}},
+        {"id": "spine02", "role": "spine", "labels": {"pod": "fabric", "device": "srlinux"}},
+        {"id": "leaf01", "role": "leaf", "labels": {"pod": "fabric", "device": "srlinux"}},
+        {"id": "leaf02", "role": "leaf", "labels": {"pod": "fabric", "device": "srlinux"}}
       ],
       "links": [
-        {"source": "spine01", "target": "leaf01", "if": "Ethernet1"},
-        {"source": "spine01", "target": "leaf02", "if": "Ethernet2"},
-        {"source": "spine02", "target": "leaf01", "if": "Ethernet1"},
-        {"source": "spine02", "target": "leaf02", "if": "Ethernet2"}
+        {"source": "spine01", "target": "leaf01", "if": "ethernet-1/1"},
+        {"source": "spine01", "target": "leaf02", "if": "ethernet-1/2"},
+        {"source": "spine02", "target": "leaf01", "if": "ethernet-1/1"},
+        {"source": "spine02", "target": "leaf02", "if": "ethernet-1/2"}
       ],
       "metrics": {
-        "rate_metric": "sonic_interface_packets_total",
-        "util_metric": "sonic_interface_octets_total",
-        "labels": ["device", "interface", "pod"]
+        "rate_metric": "interface_statistics_in_packets",
+        "util_metric": "interface_statistics_in_octets",
+        "labels": ["source", "interface_name", "pod"]
       }
     }

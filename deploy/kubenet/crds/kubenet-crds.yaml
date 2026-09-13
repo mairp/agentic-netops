@@ -16,7 +16,7 @@ spec:
     - name: v1alpha1
       served: true
       storage: true
-      # Status subresource: the SONiC provider reports verified fabric
+      # Status subresource: the SR Linux provider reports verified fabric
       # convergence on .status.conditions; without it every status write 404s
       # and the deployer's convergence watch sees an eternally empty status.
       subresources:
@@ -48,7 +48,7 @@ spec:
     - name: v1alpha1
       served: true
       storage: true
-      # Status subresource: the SONiC provider reports verified fabric
+      # Status subresource: the SR Linux provider reports verified fabric
       # convergence on .status.conditions; without it every status write 404s
       # and the deployer's convergence watch sees an eternally empty status.
       subresources:
@@ -79,7 +79,7 @@ spec:
     - name: v1alpha1
       served: true
       storage: true
-      # Status subresource: the SONiC provider reports verified fabric
+      # Status subresource: the SR Linux provider reports verified fabric
       # convergence on .status.conditions; without it every status write 404s
       # and the deployer's convergence watch sees an eternally empty status.
       subresources:
@@ -110,7 +110,7 @@ spec:
     - name: v1alpha1
       served: true
       storage: true
-      # Status subresource: the SONiC provider reports verified fabric
+      # Status subresource: the SR Linux provider reports verified fabric
       # convergence on .status.conditions; without it every status write 404s
       # and the deployer's convergence watch sees an eternally empty status.
       subresources:

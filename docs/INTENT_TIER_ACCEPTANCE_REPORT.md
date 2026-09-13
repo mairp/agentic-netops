@@ -38,9 +38,13 @@ This report aggregates simulation outcomes for Phase 11.
   - Date: 2026-09-02
   - Notes: Tier operates within lab headroom; degradations name themselves; backup/restore verified.
 - Base-fabric dependency status:
-  - Status update 2026-09-04: Type-2 and Type-5 origination are resolved on the
-    clean 202505 image; the unwaived fabric gate passes (see
-    `docs/FABRIC_BGP_EVPN_DEFERRED.md`).
+  - The results in this report were produced against the previous (SONiC)
+    fabric; that record is kept in
+    `docs/legacy/sonic/FABRIC_BGP_EVPN_DEFERRED.md`.
+  - On the Nokia SR Linux target the base fabric has **not** been brought up
+    from this tree yet, so no acceptance figure here has been re-measured.
+    Phases 4-6 of `specs/001-agentic-netops-srlinux-evpn-fabric/plan.md`
+    produce the SR Linux evidence; this report is refreshed from it.
 
 ## Summary
 

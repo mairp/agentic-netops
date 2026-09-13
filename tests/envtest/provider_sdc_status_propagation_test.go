@@ -13,7 +13,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/mairp/agentic-netops/controllers/sonicprovider"
+	"github.com/mairp/agentic-netops/controllers/srlprovider"
 	"github.com/mairp/agentic-netops/pkg/kubenet"
 	"github.com/mairp/agentic-netops/pkg/sdc"
 )
@@ -32,7 +32,7 @@ func TestProvider_SDCStatusPropagation(t *testing.T) {
 
 	// Pre-seed objects to avoid any scheme/restmapper surprises with Create+Get roundtrip
 	c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&kubenet.NetworkDevice{}, &sdc.Config{}).WithObjects(nd, cfg).Build()
-	rec := &sonicprovider.Reconciler{Client: c, Scheme: scheme}
+	rec := &srlprovider.Reconciler{Client: c, Scheme: scheme}
 
 	// sanity: object is retrievable from fake client prior to reconcile
 	if err := c.Get(ctx, types.NamespacedName{Namespace: nd.Namespace, Name: nd.Name}, &kubenet.NetworkDevice{}); err != nil {

@@ -18,7 +18,12 @@
 //     (normalized-service-intent.schema.json shape == ServiceInput JSON).
 //   - 200: {"manifests": [...], "yaml": "..."} — deterministic, stable order.
 //   - 422: {"error": "validation", "causes": [...]} — all-or-nothing; a single
-//     rejection fails the whole batch and no manifest is returned.
+//     rejection fails the whole batch and no manifest is returned. Endpoint
+//     validation is one of those causes: FABRIC_NODE_MAP and FABRIC_PORT_MAP
+//     give the sidecar the site's real inventory (pkg/migration/site.go), so an
+//     attachment the SR Linux fabric does not have is refused here, naming the
+//     site's actual ports (wan1 -> ethernet-1/4, ethernet1..3 -> ethernet-1/3),
+//     instead of becoming a stranded Network in the cluster.
 //   - GET /healthz: pod-local liveness for the sidecar probes.
 package main
 

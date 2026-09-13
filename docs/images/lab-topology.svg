@@ -2,8 +2,11 @@
   <!--
     Source for docs/images/lab-topology.png. Palette and layout follow the
     srl-labs/srl-telemetry-lab topology drawing: slate canvas, navy routers with
-    the four-arrow L3 glyph, grey fabric links with numbered port badges, and a
+    the four-arrow L3 glyph, grey fabric links with named port badges, and a
     green management network with the mgmt-ipv4 suffix from lab/topology.clab.yml.
+    The four fabric nodes are Nokia SR Linux (containerlab kind nokia_srlinux,
+    type ixrd2l); port badges carry the containerlab link names e1-1..e1-4,
+    which the node itself calls ethernet-1/1..ethernet-1/4.
     Render: rsvg-convert -w 1860 docs/images/lab-topology.svg -o docs/images/lab-topology.png
   -->
   <defs>
@@ -29,15 +32,19 @@
       <path d="M-50,24 H50 L44,34 H-44 Z" fill="#fff"/>
       <rect x="-12" y="26" width="24" height="3" fill="#001135"/>
     </g>
-    <!-- port badge -->
+    <!-- port badge: a pill wide enough for the containerlab link name -->
     <g id="port">
-      <circle r="13" fill="#4bdd33"/>
+      <rect x="-25" y="-10" width="50" height="20" rx="6" fill="#4bdd33"/>
     </g>
   </defs>
 
   <!-- outer frame like a draw.io export -->
   <rect x="0" y="0" width="1240" height="960" fill="#fff"/>
   <rect x="24" y="24" width="1192" height="912" fill="#4d5766" filter="url(#shadow)"/>
+
+  <!-- ===== title ===== -->
+  <text x="48" y="80" fill="#fff" font-size="26">Nokia SR Linux fabric</text>
+  <text x="48" y="103" fill="#9fb0c4" font-size="15">EVPN / VXLAN, eBGP underlay</text>
 
   <!-- ===== management network (top) ===== -->
   <text x="48" y="135" fill="#fff" font-size="28">mgmt net</text>
@@ -82,35 +89,39 @@
 
   <!-- ===== fabric links (grey) ===== -->
   <g stroke="#828c99" stroke-width="3" fill="none">
-    <!-- spine01:eth1 - leaf01:eth1 -->
+    <!-- spine01:e1-1 - leaf01:e1-1 -->
     <line x1="412" y1="330" x2="272" y2="480"/>
-    <!-- spine01:eth2 - leaf02:eth1 -->
+    <!-- spine01:e1-2 - leaf02:e1-1 -->
     <line x1="448" y1="330" x2="932" y2="480"/>
-    <!-- spine02:eth1 - leaf01:eth2 -->
+    <!-- spine02:e1-1 - leaf01:e1-2 -->
     <line x1="792" y1="330" x2="308" y2="480"/>
-    <!-- spine02:eth2 - leaf02:eth2 -->
+    <!-- spine02:e1-2 - leaf02:e1-2 -->
     <line x1="828" y1="330" x2="968" y2="480"/>
-    <!-- leaf01:eth3 - client01:eth1 -->
+    <!-- leaf01:e1-3 - client01:eth1 -->
     <path d="M272,580 V650 H230 V735"/>
-    <!-- leaf01:eth4 - srv6-client01:eth1 -->
+    <!-- leaf01:e1-4 - srv6-client01:eth1 -->
     <path d="M308,580 V650 H440 V735"/>
-    <!-- leaf02:eth3 - client02:eth1 -->
+    <!-- leaf02:e1-3 - client02:eth1 -->
     <path d="M932,580 V650 H800 V735"/>
-    <!-- leaf02:eth4 - srv6-client02:eth1 -->
+    <!-- leaf02:e1-4 - srv6-client02:eth1 -->
     <path d="M968,580 V650 H1010 V735"/>
   </g>
 
   <!-- ===== spines ===== -->
-  <text x="430" y="200" fill="#fff" font-size="30" text-anchor="middle">spine01</text>
+  <text x="430" y="196" fill="#fff" font-size="30" text-anchor="middle">spine01</text>
+  <text x="430" y="219" fill="#9fb0c4" font-size="16" text-anchor="middle">SR Linux</text>
   <use href="#router" x="430" y="280"/>
-  <text x="810" y="200" fill="#fff" font-size="30" text-anchor="middle">spine02</text>
+  <text x="810" y="196" fill="#fff" font-size="30" text-anchor="middle">spine02</text>
+  <text x="810" y="219" fill="#9fb0c4" font-size="16" text-anchor="middle">SR Linux</text>
   <use href="#router" x="810" y="280"/>
 
   <!-- ===== leaves ===== -->
   <use href="#router" x="290" y="530"/>
   <text x="290" y="625" fill="#fff" font-size="30" text-anchor="middle">leaf01</text>
+  <text x="290" y="648" fill="#9fb0c4" font-size="16" text-anchor="middle">SR Linux</text>
   <use href="#router" x="950" y="530"/>
   <text x="950" y="625" fill="#fff" font-size="30" text-anchor="middle">leaf02</text>
+  <text x="950" y="648" fill="#9fb0c4" font-size="16" text-anchor="middle">SR Linux</text>
 
   <!-- ===== clients ===== -->
   <g fill="#fff" font-size="26" text-anchor="middle">
@@ -122,29 +133,29 @@
   <!-- what each client exercises, drawn on the laptop screen -->
   <g fill="#fff" font-size="14" font-weight="bold" text-anchor="middle" letter-spacing="1">
     <text x="230" y="762">EVPN</text>
-    <text x="440" y="762">SRv6</text>
+    <text x="440" y="762">WAN</text>
     <text x="800" y="762">EVPN</text>
-    <text x="1010" y="762">SRv6</text>
+    <text x="1010" y="762">WAN</text>
   </g>
 
   <!-- ===== port badges ===== -->
-  <g font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">
+  <g font-size="13" font-weight="bold" fill="#001135" text-anchor="middle">
     <!-- spine01 -->
-    <use href="#port" x="412" y="330"/><text x="412" y="335">1</text>
-    <use href="#port" x="448" y="330"/><text x="448" y="335">2</text>
+    <use href="#port" x="412" y="330"/><text x="412" y="335">e1-1</text>
+    <use href="#port" x="448" y="330"/><text x="448" y="335">e1-2</text>
     <!-- spine02 -->
-    <use href="#port" x="792" y="330"/><text x="792" y="335">1</text>
-    <use href="#port" x="828" y="330"/><text x="828" y="335">2</text>
+    <use href="#port" x="792" y="330"/><text x="792" y="335">e1-1</text>
+    <use href="#port" x="828" y="330"/><text x="828" y="335">e1-2</text>
     <!-- leaf01 -->
-    <use href="#port" x="272" y="480"/><text x="272" y="485">1</text>
-    <use href="#port" x="308" y="480"/><text x="308" y="485">2</text>
-    <use href="#port" x="272" y="580"/><text x="272" y="585">3</text>
-    <use href="#port" x="308" y="580"/><text x="308" y="585">4</text>
+    <use href="#port" x="272" y="480"/><text x="272" y="485">e1-1</text>
+    <use href="#port" x="308" y="480"/><text x="308" y="485">e1-2</text>
+    <use href="#port" x="272" y="580"/><text x="272" y="585">e1-3</text>
+    <use href="#port" x="308" y="580"/><text x="308" y="585">e1-4</text>
     <!-- leaf02 -->
-    <use href="#port" x="932" y="480"/><text x="932" y="485">1</text>
-    <use href="#port" x="968" y="480"/><text x="968" y="485">2</text>
-    <use href="#port" x="932" y="580"/><text x="932" y="585">3</text>
-    <use href="#port" x="968" y="580"/><text x="968" y="585">4</text>
+    <use href="#port" x="932" y="480"/><text x="932" y="485">e1-1</text>
+    <use href="#port" x="968" y="480"/><text x="968" y="485">e1-2</text>
+    <use href="#port" x="932" y="580"/><text x="932" y="585">e1-3</text>
+    <use href="#port" x="968" y="580"/><text x="968" y="585">e1-4</text>
   </g>
   <!-- client eth1 pills -->
   <g font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">

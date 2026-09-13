@@ -304,7 +304,7 @@ spec:
     - protocol: TCP
       port: 4317
   # T049: model-provider TLS only. The except list carves out the containerlab
-  # management subnet (172.31.0.0/16, SONiC nodes .11/.12/.21/.22) plus the
+  # management subnet (172.31.0.0/16, SR Linux nodes .11/.12/.21/.22) plus the
   # RFC1918 lab ranges — even for port 443.
   - to:
     - ipBlock:

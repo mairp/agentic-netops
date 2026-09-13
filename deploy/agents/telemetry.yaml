@@ -49,7 +49,8 @@
 #     metrics, in the qualified run); a metrics pipeline is configured too,
 #     because the SDK's MetricsWrapper can emit standard OTLP metrics and the
 #     plan names them agentic_netops_agent_* so they pass feature 001's filter
-#     processor regexp (.*sonic_.*, .*srv6.*, .*agentic-netops.*) unchanged.
+#     processor regexp (^interface_.*, ^network_instance_.*, ^platform_control_.*,
+#     .*agentic-netops.*) unchanged.
 #   - the clickhouse exporter needs the generated Secret clickhouse-auth
 #     (T054) — never admin/admin (REVERSE.md Finding 4).
 # ---------------------------------------------------------------------------
@@ -104,9 +105,10 @@ data:
           max_elapsed_time: 5m
       otlp/feature001:
         # Forward to feature 001's collector, which already accepts OTLP on
-        # :4317 and exports to Prometheus. Its filter processor keeps
-        # metrics matching .*sonic_.*|.*srv6.*|.*agentic-netops.*, so every tier
-        # metric is named agentic_netops_agent_* (plan.md Component 8).
+        # :4317 and exports to Prometheus. Its filter processor keeps metrics
+        # matching ^interface_.*|^network_instance_.*|^platform_control_.*|
+        # .*agentic-netops.*, so every tier metric is named
+        # agentic_netops_agent_* (plan.md Component 8).
         endpoint: otel-collector.agentic-netops-system.svc:4317
         tls:
           insecure: true

@@ -1,3 +1,11 @@
+# SRv6Service sample.
+#
+# NOT APPLICABLE ON THIS SITE: the SR Linux 7220 container has no SRv6 data
+# plane, so `fabric-compat-pins` carries `cap-sai-srv6: "false"` and applying
+# this object yields `Ready=False` with reason `CapabilityMissing` — the honest
+# answer, not a silent skip and not a fake success. It still applies cleanly
+# (the CRD and its validation are unchanged), which is exactly what makes the
+# capability gate observable. Interface names below are SR Linux port names.
 apiVersion: agentic-netops.io/v1alpha1
 kind: SRv6Service
 metadata:
@@ -6,9 +14,9 @@ metadata:
 spec:
   attachments:
   - node: leaf01
-    interface: Ethernet1
+    interface: ethernet-1/3
   - node: leaf02
-    interface: Ethernet1
+    interface: ethernet-1/3
   topologyRef: default-topology
   locatorPrefix: 2001:db8:1::/48
   vrf: tenant-a

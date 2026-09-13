@@ -12,7 +12,7 @@ import (
 func TestCompat_ReasonFor(t *testing.T) {
 	t.Parallel()
 	set := compat.Set{}
-	err := compat.Validate(set, map[string]bool{"sai.srv6": false})
+	err := compat.Validate(set, map[string]bool{compat.CapabilitySRv6: false})
 	if err == nil {
 		t.Fatalf("expected error")
 	}

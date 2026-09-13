@@ -10,7 +10,7 @@ import pytest
 # cluster and lab the host is pointing at. On a workstation or a lab host that
 # means tearing down the running intent tier and the containerlab fabric, which
 # is exactly what happened on 2026-09-06 when the marker was run to reproduce
-# the CI job (docs/SUGGESTED_PROMPTS_POSTMORTEM.md). The `e2e` marker alone did
+# the CI job (docs/legacy/sonic/SUGGESTED_PROMPTS_POSTMORTEM.md). The `e2e` marker alone did
 # not say that: it is shared with read-only cluster tests.
 #
 # So the destructive pair is opt-in. CI's lifecycle-idempotence job sets

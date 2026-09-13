@@ -1,15 +1,15 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: agentic-netops-sonic-provider
+  name: agentic-netops-srlinux-provider
 subjects:
 - kind: ServiceAccount
-  name: agentic-netops-sonic-provider
+  name: agentic-netops-srlinux-provider
   namespace: agentic-netops-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: agentic-netops-sonic-provider
+  name: agentic-netops-srlinux-provider
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

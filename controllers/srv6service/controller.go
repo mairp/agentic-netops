@@ -70,8 +70,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	pins := compat.ResolveSitePins(ctx, pinReader, svc.Annotations, svc.Labels)
 	set := compat.FromAnnotations(pins.Annotations)
-	discovered := map[string]bool{"sai.srv6": pins.Labels["agentic-netops.dev/cap.sai.srv6"] == "true"}
-	if err := compat.FullValidate(set, pins.Labels, discovered); err != nil {
+	// An SRv6Service is the ONE object on this site that needs a capability the
+	// platform does not have: the SR Linux 7220 container has no SRv6 data
+	// plane. Naming it here is what turns that absence into an honest
+	// CapabilityMissing on this object alone, while Networks keep converging.
+	discovered := map[string]bool{compat.CapabilitySRv6: pins.Labels["agentic-netops.dev/cap.sai.srv6"] == "true"}
+	if err := compat.FullValidate(set, pins.Labels, discovered, compat.CapabilitySRv6); err != nil {
 		reason := compat.ReasonFor(err)
 		cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: svc.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reason, Message: err.Error() + " (" + pins.Provenance() + ")"}
 		updated.Status.Conditions = upsertCondition(updated.Status.Conditions, cond)

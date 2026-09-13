@@ -2,7 +2,9 @@
 
 The multi-agent intent tier: a conversational LangGraph supervisor orchestrating
 three specialist workers (mapper, allocator, deployer) over A2A carried on the
-SLIM bus. This directory is the project root for the Python tier —
+SLIM bus. It turns plain language into declarative network services on the
+Nokia SR Linux EVPN/VXLAN fabric — vlan, mac-vrf, ip-vrf and acl — and never
+touches a device itself. This directory is the project root for the Python tier —
 `pyproject.toml` + `uv.lock` live here, and the importable top-level packages
 are `common/`, `config/`, `provisioning/`, and `supervisors/` (tests in
 `tests/`).

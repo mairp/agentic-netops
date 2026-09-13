@@ -1,7 +1,7 @@
-# Helm values for agentic-netops-sonic-provider (placeholder per T023)
+# Helm values for agentic-netops-srlinux-provider (placeholder)
 # Pinned image and probes; RBAC provided in charts/manifests under deploy/agentic-netops
 image:
-  repository: ghcr.io/agentic-netops/agentic-netops-sonic-provider
+  repository: ghcr.io/agentic-netops/agentic-netops-srlinux-provider
   tag: "v0.1.0"
   digest: sha256:9999999999999999999999999999999999999999999999999999999999999999
 args: []

@@ -16,7 +16,7 @@ import (
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	"github.com/mairp/agentic-netops/controllers/sonicprovider"
+	"github.com/mairp/agentic-netops/controllers/srlprovider"
 	"github.com/mairp/agentic-netops/pkg/kubenet"
 	"github.com/mairp/agentic-netops/pkg/sdc"
 )
@@ -56,7 +56,7 @@ func TestProviderFinalization_Envtest(t *testing.T) {
 		t.Fatalf("new client: %v", err)
 	}
 
-	rec := &sonicprovider.Reconciler{Client: c, Scheme: scheme}
+	rec := &srlprovider.Reconciler{Client: c, Scheme: scheme}
 
 	nd := &kubenet.NetworkDevice{ObjectMeta: metav1.ObjectMeta{Name: "leaf01", Namespace: "default"}}
 	if err := c.Create(ctx, nd); err != nil {

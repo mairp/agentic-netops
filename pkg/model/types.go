@@ -96,13 +96,13 @@ type SRPolicy struct {
 // ACL represents an access-list table with rules.
 // Kept minimal for renderer/register coverage; not used by fabric planner.
 type ACL struct {
-	Name        string
-	Stage       string // ingress | egress
-	Type        string // l3 | l3v6
-	Ports       []string
-	PolicyDesc  string
+	Name          string
+	Stage         string // ingress | egress
+	Type          string // l3 | l3v6
+	Ports         []string
+	PolicyDesc    string
 	DefaultAction string
-	Rules       []ACLRule
+	Rules         []ACLRule
 }
 
 // ACLRule is one match/action entry in an ACL table.

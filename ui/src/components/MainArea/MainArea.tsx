@@ -229,7 +229,7 @@ export default function MainArea({ events, pending, health }: Props) {
             <div className="control-plane-row">
               <div className="system-node"><CircuitBoard size={18} /><div><strong>Kubernetes controllers</strong><span>Continuous reconciliation</span></div></div>
               <div className={`system-arrow ${hasActivity ? 'active' : ''}`}><span>desired state</span></div>
-              <div className="system-node fabric-node"><Network size={18} /><div><strong>SONiC fabric</strong><span>EVPN / VXLAN</span></div></div>
+              <div className="system-node fabric-node"><Network size={18} /><div><strong>SR Linux fabric</strong><span>EVPN / VXLAN</span></div></div>
             </div>
           </div>
         </div>

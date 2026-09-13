@@ -1,0 +1,129 @@
+{
+  "nodes": [
+    {
+      "node": "leaf02",
+      "ops": [
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/acl/acl-filter[name=acl-svc-acl-ingress,type=ipv4]",
+                "value": {
+                  "description": "acme/svc-acl",
+                  "entry": [
+                    {
+                      "action": {
+                        "accept": {}
+                      },
+                      "description": "tenant web",
+                      "match": {
+                        "ipv4": {
+                          "protocol": "tcp",
+                          "source-ip": {
+                            "prefix": "10.0.0.0/24"
+                          }
+                        },
+                        "transport": {
+                          "destination-port": {
+                            "value": 443
+                          }
+                        }
+                      },
+                      "sequence-id": 100
+                    },
+                    {
+                      "action": {
+                        "drop": {}
+                      },
+                      "sequence-id": 65535
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/interface[name=ethernet-1/4]",
+                "value": {
+                  "admin-state": "enable"
+                }
+              },
+              {
+                "path": "/interface[name=ethernet-1/4]/subinterface[index=0]",
+                "value": {
+                  "admin-state": "enable",
+                  "type": "routed"
+                }
+              },
+              {
+                "path": "/network-instance[name=default]",
+                "value": {
+                  "interface": [
+                    {
+                      "name": "ethernet-1/4.0"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/interface[name=ethernet-1/4]/subinterface[index=0]/acl/input",
+                "value": {
+                  "acl-filter": [
+                    {
+                      "name": "acl-svc-acl-ingress",
+                      "type": "ipv4"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "checks": [
+        {
+          "type": "gnmi-exists",
+          "path": "/interface[name=ethernet-1/4]/subinterface[index=0]/acl/input/acl-filter[name=acl-svc-acl-ingress,type=ipv4]"
+        },
+        {
+          "type": "gnmi-exists",
+          "path": "/acl/acl-filter[name=acl-svc-acl-ingress,type=ipv4]/entry[sequence-id=100]"
+        },
+        {
+          "type": "gnmi-exists",
+          "path": "/acl/acl-filter[name=acl-svc-acl-ingress,type=ipv4]/entry[sequence-id=100]/statistics"
+        },
+        {
+          "type": "gnmi-exists",
+          "path": "/acl/acl-filter[name=acl-svc-acl-ingress,type=ipv4]/entry[sequence-id=65535]"
+        }
+      ],
+      "rollback": [
+        {
+          "gnmi": {
+            "deletes": [
+              "/interface[name=ethernet-1/4]/subinterface[index=0]/acl/input/acl-filter[name=acl-svc-acl-ingress,type=ipv4]"
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "deletes": [
+              "/acl/acl-filter[name=acl-svc-acl-ingress,type=ipv4]"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

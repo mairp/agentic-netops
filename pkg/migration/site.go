@@ -10,8 +10,10 @@ import (
 )
 
 // SiteInventory is what the fabric will actually accept: the logical node
-// names the fabric-executor can reach (FABRIC_NODE_MAP) and the logical
-// attachment names the renderer can resolve to kernel ports (FABRIC_PORT_MAP).
+// names the fabric-executor can reach over gNMI (FABRIC_NODE_MAP, logical name
+// -> "host:57400") and the logical attachment names the renderer can resolve to
+// SR Linux interfaces (FABRIC_PORT_MAP: wan1 -> ethernet-1/4, ethernet1..3 ->
+// ethernet-1/3, e1-1..e1-4 -> ethernet-1/1..4).
 //
 // It exists because an endpoint naming a node or a port the site does not have
 // used to travel all the way to the cluster: the deployer reported a
@@ -57,8 +59,10 @@ func keysOfJSONMap(raw string) []string {
 }
 
 // normalizeSiteName folds the spellings of one logical name together: case and
-// separators are notation, not intent ("Ethernet1" and "ethernet1" name the
-// same port; "Leaf01" and "leaf01" the same node). It never invents a name.
+// separators are notation, not intent ("Ethernet1", "ethernet-1" and
+// "ethernet1" name the same site port; "Leaf01" and "leaf01" the same node). It
+// never invents a name — an attachment the site does not have is still refused,
+// naming the site's real ports (ethernet-1/3, ethernet-1/4 and friends).
 func normalizeSiteName(s string) string {
 	var b strings.Builder
 	for _, r := range strings.ToLower(s) {

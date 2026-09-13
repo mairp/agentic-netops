@@ -13,7 +13,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/mairp/agentic-netops/controllers/sonicprovider"
+	"github.com/mairp/agentic-netops/controllers/srlprovider"
 	"github.com/mairp/agentic-netops/pkg/kubenet"
 	"github.com/mairp/agentic-netops/pkg/sdc"
 )
@@ -25,7 +25,7 @@ func TestProviderFinalization(t *testing.T) {
 	_ = kubenet.AddToScheme(scheme)
 	_ = sdc.AddToScheme(scheme)
 	c := fake.NewClientBuilder().WithScheme(scheme).Build()
-	rec := &sonicprovider.Reconciler{Client: c, Scheme: scheme}
+	rec := &srlprovider.Reconciler{Client: c, Scheme: scheme}
 
 	ctx := context.TODO()
 	nd := &kubenet.NetworkDevice{ObjectMeta: metav1.ObjectMeta{Name: "leaf01", Namespace: "default"}}

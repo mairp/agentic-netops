@@ -94,8 +94,10 @@ data:
           metric_statements:
             - context: metric
               statements:
-                - set(unit, "packets") where name == "sonic_interface_packets_total"
-                - set(unit, "bytes") where name == "sonic_interface_octets_total"
+                - set(unit, "packets") where name == "interface_statistics_in_packets"
+                - set(unit, "packets") where name == "interface_statistics_out_packets"
+                - set(unit, "bytes") where name == "interface_statistics_in_octets"
+                - set(unit, "bytes") where name == "interface_statistics_out_octets"
         resourcedetection:
           detectors: [env, system]
           timeout: 2s
@@ -104,8 +106,12 @@ data:
             include:
               match_type: regexp
               metric_names:
-                - ".*sonic_.*"
-                - ".*srv6.*"
+                # SR Linux gNMI series, named by gnmic's default
+                # underscore-joined path convention (see
+                # deploy/observability/metrics-inventory.md).
+                - "^interface_.*"
+                - "^network_instance_.*"
+                - "^platform_control_.*"
                 - ".*agentic-netops.*"
       exporters:
         prometheus:

@@ -22,8 +22,8 @@ kind: DiscoveryRule
 metadata: { name: unreachable-target, namespace: sdc-system }
 spec:
   addresses: [ 198.51.100.123 ]
-  connectionProfileRef: { name: sonic-conn-profile }
-  schemaRef: { name: sonic-oc }
+  connectionProfileRef: { name: srlinux-conn-profile }
+  schemaRef: { name: srlinux }
 ---
 # Exhausted ASN claim: request outside the index range
 apiVersion: id.kuid.dev/v1alpha1

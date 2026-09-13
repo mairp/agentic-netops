@@ -22,8 +22,16 @@ Framing rules (2026-09-07, after the first accepted take was reviewed):
   * the agent canvas is zoomed OUT until the whole topology (supervisor,
     three workers, controllers, fabric) fits inside the canvas viewport, and
     that is asserted before every prompt;
-  * router-side VLAN lookups scan keys case-insensitively instead of guessing
-    the key's letter case.
+  * router-side lookups name the object the renderer created, derived from the
+    Network's own spec with the same rule pkg/fabricplan uses, and are backed
+    by a `show network-instance summary` scan so a missed derivation is
+    visible on screen rather than silently proving nothing.
+
+Router proofs are read-only `sr_cli "show ..."` commands on Nokia SR Linux
+(research decision D10). VERIFY LIVE: the exact show syntax must be confirmed
+against the pinned 26.7.2 image before a take -- `record.py --smoke` asserts
+that every command returns a prompt, which is the cheap way to catch a syntax
+change.
 """
 from __future__ import annotations
 
@@ -58,16 +66,18 @@ PROMPTS = {
     "C1'": "Extend vlan151 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant blue",
     "C2'": "Create a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant blue using vlan151",
     "D'": "Apply an acl on leaf02 wan1 for tenant acme: allow ingress tcp port 443 from 10.0.0.0/24, deny everything else",
-    # A'/B' wording is burned (each failed once in rehearsal-1/2 and the doc
-    # forbids retrying the same wording); these are the same sanctioned
-    # templates with fresh, unused identifiers (160 free per site ground
-    # truth; 10.52.0.0/24 not referenced by any Network spec).
+    # The prompt wording is the sanctioned list and does not change with the
+    # fabric; only the identifiers are single-use. The variants below carry
+    # progressively fresher identifiers.
+    #
+    # PROVENANCE: 130/150/10.50, 131/151/10.51, 160/10.52 and 170/152/10.53
+    # were consumed on the PREVIOUS (SONiC) fabric across its rehearsals and
+    # takes. On the SR Linux fabric nothing has been consumed yet, because no
+    # take has been recorded. Refresh the site ground truth in
+    # docs/DEMO_VIDEO_PROMPT.md before a take and pick from what is actually
+    # free there rather than trusting this comment.
     "A2": "Provision a vlan 160 on leaf01 ethernet1 for tenant acme",
     "B2": "Deploy an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant initech with prefix 10.52.0.0/24",
-    # 2026-09-07 re-take: 130/150/10.50 (final), 131/151/10.51 and 160/10.52
-    # (rehearsals) are all consumed on the fabric; these are the next free ones
-    # (VLAN usable range 1-4000; 170 and 152 absent from leaf01 CONFIG_DB and
-    # from every Network spec; 10.53.0.0/24 referenced by no Network).
     "A3": "Provision a vlan 170 on leaf01 ethernet1 for tenant acme",
     "B3": "Deploy an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant initech with prefix 10.53.0.0/24",
     "C3": "Extend vlan152 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant blue",
@@ -81,11 +91,77 @@ PROMPT_PREFIX = {"B": "10.50.0.0", "B'": "10.51.0.0", "B2": "10.52.0.0", "B3": "
 PROMPT_RE = r"operator@netops:.*\$ ?$"
 
 
-def vlan_lookup(leaf: str, table: str, vlan: str) -> str:
-    """Case-insensitive CONFIG_DB lookup typed on screen: scan the table's keys,
-    keep those ending in vlan<id> whatever the letter case, print key + hash."""
-    return (f"docker exec {leaf} sh -c 'for k in $(redis-cli -n 4 keys \"{table}|*\" | grep -i \"vlan{vlan}$\"); "
-            f"do echo \"$k\"; redis-cli -n 4 hgetall \"$k\"; done'")
+def ni_lookup(leaf: str, name: str) -> str:
+    """Network-instance scan typed on screen: the leaf's own summary, filtered
+    to the header line and any instance whose name matches, whatever the letter
+    case. The replacement for the SONiC-era CONFIG_DB key scan."""
+    return (f'docker exec {leaf} sr_cli "show network-instance summary" '
+            f"| grep -iE 'Name|Type|{name}'")
+
+
+def _sanitize(text: str, extra: str = "") -> str:
+    keep = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_" + extra
+    return "".join(c for c in text if c in keep)
+
+
+def device_vrf_name(intent_name: str) -> str | None:
+    """Mirror of pkg/fabricplan.DeviceVRFName: strip a leading vrf-, sanitize to
+    the YANG alphabet, cap at 10 characters, prefix Vrf-."""
+    rest = intent_name or ""
+    if len(rest) > 4 and rest[:4].lower() == "vrf-":
+        rest = rest[4:]
+    rest = _sanitize(rest)
+    if not rest:
+        return None
+    return "Vrf-" + rest[:10]
+
+
+def device_bridge_ni_name(bd_name: str, vlan) -> str | None:
+    """Mirror of pkg/fabricplan.DeviceBridgeNIName: the bridge domain's own name
+    when it is a usable SR Linux identifier, else macvrf-<vlan>."""
+    s = _sanitize(bd_name or "", ".")
+    if not s or not s[0].isalpha():
+        return f"macvrf-{vlan}" if vlan is not None else None
+    return s[:255]
+
+
+def device_acl_table_name(service_id: str, stage: str) -> str | None:
+    """Mirror of pkg/migration.DeviceACLTableName with serviceID = the Network's
+    own object name (pkg/fabricplan renderACL passes net.ObjectMeta.Name)."""
+    if not service_id:
+        return None
+    s = _sanitize(f"acl-{service_id}-{stage}") or "acl"
+    if not s[0].isalnum():
+        s = "A" + s
+    return s[:64]
+
+
+def device_names(net: str) -> dict:
+    """Read the Network's own spec (read-only) and derive the names of the
+    objects the renderer created on the device, so the on-screen proofs name
+    those objects instead of guessing. A field that cannot be derived stays
+    None and the caller falls back to a summary scan."""
+    dev: dict = {"vrf": None, "ni": None, "l2vni": None, "l3vni": None,
+                 "acl": None, "acl_family": "ipv4"}
+    _, out = host("kubectl -n agentic-netops-intent get networks.network.kubenet.dev "
+                  f"{net} -o json")
+    try:
+        spec = json.loads(out).get("spec", {}) or {}
+    except Exception:
+        return dev
+    routers = spec.get("routers") or []
+    if routers:
+        dev["vrf"] = device_vrf_name(routers[0].get("name", ""))
+        dev["l3vni"] = routers[0].get("l3vni")
+    bds = spec.get("bridgeDomains") or []
+    if bds:
+        dev["ni"] = device_bridge_ni_name(bds[0].get("name", ""), bds[0].get("vlan"))
+        dev["l2vni"] = bds[0].get("l2vni")
+    als = spec.get("accessLists") or []
+    if als:
+        dev["acl"] = device_acl_table_name(net, als[0].get("stage", "ingress"))
+        dev["acl_family"] = "ipv6" if str(als[0].get("type", "")).lower() == "l3v6" else "ipv4"
+    return dev
 
 KCTYPE_COLS = ("NAME:.metadata.name,"
                "TYPE:'.metadata.annotations.agentic-netops\\.io/service-type',"
@@ -107,7 +183,12 @@ def host(cmd: str) -> tuple[int, str]:
     return p.returncode, (p.stdout + (("\n[stderr] " + p.stderr) if p.stderr.strip() else "")).rstrip()
 
 
-def term_commands(construct: str, net: str, cid: str, prompt_id: str) -> list[str]:
+def term_commands(construct: str, net: str, cid: str, prompt_id: str,
+                  dev: dict | None = None) -> list[str]:
+    """The on-screen validation block for one prompt: three cluster commands
+    (the authority) followed by read-only SR Linux show commands on the leaves
+    (research D10). Nothing here writes; the driver never configures a node."""
+    dev = dev or {}
     kc = (f"kubectl -n agentic-netops-intent get networks.network.kubenet.dev "
           f"-l agentic-netops.io/correlation-id={cid} -o custom-columns={KCTYPE_COLS}")
     common = [
@@ -119,32 +200,50 @@ def term_commands(construct: str, net: str, cid: str, prompt_id: str) -> list[st
     if construct == "vlan":
         v = PROMPT_VLAN[prompt_id]
         router = [
-            vlan_lookup(LEAF1, "VLAN", v),
-            f"docker exec {LEAF1} bridge vlan show dev eth3 | grep -E 'vlan-id|^eth3|^ +{v}( |$)'",
+            ni_lookup(LEAF1, f"vlan-{v}"),
+            f'docker exec {LEAF1} sr_cli "show network-instance vlan-{v} interfaces"',
         ]
     elif construct == "ip-vrf":
         pfx = PROMPT_PREFIX.get(prompt_id, "")
-        router = [
-            f"docker exec {LEAF1} redis-cli -n 4 keys 'VRF|*'",
-            f"docker exec {LEAF1} vtysh -c 'show vrf'",
-            f"docker exec {LEAF1} vtysh -c 'show evpn vni' | grep -E 'VNI|L3'",
-            f"docker exec {LEAF1} vtysh -c 'show bgp l2vpn evpn route type prefix' | grep -B3 -A4 -F '[{pfx}]'",
-        ]
+        vrf = dev.get("vrf")
+        router = [ni_lookup(LEAF1, vrf or "ip-vrf")]
+        if vrf:
+            router += [
+                f'docker exec {LEAF1} sr_cli "show network-instance {vrf} summary"',
+                f'docker exec {LEAF1} sr_cli "show network-instance {vrf} route-table ipv4-unicast summary"',
+            ]
+        # The Type-5 for this prefix as the PEER leaf sees it: the only line
+        # that proves the route left leaf01, which self-origination cannot fake.
+        router.append(
+            f'docker exec {LEAF2} sr_cli "show network-instance default protocols bgp '
+            f'routes evpn route-type 5 summary" | grep -F "{pfx}"')
     elif construct == "mac-vrf":
         v = PROMPT_VLAN[prompt_id]
+        ni = dev.get("ni")
+        l2vni = dev.get("l2vni")
         router = [
-            vlan_lookup(LEAF1, "VLAN", v),
-            f"docker exec {LEAF1} sh -c 'redis-cli -n 4 keys \"VXLAN_TUNNEL_MAP|*\" | grep -i \"vlan{v}$\"'",
-            f"docker exec {LEAF1} vtysh -c 'show evpn vni' | grep -E 'VNI|L2'",
-            f"docker exec {LEAF2} vtysh -c 'show evpn vni' | grep -E 'VNI|L2'",
+            ni_lookup(LEAF1, ni or f"vlan{v}"),
+            ni_lookup(LEAF2, ni or f"vlan{v}"),
         ]
+        if ni:
+            router[0] = f'docker exec {LEAF1} sr_cli "show network-instance {ni} summary"'
+            router[1] = f'docker exec {LEAF2} sr_cli "show network-instance {ni} summary"'
+        if l2vni:
+            # Remote VTEP on both leaves: the peer's IMET route has to have
+            # arrived for this list to be non-empty.
+            router += [
+                f'docker exec {LEAF1} sr_cli "show tunnel-interface vxlan1 '
+                f'vxlan-interface {l2vni} bridge-table multicast-destinations"',
+                f'docker exec {LEAF2} sr_cli "show tunnel-interface vxlan1 '
+                f'vxlan-interface {l2vni} bridge-table multicast-destinations"',
+            ]
     else:  # acl
-        router = [
-            f"docker exec {LEAF1} redis-cli -n 4 keys 'ACL_TABLE|*'",
-            f"docker exec {LEAF1} redis-cli -n 4 keys 'ACL_RULE|*'",
-            f'docker exec {LEAF1} redis-cli -n 4 hgetall '
-            f'"$(docker exec {LEAF1} redis-cli -n 4 keys \'ACL_TABLE|*\' | tail -1)"',
-        ]
+        table = dev.get("acl")
+        family = dev.get("acl_family", "ipv4")
+        router = [f'docker exec {LEAF1} sr_cli "show acl summary"']
+        if table:
+            router.append(
+                f'docker exec {LEAF1} sr_cli "show acl acl-filter {table} type {family}"')
     return common + router
 
 
@@ -402,16 +501,19 @@ class Driver:
                     "commands": {}, "pre_snapshot": {}}
         log(f"--- prompt {pid}: {prompt}")
 
-        # pre-snapshot for diff-based pass checks (ip-vrf / acl / mac-vrf)
-        if construct == "ip-vrf":
-            _, ev["pre_snapshot"]["VRF"] = host(f"docker exec {LEAF1} redis-cli -n 4 keys 'VRF|*'")
-        if construct == "acl":
-            _, ev["pre_snapshot"]["ACL_TABLE"] = host(f"docker exec {LEAF1} redis-cli -n 4 keys 'ACL_TABLE|*'")
-            _, ev["pre_snapshot"]["ACL_RULE"] = host(f"docker exec {LEAF1} redis-cli -n 4 keys 'ACL_RULE|*'")
+        # pre-snapshot for diff-based pass checks (ip-vrf / acl / mac-vrf).
+        # Read-only, host side, never shown: it records what the leaf carried
+        # BEFORE the prompt, so "this object is new" is a difference rather
+        # than an assertion.
+        if construct in ("ip-vrf", "mac-vrf", "vlan"):
+            _, ev["pre_snapshot"]["NETWORK_INSTANCES"] = host(
+                f'docker exec {LEAF1} sr_cli "show network-instance summary"')
         if construct == "mac-vrf":
-            v = PROMPT_VLAN[pid]
-            _, ev["pre_snapshot"]["VTMAP"] = host(
-                f"docker exec {LEAF1} redis-cli -n 4 keys 'VXLAN_TUNNEL_MAP|vtep1|map_*_Vlan{v}'")
+            _, ev["pre_snapshot"]["NETWORK_INSTANCES_LEAF2"] = host(
+                f'docker exec {LEAF2} sr_cli "show network-instance summary"')
+        if construct == "acl":
+            _, ev["pre_snapshot"]["ACL"] = host(
+                f'docker exec {LEAF1} sr_cli "show acl summary"')
 
         u.bring_to_front()
         time.sleep(0.6)
@@ -532,7 +634,9 @@ class Driver:
         self.term_type(t, "clear")
         time.sleep(1.2)
         self.term_frame_check(t, pid)
-        cmds = term_commands(construct, net, cid or "NONE", pid)
+        dev = device_names(net)
+        ev["device_names"] = dev
+        cmds = term_commands(construct, net, cid or "NONE", pid, dev)
         for i, cmd in enumerate(cmds, 1):
             self.run_terminal_cmd(t, cmd, ev, f"{pid}-cmd{i}")
 
@@ -651,8 +755,9 @@ class Driver:
                 smoke_ev = {"commands": {}}
                 for i, cmd in enumerate([
                         "kubectl -n agentic-netops-intent get networks.network.kubenet.dev -o custom-columns=" + KCTYPE_COLS + " | head -8",
-                        vlan_lookup(LEAF1, "VLAN", "130"),
-                        f"docker exec {LEAF1} vtysh -c 'show evpn vni' | grep -E 'VNI|L3' | head -6"], 1):
+                        f'docker exec {LEAF1} sr_cli "show network-instance summary" | head -12',
+                        f'docker exec {LEAF1} sr_cli "show network-instance default '
+                        f'protocols bgp neighbor" | head -12'], 1):
                     self.run_terminal_cmd(t, cmd, smoke_ev, f"smoke-cmd{i}")
                 self.meta["smoke"] = smoke_ev
                 self.meta["finished_utc"] = now_iso()

@@ -1,12 +1,15 @@
-# Prompt: record the agentic-netops walkthrough video
+# Prompt: record the agentic-netops walkthrough video (Nokia SR Linux fabric)
 
-Target model: GLM 3.5 flash (vision). Tools available to the model: Playwright
-(Python, `/root/agentflow/.venv/bin/python`), a shell on this host (`kubectl`,
-`docker`, `ffmpeg`, `Xvfb`, `xdotool`, `ttyd`), and screenshot reading.
+Target model: a vision-capable model with tool use. Tools available to the
+model: Playwright (Python), a shell on the lab host (`kubectl`, `docker`,
+`ffmpeg`, `Xvfb`, `xdotool`, `ttyd`), and screenshot reading.
 
 Everything between the `=== PROMPT ===` markers is the text to give the model.
-The appendix after it is site ground truth that was verified on 2026-09-06 and
-is pasted into the prompt as-is.
+The appendix after it is site ground truth. **It must be re-verified against
+the running SR Linux lab and pasted into the prompt before every take** — see
+"Appendix: site ground truth" for what to check and how. The values currently
+in the appendix are a template carried over from the previous (SONiC) site and
+have NOT been read off an SR Linux fabric.
 
 === PROMPT ===
 
@@ -17,16 +20,17 @@ video is as long as the work takes), that shows the agentic-netops intent
 tier provisioning at least THREE services from plain-language prompts typed into the operator console at
 http://127.0.0.1:30000/, and, after EACH service is reported deployed, the
 operator switching to a terminal and proving it with `kubectl` (the kubenet
-`Network` resource and its conditions) and with commands run inside the SONiC
-leaf router. The video is a tool demonstration, not a tutorial: no captions,
-no title cards, no voice, no text overlays, no subtitles. Only what is on the
-screen: the console, the terminal, and the cursor. `final.mp4` is the ONLY
-video file this job produces: rehearsals are not recorded, and a failed take
-is deleted before it is re-recorded.
+`Network` resource and its conditions) and with read-only `sr_cli` show
+commands run inside the Nokia SR Linux leaf. The video is a tool
+demonstration, not a tutorial: no captions, no title cards, no voice, no text
+overlays, no subtitles. Only what is on the screen: the console, the terminal,
+and the cursor. `final.mp4` is the ONLY video file this job produces:
+rehearsals are not recorded, and a failed take is deleted before it is
+re-recorded.
 
 You are not the presenter. You are the test-automation engineer who makes the
 recording deterministic. Every claim of success in your final report must be
-backed by machine output you collected (kubectl JSON, redis/vtysh output,
+backed by machine output you collected (kubectl JSON, `sr_cli` output,
 ffprobe), never by what a screenshot "looks like".
 
 ## Hard rules
@@ -40,19 +44,18 @@ ffprobe), never by what a screenshot "looks like".
    one, the take is discarded and the whole take is re-recorded after fixing
    the cause.
 3. Never type into the console anything that is not in the prompt list below.
-   Do not improvise wording; three of the console's own suggestion cards are
-   refused by the supervisor today (see ground truth), so the prompt list, not
-   the cards, is the source of truth.
+   Do not improvise wording.
 4. One request per thread. After each deployment click "Clear conversation"
    (aria-label `Clear conversation`) before typing the next prompt.
-5. Do not modify anything under `/root/agentic-netops` except the output
-   directory `/root/agentic-netops/testautomation/video/`. Do not edit
-   supervisor, deployer or UI code. Do not delete cluster resources unless the
-   plan below says so.
-6. Read-only on the routers. Inside the SONiC containers you may run only
-   `redis-cli -n 4 ...` (hgetall/keys), `vtysh -c 'show ...'`, `bridge vlan
-   show`, `ip -br link`, `ip -br addr`, `show vlan brief`, `show vrf`. Never
-   `config`, `redis-cli ... set/del`, `vtysh -c 'conf t'`.
+5. Do not modify anything under the repository except the output directory
+   `testautomation/video/`. Do not edit supervisor, deployer or UI code. Do not
+   delete cluster resources unless the plan below says so.
+6. **Read-only on the routers.** Inside the SR Linux containers you may run
+   only `sr_cli "show ..."` and `sr_cli "info from state ..."`. Never
+   `sr_cli "enter candidate"`, `"commit ..."`, `"tools ..."`, `"delete ..."`
+   or `"set ..."`; never `bash` inside the node. The only sanctioned write to a
+   node in the whole project is the drift-repair test (T050), which is not part
+   of the recording.
 7. If a step cannot be made to pass after two attempts, stop, and report
    exactly what failed with the collected output. Do not deliver a video that
    does not meet the success criteria and call it done.
@@ -69,10 +72,10 @@ ffprobe), never by what a screenshot "looks like".
   aria-label `failure-reason` present.
 - For each of those prompts, in the same take, the terminal tab shows the
   kubectl Network listing with READY `True` for the new Network, its
-  `ApplySucceeded` event, and at least one router-side proof from leaf01
+  `ApplySucceeded` event, and at least one device-side proof from leaf01
   (see per-construct checks).
 - `evidence.json` records, per prompt: the prompt text, correlation id,
-  Network name, the Ready condition JSON, the router command outputs, and the
+  Network name, the Ready condition JSON, the device command outputs, and the
   wall-clock seconds from Enter to `Deployed`.
 - Gap between the end of one prompt's validation and the typing of the next
   prompt: 6 seconds of settled screen. Never shorten any wait, command list or
@@ -84,6 +87,9 @@ Type them in this order. A and B are mandatory. C1 is the preferred third; if
 C1 fails rehearsal use C2; if both fail, use D. Use one of C1/C2/D as the third
 prompt. A fourth prompt from the remaining candidates is optional; include it
 only if it passed rehearsal.
+
+The identifiers below are placeholders: **replace them with identifiers the
+refreshed ground truth says are free on this fabric**, and use each one once.
 
 | id | construct | prompt text (type exactly) |
 |---|---|---|
@@ -117,8 +123,8 @@ collides with rehearsal leftovers and nothing has to be deleted):
   `page.get_by_label("confirm-mapper")` then `page.get_by_label("confirm-allocator")`.
   Wait up to 120 s for each to appear. Before clicking, pause 1.5 s so the
   viewer can read the interpretation and the allocation.
-- Outcome: wait up to 240 s for `page.get_by_label("deployment-outcome")` to
-  contain text `Deployed`. If instead it contains `still converging` or
+- Outcome: wait for `page.get_by_label("deployment-outcome")` to contain text
+  `Deployed`. If instead it contains `still converging` or
   `Deployment failed`, or `failure-reason` appears, the take has failed.
 - The thread id and correlation id are shown as chips in the conversation;
   also read the correlation id from the NDJSON the page receives, or from the
@@ -130,8 +136,7 @@ collides with rehearsal leftovers and nothing has to be deleted):
   `Zoom in canvas`, `Zoom out canvas`, `Reset canvas view`; Ctrl+wheel over the
   canvas zooms; drag on the canvas background pans; the divider with aria-label
   `Resize conversation panel` accepts arrow keys, Home/End, and double-click
-  toggles maximised conversation. The conversation and sidebar have their own
-  zoom controls in the same component family.
+  toggles maximised conversation.
 
 ## Recording architecture
 
@@ -140,7 +145,7 @@ host desktop:
 
 1. `Xvfb :99 -screen 0 1920x1080x24 &` and `export DISPLAY=:99`.
 2. Start a web terminal for the operator's shell:
-   `ttyd -p 7681 -W -t fontSize=20 -t 'theme={"background":"#0d1117"}' bash &`.
+   `ttyd -p 7681 -W -t fontSize=24 -t 'theme={"background":"#0d1117"}' bash &`.
    Give that bash a clean prompt (`PS1='\[\e[32m\]operator@netops\[\e[0m\]:\w$ '`)
    and pre-export `KUBECONFIG` so `kubectl` works without `--context`.
 3. Launch Chromium headed through Playwright (`headless=False`,
@@ -150,21 +155,18 @@ host desktop:
 4. Record the display with
    `ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 30 -i :99 -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p final.mp4`
    started immediately before the first action and stopped (SIGINT) after the
-   last. Only the final take is recorded, and ffmpeg writes it directly to
-   `final.mp4` (no `take-N.mp4`, no `rehearsal-N.mp4`); rehearsal runs skip
-   ffmpeg entirely. Start it after both pages are loaded and the console
-   reports the supervisor healthy, so the recording never contains a loading
-   spinner.
+   last. Only the final take is recorded; rehearsal runs skip ffmpeg entirely.
+   Start it after both pages are loaded and the console reports the supervisor
+   healthy, so the recording never contains a loading spinner.
 5. Terminal typing: on page T use `page.keyboard.type(cmd, delay=35)` then
-   `press("Enter")`, then wait a fixed 2.5 s (or until the prompt string
-   reappears in a screenshot) before the next command. The truth for the
-   evidence file comes from running the SAME command with `subprocess.run` on
-   the host, not from reading the terminal pixels.
+   `press("Enter")`, then wait until the shell prompt reappears in xterm's
+   buffer before the next command. The truth for the evidence file comes from
+   running the SAME command with `subprocess.run` on the host, not from
+   reading the terminal pixels.
 6. Take screenshots of page U at: after typing, at each confirmation, at the
    outcome card; and of page T after each command. Save them next to the take
-   as `shots/<take>-<prompt>-<step>.png`. Look at them with your vision input
-   to check framing only (nothing cut off, zoom legible, no dialog covering
-   the content).
+   as `shots/<take>-<prompt>-<step>.png`. Check framing only (nothing cut off,
+   zoom legible, no dialog covering the content).
 
 ## Shot plan for the final take
 
@@ -185,9 +187,7 @@ Per prompt (3 prompts, each as long as its convergence takes):
   vlan), click Confirm.
 - Wait for `Deployed`. Hold the outcome card for 2 s.
 - Switch to page T. Run the validation commands for that construct (below),
-  one after another, 2.5 s each. Zoom the terminal to 125 % via
-  `document.body.style.zoom` when the output is dense (the Network table and
-  the vtysh table); reset to 100 % afterwards.
+  one after another, waiting for the prompt each time.
 - Switch back to page U, click `Clear conversation`, settle 6 s.
 
 Closing: page T, run the summary listing (see "closing" below), hold 5 s,
@@ -196,7 +196,15 @@ stop recording.
 ## Validation commands
 
 Run every command on page T (typed, visible) and on the host (subprocess,
-recorded). `$NET` is the Network name, `$CID` the correlation id.
+recorded). `$NET` is the Network name, `$CID` the correlation id, `$LEAF1` and
+`$LEAF2` the containers `clab-agentic-netops-fabric-leaf01` / `-leaf02`.
+
+> **VERIFY LIVE before the take.** Every `sr_cli` line below is the syntax
+> recorded in `specs/001-agentic-netops-srlinux-evpn-fabric/research.md` (D10).
+> None of it has been executed against the pinned 26.7.2 image from this tree.
+> `python record.py --smoke --take smoke` types a short command set and asserts
+> that every command returns a shell prompt — run it first, and correct any
+> command whose syntax the image rejects, here and in `record.py` together.
 
 Common, for every prompt:
 
@@ -210,45 +218,51 @@ kubectl -n agentic-netops-intent get networks.network.kubenet.dev $NET -o jsonpa
 Construct A (vlan 130 on leaf01):
 
 ```bash
-docker exec clab-agentic-netops-fabric-leaf01 redis-cli -n 4 hgetall 'VLAN|Vlan130'
-docker exec clab-agentic-netops-fabric-leaf01 bridge vlan show dev eth3
+docker exec $LEAF1 sr_cli "show network-instance summary" | grep -iE 'Name|Type|vlan-130'
+docker exec $LEAF1 sr_cli "show network-instance vlan-130 interfaces"
 ```
-Pass: the hgetall returns a non-empty hash with `vlanid 130`; `bridge vlan
-show dev eth3` lists `130`.
+Pass: the summary lists a `mac-vrf` network-instance `vlan-130` that was NOT in
+the pre-prompt snapshot, and its interfaces list contains `ethernet-1/3.130`.
 
 Construct B (ip-vrf on wan1, 10.50.0.0/24):
 
 ```bash
-docker exec clab-agentic-netops-fabric-leaf01 redis-cli -n 4 keys 'VRF|*'
-docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show vrf'
-docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show evpn vni'
-docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show bgp l2vpn evpn route type prefix' | head -40
+docker exec $LEAF1 sr_cli "show network-instance summary" | grep -iE 'Name|ip-vrf'
+docker exec $LEAF1 sr_cli "show network-instance <VRF> summary"
+docker exec $LEAF1 sr_cli "show network-instance <VRF> route-table ipv4-unicast summary"
+docker exec $LEAF2 sr_cli "show network-instance default protocols bgp routes evpn route-type 5 summary" | grep -F '10.50.0.0'
 ```
-Pass: a new `VRF|Vrf-<10 hex of the correlation id>` key appears that was not
-present before the prompt; `show evpn vni` shows an `L3` row whose Tenant VRF
-is that VRF; the Type-5 listing contains `10.50.0.0/24`. Snapshot the VRF key
-list BEFORE typing the prompt so "new" is a diff, not a guess.
+`<VRF>` is the on-device name derived from the Network's router
+(`Vrf-` + the first 10 usable characters); `record.py` derives it from the
+Network spec. Pass: the ip-vrf network-instance is new relative to the
+pre-prompt snapshot, its route table carries the prefix, and **leaf02** — the
+peer — shows the Type-5 for `10.50.0.0/24`. The peer's view is the honest
+proof: origination on leaf01 cannot put a route in leaf02's EVPN RIB.
 
 Construct C (mac-vrf vlan 150 across both leaves):
 
 ```bash
-docker exec clab-agentic-netops-fabric-leaf01 redis-cli -n 4 hgetall 'VLAN|Vlan150'
-docker exec clab-agentic-netops-fabric-leaf01 redis-cli -n 4 keys 'VXLAN_TUNNEL_MAP|vtep1|map_*_Vlan150'
-docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show evpn vni'
-docker exec clab-agentic-netops-fabric-leaf02 vtysh -c 'show evpn vni'
+docker exec $LEAF1 sr_cli "show network-instance <NI> summary"
+docker exec $LEAF2 sr_cli "show network-instance <NI> summary"
+docker exec $LEAF1 sr_cli "show tunnel-interface vxlan1 vxlan-interface <L2VNI> bridge-table multicast-destinations"
+docker exec $LEAF2 sr_cli "show tunnel-interface vxlan1 vxlan-interface <L2VNI> bridge-table multicast-destinations"
 ```
-Pass: the VLAN row exists; exactly one tunnel-map key for Vlan150; both leaves
-show an `L2` row with `VxLAN IF vtep1-150` and `# Remote VTEPs` = 1.
+`<NI>` is the bridge domain's device name, `<L2VNI>` the allocated L2VNI; both
+come from the Network spec. Pass: the network-instance exists on BOTH leaves,
+and each leaf's multicast-destinations list contains the OTHER leaf's system IP
+(`10.0.0.21` on leaf02, `10.0.0.22` on leaf01). A remote VTEP appears only once
+the peer's IMET route arrived — self-origination cannot fake it.
 
 Construct D (acl on leaf01 wan1):
 
 ```bash
-docker exec clab-agentic-netops-fabric-leaf01 redis-cli -n 4 keys 'ACL_TABLE|*'
-docker exec clab-agentic-netops-fabric-leaf01 redis-cli -n 4 keys 'ACL_RULE|*'
-docker exec clab-agentic-netops-fabric-leaf01 redis-cli -n 4 hgetall "$(docker exec clab-agentic-netops-fabric-leaf01 redis-cli -n 4 keys 'ACL_TABLE|*' | tail -1)"
+docker exec $LEAF1 sr_cli "show acl summary"
+docker exec $LEAF1 sr_cli "show acl acl-filter <FILTER> type ipv4"
 ```
-Pass: a new `ACL_TABLE|<name>` key bound to `eth4` with `stage ingress`, and
-two `ACL_RULE|` keys for it, both new relative to the pre-prompt snapshot.
+`<FILTER>` is `acl-<network name>-<stage>` sanitised. Pass: exactly one new
+acl-filter relative to the pre-prompt snapshot; the filter lists the declared
+entries (tcp 443 from 10.0.0.0/24 accept, default drop) and is bound on an
+`ethernet-1/4` subinterface.
 
 Allocation authority (show once, after prompt B or C, it is the same view):
 
@@ -261,9 +275,8 @@ sdcio: only if `kubectl get configs.sdc.sdcio.dev -A` returns at least one
 row, add `kubectl get targets.sdc.sdcio.dev,configs.sdc.sdcio.dev -A` to the
 allocation-authority segment. If it returns `No resources found`, do not show
 sdcio at all (the intent path on this site renders through the kubenet
-Network controller and the host fabric-executor, not through sdcio, and the
-sdc-system pods are currently not running). Record which case applied in the
-report.
+Network controller and the host fabric-executor speaking gNMI, not through
+sdcio). Record which case applied in the report.
 
 Closing listing:
 
@@ -276,41 +289,99 @@ kubectl -n agentic-netops-intent get networks.network.kubenet.dev \
 
 Phase 0, preflight (no recording):
 - `curl -s http://127.0.0.1:30000/` returns 200; `kubectl -n agentic-netops-agents get pods` shows supervisor, mapper, allocator, deployer, slim, ui all Running.
-- Confirm VLANs 130, 131, 150, 151 are absent from `redis-cli -n 4 keys 'VLAN|*'` on leaf01 and absent from every Network spec in `agentic-netops-intent`. If any is present, stop and report; do not pick another number.
-- Snapshot on leaf01: `VLAN|*`, `VRF|*`, `ACL_TABLE|*`, `VXLAN_TUNNEL_MAP|*` key lists to `snap/pre.json`.
+- Refresh the site ground truth (appendix) against the running lab and paste it into this prompt.
+- Confirm the chosen VLAN ids and prefixes are absent from `sr_cli "show network-instance summary"` on both leaves and absent from every Network spec in `agentic-netops-intent`. If any is present, stop and report; do not silently pick another number — record the substitution in the ground truth first.
+- Snapshot on both leaves: `show network-instance summary`, `show acl summary`, and `show tunnel-interface vxlan1 vxlan-interface brief` into `snap/pre.json`.
 
 Phase 1, rehearsal (NOT recorded: ffmpeg is not started, framing is judged from the screenshots only):
-- Write ONE Python Playwright script, `record.py`, parameterised by the prompt list and a `--record` flag (off for rehearsal, on for the final take). It drives everything; you never drive the browser by hand for a take.
-- Run it with A', B', then C1' (fallback C2', then D'). Record per prompt the seconds from Enter to `Deployed`. A rehearsal prompt that ends in refusal, `Deployment failed`, or `still converging` is a failed candidate: capture the console text and the supervisor log (`kubectl -n agentic-netops-agents logs deploy/supervisor --since=10m | grep audit`) into the report, and move to the next candidate. Do not retry the same wording more than once.
-- The inter-prompt gap is fixed at 6 s. Do not drop commands, shorten waits or trim the overview to reduce the total duration; the measured per-prompt seconds go into the report only.
+- `python record.py --smoke --take smoke` first: it proves the layout, the framing and that every terminal command returns a prompt. It must print `commands without a returned prompt: none`.
+- Run `record.py` with A', B', then C1' (fallback C2', then D'). Record per prompt the seconds from Enter to `Deployed`. A rehearsal prompt that ends in refusal, `Deployment failed`, or `still converging` is a failed candidate: capture the console text and the supervisor log (`kubectl -n agentic-netops-agents logs deploy/supervisor --since=10m | grep audit`) into the report, and move to the next candidate. Do not retry the same wording more than once, and never fix a refusal by rewording outside the sanctioned list — fix it in the tree.
+- The inter-prompt gap is fixed at 6 s. Do not drop commands, shorten waits or trim the overview to reduce the total duration.
 - Look at the rehearsal screenshots: confirm nothing is clipped at any zoom level, the terminal font is legible at 1080p, and the outcome card is fully visible when held.
 
 Phase 2, final take:
-- Run `record.py --record` with A, B, and the chosen C (plus the optional fourth). Everything is scripted; the only variability is convergence time. This is the only run that records video, and it writes `final.mp4` directly.
+- Run `record.py --prompts A,B,C1 --take final` with fresh identifiers. Everything is scripted; the only variability is convergence time. This is the only run that records video, and it writes `final.mp4` directly.
 - Immediately after the take, run the acceptance checks in Phase 3. If any fails, delete `final.mp4`; fix the script and re-run Phase 2 with fresh identifiers only if the failed prompt actually consumed its identifier (check the Network list). Otherwise re-run with the same identifiers.
 
 Phase 3, acceptance (machine-checked, in `accept.py`):
 - ffprobe width 1920, height 1080; duration is recorded, not bounded.
-- For each prompt in the take: Network found by correlation id; Ready=True; event `ApplySucceeded`; router pass condition true; all captured with timestamps.
+- For each prompt in the take: Network found by correlation id; Ready=True; event `ApplySucceeded`; device pass condition true; all captured with timestamps.
 - Console: for each prompt a screenshot of the outcome card exists and, from the page DOM at that time, `deployment-outcome` contained `Deployed` and no `failure-reason` existed. Record the DOM text, not a description of the screenshot.
 - Write `evidence.json`. `final.mp4` is already in place; confirm it is the only `.mp4` in the output directory.
 
-Phase 4, report. Output exactly these sections, nothing else: which prompts were used and their wording; per-prompt Enter-to-Deployed seconds; the final duration; the three router proofs quoted verbatim (trimmed to the matching lines); what failed in rehearsal, if anything, with the console text; whether the sdcio segment was included and why; the paths of `final.mp4`, `evidence.json`, `record.py`, `accept.py`. No adjectives about quality.
+Phase 4, report. Output exactly these sections, nothing else: which prompts were used and their wording; per-prompt Enter-to-Deployed seconds; the final duration; the three device proofs quoted verbatim (trimmed to the matching lines); what failed in rehearsal, if anything, with the console text; whether the sdcio segment was included and why; the paths of `final.mp4`, `evidence.json`, `record.py`, `accept.py`. No adjectives about quality.
 
 === END PROMPT ===
 
-## Appendix: site ground truth (verified 2026-09-06, paste into the prompt)
+## Appendix: site ground truth
+
+> **Status: NOT VERIFIED on the SR Linux lab.** The SR Linux fabric has not
+> been brought up from this tree, so nothing in this appendix has been read off
+> it. Every line below is either a fact fixed by the tree (ports, namespaces,
+> aria-labels) or a placeholder carried over from the previous site (free VLAN
+> ids, existing Networks). **Refresh it, with the commands given, immediately
+> before the take (task T053) and record the date you did.**
+
+Last refreshed: _(never — fill in with the date of the run)_
+
+### Fixed by the tree (re-read only if the tree changed)
 
 - Console: http://127.0.0.1:30000/ (NodePort of `ui` in `agentic-netops-agents`). It calls the supervisor at `/api` through the same origin; `GET /api/suggested-prompts` is the served card list, `POST /api/agent/prompt/stream` is NDJSON.
-- kubectl context: `kind-agentic-netops`. Namespaces: agents `agentic-netops-agents`, submitted intent `agentic-netops-intent`, kubenet `kubenet-system`, allocation `kuid-system`, sdc `sdc-system` (pods in ImagePullBackOff, zero `Config`/`Target` objects).
-- Routers: `clab-agentic-netops-fabric-leaf01`, `...-leaf02`, `...-spine01`, `...-spine02`. CONFIG_DB is redis db 4; ASIC_DB is db 1.
-- Port map at this site: `ethernet1`, `ethernet2`, `ethernet3` all resolve to `eth3` (the single client-facing port on each leaf); `wan1` resolves to `eth4`. Site aliases `site-a`=leaf01, `site-b`=leaf02.
-- VLANs already on leaf01 eth3: 100, 110, 112, 117, 118, 119, 120, 140, 300; on eth4: 4007, 4008 (derived L3VLANs). Free for the demo: 130, 131, 150, 151, 160, 170. VLAN ids above the derived-L3VLAN base are refused.
-- Existing Networks that are NOT Ready and hold ports: `phase8-4e-acl` and `phase8-4e-aclonly` bind an ingress ACL on `ethernet1` (eth3) on both leaves. Any prompt that attaches an ACL on ethernet1/2/3 at ingress is refused by the deployer pre-flight (FR-018). That is why the ACL candidate uses `wan1`.
-- Supervisor bounds: MAX_ITERATIONS=3, two explicit confirmations required, deployer convergence watch `DEPLOYER_CONVERGENCE_TIMEOUT_SECONDS`=150. A converged service is re-verified every 5 minutes; an `ApplySucceeded` event may therefore repeat.
-- Supervisor rule T072: a request naming two constructs (regex `\b(vlan|mac[- ]?vrf|ip[- ]?vrf|acl)\b`) is refused with "one construct per request". Served cards 2, 4 and 6 ("Extend vlan 150 as a mac-vrf ...", "Create a mac-vrf on vlan 160 ...", "Extend vlan 170 as a mac-vrf ... permitting only tcp 443") trip it on the running supervisor (refusal observed in the log at 15:59 on 2026-09-06).
+- kubectl context: `kind-agentic-netops`. Namespaces: agents `agentic-netops-agents`, submitted intent `agentic-netops-intent`, kubenet `kubenet-system`, allocation `kuid-system`, sdc `sdc-system`.
+- Fabric nodes: `clab-agentic-netops-fabric-leaf01`, `...-leaf02`, `...-spine01`, `...-spine02`, all Nokia SR Linux (`ghcr.io/nokia/srlinux:26.7.2`, containerlab kind `nokia_srlinux`, type `ixrd2l`). Management addresses `172.31.0.21/.22/.11/.12`, gNMI on `:57400` over TLS.
+- Port map at this site: `ethernet1`, `ethernet2`, `ethernet3` all resolve to `ethernet-1/3` (the single client-facing interface on each leaf); `wan1` resolves to `ethernet-1/4`. Site aliases `site-a`=leaf01, `site-b`=leaf02. Each service lands on its own single-tagged subinterface of that interface.
+- system0 loopbacks (the VTEP source addresses): leaf01 `10.0.0.21`, leaf02 `10.0.0.22`, spine01 `10.0.0.11`, spine02 `10.0.0.12`.
+- Bootstrap tenant state present on both leaves from startup configuration: mac-vrf `vlan100` (L2VNI 100, clients untagged on `ethernet-1/3.0`) and ip-vrf `VrfBlue` (L3VNI 2000). Do not reuse vlan 100 or VNIs 100/2000.
 - UI aria-labels: `Service request` (composer), `Send intent`, `confirm-mapper`, `decline-mapper`, `confirm-allocator`, `decline-allocator`, `deployment-outcome`, `convergence-outcomes`, `failure-reason`, `failure-suggestion`, `Clear conversation`, `Zoom in canvas`, `Zoom out canvas`, `Reset canvas view`, `Resize conversation panel`, `Agent topology`, `Agent conversation`.
 - Outcome text on success: `Deployed — N resource verified Ready`; `convergence-outcomes` contains `applied and verified on all nodes`. Ready condition reason on success: `ApplySucceeded`.
-- Status question phrasing the supervisor understands on the same thread, if ever needed: `what is the status of the deployment`.
-- Tools on the host: Playwright Python in `/root/agentflow/.venv` (browsers in `/root/.cache/ms-playwright`), `chromium` at `/usr/bin/chromium`, `ffmpeg`, `Xvfb`, `xvfb-run`, `xdotool`, `ttyd 1.7.7`.
-- Output directory: `/root/agentic-netops/testautomation/video/` (create it).
+- Supervisor rule T072: a request naming two constructs (regex `\b(vlan|mac[- ]?vrf|ip[- ]?vrf|acl)\b`) is refused with "one construct per request". Check the served suggestion cards against this rule before the take and record which ones trip it.
+- Status question phrasing the supervisor understands on the same thread: `what is the status of the deployment`.
+- SRv6 is not applicable on this fabric; no SRv6 prompt exists and none may be improvised.
+
+### To refresh before every take
+
+Run these and paste the answers here:
+
+```bash
+# 1. Which network-instances already exist (free VLAN ids and VRF names)
+docker exec clab-agentic-netops-fabric-leaf01 sr_cli "show network-instance summary"
+docker exec clab-agentic-netops-fabric-leaf02 sr_cli "show network-instance summary"
+
+# 2. Which VNIs are already bound
+docker exec clab-agentic-netops-fabric-leaf01 sr_cli "show tunnel-interface vxlan1 vxlan-interface brief"
+
+# 3. Which subinterfaces the client and wan interfaces already carry
+docker exec clab-agentic-netops-fabric-leaf01 sr_cli "show interface ethernet-1/3 detail"
+docker exec clab-agentic-netops-fabric-leaf01 sr_cli "show interface ethernet-1/4 detail"
+
+# 4. Which acl-filters are bound
+docker exec clab-agentic-netops-fabric-leaf01 sr_cli "show acl summary"
+
+# 5. Existing Networks, which are Ready, and which hold ports
+kubectl -n agentic-netops-intent get networks.network.kubenet.dev -o wide
+kubectl -n agentic-netops-intent get networks.network.kubenet.dev -o json \
+  | python3 -c 'import json,sys; [print(n["metadata"]["name"], json.dumps(n["spec"].get("attachments"))) for n in json.load(sys.stdin)["items"]]'
+
+# 6. The supervisor's own suggestion cards, and whether any trips the
+#    one-construct rule
+curl -s http://127.0.0.1:30000/api/suggested-prompts
+
+# 7. The deployer's convergence bound in force on this deployment
+kubectl -n agentic-netops-agents get deploy deployer -o jsonpath='{.spec.template.spec.containers[0].env}' \
+  | python3 -m json.tool | grep -A1 CONVERGENCE
+```
+
+Fill in, from those outputs:
+
+- Free VLAN ids for the take (three, single-use): _(fill in)_
+- Free prefixes for the ip-vrf prompts: _(fill in)_
+- Existing Networks that are NOT Ready and hold ports (these constrain which
+  attachment an ACL prompt may name): _(fill in)_
+- Deployer convergence watch seconds: _(fill in)_
+- Suggestion cards that the one-construct rule refuses: _(fill in)_
+- `sr_cli` show syntax confirmed on the image (`record.py --smoke` output): _(fill in)_
+
+### Host tooling
+
+- Playwright Python with Chromium, `ffmpeg`, `Xvfb`, `xvfb-run`, `xdotool`, `ttyd`.
+- Output directory: `testautomation/video/` in the repository clone.

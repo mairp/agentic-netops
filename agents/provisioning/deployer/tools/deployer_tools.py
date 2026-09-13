@@ -112,7 +112,7 @@ def _derive_construct_and_provenance(annotations: dict[str, Any]) -> tuple[str |
 def _condition_summary(obj: dict[str, Any]) -> dict[str, Any]:
     """Reduce one intent object to its Ready and Degraded conditions, verbatim.
 
-    The controller owns the Ready condition (controllers/sonicprovider/
+    The controller owns the Ready condition (controllers/srlprovider/
     network_controller.go): ``ApplySucceeded``/``ApplyFailed`` with the real
     operation output. This never paraphrases it — a status answer that
     invents a message is worse than no answer.

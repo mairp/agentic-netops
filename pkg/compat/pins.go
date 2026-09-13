@@ -4,7 +4,7 @@
 //
 // The compat validators (matrix.go) read pins from the object's own
 // annotations. Nothing in the pipeline ever stamped them, so every object
-// failed with "missing sonic image pin" — a false SchemaMismatch: the schema is
+// failed with "missing SR Linux image pin" — a false SchemaMismatch: the schema is
 // known and pinned, the annotation plumbing just never existed. The honest
 // source for the site default is versions.lock.yaml, the same file that
 // provisioned the fabric image; provision generates it into the
@@ -40,9 +40,8 @@ const (
 // versions.lock.yaml "SRv6/gNMI-qualified" + scripts/lib/qualify.sh) and land
 // in SitePins.Labels where the capability validators read them.
 var shortKeyToAnnotation = map[string]string{
-	"sonic-image":              "agentic-netops.dev/sonic-image",
-	"openconfig-commit":        "agentic-netops.dev/openconfig-commit",
-	"sonic-native-commit":      "agentic-netops.dev/sonic-native-commit",
+	"srlinux-image":            "agentic-netops.dev/srlinux-image",
+	"srlinux-yang":             "agentic-netops.dev/srlinux-yang",
 	"mapping-version":          "agentic-netops.dev/mapping-version",
 	"kubenet-commit":           "agentic-netops.dev/kubenet-commit",
 	"kuid-commit":              "agentic-netops.dev/kuid-commit",

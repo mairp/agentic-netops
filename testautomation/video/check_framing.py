@@ -6,6 +6,12 @@ For each PNG it reports: size, fraction of pixels equal to the dominant colour
 (blank-screen detector), and text-likeness (edge density) per horizontal third.
 Non-zero exit if any check fails.
 
+These checks are about the frame, not about what the frame says: they are
+network-operating-system agnostic and did not change with the move from SONiC
+to SR Linux. What each shot must CONTAIN is asserted by record.py's own frame
+checks (DOM labels, terminal prompt returned) and re-verified from live machine
+output by accept.py.
+
 Usage: check_framing.py shot1.png [shot2.png ...]
 """
 import sys

@@ -2,8 +2,15 @@
 """Phase 3 acceptance for the agentic-netops demo video (machine-checked).
 
 Reads meta-<take>.json written by record.py, re-verifies every success
-criterion from live machine output (ffprobe, kubectl, docker exec redis/
-vtysh) — never from pixels — and writes evidence.json next to final.mp4.
+criterion from live machine output (ffprobe, kubectl, and read-only
+`docker exec <leaf> sr_cli "show ..."` on the Nokia SR Linux leaves) — never
+from pixels — and writes evidence.json next to final.mp4.
+
+VERIFY LIVE: the sr_cli show syntax and the exact shape of its output have not
+been read off a running 26.7.2 node from this tree. The assertions below look
+for the object names and addresses the renderer created, which survive a
+cosmetic change in column layout; a genuine syntax change fails the check
+loudly (empty output) rather than passing quietly.
 
 Usage: accept.py --take final
 Exit 0 iff every mandatory criterion passes.
@@ -22,6 +29,10 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent
 LEAF1 = "clab-agentic-netops-fabric-leaf01"
 LEAF2 = "clab-agentic-netops-fabric-leaf02"
+# system0 addresses from lab/profiles/srlinux/config/*.cfg — the VTEP source
+# address each leaf advertises, and therefore what its peer must list as a
+# remote multicast destination for a stretched mac-vrf.
+LEAF_SYSTEM_IP = {LEAF1: "10.0.0.21", LEAF2: "10.0.0.22"}
 PROMPT_VLAN = {"A": "130", "A'": "131", "A2": "160", "C1": "150", "C2": "150",
                "C1'": "151", "C2'": "151",
                "A3": "170", "C3": "152"}
@@ -80,95 +91,111 @@ def event_reasons(net_name: str) -> list[str]:
         return []
 
 
+def _dev(ev: dict, net: dict | None) -> dict:
+    """The on-device object names for this prompt. record.py records them in
+    meta-<take>.json; if an older meta lacks them, derive from the Network spec
+    with the same rule pkg/fabricplan uses."""
+    dev = dict(ev.get("device_names") or {})
+    if dev:
+        return dev
+    if not net:
+        return {}
+    spec = net.get("spec", {}) or {}
+    routers = spec.get("routers") or []
+    if routers:
+        nm = routers[0].get("name", "")
+        rest = nm[4:] if nm[:4].lower() == "vrf-" else nm
+        rest = "".join(c for c in rest if c.isalnum() or c in "-_")
+        dev["vrf"] = ("Vrf-" + rest[:10]) if rest else None
+        dev["l3vni"] = routers[0].get("l3vni")
+    bds = spec.get("bridgeDomains") or []
+    if bds:
+        nm = "".join(c for c in bds[0].get("name", "") if c.isalnum() or c in "-_.")
+        dev["ni"] = nm[:255] if (nm and nm[0].isalpha()) else f"macvrf-{bds[0].get('vlan')}"
+        dev["l2vni"] = bds[0].get("l2vni")
+    return dev
+
+
 def router_pass(pid: str, construct: str, cid: str, ev: dict, failures: list[str],
                 prefix: str = "", net: dict | None = None) -> bool:
-    """Re-run the construct's router checks from the host, fresh."""
+    """Re-run the construct's device checks from the host, fresh, read-only.
+
+    Every command is `sr_cli "show ..."`; nothing here configures a node."""
     ok = True
     v = PROMPT_VLAN.get(pid)
-    # On this cluster the fabric VRF name is derived from the Network name
-    # (migr-<id> -> Vrf-<id[:10]>), not from the correlation id; the RD and
-    # l3vni come straight from the Network spec.
-    vrf10 = rd = ""
-    if net is not None:
-        nname = net.get("metadata", {}).get("name", "")
-        vrf10 = nname.replace("migr-", "")[:10]
-        try:
-            rd = net["spec"]["routers"][0]["rd"]
-        except (KeyError, IndexError, TypeError):
-            rd = ""
+    dev = _dev(ev, net)
+    pre_ni = (ev.get("pre_snapshot", {}) or {}).get("NETWORK_INSTANCES", "") or ""
+    pre_ni2 = (ev.get("pre_snapshot", {}) or {}).get("NETWORK_INSTANCES_LEAF2", "") or ""
+
     if construct == "vlan":
-        rc, out = host(f"docker exec {LEAF1} redis-cli -n 4 hgetall 'VLAN|Vlan{v}'")
-        flat = out.replace("\n", " ")
-        ok &= check(failures, f"{pid} VLAN|Vlan{v} hash non-empty with vlanid {v}",
-                    rc == 0 and bool(out) and f"vlanid" in flat and v in flat.split(), out[:120])
-        rc, out = host(f"docker exec {LEAF1} bridge vlan show dev eth3")
-        ok &= check(failures, f"{pid} bridge vlan show dev eth3 lists {v}",
-                    rc == 0 and re.search(rf"\b{v}\b", out) is not None, out[:120])
+        ni = f"vlan-{v}"
+        rc, out = host(f'docker exec {LEAF1} sr_cli "show network-instance summary"')
+        ok &= check(failures, f"{pid} network-instance {ni} present and new (diff vs pre-prompt)",
+                    rc == 0 and ni in out and ni not in pre_ni, out[:160])
+        rc, out = host(f'docker exec {LEAF1} sr_cli "show network-instance {ni} interfaces"')
+        ok &= check(failures, f"{pid} {ni} carries subinterface ethernet-1/3.{v}",
+                    rc == 0 and f"ethernet-1/3.{v}" in out, out[:160])
+
     elif construct == "ip-vrf":
-        rc, out = host(f"docker exec {LEAF1} redis-cli -n 4 keys 'VRF|*'")
-        keys = set(out.split())
-        want = f"VRF|Vrf-{vrf10}"
-        pre = set((ev.get("pre_snapshot", {}) or {}).get("VRF", "").split())
-        ok &= check(failures, f"{pid} new VRF key {want} (diff vs pre-prompt)",
-                    want in keys and want not in pre, f"keys={len(keys)}")
-        rc, out = host(f"docker exec {LEAF1} vtysh -c 'show vrf'")
-        ok &= check(failures, f"{pid} show vrf lists {want[4:]}",
-                    rc == 0 and want[4:] in out, out[:120])
-        rc, out = host(f"docker exec {LEAF1} vtysh -c 'show evpn vni'")
-        l3rows = [ln for ln in out.splitlines() if re.search(r"\bL3\b", ln)]
-        ok &= check(failures, f"{pid} show evpn vni L3 row with Tenant VRF {want[4:]}",
-                    any(want[4:] in ln for ln in l3rows), "; ".join(l3rows)[:160])
-        # FRR renders the Type-5 NLRI as [5]:[0]:[<mask>]:[<prefix>] grouped
-        # under "Route Distinguisher: <rd>"; require the entry inside B's own
-        # RD block carrying that RD as route target.
-        rc, out = host(f"docker exec {LEAF1} vtysh -c 'show bgp l2vpn evpn route type prefix'")
-        ip, mask = prefix.split("/") if "/" in prefix else (prefix, "")
-        sect = re.split(r"Route Distinguisher: ", out)
-        block = next((s for s in sect if s.startswith(f"{rd}\n")), "")
-        hit = (rc == 0 and block and
-               f"[5]:[0]:[{mask}]:[{ip}]" in block and f"RT:{rd}" in block)
-        ok &= check(failures, f"{pid} Type-5 [{ip}] under own RD {rd}",
-                    hit, f"rd={rd} block={'yes' if block else 'missing'}")
+        vrf = dev.get("vrf") or ""
+        ok &= check(failures, f"{pid} device ip-vrf name derived from the Network spec",
+                    bool(vrf), f"vrf={vrf!r}")
+        if vrf:
+            rc, out = host(f'docker exec {LEAF1} sr_cli "show network-instance summary"')
+            ok &= check(failures, f"{pid} network-instance {vrf} present and new (diff vs pre-prompt)",
+                        rc == 0 and vrf in out and vrf not in pre_ni, out[:160])
+            rc, out = host(f'docker exec {LEAF1} sr_cli "show network-instance {vrf} '
+                           f'route-table ipv4-unicast summary"')
+            ok &= check(failures, f"{pid} {vrf} route table carries {prefix}",
+                        rc == 0 and prefix.split("/")[0] in out, out[:200])
+        # Peer arrival: the Type-5 for this prefix as leaf02 sees it. Origination
+        # on leaf01 cannot fake a route in the peer's EVPN RIB.
+        rc, out = host(f'docker exec {LEAF2} sr_cli "show network-instance default '
+                       f'protocols bgp routes evpn route-type 5 summary"')
+        ip = prefix.split("/")[0] if prefix else ""
+        ok &= check(failures, f"{pid} Type-5 for {prefix} present in leaf02's EVPN RIB",
+                    rc == 0 and bool(ip) and ip in out, out[:200])
+
     elif construct == "mac-vrf":
-        rc, out = host(f"docker exec {LEAF1} redis-cli -n 4 hgetall 'VLAN|Vlan{v}'")
-        ok &= check(failures, f"{pid} VLAN|Vlan{v} row exists",
-                    rc == 0 and bool(out.strip()), out[:100])
-        rc, out = host(f"docker exec {LEAF1} redis-cli -n 4 keys 'VXLAN_TUNNEL_MAP|vtep1|map_*_Vlan{v}'")
-        keys = [k for k in out.split() if k]
-        pre = [k for k in ((ev.get("pre_snapshot", {}) or {}).get("VTMAP", "").split()) if k]
-        ok &= check(failures, f"{pid} exactly one tunnel-map key for Vlan{v}",
-                    len(keys) == 1 and keys[0] not in pre, str(keys))
+        ni = dev.get("ni") or ""
+        l2vni = dev.get("l2vni")
+        ok &= check(failures, f"{pid} device mac-vrf name and l2vni derived from the Network spec",
+                    bool(ni) and bool(l2vni), f"ni={ni!r} l2vni={l2vni!r}")
+        for leaf, pre in ((LEAF1, pre_ni), (LEAF2, pre_ni2)):
+            if not ni:
+                break
+            rc, out = host(f'docker exec {leaf} sr_cli "show network-instance summary"')
+            ok &= check(failures, f"{pid} {leaf[-6:]} network-instance {ni} present and new",
+                        rc == 0 and ni in out and (not pre or ni not in pre), out[:160])
         for leaf in (LEAF1, LEAF2):
-            rc, out = host(f"docker exec {leaf} vtysh -c 'show evpn vni'")
-            # columns: VNI Type VxLAN_IF #MACs #ARPs #Remote_VTEPs Tenant_VRF
-            good = False
-            rows = []
-            for ln in out.splitlines():
-                toks = ln.split()
-                if f"vtep1-{v}" in toks:
-                    rows.append(ln)
-                    i = toks.index(f"vtep1-{v}")
-                    if i >= 1 and len(toks) >= i + 4 and toks[i - 1] == "L2" and toks[i + 3] == "1":
-                        good = True
-            ok &= check(failures, f"{pid} {leaf[-6:]} L2 vtep1-{v} row, # Remote VTEPs = 1",
-                        rc == 0 and good, "; ".join(rows)[:160] or out[:120])
+            if not l2vni:
+                break
+            peer_ip = LEAF_SYSTEM_IP[LEAF2 if leaf == LEAF1 else LEAF1]
+            rc, out = host(f'docker exec {leaf} sr_cli "show tunnel-interface vxlan1 '
+                           f'vxlan-interface {l2vni} bridge-table multicast-destinations"')
+            # The peer's system IP appears only once its IMET route arrived and
+            # was installed: the one signal self-origination cannot produce.
+            ok &= check(failures,
+                        f"{pid} {leaf[-6:]} vni {l2vni} lists remote VTEP {peer_ip}",
+                        rc == 0 and peer_ip in out, out[:200])
+
     elif construct == "acl":
-        rc, out = host(f"docker exec {LEAF1} redis-cli -n 4 keys 'ACL_TABLE|*'")
-        keys = set(out.split())
-        pre_t = set(((ev.get("pre_snapshot", {}) or {}).get("ACL_TABLE", "") or "").split())
-        new_t = keys - pre_t
-        ok &= check(failures, f"{pid} exactly one new ACL_TABLE key", len(new_t) == 1, str(sorted(new_t)))
-        table = sorted(new_t)[0] if len(new_t) == 1 else ""
+        pre_acl = (ev.get("pre_snapshot", {}) or {}).get("ACL", "") or ""
+        rc, out = host(f'docker exec {LEAF1} sr_cli "show acl summary"')
+        pre_names = set(re.findall(r"acl-[A-Za-z0-9_-]+", pre_acl))
+        now_names = set(re.findall(r"acl-[A-Za-z0-9_-]+", out))
+        new_names = now_names - pre_names
+        ok &= check(failures, f"{pid} exactly one new acl-filter (diff vs pre-prompt)",
+                    rc == 0 and len(new_names) == 1, str(sorted(new_names)))
+        table = dev.get("acl") or (sorted(new_names)[0] if len(new_names) == 1 else "")
+        family = dev.get("acl_family", "ipv4")
         if table:
-            rc, out = host(f"docker exec {LEAF1} redis-cli -n 4 hgetall '{table}'")
-            flat = out.replace("\n", " ")
-            ok &= check(failures, f"{pid} ACL_TABLE bound to eth4 stage ingress",
-                        "eth4" in flat and "ingress" in flat, flat[:160])
-        rc, out = host(f"docker exec {LEAF1} redis-cli -n 4 keys 'ACL_RULE|*'")
-        keys_r = set(out.split())
-        pre_r = set(((ev.get("pre_snapshot", {}) or {}).get("ACL_RULE", "") or "").split())
-        new_r = keys_r - pre_r
-        ok &= check(failures, f"{pid} two new ACL_RULE keys", len(new_r) == 2, str(sorted(new_r)))
+            rc, out = host(f'docker exec {LEAF1} sr_cli "show acl acl-filter {table} type {family}"')
+            ok &= check(failures, f"{pid} acl-filter {table} exists with entries",
+                        rc == 0 and bool(out.strip()) and "443" in out, out[:200])
+            # Bound on the wan attachment this prompt named.
+            ok &= check(failures, f"{pid} acl-filter {table} bound on an ethernet-1/4 subinterface",
+                        "ethernet-1/4" in out, out[:200])
     return ok
 
 

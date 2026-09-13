@@ -42,7 +42,7 @@ func TestDeviceACLTableName_DeterminismAndUsageAcrossPlanPhases(t *testing.T) {
 			"attachments": []any{map[string]any{"node": "leaf01", "attachment": "ethernet1"}},
 		},
 	}
-	plan, err := fabricplan.ForNetwork(net, fabricplan.Options{Ports: fabricplan.PortMapper{"ethernet1": "Eth1"}})
+	plan, err := fabricplan.ForNetwork(net, fabricplan.Options{Ports: srlinuxSitePorts(), VXLANTunnel: "vxlan1"})
 	if err != nil {
 		t.Fatalf("ForNetwork: %v", err)
 	}
@@ -50,38 +50,53 @@ func TestDeviceACLTableName_DeterminismAndUsageAcrossPlanPhases(t *testing.T) {
 	if np == nil {
 		t.Fatal("leaf01 plan missing")
 	}
-	// Apply: Redis ops must write ACL_TABLE|<name1> and ACL_RULE|<name1>|*
+	filter := "/acl/acl-filter[name=" + name1 + ",type=ipv4]"
+	// Apply: the filter is written at the derived name.
 	var applySeen bool
 	for _, op := range np.Ops {
-		for _, cmd := range op.Redis {
-			if strings.Contains(cmd, "ACL_TABLE|"+name1) || strings.Contains(cmd, "ACL_RULE|"+name1+"|") {
+		if op.GNMI == nil {
+			continue
+		}
+		for _, u := range op.GNMI.Updates {
+			if u.Path == filter || strings.Contains(u.Path, "name="+name1+",") {
 				applySeen = true
 			}
 		}
 	}
 	if !applySeen {
-		t.Fatalf("derived ACL table name %q not present in Redis ops: %#v", name1, np.Ops)
+		t.Fatalf("derived ACL filter name %q not present in the gNMI updates: %#v", name1, np.Ops)
 	}
-	// Verify: config-side checks target ACL_TABLE|<name1>
+	// Verify: the checks read back the same derived name.
 	var verifySeen bool
 	for _, ck := range np.Checks {
-		if strings.Contains(ck.RedisKey, "ACL_TABLE|"+name1) || strings.Contains(ck.RedisKey, "ACL_RULE|"+name1+"|") {
+		if strings.Contains(ck.Path, "name="+name1) {
 			verifySeen = true
 		}
 	}
 	if !verifySeen {
-		t.Fatalf("derived ACL table name %q not present in checks: %#v", name1, np.Checks)
+		t.Fatalf("derived ACL filter name %q not present in checks: %#v", name1, np.Checks)
 	}
-	// Rollback: deletes ACL_RULE|<name1>|* then ACL_TABLE|<name1>
-	var rbSeen bool
-	for _, op := range np.Rollback {
-		for _, cmd := range op.Redis {
-			if strings.Contains(cmd, "del 'ACL_TABLE|"+name1+"'") || strings.Contains(cmd, "del 'ACL_RULE|"+name1+"|") {
-				rbSeen = true
+	// Rollback: the binding is removed before the filter, both by the same name.
+	var rbBinding, rbFilter int = -1, -1
+	for i, op := range np.Rollback {
+		if op.GNMI == nil {
+			continue
+		}
+		for _, d := range op.GNMI.Deletes {
+			switch {
+			case d == filter:
+				rbFilter = i
+			case strings.Contains(d, "/acl/") && strings.Contains(d, "name="+name1):
+				if rbBinding < 0 {
+					rbBinding = i
+				}
 			}
 		}
 	}
-	if !rbSeen {
-		t.Fatalf("derived ACL table name %q not present in rollback: %#v", name1, np.Rollback)
+	if rbBinding < 0 || rbFilter < 0 {
+		t.Fatalf("rollback does not remove binding then filter for %q: %#v", name1, np.Rollback)
+	}
+	if rbBinding > rbFilter {
+		t.Fatalf("rollback deletes the filter while it is still bound: binding=%d filter=%d", rbBinding, rbFilter)
 	}
 }

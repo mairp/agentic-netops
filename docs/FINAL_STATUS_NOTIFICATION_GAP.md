@@ -37,7 +37,7 @@ the cluster, or asking an external agent.
    Network's Ready condition.
 
 3. **The convergence signal has no path back to the conversation.**
-   `controllers/sonicprovider/network_controller.go` owns the Ready condition
+   `controllers/srlprovider/network_controller.go` owns the Ready condition
    and emits Kubernetes events (`ApplySucceeded` / `ApplyFailed` with real op
    output), but nothing watches those conditions to notify the UI thread.
 

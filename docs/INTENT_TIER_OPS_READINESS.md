@@ -1,6 +1,6 @@
 # Intent Tier — Operational Readiness (Phase 10)
 
-Applies to: the AGNTCY intent tier | Context: single-host Kind lab atop the SONiC EVPN/VXLAN fabric
+Applies to: the AGNTCY intent tier | Context: single-host kind lab atop the Nokia SR Linux EVPN/VXLAN fabric
 
 This document is the on-call operator’s operational readiness dossier for the intent tier.
 It captures capacity headroom, degradations, drills, rotations, and go/no-go sign‑off.
@@ -166,10 +166,14 @@ Use deploy/agents/tests/probes/rollback-drill.sh (accepts optional kubectl conte
 
 ## Dependency status
 
-- docs/FABRIC_BGP_EVPN_DEFERRED.md deferred BGP/EVPN dependency verified
-  - Status update 2026-09-04: Type-2 and Type-5 origination are resolved on the
-    clean 202505 image; the unwaived fabric gate passes (see
-    `docs/FABRIC_BGP_EVPN_DEFERRED.md`).
+- Base-fabric BGP/EVPN dependency
+  - The results recorded here were obtained on the previous (SONiC) fabric; see
+    `docs/legacy/sonic/FABRIC_BGP_EVPN_DEFERRED.md` for what was verified there.
+  - On the Nokia SR Linux target the equivalent dependency is
+    `make lab-qualify` plus `tests/integration/fabric_verify.sh`, which assert
+    EVPN Type-2/3/5, remote-VTEP learning and overlay traffic. **Not yet run
+    from this tree** — it is Phase 4 of
+    `specs/001-agentic-netops-srlinux-evpn-fabric/plan.md`.
 
 ---
 

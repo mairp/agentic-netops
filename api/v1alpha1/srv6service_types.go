@@ -12,9 +12,20 @@ import (
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Degraded",type=string,JSONPath=`.status.conditions[?(@.type=="Degraded")].status`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-// SRv6Service expresses a bidirectional IPv6 VPN across SONiC nodes.
+// SRv6Service expresses a bidirectional IPv6 VPN across fabric nodes.
 // Validation is kept structural with CEL rules for cross-field constraints.
 // See specs/.../contracts/crd-api.md for required semantics.
+//
+// NOT APPLICABLE ON THIS SITE. The SR Linux 7220 container has no SRv6 data
+// plane, so the site's `fabric-compat-pins` ConfigMap carries
+// `cap-sai-srv6: "false"` and the SRv6Service reconciler
+// (controllers/srv6service) reports `Ready=False` with reason
+// `CapabilityMissing` for every object of this kind — naming the absent
+// capability rather than faking a convergence. The type, its CRD and its
+// sample stay in the tree: the capability is declared absent, not pretended
+// away, and a platform that does have SRv6 needs no schema change to use it.
+// `Network` objects are unaffected (they require no SRv6 capability) and
+// converge normally on this fabric.
 //
 // Note: This is a narrow placeholder capturing the mandatory shape for scaffolding.
 // Full CEL coverage is added in config/crd YAML manifests.
@@ -22,7 +33,7 @@ import (
 // +kubebuilder:validation:XValidation:message="exactly two attachments are required",rule="size(self.spec.attachments)==2"
 // +kubebuilder:validation:XValidation:message="service prefixes must be IPv6",rule="self.spec.servicePrefix.matches('^([0-9a-fA-F:]+)/[0-9]+$')"
 // +kubebuilder:validation:XValidation:message="locator must be IPv6 prefix",rule="self.spec.locatorPrefix.matches('^([0-9a-fA-F:]+)/[0-9]+$')"
-// +kubebuilder:validation:XValidation:message="waypoints must be SONiC device refs",rule="size(self.spec.transitWaypoints) >= 0"
+// +kubebuilder:validation:XValidation:message="waypoints must be fabric device refs",rule="size(self.spec.transitWaypoints) >= 0"
 // +kubebuilder:validation:XValidation:message="vrf is immutable",rule="!has(oldSelf) || self.spec.vrf == oldSelf.spec.vrf"
 // +kubebuilder:validation:XValidation:message="topologyRef must be non-empty",rule="self.spec.topologyRef != ”"
 // +kubebuilder:validation:XValidation:message="path must name a primary route",rule="self.spec.path.primary != ”"
@@ -63,7 +74,7 @@ type SRv6ServiceSpec struct {
 	Server Endpoint `json:"server"`
 	// servicePrefix identifies the service IPv6 CIDR
 	ServicePrefix string `json:"servicePrefix"`
-	// optional list of explicit SONiC transit waypoint device names
+	// optional list of explicit transit waypoint device names
 	TransitWaypoints []string `json:"transitWaypoints,omitempty"`
 	// underlay must be ipv6 for SRv6
 	Underlay string `json:"underlay"`

@@ -5,11 +5,20 @@ import (
 	"fmt"
 )
 
-// Set captures the five-part compatibility set published in deployment metadata and status.
+// CapabilitySRv6 is the discovered-capability key for an SRv6 data plane. It is
+// the ONLY capability this site cannot offer: the SR Linux 7220 container has
+// no SRv6 forwarding path, so `fabric-compat-pins` carries
+// `cap-sai-srv6: "false"` and every gate records SRv6 as not-applicable rather
+// than passed (research D8).
+const CapabilitySRv6 = "sai.srv6"
+
+// Set captures the compatibility set published in deployment metadata and status.
 type Set struct {
-	SonicImage          string
-	OpenConfigCommit    string
-	SonicNativeCommit   string
+	// SRLinuxImage is the digest-pinned ghcr.io/nokia/srlinux image the lab runs.
+	SRLinuxImage string
+	// SRLinuxYANG is the release of nokia/srlinux-yang-models the renderer's
+	// native paths are written against.
+	SRLinuxYANG         string
 	MappingVersion      string
 	UpstreamAPIVersions map[string]string // e.g., {"kubenet":"bae1c487...", "kuid":"7528e815...", "sdc":"v0.31.0"}
 }
@@ -22,20 +31,27 @@ type ValidationError struct {
 
 func (e *ValidationError) Error() string { return fmt.Sprintf("%s: %s", e.Reason, e.Message) }
 
-// Validate performs offline validation of the compatibility set against the pinned contract
-// in versions.lock.yaml and optionally a discovered target capability set.
-func Validate(set Set, discovered map[string]bool) error {
-	// Minimal scaffold: ensure non-empty pins and required SRv6 capability flag when mapping requires it.
-	if set.SonicImage == "" || set.OpenConfigCommit == "" || set.SonicNativeCommit == "" || set.MappingVersion == "" {
+// Validate performs offline validation of the compatibility set against the
+// pinned contract in versions.lock.yaml and, when the caller names capabilities
+// it needs, against the site's discovered capability set.
+//
+// required is what makes a capability gate honest. A `Network` needs vlan,
+// mac-vrf, ip-vrf and acl — all of which SR Linux has — so it names nothing and
+// reconciles on a site whose `cap-sai-srv6` is "false". An `SRv6Service` names
+// CapabilitySRv6, does not get it here, and reports `CapabilityMissing`. That
+// asymmetry is the whole point: the absent capability is declared, not faked,
+// and it blocks only the object that actually needs it.
+func Validate(set Set, discovered map[string]bool, required ...string) error {
+	if set.SRLinuxImage == "" || set.SRLinuxYANG == "" || set.MappingVersion == "" {
 		return &ValidationError{Reason: "SchemaMismatch", Message: "incomplete compatibility set"}
 	}
-	if discovered != nil {
-		// SAI SRv6 capability gate (placeholder key)
-		if requiresSRv6(set.MappingVersion) && !discovered["sai.srv6"] {
-			return &ValidationError{Reason: "CapabilityMissing", Message: "SRv6 not supported by target"}
+	for _, cap := range required {
+		if !discovered[cap] {
+			return &ValidationError{
+				Reason:  "CapabilityMissing",
+				Message: fmt.Sprintf("capability %s is not available on this site", cap),
+			}
 		}
 	}
 	return nil
 }
-
-func requiresSRv6(mappingVersion string) bool { return true }

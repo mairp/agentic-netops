@@ -1,0 +1,322 @@
+{
+  "nodes": [
+    {
+      "node": "leaf01",
+      "ops": [
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/interface[name=ethernet-1/4]",
+                "value": {
+                  "admin-state": "enable",
+                  "mtu": 9216,
+                  "vlan-tagging": true
+                }
+              },
+              {
+                "path": "/interface[name=ethernet-1/4]/subinterface[index=4018]",
+                "value": {
+                  "admin-state": "enable",
+                  "ipv4": {
+                    "address": [
+                      {
+                        "ip-prefix": "10.50.0.1/24"
+                      }
+                    ],
+                    "admin-state": "enable"
+                  },
+                  "type": "routed",
+                  "vlan": {
+                    "encap": {
+                      "single-tagged": {
+                        "vlan-id": 4018
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10018]",
+                "value": {
+                  "egress": {
+                    "source-ip": "use-system-ipv4-address"
+                  },
+                  "ingress": {
+                    "vni": 10018
+                  },
+                  "type": "routed"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/network-instance[name=Vrf-initech01]",
+                "value": {
+                  "admin-state": "enable",
+                  "interface": [
+                    {
+                      "name": "ethernet-1/4.4018"
+                    }
+                  ],
+                  "protocols": {
+                    "bgp-evpn": {
+                      "bgp-instance": [
+                        {
+                          "admin-state": "enable",
+                          "ecmp": 2,
+                          "evi": 10018,
+                          "id": 1,
+                          "vxlan-interface": "vxlan1.10018"
+                        }
+                      ]
+                    },
+                    "bgp-vpn": {
+                      "bgp-instance": [
+                        {
+                          "id": 1,
+                          "route-distinguisher": {
+                            "rd": "65000:18"
+                          },
+                          "route-target": {
+                            "export-rt": "target:65000:18",
+                            "import-rt": "target:65000:18"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "type": "ip-vrf",
+                  "vxlan-interface": [
+                    {
+                      "name": "vxlan1.10018"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "checks": [
+        {
+          "type": "gnmi-equals",
+          "path": "/network-instance[name=Vrf-initech01]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-equals",
+          "path": "/network-instance[name=Vrf-initech01]/protocols/bgp-evpn/bgp-instance[id=1]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-equals",
+          "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10018]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-equals",
+          "path": "/interface[name=ethernet-1/4]/subinterface[index=4018]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-contains",
+          "path": "/network-instance[name=default]/bgp-rib/afi-safi[afi-safi-name=evpn]/evpn/rib-in-out/rib-out-post/ip-prefix-routes",
+          "expect": "10.50.0.0/24"
+        }
+      ],
+      "rollback": [
+        {
+          "gnmi": {
+            "deletes": [
+              "/network-instance[name=Vrf-initech01]"
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "deletes": [
+              "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10018]"
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "deletes": [
+              "/interface[name=ethernet-1/4]/subinterface[index=4018]"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "node": "leaf02",
+      "ops": [
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/interface[name=ethernet-1/4]",
+                "value": {
+                  "admin-state": "enable",
+                  "mtu": 9216,
+                  "vlan-tagging": true
+                }
+              },
+              {
+                "path": "/interface[name=ethernet-1/4]/subinterface[index=4018]",
+                "value": {
+                  "admin-state": "enable",
+                  "ipv4": {
+                    "address": [
+                      {
+                        "ip-prefix": "10.50.0.1/24"
+                      }
+                    ],
+                    "admin-state": "enable"
+                  },
+                  "type": "routed",
+                  "vlan": {
+                    "encap": {
+                      "single-tagged": {
+                        "vlan-id": 4018
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10018]",
+                "value": {
+                  "egress": {
+                    "source-ip": "use-system-ipv4-address"
+                  },
+                  "ingress": {
+                    "vni": 10018
+                  },
+                  "type": "routed"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/network-instance[name=Vrf-initech01]",
+                "value": {
+                  "admin-state": "enable",
+                  "interface": [
+                    {
+                      "name": "ethernet-1/4.4018"
+                    }
+                  ],
+                  "protocols": {
+                    "bgp-evpn": {
+                      "bgp-instance": [
+                        {
+                          "admin-state": "enable",
+                          "ecmp": 2,
+                          "evi": 10018,
+                          "id": 1,
+                          "vxlan-interface": "vxlan1.10018"
+                        }
+                      ]
+                    },
+                    "bgp-vpn": {
+                      "bgp-instance": [
+                        {
+                          "id": 1,
+                          "route-distinguisher": {
+                            "rd": "65000:18"
+                          },
+                          "route-target": {
+                            "export-rt": "target:65000:18",
+                            "import-rt": "target:65000:18"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "type": "ip-vrf",
+                  "vxlan-interface": [
+                    {
+                      "name": "vxlan1.10018"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "checks": [
+        {
+          "type": "gnmi-equals",
+          "path": "/network-instance[name=Vrf-initech01]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-equals",
+          "path": "/network-instance[name=Vrf-initech01]/protocols/bgp-evpn/bgp-instance[id=1]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-equals",
+          "path": "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10018]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-equals",
+          "path": "/interface[name=ethernet-1/4]/subinterface[index=4018]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-contains",
+          "path": "/network-instance[name=default]/bgp-rib/afi-safi[afi-safi-name=evpn]/evpn/rib-in-out/rib-out-post/ip-prefix-routes",
+          "expect": "10.50.0.0/24"
+        }
+      ],
+      "rollback": [
+        {
+          "gnmi": {
+            "deletes": [
+              "/network-instance[name=Vrf-initech01]"
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "deletes": [
+              "/tunnel-interface[name=vxlan1]/vxlan-interface[index=10018]"
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "deletes": [
+              "/interface[name=ethernet-1/4]/subinterface[index=4018]"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

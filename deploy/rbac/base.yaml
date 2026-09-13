@@ -97,17 +97,17 @@ spec:
     - protocol: TCP
       port: 6443
 ---
-# Scoped device-network egress for the SANCTIONED southbound only (2026-09-04).
+# Scoped device-network egress for the SANCTIONED southbound only.
 #
 # deny-all-by-default above denies every pod's egress, and since kindnetd began
 # enforcing NetworkPolicy that silently severed the lab's own fabric plumbing:
-# gnmic's telemetry subscriptions died with "dial tcp 172.31.0.x:8080: i/o
-# timeout" on all four nodes, and any in-cluster read-back against the devices
-# became impossible. The intent tier (agentic-netops-agents) must keep its
+# gnmic's telemetry subscriptions died with "dial tcp 172.31.0.x: i/o timeout"
+# on all four nodes, and any in-cluster read-back against the devices became
+# impossible. The intent tier (agentic-netops-agents) must keep its
 # device-network denial intact (SC-005), but the southbound controllers and the
 # telemetry subscriber are the components whose entire job is to talk to the
-# fabric, so they get the one narrow hole this policy carves: TCP 8080
-# (gNMI/TLS telemetry) into the pinned containerlab management subnet
+# fabric, so they get the one narrow hole this policy carves: TCP 57400, the SR
+# Linux gNMI server port, into the pinned containerlab management subnet
 # (AGENTIC_NETOPS_MGMT_SUBNET, scripts/lib/kind.sh) and nothing else.
 #
 # Opt in per workload with the label below; nothing else in the namespace
@@ -128,11 +128,11 @@ spec:
         cidr: 172.31.0.0/16
     ports:
     - protocol: TCP
-      port: 8080
+      port: 57400
 ---
-# The SONiC provider's write path runs through the fabric-executor, a host
+# The SR Linux provider's write path runs through the fabric-executor, a host
 # service on the kind bridge gateway (172.30.0.1:8084 — scripts/provision.sh
-# starts it next to the docker daemon it execs through). This carves exactly
+# starts it beside the lab it dials over gNMI). This carves exactly
 # that one destination for the pods labeled needs-fabric-executor; the intent
 # tier keeps no route here (SC-005: only the system tier reaches fabric
 # control surfaces).
@@ -176,6 +176,6 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: agentic-netops-sonic-provider
+  name: agentic-netops-srlinux-provider
   namespace: agentic-netops-system
 

@@ -2082,7 +2082,7 @@ class ProvisioningGraph:
         redirected, because it has nothing to redirect it with."""
         status = state.get("workflow_status") or NetworkProvisioningStatus.RECEIVED_REQUEST.value
         text = (
-            "I provision declarative network services on the SONiC EVPN/VXLAN fabric: "
+            "I provision declarative network services on the SR Linux EVPN/VXLAN fabric: "
             "vlan (local L2), mac-vrf (L2 over EVPN), ip-vrf (routed instance) "
             "and acl (filter bound to service ports), "
             "each between two or more attachment points for a named tenant. "

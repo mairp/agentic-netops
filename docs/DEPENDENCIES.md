@@ -12,13 +12,13 @@ a kind cluster, so the command could never have worked. See "Measurement" below.
 
 | Tool | Used by | Notes |
 | --- | --- | --- |
-| `docker` | kind, containerlab | The lab runs 8 SONiC containers |
+| `docker` | kind, containerlab | The lab runs 4 Nokia SR Linux nodes and 4 Linux clients |
 | `kind` | `scripts/provision.sh` | Cluster name defaults to `agentic-netops` |
 | `kubectl` | everything | |
-| `containerlab` | `scripts/lib/containerlab.sh` | SONiC fabric topology |
+| `containerlab` | `scripts/lib/containerlab.sh` | SR Linux fabric topology (kind `nokia_srlinux`) |
 | `go` (1.24+) | controller build | Built from vendored source |
 | `python3` | agents, test corpora | 3.13 for `agents/` |
-| `gnmic` | capability gate | Pinned image, preloaded into kind |
+| `gnmic` | capability gate, bootstrap, telemetry | Pinned; the host binary is used by `scripts/lib/containerlab.sh bootstrap` and the suites, the pinned image by the in-cluster collector |
 
 `scripts/lib/preflight.sh` checks CPU, memory and storage headroom. It does NOT check
 for the tools above or for metrics-server.
@@ -80,6 +80,25 @@ that honestly in any readiness document rather than reporting healthy steady sta
 
 ## Fabric
 
-`lab/profiles/sonic-vs` pins the ASan-free `sonic-vs-gnmi:202505-v1` image.
-The former D-A2/D-A3 image waivers are retired; L2/L3 VNI adoption, Type-5
-origination, remote-VTEP learning, and overlay traffic fail closed.
+`lab/profiles/srlinux` pins `ghcr.io/nokia/srlinux:26.7.2`, resolved to the
+immutable digest recorded in `versions.lock.yaml` and enforced by
+`make verify-pins`. Pull it before provisioning:
+
+```bash
+docker pull ghcr.io/nokia/srlinux:26.7.2
+docker images --digests | grep srlinux     # must match the pinned digest
+```
+
+Each node needs roughly 1.5-2 GiB of RAM; the four-node fabric plus the kind
+cluster fits the 16 GiB minimum above, with the intent tier taking the rest of
+the headroom.
+
+The capability gate fails closed on gNMI Capabilities/Get/Set/Subscribe,
+configuration persistence across a container restart, and EVPN Type-2/3/5 with
+remote-VTEP learning and overlay traffic. SRv6 entries are recorded as
+`not-applicable` with their reason (the SR Linux container has no SRv6 data
+plane), never as `pass`.
+
+No SONiC artifact may appear in the runtime manifests or the dependency graph;
+`scripts/ci/supply_chain.sh` enforces that. The previous fabric's findings are
+kept under `docs/legacy/sonic/`.

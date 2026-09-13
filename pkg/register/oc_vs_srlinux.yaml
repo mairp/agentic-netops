@@ -1,0 +1,132 @@
+# OpenConfig vs SR Linux-native path register
+#
+# Every path family the southbound writes or reads on the fabric is recorded
+# here, together with the OpenConfig path it corresponds to and why the native
+# one is used. The register is CI-checked: tests/unit/render_register_positive_test.go
+# renders all five constructs through pkg/fabricplan, reduces every emitted
+# gNMI path (ops, rollbacks and verification checks) to its path family, and
+# fails when a family is missing from this file. A renderer that starts writing
+# somewhere new therefore cannot ship until the new surface is declared here.
+#
+# Why `prefer: srlinux` throughout: SR Linux's native model is the model its
+# gNMI server validates, commits and reports oper-state from. The OpenConfig
+# tree it also exposes is a translation layer that covers interfaces and BGP but
+# not the EVPN/VXLAN constructs this system provisions (mac-vrf, ip-vrf,
+# vxlan-interface, bgp-evpn/bgp-vpn instances) and not the acl binding point, so
+# a mixed plan would be writing two models into one candidate. One model per
+# target is the contract.
+entries:
+  # --- interfaces and subinterfaces -----------------------------------------
+  - path: "/interface"
+    prefer: srlinux
+    native_path: "/interface[name=*]"
+    openconfig: "/interfaces/interface"
+    justification: "attachment port enable/vlan-tagging/mtu; the native leaf names are what the node validates against srl_nokia-interfaces"
+  - path: "/interface/subinterface"
+    prefer: srlinux
+    native_path: "/interface[name=*]/subinterface[index=*]"
+    openconfig: "/interfaces/interface/subinterfaces/subinterface"
+    justification: "service attachment; bridged vs routed and single-tagged encap have no OpenConfig equivalent on this model"
+  - path: "/interface/subinterface/oper-state"
+    prefer: srlinux
+    native_path: "/interface[name=*]/subinterface[index=*]/oper-state"
+    openconfig: "/interfaces/interface/subinterfaces/subinterface/state/oper-status"
+    justification: "verification read-back; the native leaf is the one the node itself sets"
+
+  # --- overlay ---------------------------------------------------------------
+  - path: "/tunnel-interface/vxlan-interface"
+    prefer: srlinux
+    native_path: "/tunnel-interface[name=vxlan1]/vxlan-interface[index=*]"
+    openconfig: "none"
+    justification: "SR Linux models the VTEP as a tunnel-interface; OpenConfig has no equivalent VXLAN construct on this platform"
+  - path: "/tunnel-interface/vxlan-interface/oper-state"
+    prefer: srlinux
+    native_path: "/tunnel-interface[name=vxlan1]/vxlan-interface[index=*]/oper-state"
+    openconfig: "none"
+    justification: "verification read-back for the VNI's tunnel endpoint"
+  - path: "/tunnel-interface/vxlan-interface/bridge-table/multicast-destinations/destination"
+    prefer: srlinux
+    native_path: "/tunnel-interface[name=vxlan1]/vxlan-interface[index=*]/bridge-table/multicast-destinations/destination"
+    openconfig: "none"
+    justification: "remote VTEP arrival (peer IMET) — the one mac-vrf assertion self-origination cannot fake"
+
+  # --- network instances -----------------------------------------------------
+  - path: "/network-instance"
+    prefer: srlinux
+    native_path: "/network-instance[name=*]"
+    openconfig: "/network-instances/network-instance"
+    justification: "mac-vrf / ip-vrf types, interface and vxlan-interface membership; the OpenConfig instance types do not cover mac-vrf on this model"
+  - path: "/network-instance/oper-state"
+    prefer: srlinux
+    native_path: "/network-instance[name=*]/oper-state"
+    openconfig: "/network-instances/network-instance/state"
+    justification: "verification read-back for the service's own network-instance"
+  - path: "/network-instance/protocols/bgp-evpn/bgp-instance"
+    prefer: srlinux
+    native_path: "/network-instance[name=*]/protocols/bgp-evpn/bgp-instance[id=1]"
+    openconfig: "none"
+    justification: "EVI/vxlan-interface binding; EVPN instance configuration is native-only on SR Linux"
+  - path: "/network-instance/protocols/bgp-evpn/bgp-instance/oper-state"
+    prefer: srlinux
+    native_path: "/network-instance[name=*]/protocols/bgp-evpn/bgp-instance[id=1]/oper-state"
+    openconfig: "none"
+    justification: "verification read-back: a configured EVPN instance that is not up is not a service"
+  - path: "/network-instance/protocols/bgp-vpn/bgp-instance"
+    prefer: srlinux
+    native_path: "/network-instance[name=*]/protocols/bgp-vpn/bgp-instance[id=1]"
+    openconfig: "/network-instances/network-instance/config/route-distinguisher"
+    justification: "RD and import/export route-targets; SR Linux carries them under bgp-vpn, not on the instance itself"
+  - path: "/network-instance/bgp-rib/afi-safi/evpn/rib-in-out/rib-out-post/ip-prefix-routes"
+    prefer: srlinux
+    native_path: "/network-instance[name=default]/bgp-rib/afi-safi[afi-safi-name=evpn]/evpn/rib-in-out/rib-out-post/ip-prefix-routes"
+    openconfig: "/network-instances/network-instance/protocols/protocol/bgp/rib"
+    justification: "EVPN Type-5 origination proof for an ip-vrf's own prefixes; exact list node verified live before the phase gate (research D5)"
+
+  # --- access lists ----------------------------------------------------------
+  - path: "/acl/acl-filter"
+    prefer: srlinux
+    native_path: "/acl/acl-filter[name=*,type=ipv4|ipv6]"
+    openconfig: "/acl/acl-sets/acl-set"
+    justification: "SR Linux keys filters by (name, type) and models match/action natively; the OpenConfig ACL tree is not the write surface on this platform"
+  - path: "/acl/acl-filter/entry"
+    prefer: srlinux
+    native_path: "/acl/acl-filter[name=*,type=*]/entry[sequence-id=*]"
+    openconfig: "/acl/acl-sets/acl-set/acl-entries/acl-entry"
+    justification: "one entry per declared rule, sequence-id = the intent's priority"
+  - path: "/acl/acl-filter/entry/statistics"
+    prefer: srlinux
+    native_path: "/acl/acl-filter[name=*,type=*]/entry[sequence-id=*]/statistics"
+    openconfig: "/acl/acl-sets/acl-set/acl-entries/acl-entry/state"
+    justification: "applied-side proof — statistics exist only once the entry is programmed (verify live on 26.7)"
+  - path: "/interface/subinterface/acl/input"
+    prefer: srlinux
+    native_path: "/interface[name=*]/subinterface[index=*]/acl/input"
+    openconfig: "/interfaces/interface/subinterfaces/subinterface/ingress-acl-sets"
+    justification: "on SR Linux a filter binds to a subinterface, not a port; the OpenConfig binding container is not writable here"
+  - path: "/interface/subinterface/acl/input/acl-filter"
+    prefer: srlinux
+    native_path: "/interface[name=*]/subinterface[index=*]/acl/input/acl-filter[name=*,type=*]"
+    openconfig: "/interfaces/interface/subinterfaces/subinterface/ingress-acl-sets/ingress-acl-set"
+    justification: "verification read-back of the ingress binding"
+  - path: "/interface/subinterface/acl/output"
+    prefer: srlinux
+    native_path: "/interface[name=*]/subinterface[index=*]/acl/output"
+    openconfig: "/interfaces/interface/subinterfaces/subinterface/egress-acl-sets"
+    justification: "egress counterpart of the ingress binding above"
+  - path: "/interface/subinterface/acl/output/acl-filter"
+    prefer: srlinux
+    native_path: "/interface[name=*]/subinterface[index=*]/acl/output/acl-filter[name=*,type=*]"
+    openconfig: "/interfaces/interface/subinterfaces/subinterface/egress-acl-sets/egress-acl-set"
+    justification: "verification read-back of the egress binding"
+
+  # --- lifecycle surfaces the executor and provision write -------------------
+  - path: "/system/aaa/authentication/user"
+    prefer: srlinux
+    native_path: "/system/aaa/authentication/user[username=agentic]"
+    openconfig: "/system/aaa/authentication/users/user"
+    justification: "the lab-generated gNMI user is created once at bootstrap through one native Set; the image default admin credential is never stored"
+  - path: "/tools/system/configuration/save"
+    prefer: srlinux
+    native_path: "/tools/system/configuration/save"
+    openconfig: "none"
+    justification: "persistence after a successful apply sequence; an operational (tools) action with no OpenConfig equivalent (verify live, research D2)"

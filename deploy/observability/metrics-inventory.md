@@ -1,45 +1,111 @@
 # Metrics Inventory and Labels
 
-This document inventories metrics from the pinned SONiC schema, SDC, provider, Kubernetes, containerlab, and SRv6 MySID counters. It defines bounded labels, topology joins, and required dashboards/alerts.
+This document inventories the metrics collected from the Nokia SR Linux fabric,
+SDC, the provider controller, Kubernetes and the collection pipeline itself. It
+defines the bounded labels, the topology join and the dashboards/alerts each
+series feeds.
 
-Sources and examples (series names are indicative; exporters must label consistently):
+The device series come from the in-cluster gNMIc collector
+(`deploy/gnmi/gnmic.yaml`), which subscribes to SR Linux native gNMI state
+paths on `:57400` and exposes them on its own Prometheus endpoint `:9273`.
+gnmic names a series by joining the subscribed path with underscores, so the
+path `/interface[name=*]/statistics/in-octets` becomes
+`interface_statistics_in_octets`. The subscription set is specified in
+`specs/001-agentic-netops-srlinux-evpn-fabric/contracts/telemetry.md`
+(research decision D7).
 
-- SONiC (via gNMIc OTLP):
-  - sonic_interface_packets_total{device,interface,dir}
-  - sonic_interface_octets_total{device,interface,dir}
-  - sonic_bgp_session_state{device,neighbor,state}
-  - sonic_srv6_mysid_packets_total{device,sid,behavior}
+> **VERIFY LIVE.** The SR Linux take has not been recorded yet. The series and
+> label names below are what the contract specifies gnmic will emit for these
+> paths; none of them has been read off a running 26.7.2 node in this tree.
+> Confirm the real set before relying on any of them:
+> `kubectl -n agentic-netops-system port-forward svc/gnmic 9273` then
+> `curl -s localhost:9273/metrics | grep -E '^(interface|network_instance|platform)_' | head -40`.
+> Where the live names differ, correct this file and the dashboards together —
+> a dashboard querying a series that does not exist renders an empty panel, not
+> an error.
+
+## Sources and series
+
+- SR Linux (via gNMIc Prometheus output):
+  - `interface_statistics_in_octets{source,interface_name}`
+  - `interface_statistics_out_octets{source,interface_name}`
+  - `interface_statistics_in_packets{source,interface_name}`
+  - `interface_statistics_out_packets{source,interface_name}`
+  - `interface_oper_state{source,interface_name,oper_state}`
+  - `interface_subinterface_oper_state{source,interface_name,subinterface_index,oper_state}`
+  - `network_instance_protocols_bgp_neighbor_session_state{source,network_instance_name,neighbor_peer_address,session_state}`
+  - `network_instance_protocols_bgp_neighbor_afi_safi_received_routes{source,network_instance_name,neighbor_peer_address,afi_safi_afi_safi_name}`
+  - `platform_control_cpu_total_instant{source,control_slot}`
+  - `platform_control_memory_utilization{source,control_slot}`
 - SDC:
-  - sdc_target_reachable{target}
-  - sdc_config_apply_total{target,result}
-  - sdc_deviation_total{target,path}
-- Provider (Go Prom client):
-  - agentic_netops_sonicprovider_applies_total{}
-  - controller_runtime_reconcile_errors_total{controller}
+  - `sdc_target_reachable{target}`
+  - `sdc_config_apply_total{target,result}`
+  - `sdc_deviation_total{target,path}`
+- Provider (Go Prometheus client, `controllers/srlprovider`):
+  - `agentic_netops_srlprovider_applies_total{}`
+  - `agentic_netops_provider_queue_size`, `agentic_netops_provider_retries_total`,
+    `agentic_netops_provider_reconcile_duration_seconds_bucket`
+  - `controller_runtime_reconcile_errors_total{controller="agentic-netops-srlinux-provider"}`
 - Kubernetes:
-  - up{job}
-  - kube_pod_status_ready{namespace,pod}
+  - `up{job}`
+  - `kube_pod_status_ready{namespace,pod}`
 - gNMIc exporter:
-  - gnmic_output_errors_total{output}
-  - gnmic_subscribe_errors_total{target}
+  - `gnmic_output_errors_total{output}`
+  - `gnmic_subscribe_errors_total{target}`
 - OTel Collector:
-  - otelcol_exporter_queue_size{exporter}
-  - otelcol_exporter_enqueue_failed{exporter}
-  - otelcol_exporter_sent_metric_points{exporter}
+  - `otelcol_exporter_queue_size{exporter}`
+  - `otelcol_exporter_enqueue_failed{exporter}`
+  - `otelcol_exporter_sent_metric_points{exporter}`
 
-Bounded labels and joins:
-- device: one of {spine01, spine02, leaf01, leaf02}
-- interface: Ethernet[0-9]+ on SONiC; joined to containerlab link map to derive peer
-- neighbor: IPv4/IPv6 address string; joined to device by BGP sessions from intent
-- sid: SRv6 endpoint SID; joined to SRv6Service intent
-- pod/namespace: Kubernetes topology
-- link (derived): nodeA:ifA<->nodeB:ifB constructed from containerlab inspect
+No SRv6 series exist on this site: the SR Linux container has no SRv6 data
+plane, so there are no MySID counters to inventory. That absence is declared,
+not worked around — see `deploy/observability/dashboards/srv6-service-path.json`.
 
-Topology join:
-- ConfigMap deploy/observability/topology-configmap.yaml contains nodes/links that can be loaded by Grafana Flow to render a physical fabric view and join series by {device,interface} labels.
+## Bounded labels and joins
 
-Dashboards/alerts mapping:
-- Physical fabric view (Grafana Flow): rate/utilization using sonic_interface_* metrics; node/link status bound to up and sonic_* state counters.
-- SRv6 Service Path: MySID packet counters and active primary/alternate path state.
-- Pipeline health: receiver/exporter health, queue fill, dropped/refused points, subscribe errors.
-- Alerts: See deploy/observability/rules/agentic-netops.rules.yaml and prometheus.yaml rules.
+- `source` — the gnmic target name: one of `spine01`, `spine02`, `leaf01`,
+  `leaf02`. The collector additionally tags events with `device` carrying the
+  same value, so panels can join on one name across metric families.
+- `interface_name` — SR Linux interface name: `ethernet-1/1` … `ethernet-1/4`,
+  `mgmt0`, `system0`, `irb0`, `lo0`; joined to the containerlab link map to
+  derive the peer.
+- `subinterface_index` — the subinterface tag; for services this is the VLAN id
+  (or `L3VLANForVNI(l3vni)` on an ip-vrf attachment), so a service's
+  subinterface can be found from its `Network`.
+- `network_instance_name` — `default`, `mgmt`, and the tenant network-instances
+  the renderer creates (`vlan-<id>`, a mac-vrf name, a `Vrf-…` ip-vrf name).
+- `neighbor_peer_address` — IPv4/IPv6 peer address; underlay eBGP peers sit on
+  the /31 and /127 point-to-point links, overlay iBGP EVPN peers on the
+  `system0` loopbacks.
+- `pod/namespace` — Kubernetes topology.
+- `link` (derived) — `nodeA:ifA<->nodeB:ifB`, constructed from
+  `containerlab inspect` by `scripts/observability/gen-topology-configmap.sh`.
+
+Because the collector runs with `strings-as-labels: true`, SR Linux enumeration
+leaves (`oper-state`, `session-state`) arrive as labels on the event rather than
+as numeric values. Query them by label selector
+(`interface_oper_state{oper_state="down"}`), not by comparing a value.
+
+## Topology join
+
+`deploy/observability/topology-configmap.yaml` carries the nodes and links,
+generated by `scripts/observability/gen-topology-configmap.sh` from
+`containerlab inspect`. It names ports device-side (`ethernet-1/3`), matching
+the `interface_name` label, so a physical-fabric view can join series to links.
+
+## Dashboards/alerts mapping
+
+- **Fabric telemetry** (`dashboards/fabric-telemetry.json`) — nodes reporting,
+  interfaces discovered, BGP neighbors, throughput and packet rate per
+  interface, EVPN routes received per neighbor, control-plane CPU/memory.
+- **Physical fabric** (`dashboards/physical-fabric.json`) — topology view plus
+  `interface_statistics_*` rates and `interface_oper_state` /
+  `network_instance_protocols_bgp_neighbor_session_state` tables.
+- **Orchestration** (`dashboards/sdc-orchestration.json`) — SDC reachability and
+  applies, `srlprovider` applies/errors/latency.
+- **SRv6 service path** (`dashboards/srv6-service-path.json`) — declared not
+  applicable on SR Linux; the panels say so instead of charting nothing.
+- **Pipeline health** (`dashboards/pipeline-health.json`) — collector and
+  exporter health, queue fill, subscribe errors.
+- **Alerts** — `deploy/observability/rules/agentic-netops.rules.yaml` and the
+  health rules in `deploy/observability/prometheus.yaml`.

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package unit
 
 import (
@@ -5,42 +6,62 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mairp/agentic-netops/pkg/model"
-	"github.com/mairp/agentic-netops/pkg/render"
 	"github.com/mairp/agentic-netops/pkg/sdc"
 )
 
-// This test ensures the current renderer output is fully covered by the in-repo register
-// and thus would pass ValidateSpecAgainstRegister.
+// TestRendererPathsCoveredByRegister is the register guard (make verify-register).
+//
+// It does not assert against a hand-written list of paths: it RENDERS all five
+// constructs through pkg/fabricplan on the real site port map and derives the
+// path family of every gNMI path the plans carry — apply updates, rollback
+// deletes and verification reads. Every one of those families must appear in
+// pkg/register/oc_vs_srlinux.yaml. A renderer that starts writing to a new part
+// of the SR Linux model therefore fails here until that surface is declared,
+// with its OpenConfig counterpart and the reason the native path is used.
 func TestRendererPathsCoveredByRegister(t *testing.T) {
-	m := map[string]any{}
-	merge := func(mm map[string]any) {
-		for k, v := range mm {
-			m[k] = v
-		}
+	families, err := renderedPathFamilies()
+	if err != nil {
+		t.Fatalf("render constructs: %v", err)
 	}
-	merge(render.RenderInterfaces([]model.Interface{{Name: "Ethernet1"}}, []model.Loopback{{Name: "Loopback0"}}))
-	merge(render.RenderBGP(model.BGPGlobal{ASN: 65000, RouterID: "1.1.1.1"}, []model.BGPNeighbor{{NeighborAddress: "10.0.0.2", PeerASN: 65001, EVPN: true}}))
-	merge(render.RenderNetworkInstances([]model.NetworkInstance{{Name: "DEFAULT", Type: "DEFAULT"}}))
-	merge(render.RenderVXLAN(model.VXLAN{SourceInterface: "Loopback0", UDPPort: 4789}, []model.VLAN{{ID: 10, Name: "blue", L2VNI: 10010}}))
-	merge(render.RenderSRv6(model.SRv6Locator{Name: "default", Prefix: "2001:db8:1::/48"}, []model.MySID{{SID: "2001:db8:1::1", Behavior: "End"}}))
-	// Add local VLANs to exercise SONiC-native VLAN register entries
-	merge(render.RenderLocalVLANs([]model.VLAN{{ID: 120, Name: "vlan-local"}}, map[int][]string{120: {"Ethernet1"}}))
-	// Add ACLs to exercise SONiC-native ACL register entries
-	merge(render.RenderACL([]model.ACL{{
-		Name:       "allow-web",
-		Stage:      "ingress",
-		Type:       "l3",
-		Ports:      []string{"Ethernet1"},
-		PolicyDesc: "tenant-a/svc-a",
-		DefaultAction: "deny",
-		Rules: []model.ACLRule{{Name: "allow-https", Priority: 100, Action: "permit", Protocol: "tcp", DestinationPort: "443"}},
-	}}))
-	reg, err := os.ReadFile(filepath.Join("..", "..", "pkg", "register", "oc_vs_sonic.yaml"))
+	if len(families) == 0 {
+		t.Fatal("the renderer emitted no paths at all; the guard would pass vacuously")
+	}
+	reg, err := os.ReadFile(filepath.Join("..", "..", "pkg", "register", "oc_vs_srlinux.yaml"))
 	if err != nil {
 		t.Fatalf("read register: %v", err)
 	}
-	if err := sdc.ValidateSpecAgainstRegister(m, reg); err != nil {
-		t.Fatalf("register coverage failed: %v", err)
+	if err := sdc.ValidateSpecAgainstRegister(families, reg); err != nil {
+		t.Fatalf("register coverage failed for the SR Linux renderer: %v\nrendered families: %v",
+			err, sortedKeys(families))
+	}
+}
+
+// The families the guard checks have to be the real device surfaces, not
+// whatever the renderer happens to spell today. These are the ones the contract
+// (contracts/srlinux-render-contract.md) names, so a renderer that silently
+// stopped emitting one would be caught here rather than on the fabric.
+func TestRenderedFamiliesCoverEveryConstruct(t *testing.T) {
+	families, err := renderedPathFamilies()
+	if err != nil {
+		t.Fatalf("render constructs: %v", err)
+	}
+	for _, want := range []string{
+		"/interface",
+		"/interface/subinterface",
+		"/interface/subinterface/oper-state",
+		"/interface/subinterface/acl/input",
+		"/network-instance",
+		"/network-instance/oper-state",
+		"/network-instance/protocols/bgp-evpn/bgp-instance/oper-state",
+		"/network-instance/bgp-rib/afi-safi/evpn/rib-in-out/rib-out-post/ip-prefix-routes",
+		"/tunnel-interface/vxlan-interface",
+		"/tunnel-interface/vxlan-interface/oper-state",
+		"/tunnel-interface/vxlan-interface/bridge-table/multicast-destinations/destination",
+		"/acl/acl-filter",
+		"/acl/acl-filter/entry",
+	} {
+		if _, ok := families[want]; !ok {
+			t.Errorf("the renderer no longer emits %s; rendered families: %v", want, sortedKeys(families))
+		}
 	}
 }

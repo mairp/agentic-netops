@@ -1,17 +1,26 @@
-# T025: Topology resource (simplified) per pinned API
+# Topology resource (simplified) per pinned API.
+# Four Nokia SR Linux nodes: two spines acting as EVPN route reflectors and two
+# leaves carrying the tenant network-instances. Node names match the
+# containerlab nodes (clab-agentic-netops-fabric-<name>) and the fabric-executor
+# node map.
 apiVersion: network.kubenet.dev/v1alpha1
 kind: Topology
 metadata:
   name: agentic-netops-topology
   namespace: kubenet-system
 spec:
-  # Simplified node list; actual provider consumes NetworkDevice derived by Kubenet
+  # Simplified node list; the actual provider consumes the NetworkDevice
+  # objects derived by kubenet.
   nodes:
   - name: spine01
     role: spine
+    provider: srl.nokia.sdcio.dev
   - name: spine02
     role: spine
+    provider: srl.nokia.sdcio.dev
   - name: leaf01
     role: leaf
+    provider: srl.nokia.sdcio.dev
   - name: leaf02
     role: leaf
+    provider: srl.nokia.sdcio.dev

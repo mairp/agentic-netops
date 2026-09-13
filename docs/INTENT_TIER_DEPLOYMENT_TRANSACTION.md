@@ -128,24 +128,40 @@ The number and names of objects returned by the first query must equal the
 `submitted` resources in the deployer audit event. A failed precondition or dry-run
 must return zero objects for that correlation ID.
 
-## Southbound reconciliation (operational, 2026-09-04)
+## Southbound reconciliation
 
-Submission is not the end of the transaction: a `sonicprovider` Network
+Submission is not the end of the transaction: an `srlprovider` Network
 controller in `agentic-netops-system` reconciles every accepted Network onto
-the fabric and owns its `Ready` condition. What the deployer's convergence
-watch polls is now actually driven:
+the Nokia SR Linux fabric and owns its `Ready` condition. What the deployer's
+convergence watch polls is actually driven:
 
-- **Render** (`pkg/fabricplan`): per-node ops from the Network spec — GCU for
-  VRF declarations, raw CONFIG_DB for the L3VNI vlan + tunnel map, kernel-side
-  SVI/attachment (bridge-access model; ports are shared per-vlan), and required
-  FRR VRF/BGP Type-5 origination. Intent VRF names are derived to device names
-  (`Vrf-` + 10 chars) because sonic-vrf.yang caps names hard.
+- **Render** (`pkg/fabricplan`): per-node ops from the Network spec, each one a
+  gNMI Set of JSON-IETF values at SR Linux native paths — the attachment
+  subinterface, the `vxlan1` vxlan-interface keyed by VNI, the mac-vrf or
+  ip-vrf network-instance with its `bgp-evpn`/`bgp-vpn` instances, and the
+  `acl-filter` with its subinterface bindings. Intent VRF names are derived to
+  device names (`Vrf-` + 10 chars) by `DeviceVRFName`; SR Linux allows far
+  longer network-instance names, so that cap is now a stability guarantee
+  rather than a platform limit. Route targets are normalised to the `target:`
+  form SR Linux requires.
 - **Execute** (`cmd/fabric-executor`): a HOST service on :8084 (kind nodes run
-  containerd; the host docker.sock cannot enter a pod), reached by the provider
-  at `http://172.30.0.1:8084` under a single-purpose netpol + iptables rule.
-  Stops at the first failed op and reports the op's own output.
-- **Verify**: CONFIG_DB rows, kernel masters, addresses, bridge-vids, L3-VNI
-  adoption, and a self-originated Type-5 route scoped to the service RD —
-  `Ready=True` only when every node's checks pass; every failed operation sets
-  `Ready=False/ApplyFailed` and requeues. Deletion rolls back owned state before the
-  finalizer drops.
+  containerd, so the executor stays on the host), reached by the provider at
+  `http://172.30.0.1:8084` under a single-purpose netpol + iptables rule. It
+  speaks gNMI to each node's `172.31.0.x:57400` over TLS with the lab CA and
+  the generated credentials — **no docker socket**. Each op is one
+  transactional Set; the executor stops at the first failed op and reports the
+  node's own error text. After a successful apply sequence it persists the
+  configuration.
+- **Verify**: gNMI Get assertions declared by the plan itself —
+  network-instance and subinterface `oper-state`, the `bgp-evpn` instance
+  state, the vxlan-interface, the remote VTEP list on a mac-vrf
+  (`multicast-destinations`, which self-origination cannot fake) and the
+  Type-5 prefix in the EVPN RIB for an ip-vrf. `Ready=True` only when every
+  node's checks pass; every failed operation sets `Ready=False/ApplyFailed`
+  and requeues. Deletion rolls back owned state — and only owned state —
+  before the finalizer drops.
+
+> **Not yet observed.** The SR Linux southbound has been built and unit-tested
+> offline; it has not been run against a live fabric from this tree. Phase 5 of
+> `specs/001-agentic-netops-srlinux-evpn-fabric/plan.md` is where the four
+> constructs are driven to `Ready=True` with recorded evidence.

@@ -1,0 +1,83 @@
+{
+  "nodes": [
+    {
+      "node": "leaf01",
+      "ops": [
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/interface[name=ethernet-1/3]",
+                "value": {
+                  "admin-state": "enable",
+                  "mtu": 9216,
+                  "vlan-tagging": true
+                }
+              },
+              {
+                "path": "/interface[name=ethernet-1/3]/subinterface[index=130]",
+                "value": {
+                  "admin-state": "enable",
+                  "type": "bridged",
+                  "vlan": {
+                    "encap": {
+                      "single-tagged": {
+                        "vlan-id": 130
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "updates": [
+              {
+                "path": "/network-instance[name=vlan-130]",
+                "value": {
+                  "admin-state": "enable",
+                  "interface": [
+                    {
+                      "name": "ethernet-1/3.130"
+                    }
+                  ],
+                  "type": "mac-vrf"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "checks": [
+        {
+          "type": "gnmi-equals",
+          "path": "/network-instance[name=vlan-130]/oper-state",
+          "expect": "up"
+        },
+        {
+          "type": "gnmi-equals",
+          "path": "/interface[name=ethernet-1/3]/subinterface[index=130]/oper-state",
+          "expect": "up"
+        }
+      ],
+      "rollback": [
+        {
+          "gnmi": {
+            "deletes": [
+              "/network-instance[name=vlan-130]"
+            ]
+          }
+        },
+        {
+          "gnmi": {
+            "deletes": [
+              "/interface[name=ethernet-1/3]/subinterface[index=130]"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

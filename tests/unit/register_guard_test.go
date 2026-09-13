@@ -1,42 +1,87 @@
+// SPDX-License-Identifier: Apache-2.0
 package unit
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
-	"github.com/mairp/agentic-netops/pkg/model"
-	"github.com/mairp/agentic-netops/pkg/render"
 	"github.com/mairp/agentic-netops/pkg/sdc"
 )
 
+// A guard that cannot fail is not a guard. This proves the register check
+// rejects a path nothing declares.
 func TestRegisterGuard_CatchesMissingPath(t *testing.T) {
-	spec := map[string]any{
-		"/interfaces/interface": map[string]any{"ok": true},
-		"/unknown/path":         map[string]any{"bad": true},
+	reg, err := os.ReadFile(filepath.Join("..", "..", "pkg", "register", "oc_vs_srlinux.yaml"))
+	if err != nil {
+		t.Fatalf("read register: %v", err)
 	}
-	if err := sdc.ValidateSpecAgainstRegister(spec, nil); err == nil {
-		t.Fatalf("expected error for unregistered path")
+	spec := map[string]any{
+		"/network-instance":       map[string]any{"ok": true},
+		"/not/a/declared/surface": map[string]any{"bad": true},
+	}
+	err = sdc.ValidateSpecAgainstRegister(spec, reg)
+	if err == nil {
+		t.Fatal("expected an error for an unregistered path")
+	}
+	if !sdc.IsRegisterError(err) {
+		t.Fatalf("unexpected error type: %v", err)
+	}
+	if !strings.Contains(err.Error(), "/not/a/declared/surface") {
+		t.Errorf("the failure does not name the offending path: %v", err)
 	}
 }
 
-func TestRegisterGuard_PassesForRenderedPaths(t *testing.T) {
-	// Build a representative spec using current renderers
-	m := map[string]any{}
-	for k, v := range render.RenderInterfaces([]model.Interface{{Name: "Ethernet1"}}, []model.Loopback{{Name: "Loopback0"}}) {
-		m[k] = v
+// ...and that it fails for a family the RENDERER really emits when that family
+// is taken out of the register. Removing one entry from the real file and
+// re-running the real derivation is the only way to show the guard is wired to
+// the renderer rather than to a copy of its output.
+func TestRegisterGuard_FailsWhenARenderedFamilyIsUnregistered(t *testing.T) {
+	families, err := renderedPathFamilies()
+	if err != nil {
+		t.Fatalf("render constructs: %v", err)
 	}
-	for k, v := range render.RenderBGP(model.BGPGlobal{ASN: 65000, RouterID: "1.1.1.1"}, []model.BGPNeighbor{{NeighborAddress: "10.0.0.2", PeerASN: 65001, EVPN: true}}) {
-		m[k] = v
+	reg, err := os.ReadFile(filepath.Join("..", "..", "pkg", "register", "oc_vs_srlinux.yaml"))
+	if err != nil {
+		t.Fatalf("read register: %v", err)
 	}
-	for k, v := range render.RenderVXLAN(model.VXLAN{SourceInterface: "Loopback0", UDPPort: 4789}, []model.VLAN{{ID: 10, Name: "blue", L2VNI: 10010}}) {
-		m[k] = v
+	// The vxlan-interface family: the one surface that carries the overlay, and
+	// the one with no OpenConfig equivalent at all.
+	const drop = "/tunnel-interface/vxlan-interface"
+	if _, ok := families[drop]; !ok {
+		t.Fatalf("the renderer no longer emits %s; this test needs updating", drop)
 	}
-	for k, v := range render.RenderSRv6(model.SRv6Locator{Name: "default", Prefix: "2001:db8:1::/48"}, []model.MySID{{SID: "2001:db8:1::1", Behavior: "End"}}) {
-		m[k] = v
+	stripped := removeEntry(string(reg), drop)
+	if stripped == string(reg) {
+		t.Fatalf("the register no longer declares %s; this test needs updating", drop)
 	}
-	if err := sdc.ValidateSpecAgainstRegister(m, nil); err != nil {
-		if !sdc.IsRegisterError(err) {
-			t.Fatalf("unexpected error type: %v", err)
+	err = sdc.ValidateSpecAgainstRegister(families, []byte(stripped))
+	if err == nil {
+		t.Fatal("the guard passed with a rendered family missing from the register")
+	}
+	if !strings.Contains(err.Error(), "/tunnel-interface/vxlan-interface") {
+		t.Errorf("the failure does not name the missing family: %v", err)
+	}
+}
+
+// removeEntry drops the YAML list item whose `path:` is exactly want, leaving
+// every other entry (including the longer paths that start with it) in place.
+func removeEntry(reg, want string) string {
+	lines := strings.Split(reg, "\n")
+	var out []string
+	skipping := false
+	for _, l := range lines {
+		trimmed := strings.TrimSpace(l)
+		if strings.HasPrefix(trimmed, "- path:") {
+			got := strings.Trim(strings.TrimSpace(strings.TrimPrefix(trimmed, "- path:")), `"`)
+			skipping = got == want
+		} else if skipping && (trimmed == "" || strings.HasPrefix(trimmed, "#")) {
+			skipping = false
 		}
-		t.Fatalf("expected register to cover current rendered paths, got: %v", err)
+		if !skipping {
+			out = append(out, l)
+		}
 	}
+	return strings.Join(out, "\n")
 }

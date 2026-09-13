@@ -1,66 +1,88 @@
-//go:build agentic_netops_k8s
-
 // SPDX-License-Identifier: Apache-2.0
 // fabric-executor: the sanctioned southbound write path.
 //
-// Why this exists (findings §4.1 + 2026-09-04 reset): gNMI Set on this SONiC
-// image is broken upstream (empty scope-list in the GCU bridge), and SDC — the
-// intended config engine — is unusable (placeholder images). The only write
-// path ever proven against this fabric is host-side `docker exec` into the
-// sonic-vs containers (GCU patches + redis + kernel). This service exposes
-// exactly that, narrowly, from inside the cluster:
+// On Nokia SR Linux there is exactly one way into the device and it is the
+// right one: gNMI. Set is transactional (the node builds a candidate and
+// commits it per request), Get reads the same model back, and both speak
+// JSON_IETF over TLS on :57400. So this service is thin on purpose:
 //
-//   - it talks to /var/run/docker.sock (mounted) over raw HTTP — no docker SDK;
-//   - it only execs into containers present in its node map (FABRIC_NODE_MAP,
-//     logical name -> container name), so no pod can pivot to arbitrary
-//     containers on the host;
-//   - ops are the four proven primitives only: GCU JSON patches, redis CONFIG_DB
-//     commands, kernel shell, and vtysh/bgpd.conf;
-//   - it lives in agentic-netops-system behind deny-all, so the intent tier
+//   - it dials only nodes present in its node map (FABRIC_NODE_MAP, logical
+//     name -> "host:port"), so no caller can steer it at an arbitrary address;
+//   - ops are one primitive — a gNMI SetRequest (deletes first, then updates);
+//   - checks are one primitive — a gNMI GetRequest with content assertions;
+//   - credentials come from the environment provision sets (FABRIC_GNMI_USER /
+//     FABRIC_GNMI_PASS, the lab-generated user), never from the request;
+//   - it lives behind the system tier's network policy, so the intent tier
 //     (agentic-netops-agents) still has NO route to the devices (SC-005) — only
-//     the SONiC provider, through this service, can touch the fabric.
+//     the SR Linux provider, through this service, can touch the fabric.
 //
-// GCU per-key-vs-whole-table handling mirrors the bootstrap: a per-key add
-// (path /TABLE/key) is promoted to a whole-table add when the table does not
-// exist yet, because GCU rejects adding a child to a missing parent.
+// There is no docker socket, no container exec, no CLI scraping: the SONiC
+// target needed those because gNMI Set was broken on that image, and this
+// target is the one where it is not.
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/binary"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
+
+	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 const (
-	dockerSock   = "/var/run/docker.sock"
-	dockerAPI    = "http://localhost/v1.41"
-	redisDB      = "4"
-	execTimeout  = 90 * time.Second
+	// setTimeout bounds one gNMI Set. SR Linux commits synchronously, so a
+	// request that has not answered in this long is not slow, it is stuck.
+	setTimeout = 60 * time.Second
+	// getTimeout bounds one verification read (contracts/fabric-executor-api.md).
+	getTimeout   = 10 * time.Second
+	dialTimeout  = 15 * time.Second
 	maxBodyBytes = 4 << 20
+
+	// saveConfigPath persists the running configuration after a successful
+	// apply sequence. A node that reboots with unsaved config comes back
+	// without the service, and the 5-minute resync would be the only thing
+	// repairing it.
+	//
+	// Verify live: the exact save path on 26.7 (research D2 records the
+	// fallback, JSON-RPC `cli` with `save file`, if this one is not a Set
+	// target on the running image).
+	saveConfigPath = "/tools/system/configuration/save"
 )
 
 // ---- wire types -------------------------------------------------------------
 
+// Op mirrors fabricplan.Op: exactly one gNMI Set per op.
+type Op struct {
+	GNMI *GNMISet `json:"gnmi,omitempty"`
+}
+
+type GNMISet struct {
+	Updates []GNMIUpdate `json:"updates,omitempty"`
+	Deletes []string     `json:"deletes,omitempty"`
+}
+
+type GNMIUpdate struct {
+	Path  string          `json:"path"`
+	Value json.RawMessage `json:"value"`
+}
+
 type ApplyRequest struct {
 	Node string `json:"node"`
-	Ops  []struct {
-		GCU     []map[string]any `json:"gcu,omitempty"`
-		Redis   []string         `json:"redis,omitempty"`
-		Shell   []string         `json:"shell,omitempty"`
-		VTYSh   []string         `json:"vtysh,omitempty"`
-		FRRConf []string         `json:"frrconf,omitempty"`
-	} `json:"ops"`
+	Ops  []Op   `json:"ops"`
 }
 
 type OpResult struct {
@@ -76,24 +98,17 @@ type ApplyResponse struct {
 	Results []OpResult `json:"results"`
 }
 
+// Check mirrors fabricplan.Check.
+type Check struct {
+	Type     string `json:"type"`
+	Path     string `json:"path"`
+	Expect   string `json:"expect,omitempty"`
+	MinCount int    `json:"minCount,omitempty"`
+}
+
 type VerifyRequest struct {
-	Node   string `json:"node"`
-	Checks []struct {
-		Type        string            `json:"type"`
-		RedisKey    string            `json:"redisKey,omitempty"`
-		RedisField  string            `json:"redisField,omitempty"`
-		RedisDB     string            `json:"redisDB,omitempty"`
-		MatchFields map[string]string `json:"matchFields,omitempty"`
-		MinCount    int               `json:"minCount,omitempty"`
-		Iface       string            `json:"iface,omitempty"`
-		Master      string            `json:"master,omitempty"`
-		Addr        string            `json:"addr,omitempty"`
-		Vid         int64             `json:"vid,omitempty"`
-		Path        string            `json:"path,omitempty"`
-		Line        string            `json:"line,omitempty"`
-		Command     string            `json:"command,omitempty"`
-		Expect      string            `json:"expect,omitempty"`
-	} `json:"checks"`
+	Node   string  `json:"node"`
+	Checks []Check `json:"checks"`
 }
 
 type VerifyResult struct {
@@ -112,7 +127,10 @@ type VerifyResponse struct {
 // ---- server -----------------------------------------------------------------
 
 type server struct {
-	nodeMap map[string]string // logical -> container name
+	nodeMap map[string]string // logical -> "host:port"
+	user    string
+	pass    string
+	tls     *tls.Config // nil only when no CA is configured and verification is not skipped
 }
 
 func main() {
@@ -126,7 +144,17 @@ func main() {
 		fmt.Fprintf(os.Stderr, "FABRIC_NODE_MAP invalid: %v\n", err)
 		os.Exit(1)
 	}
-	srv := &server{nodeMap: nm}
+	srv := &server{
+		nodeMap: nm,
+		user:    os.Getenv("FABRIC_GNMI_USER"),
+		pass:    os.Getenv("FABRIC_GNMI_PASS"),
+	}
+	tlsCfg, err := buildTLS(os.Getenv("FABRIC_GNMI_CA"), os.Getenv("FABRIC_GNMI_SKIP_VERIFY") == "true")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "gNMI TLS configuration: %v\n", err)
+		os.Exit(1)
+	}
+	srv.tls = tlsCfg
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
@@ -139,11 +167,43 @@ func main() {
 	if addr == "" {
 		addr = ":8084"
 	}
-	fmt.Printf("fabric-executor listening on %s with %d node(s)\n", addr, len(nm))
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	fmt.Printf("fabric-executor listening on %s with %d node(s), gNMI user %q\n", addr, len(nm), srv.user)
+	httpSrv := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	if err := httpSrv.ListenAndServe(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+// buildTLS assembles the client TLS configuration for the gNMI channel. The
+// containerlab CA is the only trust anchor the lab has; InsecureSkipVerify is
+// reachable ONLY through FABRIC_GNMI_SKIP_VERIFY, which provision never sets —
+// a fabric whose certificate cannot be verified is not evidence of anything.
+func buildTLS(caFile string, skipVerify bool) (*tls.Config, error) {
+	cfg := &tls.Config{MinVersion: tls.VersionTLS12}
+	if skipVerify {
+		cfg.InsecureSkipVerify = true
+		return cfg, nil
+	}
+	if caFile == "" {
+		// No CA configured: fall back to the system trust store rather than
+		// silently trusting anything.
+		return cfg, nil
+	}
+	pem, err := os.ReadFile(caFile)
+	if err != nil {
+		return nil, fmt.Errorf("read CA %q: %w", caFile, err)
+	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pem) {
+		return nil, fmt.Errorf("CA %q contains no usable certificate", caFile)
+	}
+	cfg.RootCAs = pool
+	return cfg, nil
 }
 
 func (s *server) handleNodes(w http.ResponseWriter, _ *http.Request) {
@@ -156,21 +216,14 @@ func (s *server) handleNodes(w http.ResponseWriter, _ *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{"nodes": names})
 }
 
-func sortStrings(s []string) {
-	for i := 1; i < len(s); i++ {
-		for j := i; j > 0 && s[j] < s[j-1]; j-- {
-			s[j], s[j-1] = s[j-1], s[j]
-		}
-	}
-}
-
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-func (s *server) containerFor(node string) (string, bool) {
+// targetFor resolves a logical node name to its gNMI endpoint.
+func (s *server) targetFor(node string) (string, bool) {
 	if c, ok := s.nodeMap[node]; ok && c != "" {
 		return c, true
 	}
@@ -202,6 +255,33 @@ func normalizeNodeName(s string) string {
 	return b.String()
 }
 
+// ---- gNMI transport ---------------------------------------------------------
+
+// dial opens one gRPC channel to a node. Callers reuse it for every op or check
+// in one HTTP request and close it when they are done.
+func (s *server) dial(target string) (*grpc.ClientConn, error) {
+	var creds grpc.DialOption
+	if s.tls != nil {
+		creds = grpc.WithTransportCredentials(credentials.NewTLS(s.tls))
+	} else {
+		creds = grpc.WithTransportCredentials(insecure.NewCredentials())
+	}
+	return grpc.NewClient(target,
+		creds,
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxBodyBytes)),
+	)
+}
+
+// authContext carries the lab credentials the SR Linux gNMI server expects as
+// per-RPC metadata. No client certificate is required; the CA only proves the
+// node's identity to us.
+func (s *server) authContext(ctx context.Context) context.Context {
+	if s.user == "" && s.pass == "" {
+		return ctx
+	}
+	return metadata.AppendToOutgoingContext(ctx, "username", s.user, "password", s.pass)
+}
+
 // ---- apply ------------------------------------------------------------------
 
 func (s *server) handleApply(w http.ResponseWriter, r *http.Request) {
@@ -210,59 +290,51 @@ func (s *server) handleApply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req ApplyRequest
-	body := io.LimitReader(r.Body, maxBodyBytes)
-	if err := json.NewDecoder(body).Decode(&req); err != nil {
+	if err := json.NewDecoder(io.LimitReader(r.Body, maxBodyBytes)).Decode(&req); err != nil {
 		writeJSON(w, 400, map[string]string{"error": fmt.Sprintf("bad request: %v", err)})
 		return
 	}
-	container, ok := s.containerFor(req.Node)
+	target, ok := s.targetFor(req.Node)
 	if !ok {
 		writeJSON(w, 400, map[string]string{"error": fmt.Sprintf("node %q not in site map", req.Node)})
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), execTimeout*time.Duration(maxInt(1, len(req.Ops))))
+	ctx, cancel := context.WithTimeout(r.Context(), setTimeout*time.Duration(maxInt(1, len(req.Ops)+1)))
 	defer cancel()
 
 	resp := ApplyResponse{Node: req.Node, OK: true}
+	conn, err := s.dial(target)
+	if err != nil {
+		resp.OK = false
+		resp.Results = append(resp.Results, OpResult{Kind: "dial", OK: false, Error: fmt.Sprintf("dial %s: %v", target, err)})
+		writeJSON(w, http.StatusOK, resp)
+		return
+	}
+	defer conn.Close()
+	client := gnmipb.NewGNMIClient(conn)
+
 	for i, op := range req.Ops {
-		switch {
-		case len(op.GCU) > 0:
-			res := s.applyGCU(ctx, container, op.GCU)
-			res.Kind = fmt.Sprintf("ops[%d].gcu", i)
-			resp.Results = append(resp.Results, res)
-		case len(op.Redis) > 0:
-			// Plan Redis ops are redis-cli ARGUMENTS ("hset 'VLAN|Vlan100' ..."),
-			// not shell commands — run them through redis-cli on CONFIG_DB.
-			// Executing them bare fails with exit 127 ("hset: command not
-			// found"), which the reconciler correctly treats as fatal.
-			redisCmds := make([]string, len(op.Redis))
-			for j, c := range op.Redis {
-				redisCmds[j] = fmt.Sprintf("redis-cli -n %s %s", redisDB, c)
-			}
-			res := s.applyShell(ctx, container, redisCmds, false)
-			res.Kind = fmt.Sprintf("ops[%d].redis", i)
-			resp.Results = append(resp.Results, res)
-		case len(op.Shell) > 0:
-			res := s.applyShell(ctx, container, op.Shell, false)
-			res.Kind = fmt.Sprintf("ops[%d].shell", i)
-			resp.Results = append(resp.Results, res)
-		case len(op.VTYSh) > 0:
-			res := s.applyVTYSh(ctx, container, op.VTYSh)
-			res.Kind = fmt.Sprintf("ops[%d].vtysh", i)
-			resp.Results = append(resp.Results, res)
-		case len(op.FRRConf) > 0:
-			res := s.applyFRRConf(ctx, container, op.FRRConf)
-			res.Kind = fmt.Sprintf("ops[%d].frrconf", i)
-			resp.Results = append(resp.Results, res)
-		default:
-			resp.Results = append(resp.Results, OpResult{Kind: fmt.Sprintf("ops[%d]", i), OK: false, Error: "empty op"})
-		}
-		if n := len(resp.Results); n > 0 && !resp.Results[n-1].OK {
-			// An empty op is a plan bug; a failed op may be a no-op retry. Either
+		res := s.applySet(ctx, client, op)
+		res.Kind = fmt.Sprintf("ops[%d].gnmi", i)
+		resp.Results = append(resp.Results, res)
+		if !res.OK {
+			// An empty op is a plan bug; a failed op may be a transient. Either
 			// way, report and stop: partial application is surfaced truthfully.
 			resp.OK = false
 			break
+		}
+	}
+
+	// Persistence. A save failure marks the whole apply not-ok: a service that
+	// is only in running configuration is one reboot away from not existing,
+	// and reporting that as success is the class of lie this system forbids.
+	if resp.OK && len(req.Ops) > 0 {
+		res := s.saveConfig(ctx, client)
+		res.Kind = "save"
+		resp.Results = append(resp.Results, res)
+		if !res.OK {
+			resp.OK = false
 		}
 	}
 	writeJSON(w, http.StatusOK, resp)
@@ -275,174 +347,95 @@ func maxInt(a, b int) int {
 	return b
 }
 
-// applyGCU validates the whole CONFIG_DB through the generic config updater.
-// Per-key adds are promoted to whole-table adds when the table is absent.
-func (s *server) applyGCU(ctx context.Context, container string, patch []map[string]any) OpResult {
-	patchJSON, err := json.Marshal(patch)
-	if err != nil {
-		return OpResult{OK: false, Error: fmt.Sprintf("marshal patch: %v", err)}
+// applySet sends one op as one gNMI SetRequest. SR Linux commits the request
+// atomically, and an update that matches running configuration is a no-op
+// commit — which is what makes a reconcile of a converged service free.
+func (s *server) applySet(ctx context.Context, client gnmipb.GNMIClient, op Op) OpResult {
+	if op.GNMI == nil || (len(op.GNMI.Updates) == 0 && len(op.GNMI.Deletes) == 0) {
+		return OpResult{OK: false, Error: "empty op"}
 	}
-	for i, step := range patch {
-		path, _ := step["path"].(string)
-		op, _ := step["op"].(string)
-		if op != "add" || !strings.HasPrefix(path, "/") {
-			continue
-		}
-		table := strings.SplitN(strings.TrimPrefix(path, "/"), "/", 2)[0]
-		if table == "" {
-			continue
-		}
-		splits := len(strings.Split(strings.Trim(path, "/"), "/"))
-		if splits < 2 {
-			continue // whole-table op already
-		}
-		out, _, err := s.exec(ctx, container, []string{"bash", "-c", fmt.Sprintf("redis-cli -n %s --scan --pattern '%s|*' | head -n1", redisDB, table)})
+	req := &gnmipb.SetRequest{}
+	for _, d := range op.GNMI.Deletes {
+		p, err := parsePath(d)
 		if err != nil {
-			return OpResult{OK: false, Error: fmt.Sprintf("table existence check %q: %v", table, err), Output: out}
+			return OpResult{OK: false, Error: err.Error()}
 		}
-		if strings.TrimSpace(out) != "" {
-			continue // table exists; per-key add is valid
-		}
-		// Promote: collect all keys of this table in the patch into one add.
-		whole := map[string]any{}
-		rest := []map[string]any{}
-		for _, st := range patch {
-			p, _ := st["path"].(string)
-			if st["op"] == "add" && strings.HasPrefix(p, "/"+table+"/") {
-				key := strings.TrimPrefix(p, "/"+table+"/")
-				whole[key] = st["value"]
-			} else {
-				rest = append(rest, st)
-			}
-		}
-		merged := append([]map[string]any{{"op": "add", "path": "/" + table, "value": whole}}, rest...)
-		patchJSON, err = json.Marshal(merged)
+		req.Delete = append(req.Delete, p)
+	}
+	for _, u := range op.GNMI.Updates {
+		p, err := parsePath(u.Path)
 		if err != nil {
-			return OpResult{OK: false, Error: fmt.Sprintf("marshal promoted patch: %v", err)}
+			return OpResult{OK: false, Error: err.Error()}
 		}
-		_ = i
-		break // one promotion pass is sufficient: the whole-table add creates the parent
-	}
-
-	// apply_patch, then a race-tolerant confirmation. fabric daemons rewrite
-	// CONFIG_DB rows while GCU holds its cached copy (vrfmgrd touched VrfBlue's
-	// table mid-apply), so GCU can raise GenericConfigUpdaterError "after
-	// applying patch to config, there are still some parts not updated" even
-	// though the write landed. In that case we verify the intended end-state
-	// directly against the live CONFIG_DB and exit 0 only when every op truly
-	// took effect. GCU may also normalize depth-2 adds into depth-3 replaces
-	// (/VRF/Name -> /VRF/Name/vni), so both shapes are confirmed. Values are
-	// compared as strings: CONFIG_DB stores scalars as JSON text ("10007").
-	const gcuScript = `import sys, json, jsonpatch, subprocess
-from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
-
-patch = json.load(sys.stdin)
-try:
-    GenericUpdater().apply_patch(jsonpatch.JsonPatch(patch), ConfigFormat.CONFIGDB, False, False, False, [])
-    print("gcu applied:", len(patch), "op(s)")
-    sys.exit(0)
-except Exception as e:
-    if "still some parts not updated" not in str(e):
-        raise
-
-def to_text(v):
-    return v if isinstance(v, str) else json.dumps(v)
-
-def hget(key, field):
-    p = subprocess.run(["sonic-db-cli", "CONFIG_DB", "HGET", key, field],
-                       capture_output=True, text=True, timeout=10)
-    return p.stdout.strip()
-
-def hexists(key):
-    p = subprocess.run(["sonic-db-cli", "CONFIG_DB", "EXISTS", key],
-                       capture_output=True, text=True, timeout=10)
-    return p.stdout.strip() == "1"
-
-def fail(msg):
-    raise SystemExit("race-confirm failed: " + msg)
-
-for op in patch:
-    parts = [p for p in op.get("path", "").split("/") if p]
-    kind = op.get("op")
-    if kind not in ("add", "replace", "remove") or not (2 <= len(parts) <= 3):
-        raise  # unsupported for race confirmation; surface the original error
-    if kind == "remove":
-        if hexists(parts[0] + "|" + parts[1]):
-            fail("%s|%s still present" % (parts[0], parts[1]))
-        continue
-    if len(parts) == 2:
-        value = op.get("value")
-        if not isinstance(value, dict):
-            fail("depth-2 op %s has non-object value" % op["path"])
-        for field, want in value.items():
-            got = hget(parts[0] + "|" + parts[1], field)
-            if got != to_text(want):
-                fail("%s|%s.%s = %r, want %r" % (parts[0], parts[1], field, got, to_text(want)))
-    else:
-        got = hget(parts[0] + "|" + parts[1], parts[2])
-        if got != to_text(op.get("value")):
-            fail("%s|%s.%s = %r, want %r" % (parts[0], parts[1], parts[2], got, to_text(op.get("value"))))
-print("gcu applied with daemon race; end-state confirmed:", len(patch), "op(s)")`
-	b64Patch := base64.StdEncoding.EncodeToString(patchJSON)
-	b64Script := base64.StdEncoding.EncodeToString([]byte(gcuScript))
-	cmd := fmt.Sprintf("echo %s | base64 -d > /tmp/fx-patch.json && echo %s | base64 -d > /tmp/fx-gcu.py && python3 /tmp/fx-gcu.py < /tmp/fx-patch.json", b64Patch, b64Script)
-	out, stderr, err := s.exec(ctx, container, []string{"bash", "-c", cmd})
-	if err != nil {
-		return OpResult{OK: false, Error: err.Error(), Output: out + stderr}
-	}
-	return OpResult{OK: true, Output: strings.TrimSpace(out)}
-}
-
-func (s *server) applyShell(ctx context.Context, container string, cmds []string, _ bool) OpResult {
-	var log bytes.Buffer
-	for _, c := range cmds {
-		out, stderr, err := s.exec(ctx, container, []string{"bash", "-c", c})
-		log.WriteString("> " + oneLine(c) + "\n" + strings.TrimSpace(out))
-		if strings.TrimSpace(stderr) != "" {
-			log.WriteString("\n[stderr] " + strings.TrimSpace(stderr))
+		val := []byte(u.Value)
+		if len(val) == 0 {
+			val = []byte("{}")
 		}
-		log.WriteString("\n")
-		if err != nil {
-			return OpResult{OK: false, Error: err.Error(), Output: log.String()}
+		if !json.Valid(val) {
+			return OpResult{OK: false, Error: fmt.Sprintf("update %s: value is not valid JSON", u.Path)}
 		}
+		req.Update = append(req.Update, &gnmipb.Update{
+			Path: p,
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{JsonIetfVal: val}},
+		})
 	}
-	return OpResult{OK: true, Output: log.String()}
-}
 
-func (s *server) applyVTYSh(ctx context.Context, container string, cmds []string) OpResult {
-	// vtysh -c per argument, chained; failures are reported but the caller
-	// treats FRR as best-effort (D-A2), so the reconciler downgrades to Degraded.
-	args := []string{"vtysh"}
-	for _, c := range cmds {
-		args = append(args, "-c", c)
-	}
-	out, stderr, err := s.exec(ctx, container, args)
+	opCtx, cancel := context.WithTimeout(s.authContext(ctx), setTimeout)
+	defer cancel()
+	resp, err := client.Set(opCtx, req)
 	if err != nil {
-		return OpResult{OK: false, Error: err.Error(), Output: out + stderr}
+		// The node's own words, verbatim: a rendered path the model does not
+		// have, a value it rejects, a leafref it cannot resolve. Paraphrasing
+		// that is how an operator loses an afternoon.
+		return OpResult{OK: false, Error: gnmiError(err), Output: setSummary(req)}
 	}
-	return OpResult{OK: true, Output: strings.TrimSpace(out)}
+	return OpResult{OK: true, Output: fmt.Sprintf("%s; %s", setSummary(req), setResponseSummary(resp))}
 }
 
-func (s *server) applyFRRConf(ctx context.Context, container string, lines []string) OpResult {
-	block := strings.Join(lines, "\n")
-	sum := sha256.Sum256([]byte(block))
-	marker := fmt.Sprintf("! agentic-netops managed block %x", sum[:8])
-	payload := marker + "\n" + block
-	b64 := base64.StdEncoding.EncodeToString([]byte(payload))
-	// Content-address the marker instead of using the first configuration line.
-	// Several revisions can legitimately begin with the same `vrf NAME`; using
-	// that as the marker made later commands (notably Type-5 origination) appear
-	// durable while the old block remained unchanged. vtysh has already applied
-	// the same commands to running state, so appending here does not restart bgpd.
-	cmd := fmt.Sprintf("grep -qF %q /etc/frr/bgpd.conf 2>/dev/null || { echo %s | base64 -d >> /etc/frr/bgpd.conf; printf '\\n!\\n' >> /etc/frr/bgpd.conf; echo appended; }", marker, b64)
-	out, stderr, err := s.exec(ctx, container, []string{"bash", "-c", cmd})
+// saveConfig persists the running configuration (see saveConfigPath).
+func (s *server) saveConfig(ctx context.Context, client gnmipb.GNMIClient) OpResult {
+	p, err := parsePath(saveConfigPath)
 	if err != nil {
-		return OpResult{OK: false, Error: err.Error(), Output: out + stderr}
+		return OpResult{OK: false, Error: err.Error()}
 	}
-	return OpResult{OK: true, Output: strings.TrimSpace(out)}
+	opCtx, cancel := context.WithTimeout(s.authContext(ctx), setTimeout)
+	defer cancel()
+	_, err = client.Set(opCtx, &gnmipb.SetRequest{Update: []*gnmipb.Update{{
+		Path: p,
+		Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{JsonIetfVal: []byte("{}")}},
+	}}})
+	if err != nil {
+		return OpResult{OK: false, Error: gnmiError(err), Output: "save " + saveConfigPath}
+	}
+	return OpResult{OK: true, Output: "configuration saved"}
 }
 
-func oneLine(s string) string { return strings.ReplaceAll(s, "\n", " ") }
+func setSummary(req *gnmipb.SetRequest) string {
+	var b strings.Builder
+	for _, d := range req.GetDelete() {
+		b.WriteString("delete " + pathString(d) + "\n")
+	}
+	for _, u := range req.GetUpdate() {
+		b.WriteString("update " + pathString(u.GetPath()) + "\n")
+	}
+	return strings.TrimSpace(b.String())
+}
+
+func setResponseSummary(resp *gnmipb.SetResponse) string {
+	ops := make([]string, 0, len(resp.GetResponse()))
+	for _, r := range resp.GetResponse() {
+		ops = append(ops, fmt.Sprintf("%s %s", r.GetOp(), pathString(r.GetPath())))
+	}
+	return fmt.Sprintf("committed at %d: %s", resp.GetTimestamp(), strings.Join(ops, ", "))
+}
+
+// gnmiError renders an RPC failure with the node's message intact.
+func gnmiError(err error) string {
+	if st, ok := status.FromError(err); ok {
+		return fmt.Sprintf("%s: %s", st.Code(), st.Message())
+	}
+	return err.Error()
+}
 
 // ---- verify -----------------------------------------------------------------
 
@@ -456,17 +449,27 @@ func (s *server) handleVerify(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 400, map[string]string{"error": fmt.Sprintf("bad request: %v", err)})
 		return
 	}
-	container, ok := s.containerFor(req.Node)
+	target, ok := s.targetFor(req.Node)
 	if !ok {
 		writeJSON(w, 400, map[string]string{"error": fmt.Sprintf("node %q not in site map", req.Node)})
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), execTimeout*time.Duration(maxInt(1, len(req.Checks))))
+	ctx, cancel := context.WithTimeout(r.Context(), getTimeout*time.Duration(maxInt(1, len(req.Checks))))
 	defer cancel()
 
 	resp := VerifyResponse{Node: req.Node, OK: true}
+	conn, err := s.dial(target)
+	if err != nil {
+		resp.OK = false
+		resp.Results = append(resp.Results, VerifyResult{Check: "dial", OK: false, Error: fmt.Sprintf("dial %s: %v", target, err)})
+		writeJSON(w, http.StatusOK, resp)
+		return
+	}
+	defer conn.Close()
+	client := gnmipb.NewGNMIClient(conn)
+
 	for i, ck := range req.Checks {
-		res := s.verifyOne(ctx, container, ck)
+		res := s.verifyOne(ctx, client, ck)
 		res.Check = fmt.Sprintf("checks[%d].%s", i, ck.Type)
 		resp.Results = append(resp.Results, res)
 		if !res.OK {
@@ -476,341 +479,232 @@ func (s *server) handleVerify(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (s *server) verifyOne(ctx context.Context, container string, ck struct {
-	Type        string            `json:"type"`
-	RedisKey    string            `json:"redisKey,omitempty"`
-	RedisField  string            `json:"redisField,omitempty"`
-	RedisDB     string            `json:"redisDB,omitempty"`
-	MatchFields map[string]string `json:"matchFields,omitempty"`
-	MinCount    int               `json:"minCount,omitempty"`
-	Iface       string            `json:"iface,omitempty"`
-	Master      string            `json:"master,omitempty"`
-	Addr        string            `json:"addr,omitempty"`
-	Vid         int64             `json:"vid,omitempty"`
-	Path        string            `json:"path,omitempty"`
-	Line        string            `json:"line,omitempty"`
-	Command     string            `json:"command,omitempty"`
-	Expect      string            `json:"expect,omitempty"`
-}) VerifyResult {
-	run := func(cmd string) (string, error) {
-		out, stderr, err := s.exec(ctx, container, []string{"bash", "-c", cmd})
-		return strings.TrimSpace(out), firstErr(err, stderr)
+// getResult is one Get's outcome, already reduced to the shapes the checks
+// reason about: the decoded value(s), their compact JSON rendering, and
+// whether the node said the path simply does not exist.
+type getResult struct {
+	values   []any  // one entry per returned update
+	body     string // compact JSON of the first value, or of the list of them
+	notFound bool
+	err      error
+}
+
+func (s *server) get(ctx context.Context, client gnmipb.GNMIClient, path string) getResult {
+	p, err := parsePath(path)
+	if err != nil {
+		return getResult{err: err}
 	}
-	// default redis DB
-	db := ck.RedisDB
-	if strings.TrimSpace(db) == "" {
-		db = redisDB
+	getCtx, cancel := context.WithTimeout(s.authContext(ctx), getTimeout)
+	defer cancel()
+	resp, err := client.Get(getCtx, &gnmipb.GetRequest{
+		Path:     []*gnmipb.Path{p},
+		Type:     gnmipb.GetRequest_ALL,
+		Encoding: gnmipb.Encoding_JSON_IETF,
+	})
+	if err != nil {
+		if st, ok := status.FromError(err); ok && st.Code() == codes.NotFound {
+			return getResult{notFound: true}
+		}
+		// A transport failure is an error, never an absence: reporting an
+		// unreachable node as "the state is not there" would let a broken
+		// channel masquerade as a broken service.
+		return getResult{err: fmt.Errorf("%s", gnmiError(err))}
+	}
+	out := getResult{}
+	for _, n := range resp.GetNotification() {
+		for _, u := range n.GetUpdate() {
+			v, err := decodeTypedValue(u.GetVal())
+			if err != nil {
+				return getResult{err: err}
+			}
+			out.values = append(out.values, v)
+		}
+	}
+	switch len(out.values) {
+	case 0:
+		out.notFound = true
+	case 1:
+		out.body = compactJSON(out.values[0])
+	default:
+		out.body = compactJSON(out.values)
+	}
+	return out
+}
+
+func (s *server) verifyOne(ctx context.Context, client gnmipb.GNMIClient, ck Check) VerifyResult {
+	res := s.get(ctx, client, ck.Path)
+
+	switch ck.Type {
+	case "gnmi-absent":
+		if res.err != nil {
+			return VerifyResult{OK: false, Error: res.err.Error()}
+		}
+		if res.notFound || len(res.values) == 0 || isNullOnly(res.values) {
+			return VerifyResult{OK: true, Actual: "absent"}
+		}
+		return VerifyResult{OK: false, Actual: truncate(res.body, 400), Error: "expected the path to be absent"}
+	}
+
+	if res.err != nil {
+		return VerifyResult{OK: false, Error: res.err.Error()}
+	}
+	if res.notFound {
+		return VerifyResult{OK: false, Error: fmt.Sprintf("path %s returned no value", ck.Path)}
 	}
 
 	switch ck.Type {
-	case "redis-hget":
-		got, err := run(fmt.Sprintf("redis-cli -n %s hget %q %q", db, ck.RedisKey, ck.RedisField))
-		if err != nil {
-			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
+	case "gnmi-equals":
+		got := scalarString(res.values[0])
+		if got == ck.Expect {
+			return VerifyResult{OK: true, Actual: got}
 		}
-		return VerifyResult{OK: got == ck.Expect, Actual: got, Error: neqMsg(got, ck.Expect)}
-	case "redis-exists":
-		got, err := run(fmt.Sprintf("redis-cli -n %s exists %q", db, ck.RedisKey))
-		if err != nil {
-			return VerifyResult{OK: false, Error: err.Error()}
+		return VerifyResult{OK: false, Actual: truncate(got, 400), Error: fmt.Sprintf("expected %q, got %q", ck.Expect, truncate(got, 400))}
+	case "gnmi-contains":
+		if strings.Contains(res.body, ck.Expect) {
+			return VerifyResult{OK: true, Actual: truncate(res.body, 400)}
 		}
-		return VerifyResult{OK: got == "1", Actual: got}
-	case "ip-master":
-		got, err := run(fmt.Sprintf("ip -o link show %s 2>/dev/null | grep -oE 'master [^ @]+' | head -n1 | cut -d' ' -f2", ck.Iface))
-		if err != nil {
-			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
+		return VerifyResult{OK: false, Actual: truncate(res.body, 400),
+			Error: fmt.Sprintf("expected the body to contain %q", ck.Expect)}
+	case "gnmi-exists":
+		if isNullOnly(res.values) {
+			return VerifyResult{OK: false, Error: fmt.Sprintf("path %s exists but carries no value", ck.Path)}
 		}
-		return VerifyResult{OK: got == ck.Master, Actual: got, Error: neqMsg(got, ck.Master)}
-	case "ip-addr":
-		got, err := run(fmt.Sprintf("ip -br addr show %s 2>/dev/null | grep -oF %q | head -n1", ck.Iface, ck.Addr))
-		if err != nil {
-			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
-		}
-		return VerifyResult{OK: got != "", Actual: got}
-	case "link-vxlan-id":
-		// Which VNI the kernel VXLAN device actually carries. SONiC names that
-		// device after the VLAN, so a second service reusing a VLAN inherits
-		// the FIRST service's device -- membership and bridge checks all pass
-		// while the overlay carries the wrong VNI. Only this check sees it.
-		got, err := run(fmt.Sprintf("ip -d link show %s 2>/dev/null | grep -oE 'vxlan id [0-9]+' | head -n1 | awk '{print $3}'", ck.Iface))
-		if err != nil {
-			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
-		}
-		return VerifyResult{OK: got == ck.Expect, Actual: got, Error: neqMsg(got, ck.Expect)}
-	case "bridge-vid":
-		// Rows after the first are indented (port name column empty), so the
-		// vid lands in $1 there and $2 on the first row — match both.
-		got, err := run(fmt.Sprintf("bridge vlan show dev %s 2>/dev/null | awk -v v=%d '$1 == v || $2 == v' | wc -l", ck.Iface, ck.Vid))
-		if err != nil {
-			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
-		}
-		return VerifyResult{OK: got != "0", Actual: got}
-	case "file-contains":
-		got, err := run(fmt.Sprintf("grep -cF %q %q 2>/dev/null || true", ck.Line, ck.Path))
-		if err != nil {
-			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
-		}
-		return VerifyResult{OK: got != "0", Actual: got}
-	case "vtysh-contains":
-		got, err := run(fmt.Sprintf("vtysh -c %q", ck.Command))
-		if err != nil {
-			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
-		}
-		ok := strings.Contains(got, ck.Expect)
-		return VerifyResult{OK: ok, Actual: got, Error: neqContainsMsg(got, ck.Expect)}
-	case "redis-hget-contains":
-		got, err := run(fmt.Sprintf("redis-cli -n %s hget %q %q", db, ck.RedisKey, ck.RedisField))
-		if err != nil {
-			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
-		}
-		ok := strings.Contains(got, ck.Expect)
-		return VerifyResult{OK: ok, Actual: got, Error: neqContainsMsg(got, ck.Expect)}
-	case "redis-keys-match":
-		keysRaw, err := run(fmt.Sprintf("redis-cli -n %s keys %q", db, ck.RedisKey))
-		if err != nil {
-			return VerifyResult{OK: false, Error: err.Error(), Actual: keysRaw}
-		}
-		keys := []string{}
-		for _, k := range strings.Split(strings.TrimSpace(keysRaw), "\n") {
-			k = strings.TrimSpace(k)
-			if k != "" {
-				keys = append(keys, k)
-			}
-		}
-		matched := 0
-		for _, k := range keys {
-			valsRaw, err := run(fmt.Sprintf("redis-cli -n %s hgetall %q", db, k))
-			if err != nil {
-				return VerifyResult{OK: false, Error: err.Error(), Actual: valsRaw}
-			}
-			if satisfiesAll(valsRaw, ck.MatchFields) {
-				matched++
-			}
-		}
+		return VerifyResult{OK: true, Actual: truncate(res.body, 400)}
+	case "gnmi-list-min":
 		min := ck.MinCount
 		if min <= 0 {
 			min = 1
 		}
-		ok := matched >= min
-		msg := ""
-		if !ok {
-			msg = fmt.Sprintf("expected at least %d object(s) matching %v; enumerated %d, matched %d", min, ck.MatchFields, len(keys), matched)
+		n := listLen(res.values)
+		if n >= min {
+			return VerifyResult{OK: true, Actual: fmt.Sprintf("entries=%d", n)}
 		}
-		return VerifyResult{OK: ok, Actual: fmt.Sprintf("keys=%d matched=%d", len(keys), matched), Error: msg}
+		return VerifyResult{OK: false, Actual: fmt.Sprintf("entries=%d", n),
+			Error: fmt.Sprintf("expected at least %d entrie(s) under %s, found %d", min, ck.Path, n)}
 	default:
 		return VerifyResult{OK: false, Error: "unknown check type " + ck.Type}
 	}
 }
 
-func neqContainsMsg(got, want string) string {
-	if strings.Contains(got, want) {
-		return ""
-	}
-	return fmt.Sprintf("expected value to contain %q, got %q", want, got)
-}
-
-func neqMsg(got, want string) string {
-	if got == want {
-		return ""
-	}
-	return fmt.Sprintf("expected %q, got %q", want, got)
-}
-
-func firstErr(err error, stderr string) error {
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(stderr) != "" {
-		return fmt.Errorf("%s", strings.TrimSpace(stderr))
-	}
-	return nil
-}
-
-// satisfiesAll returns true when valsRaw (output of redis-cli hgetall) contains
-// every key=value pair in match.
-func satisfiesAll(valsRaw string, match map[string]string) bool {
-	if len(match) == 0 {
-		return false
-	}
-	// hgetall prints alternating key and value tokens, one per line.
-	lines := strings.Split(strings.TrimSpace(valsRaw), "\n")
-	pairs := map[string]string{}
-	for i := 0; i+1 < len(lines); i += 2 {
-		k := strings.TrimSpace(lines[i])
-		v := strings.TrimSpace(lines[i+1])
-		if k != "" {
-			pairs[k] = v
+// listLen counts how many list entries a Get answered with. SR Linux may answer
+// a list path either as one update carrying a JSON array (or an object keyed by
+// the list keys) or as one update per entry, and both mean the same count.
+func listLen(values []any) int {
+	if len(values) == 1 {
+		switch v := values[0].(type) {
+		case []any:
+			return len(v)
+		case map[string]any:
+			// A single list entry returned as an object, or a container holding
+			// exactly one list: unwrap a lone array member, otherwise it is one.
+			if len(v) == 1 {
+				for _, inner := range v {
+					if arr, ok := inner.([]any); ok {
+						return len(arr)
+					}
+				}
+			}
+			return 1
+		case nil:
+			return 0
+		default:
+			return 1
 		}
 	}
-	for k, want := range match {
-		if got, ok := pairs[k]; !ok || got != want {
+	return len(values)
+}
+
+func isNullOnly(values []any) bool {
+	for _, v := range values {
+		if v != nil {
 			return false
 		}
 	}
 	return true
 }
 
-// ---- docker exec over the raw API -------------------------------------------
-
-// execResult carries demultiplexed output.
-type execResult struct {
-	stdout string
-	stderr string
-}
-
-// exec creates and runs a docker exec, returning (stdout, stderr, error) where
-// error is non-nil iff the command exited non-zero or the API call failed.
-func (s *server) exec(ctx context.Context, container string, cmd []string) (string, string, error) {
-	spec := map[string]any{
-		"AttachStdout": true,
-		"AttachStderr": true,
-		"AttachStdin":  false,
-		"Tty":          false,
-		"Cmd":          cmd,
+// decodeTypedValue reduces a gNMI TypedValue to plain Go data. JSON_IETF is
+// what this fabric asks for, but a node is free to answer a leaf with a scalar
+// type and several do.
+func decodeTypedValue(tv *gnmipb.TypedValue) (any, error) {
+	if tv == nil {
+		return nil, nil
 	}
-	body, err := json.Marshal(spec)
-	if err != nil {
-		return "", "", err
-	}
-	resp, err := s.dockerHTTP(ctx, http.MethodPost, dockerAPI+"/containers/"+container+"/exec", bytes.NewReader(body))
-	if err != nil {
-		return "", "", fmt.Errorf("exec create: %w", err)
-	}
-	var created struct {
-		ID string `json:"Id"`
-	}
-	if err := json.Unmarshal(resp, &created); err != nil || created.ID == "" {
-		return "", "", fmt.Errorf("exec create response %q: %v", truncate(string(resp), 300), err)
-	}
-
-	startBody := strings.NewReader(`{"Detach": false, "Tty": false}`)
-	respStream, err := s.dockerStream(ctx, http.MethodPost, dockerAPI+"/exec/"+created.ID+"/start", startBody)
-	if err != nil {
-		return "", "", fmt.Errorf("exec start: %w", err)
-	}
-	stdout, stderr := demuxStream(respStream)
-	_ = respStream.Close()
-
-	// Exit status via inspect (small retry while Running settles).
-	var exitCode int64 = -1
-	for i := 0; i < 20; i++ {
-		insp, err := s.dockerHTTP(ctx, http.MethodGet, dockerAPI+"/exec/"+created.ID+"/json", nil)
-		if err == nil {
-			var st struct {
-				Running  bool  `json:"Running"`
-				ExitCode int64 `json:"ExitCode"`
+	switch v := tv.GetValue().(type) {
+	case *gnmipb.TypedValue_JsonIetfVal:
+		return decodeJSON(v.JsonIetfVal)
+	case *gnmipb.TypedValue_JsonVal:
+		return decodeJSON(v.JsonVal)
+	case *gnmipb.TypedValue_StringVal:
+		return v.StringVal, nil
+	case *gnmipb.TypedValue_IntVal:
+		return v.IntVal, nil
+	case *gnmipb.TypedValue_UintVal:
+		return v.UintVal, nil
+	case *gnmipb.TypedValue_BoolVal:
+		return v.BoolVal, nil
+	case *gnmipb.TypedValue_FloatVal: //nolint:staticcheck // some targets still answer with it
+		return v.FloatVal, nil
+	case *gnmipb.TypedValue_DoubleVal:
+		return v.DoubleVal, nil
+	case *gnmipb.TypedValue_AsciiVal:
+		return v.AsciiVal, nil
+	case *gnmipb.TypedValue_BytesVal:
+		return string(v.BytesVal), nil
+	case *gnmipb.TypedValue_LeaflistVal:
+		out := make([]any, 0, len(v.LeaflistVal.GetElement()))
+		for _, e := range v.LeaflistVal.GetElement() {
+			d, err := decodeTypedValue(e)
+			if err != nil {
+				return nil, err
 			}
-			if json.Unmarshal(insp, &st) == nil && !st.Running {
-				exitCode = st.ExitCode
-				break
-			}
+			out = append(out, d)
 		}
-		select {
-		case <-ctx.Done():
-			return stdout, stderr, fmt.Errorf("exec inspect timeout")
-		case <-time.After(200 * time.Millisecond):
-		}
+		return out, nil
+	default:
+		return nil, fmt.Errorf("unsupported gNMI value type %T", tv.GetValue())
 	}
-	if exitCode != 0 {
-		return stdout, stderr, fmt.Errorf("exit code %d", exitCode)
-	}
-	return stdout, stderr, nil
 }
 
-func (s *server) dockerHTTP(ctx context.Context, method, url string, body io.Reader) ([]byte, error) {
-	resp, cleanup, err := s.dockerDo(ctx, method, url, body, false)
+func decodeJSON(raw []byte) (any, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+	var v any
+	if err := json.Unmarshal(raw, &v); err != nil {
+		return nil, fmt.Errorf("decode JSON value: %w", err)
+	}
+	return v, nil
+}
+
+// scalarString renders a leaf value the way a check's Expect is written: a bare
+// string, no JSON quoting. A container answer is rendered as its compact JSON
+// so the mismatch message still shows what came back.
+func scalarString(v any) string {
+	switch t := v.(type) {
+	case nil:
+		return ""
+	case string:
+		return t
+	case bool:
+		return strconv.FormatBool(t)
+	case float64:
+		return strconv.FormatFloat(t, 'f', -1, 64)
+	case int64:
+		return strconv.FormatInt(t, 10)
+	case uint64:
+		return strconv.FormatUint(t, 10)
+	default:
+		return compactJSON(v)
+	}
+}
+
+func compactJSON(v any) string {
+	b, err := json.Marshal(v)
 	if err != nil {
-		return nil, err
+		return fmt.Sprintf("%v", v)
 	}
-	defer cleanup()
-	return io.ReadAll(io.LimitReader(resp, maxBodyBytes))
-}
-
-func (s *server) dockerStream(ctx context.Context, method, url string, body io.Reader) (io.ReadCloser, error) {
-	resp, cleanup, err := s.dockerDo(ctx, method, url, body, true)
-	if err != nil {
-		return nil, err
-	}
-	_ = cleanup // stream owner closes the body itself
-	return resp, nil
-}
-
-// One transport and client for the whole process. A fresh http.Transport per
-// call (the previous shape) parks every finished connection in a pool that is
-// never closed, so each docker API call leaked one unix socket; the daemon hit
-// its 524k descriptor cap after ~14 h on 2026-09-06 and every docker command
-// on the host hung. Hijacked exec streams are closed by their owner; plain
-// responses return to this pool and are reused.
-var (
-	dockerTransport = &http.Transport{
-		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-			return net.DialTimeout("unix", dockerSock, 5*time.Second)
-		},
-		MaxIdleConns:        8,
-		MaxIdleConnsPerHost: 8,
-		IdleConnTimeout:     60 * time.Second,
-	}
-	dockerClient = &http.Client{Transport: dockerTransport, Timeout: execTimeout}
-)
-
-func (s *server) dockerDo(ctx context.Context, method, url string, body io.Reader, stream bool) (io.ReadCloser, func(), error) {
-	client := dockerClient
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
-	if err != nil {
-		return nil, nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	hc, err := client.Do(req)
-	if err != nil {
-		return nil, nil, err
-	}
-	if hc.StatusCode >= 300 {
-		b, _ := io.ReadAll(io.LimitReader(hc.Body, 1024))
-		hc.Body.Close()
-		return nil, nil, fmt.Errorf("docker api %s %s: %d %s", method, url, hc.StatusCode, truncate(string(b), 200))
-	}
-	if stream {
-		return hc.Body, func() {}, nil
-	}
-	return hc.Body, func() { hc.Body.Close() }, nil
-}
-
-// demuxStream splits docker's stdio multiplexing: 8-byte header
-// [streamType, 0, 0, 0, payloadSize uint32 BE] then the payload.
-func demuxStream(r io.Reader) (string, string) {
-	var stdout, stderr bytes.Buffer
-	br := bufio.NewReader(r)
-	header := make([]byte, 8)
-	for {
-		if _, err := io.ReadFull(br, header); err != nil {
-			break
-		}
-		size := binary.BigEndian.Uint32(header[4:8])
-		var dst *bytes.Buffer
-		switch header[0] {
-		case 1:
-			dst = &stdout
-		case 2:
-			dst = &stderr
-		default:
-			dst = nil
-		}
-		if _, err := io.CopyN(writeFn(dst), br, int64(size)); err != nil {
-			break
-		}
-	}
-	return stdout.String(), stderr.String()
-}
-
-type fnWriter func(p []byte) (int, error)
-
-func (f fnWriter) Write(p []byte) (int, error) { return f(p) }
-
-func writeFn(dst *bytes.Buffer) io.Writer {
-	if dst == nil {
-		return fnWriter(func(p []byte) (int, error) { return len(p), nil })
-	}
-	return dst
+	return string(b)
 }
 
 func truncate(s string, n int) string {

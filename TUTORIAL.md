@@ -5,6 +5,9 @@ language, and the system decomposes it, allocates identifiers, programs the fabr
 and then *keeps* it that way — repairing drift, surviving failures, and releasing
 resources when intent is withdrawn. No one logs into a switch.
 
+The fabric is Nokia SR Linux, and the southbound is gNMI end to end: every write
+is a gNMI Set, every verification a gNMI Get, every metric a gNMI subscription.
+
 The interesting question is not "can it configure a VLAN". It is **what happens after**
 — when something changes underneath it, when a component dies mid-transaction, when
 the same intent is applied twice. Those are the sections that matter here.
@@ -25,14 +28,14 @@ the same intent is applied twice. Those are the sections that matter here.
                     └─────────────┼─────────────┘
                                   ▼
                         ┌──────────────────┐
-                        │  SRv6Service CR  │   declarative desired state
+                        │   Network (CR)   │   declarative desired state
                         └────────┬─────────┘
                                  ▼
                         ┌──────────────────┐
                         │   controllers    │◄─── reconcile loop, forever
                         └────────┬─────────┘
                                  ▼
-                          SONiC fabric (gNMI)
+                     SR Linux fabric (gNMI Set/Get)
                                  │
                                  └──► telemetry ──► back to the top
 ```
@@ -43,26 +46,35 @@ where autonomy actually lives.
 ## 1. Bring it up
 
 ```bash
-cd /root/agentic-netops
-./scripts/provision.sh --profile sonic-vs --cluster-name agentic-netops --with-intent-tier
+cd /root/agentic-netops-srlinux
+./scripts/provision.sh --profile srlinux --cluster-name agentic-netops --with-intent-tier
 ```
 
 Read **[docs/DEPENDENCIES.md](docs/DEPENDENCIES.md)** first — two traps cost the most
 time: `provision.sh` dry-runs against your **current kubectl context**, and `kubectl
 top` silently returns nothing without metrics-server, which kind does not install.
 
-The bootstrap is itself autonomous: it detects and repairs its own faults rather than
-failing and waiting for a human. It waits for `Bridge` before enslaving interfaces,
-re-toggles `advertise-all-vni` when bgpd loses the VNI, escalates to restarting zebra
-when zebra's own table is empty, and fails **closed** with a named defect when it
-genuinely cannot converge. Watch it say so:
+The underlay and overlay are not scripted into place after boot: each node comes up
+with its own startup configuration (`lab/profiles/srlinux/config/<node>.cfg`, applied
+by containerlab), so the eBGP underlay, the iBGP EVPN overlay with the spines as route
+reflectors, and the bootstrap `vlan100` mac-vrf and `VrfBlue` ip-vrf on the leaves are
+part of the device's configuration from the first second. There are no post-boot shell
+hooks and nothing to re-toggle: SR Linux commits configuration transactionally and
+keeps it across a container restart. The bootstrap step that *does* run is small and
+declared — it waits for gNMI Capabilities on each node, creates the generated
+`agentic` user over one gNMI Set, and publishes the containerlab CA into the
+`gnmi-lab-tls` Secret.
+
+Watch it happen:
 
 ```bash
-grep -E '\[fabric-bgp\]' provision.log
-#   [fabric-bgp] L2 VTEP vtep1-100 bridged into vlan 100
-#   [fabric-bgp] access link eth3 bridged into vlan 100
-#   [fabric-bgp] leaf01: bgpd adopted L2 VNI 100 after advertise-all-vni toggle (no restart needed)
+grep -E '\[bootstrap\]|\[qualify\]' provision.log
+make lab-qualify        # ends in [qualify] OK, or names the failing check
 ```
+
+The gate fails **closed**: a check it cannot prove fails rather than passing quietly,
+and SRv6 entries are recorded as `not-applicable` with the reason (the SR Linux
+container has no SRv6 data plane) — never as `pass`.
 
 ## 2. State intent
 
@@ -74,6 +86,10 @@ Walk one of each construct. These are the shapes the tier accepts — vlan, mac-
 - acl (standalone): "Apply an acl on leaf01 ethernet1 and leaf02 ethernet1 for tenant acme: permit tcp 443 from 10.0.0.0/24, deny everything else"
 - mac-vrf + acl: "Extend vlan 130 as a mac-vrf across leaf01 ethernet2 and leaf02 ethernet2 for tenant acme, permitting only tcp 443 from 10.0.0.0/24"
 
+The logical port names are the site's own (`ethernet1`, `ethernet2`, `ethernet3`,
+`wan1`); the provider maps them to the SR Linux interfaces `ethernet-1/3` and
+`ethernet-1/4`, and each service gets its own single-tagged subinterface on that
+interface.
 
 Open the chat UI at <http://localhost:30000>, or watch the tier reason:
 
@@ -106,16 +122,33 @@ kubectl --context kind-agentic-netops -n agentic-netops-intent get networks.netw
 TYPE:'.metadata.annotations.agentic-netops\.io/service-type',\
 READY:'.status.conditions[?(@.type=="Ready")].status' -w
 
-docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show evpn vni'
+# and on the device itself, read-only
+docker exec clab-agentic-netops-fabric-leaf01 sr_cli "show network-instance summary"
+docker exec clab-agentic-netops-fabric-leaf01 sr_cli "show network-instance vlan-120 interfaces"
 ```
 
-`Ready=True` is set only after every rendered operation applied *and* every
-per-node check passed, and it is re-verified every five minutes — so it
+`Ready=True` is set only after every rendered gNMI Set applied *and* every
+per-node gNMI Get check passed, and it is re-verified every five minutes — so it
 describes the fabric now, not the moment the service first converged.
 
-`# Remote VTEPs = 1` is the signal that matters — it is non-zero only once the peer
-leaf's IMET route actually arrived **and** zebra installed it. It cannot be faked by
-self-origination.
+For a mac-vrf, the signal that matters is the **remote VTEP**:
+
+```bash
+docker exec clab-agentic-netops-fabric-leaf01 \
+  sr_cli "show tunnel-interface vxlan1 vxlan-interface 10001 bridge-table multicast-destinations"
+```
+
+A non-empty multicast-destinations list exists only once the peer leaf's IMET route
+actually arrived and was installed. It cannot be faked by self-origination — which is
+exactly why the plan asserts it with a `gnmi-list-min >= 1` check rather than reading
+back the object the controller just wrote.
+
+For an ip-vrf, the equivalent is the Type-5 route on the *other* leaf:
+
+```bash
+docker exec clab-agentic-netops-fabric-leaf02 \
+  sr_cli "show network-instance default protocols bgp routes evpn route-type 5 summary"
+```
 
 ## 3. Prove it is autonomous
 
@@ -142,7 +175,9 @@ anything else, so it can run continuously without trampling local state.
 ```
 
 Kills a target mid-transaction and restarts the provider *while it is writing*. The
-system converges anyway, and invalid YANG is rejected rather than half-applied.
+system converges anyway, and a Set the node's YANG rejects is refused whole — SR Linux
+commits a Set as one transaction, so there is no half-applied state to clean up, and
+the node's own error text is what lands in `Ready=False/ApplyFailed`.
 
 ### 3.3 It does not churn
 
@@ -159,12 +194,14 @@ A reconcile loop that rewrites on every pass is not stable — it is a flap gene
 ./tests/integration/update_delete_survivability.sh
 ```
 
-Withdraw intent and the SRv6-owned identifier claims are released, while shared fabric
-state and unrelated claims survive untouched.
+Withdraw intent and the service's identifier claims are released and its device
+objects deleted in reverse order, while shared fabric state and unrelated claims
+survive untouched. The rollback never deletes an object the service did not create.
 
 ### Run the whole thing
 
 ```bash
+make lab-qualify                           # gNMI Capabilities/Get/Set/Subscribe, persistence, EVPN
 ./tests/integration/fabric_verify.sh run   # control plane + data path, fails closed
 make verify-pins                           # every image/binary matches versions.lock.yaml
 ```
@@ -188,33 +225,41 @@ You do not need any of this to run the demo. It is here for when you want to con
 what the system did, or to debug it.
 
 ```bash
-# underlay: every node Established, v4 and v6
-docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show bgp summary'
+# underlay and overlay: every session Established, v4 and v6
+docker exec clab-agentic-netops-fabric-leaf01 sr_cli "show network-instance default protocols bgp neighbor"
+
+# what tenant state this leaf carries
+docker exec clab-agentic-netops-fabric-leaf01 sr_cli "show network-instance summary"
 
 # overlay data path, client to client across VXLAN
 docker exec clab-agentic-netops-fabric-client01 ping -c3 192.0.2.21
 
-# dual-stack underlay, leaf to leaf
-docker exec clab-agentic-netops-fabric-leaf01 ping -6 -c3 2001:db8:ff::22
+# dual-stack underlay, leaf to leaf loopback
+docker exec clab-agentic-netops-fabric-leaf01 sr_cli "ping 2001:db8:ff::22 network-instance default"
 
-# read config over gNMI with the per-provision generated credentials
+# read state over gNMI with the per-provision generated credentials
 U=$(kubectl --context kind-agentic-netops -n agentic-netops-system get secret gnmi-lab-creds \
       -o jsonpath='{.data.username}' | base64 -d)
 P=$(kubectl --context kind-agentic-netops -n agentic-netops-system get secret gnmi-lab-creds \
       -o jsonpath='{.data.password}' | base64 -d)
-gnmic --address 172.31.0.11:8080 --username "$U" --password "$P" \
-      --tls-ca ./secrets/ca.crt --tls-cert ./secrets/gnmi.crt --tls-key ./secrets/gnmi.key \
-      get --path "/sonic-db:CONFIG_DB/BGP_NEIGHBOR"
+gnmic --address 172.31.0.21:57400 --username "$U" --password "$P" \
+      --tls-ca ./secrets/ca.crt --encoding json_ietf \
+      get --path "/network-instance[name=default]/protocols/bgp/neighbor"
 ```
 
-Credentials are generated per provision — never hard-code `admin/admin`.
+The SR Linux gNMI server authenticates with username and password over TLS and does
+not require a client certificate; only the containerlab CA is needed to trust it.
+Credentials are generated per provision — never hard-code the image default.
 
 ## What the tier deliberately cannot do
 
 The intent tier holds **no device sessions and cannot acquire one**. It
 only ever writes Kubernetes resources; controllers do all southbound work.
 An agent that could reach a device directly would
-bypass every reconcile guarantee above.
+bypass every reconcile guarantee above. The NetworkPolicy on the tier namespace
+excludes the management subnet `172.31.0.0/16` from every egress rule, and
+`deploy/agents/tests/probes/mgmt-network-denial.sh` attempts the connection to
+`172.31.0.21:57400` and asserts that it fails.
 
 `LLM_MODEL` is empty in the committed manifest and materialized at provision time from
 `.env` (copy `.env.example`) — the provider is chosen by the `LLM_MODEL` prefix alone,
@@ -222,15 +267,26 @@ and no key is ever committed. With no model configured the tier deploys but cann
 
 ## Known limitations
 
-Real, reproduced, documented rather than hidden:
+Declared rather than hidden:
 
-- The former SONiC ASan/L2-VNI and EVPN Type-5 gaps (D-A2/D-A3) are resolved
-  on the pinned `sonic-vs-gnmi:202505-v1` image and their waivers are retired.
-- **SRv6 conformance needs the `sonic-vm` profile**, which requires an
-  operator-built vrnetlab image *and* a `lab/profiles/sonic-vm/bootstrap/` directory
-  that does not exist yet.
+- **This fabric has not been brought up from this tree yet.** The SR Linux target is
+  the offline work of Phases 1–3 of
+  [the plan](specs/001-agentic-netops-srlinux-evpn-fabric/plan.md); bring-up, the four
+  constructs converging and the recorded walkthrough are Phases 4–6 and run on the
+  operator's host. Every command above is written against the contracts in
+  `specs/001-agentic-netops-srlinux-evpn-fabric/contracts/`; anything marked
+  *verify live* in `research.md` has not yet been read back off a running node.
+- **SRv6 is not applicable on this target.** The SR Linux container has no SRv6 data
+  plane. `SRv6Service` objects report `Ready=False` with reason `CapabilityMissing`,
+  the capability gate records SRv6 as `not-applicable` with that reason, and the SRv6
+  dashboard says so instead of charting an empty series.
+- **An acl-only service binds on subinterface index 0.** SR Linux binds ACL filters to
+  subinterfaces, not to ports, so a `Network` that declares only an access list binds
+  its filter on index 0 of the named interface, creating it as `type routed` in the
+  `default` network-instance if absent.
 - **Two pinned images have no local build step** (`grafana/flow-plugin`,
-  `ghcr.io/agentic-netops/topology-generator`); `deployment/ui` ends in `ImagePullBackOff`.
+  `ghcr.io/agentic-netops/topology-generator`); the dependent workload ends in
+  `ImagePullBackOff`.
 - **`docs/INTENT_TIER_OPS_READINESS.md` holds resource figures that were never
   measured.** Re-measure before relying on them.
 
@@ -238,10 +294,11 @@ Real, reproduced, documented rather than hidden:
 
 | Symptom | Cause | Check |
 | --- | --- | --- |
-| Overlay ping 100% loss, BGP healthy | `vtep1-100` not enslaved to Bridge → bgpd has 0 L2 VNIs | `ip -d link show vtep1-100 \| grep master` |
-| `show evpn vni` empty on one leaf | zebra started before the vxlan devices existed | restart `zebra`, then `bgpd` |
-| Leaf→leaf IPv6 fails, leaf→spine works | IPv6 forwarding off on the transit node | `sysctl net.ipv6.conf.all.forwarding` |
-| gNMI `Unauthenticated` | credentials rotated by a re-provision | re-read the `gnmi-lab-creds` secret |
+| mac-vrf up on both leaves but no remote VTEP | the peer's IMET route has not arrived (overlay session not Established, or evi mismatch) | `sr_cli "show network-instance <ni> protocols bgp-evpn"` and `sr_cli "show network-instance default protocols bgp neighbor"` |
+| ip-vrf Ready but no Type-5 on the peer | export/import route-target mismatch, or the prefix is not in the vrf's route table | `sr_cli "show network-instance <vrf> route-table ipv4-unicast summary"` |
+| gNMI `Unauthenticated` | credentials rotated by a re-provision | re-read the `gnmi-lab-creds` Secret |
+| gNMI TLS handshake failure | the lab CA changed with a new `containerlab deploy` | re-run bootstrap so `gnmi-lab-tls` and `./secrets/ca.crt` are republished |
+| Subinterface admin-up but oper-down | the parent interface is missing `vlan-tagging true`, or the encap tag collides | `sr_cli "show interface ethernet-1/3 detail"` |
 | `namespaces "kubenet-system" not found` | wrong kubectl context | `kubectl config current-context` |
 
 A provision log ending in a bash syntax error on a valid line usually means the script

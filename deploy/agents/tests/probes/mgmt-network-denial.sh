@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # T056 / SC-005 (third clause): assert that a tier pod CANNOT connect to the
-# containerlab management network — specifically 172.31.0.21:57400 (SONiC
+# containerlab management network — specifically 172.31.0.21:57400 (SR Linux
 # leaf01's gNMI port on the mgmt subnet 172.31.0.0/16, per
 # scripts/lib/kind.sh kind::ensure_mgmt_network and the certificate SANs in
 # deploy/rbac/secret-generator-job.yaml).
@@ -10,7 +10,7 @@
 # agentic-netops.io/tier: intent) ONLY to the scoped budget (DNS, intra-tier,
 # otel-collector:4317, model-provider TCP/443 with 172.31.0.0/16 EXCLUDED via
 # ipBlock except). The mgmt subnet is therefore unreachable from every tier
-# pod — the denial the probe asserts. "gNMI dial to any SONiC node -> timeout"
+# pod — the denial the probe asserts. "gNMI dial to any SR Linux node -> timeout"
 # (contracts/kubernetes-objects.md) is the same policy, so this one concrete
 # endpoint is the attemptable proof for the whole class.
 #
