@@ -109,60 +109,53 @@ check_baseline() {
   # Containerlab version pinned
   get_block containerlab | grep -E '^[[:space:]]*version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' >/dev/null || fail "containerlab.version must be semver"
 
-  # SONiC images pinned: allow image+separate digest, but require digest present
-  # Robust YAML scan without relying on regex ranges sensitive to comments
-  svs_img=$(awk '
-    $1=="sonic_images:" {sec=1; next}
+  # No SONiC pin may survive the migration: the fabric is Nokia SR Linux and the
+  # supply-chain policy (scripts/ci/supply_chain.sh) forbids SONiC artifacts in
+  # the dependency graph. A leftover key here would re-introduce one silently.
+  if grep -nEi 'sonic' "$LOCK_FILE" >/dev/null; then
+    fail "SONiC pin(s) still present in versions.lock.yaml:
+$(grep -niE 'sonic' "$LOCK_FILE")"
+  fi
+
+  # SR Linux image pinned: allow image+separate digest, but require digest present.
+  # Robust YAML scan without relying on regex ranges sensitive to comments.
+  srl_img=$(awk '
+    $1=="srlinux_images:" {sec=1; next}
     sec && /^[^[:space:]]/ {exit}
-    sec && $1=="sonic_vs:" {vs=1; next}
-    sec && vs && /^[^[:space:]]/ {vs=0}
-    sec && vs && $1=="image:" {print $2; exit}
+    sec && $1=="srlinux:" {n=1; next}
+    sec && n && /^[^[:space:]]/ {n=0}
+    sec && n && $1=="image:" {print $2; exit}
   ' "$LOCK_FILE")
-  svs_dig=$(awk '
-    $1=="sonic_images:" {sec=1; next}
+  srl_dig=$(awk '
+    $1=="srlinux_images:" {sec=1; next}
     sec && /^[^[:space:]]/ {exit}
-    sec && $1=="sonic_vs:" {vs=1; next}
-    sec && vs && /^[^[:space:]]/ {vs=0}
-    sec && vs && $1=="digest:" {print $2; exit}
-  ' "$LOCK_FILE")
-  svm_img=$(awk '
-    $1=="sonic_images:" {sec=1; next}
-    sec && /^[^[:space:]]/ {exit}
-    sec && $1=="sonic_vm:" {vm=1; next}
-    sec && vm && /^[^[:space:]]/ {vm=0}
-    sec && vm && $1=="image:" {print $2; exit}
-  ' "$LOCK_FILE")
-  svm_dig=$(awk '
-    $1=="sonic_images:" {sec=1; next}
-    sec && /^[^[:space:]]/ {exit}
-    sec && $1=="sonic_vm:" {vm=1; next}
-    sec && vm && /^[^[:space:]]/ {vm=0}
-    sec && vm && $1=="digest:" {print $2; exit}
+    sec && $1=="srlinux:" {n=1; next}
+    sec && n && /^[^[:space:]]/ {n=0}
+    sec && n && $1=="digest:" {print $2; exit}
   ' "$LOCK_FILE")
 
-  [[ -n "$svs_img" && -n "$svs_dig" ]] || fail "sonic_vs image and digest required"
-  [[ -n "$svm_img" && -n "$svm_dig" ]] || fail "sonic_vm image and digest required"
-  [[ "$svs_dig" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "sonic_vs digest must be sha256:..."
-  [[ "$svm_dig" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "sonic_vm digest must be sha256:..."
+  [[ -n "$srl_img" && -n "$srl_dig" ]] || fail "srlinux_images.srlinux image and digest required"
+  [[ "$srl_dig" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "srlinux image digest must be sha256:<64-hex>"
+  [[ "$srl_img" == ghcr.io/nokia/srlinux:* ]] || fail "srlinux image must come from the public ghcr.io/nokia/srlinux repository (got: $srl_img)"
 
-  svs_full="${svs_img%@*}@${svs_dig}"
-  svm_full="${svm_img%@*}@${svm_dig}"
+  srl_full="${srl_img%@*}@${srl_dig}"
 
-  # YANG compatibility must include entries for both images and match commit prefixes
-  # Extract commits by simple grep (robust to comments/indent)
+  # YANG compatibility must name the pinned image and agree with the model and
+  # OpenConfig pins. Extract by simple grep (robust to comments/indent).
+  yang_release=$(get_block srlinux_yang | grep -E '^[[:space:]]*release:[[:space:]]*v[0-9]+\.[0-9]+\.[0-9]+[[:space:]]*$' | head -n1 | sed 's/.*release:[[:space:]]*//')
+  [[ -n "$yang_release" ]] || fail "srlinux_yang.release must be a v-prefixed semver"
+  get_block srlinux_yang | grep -E '^[[:space:]]*model_repo:[[:space:]]*https://github\.com/nokia/srlinux-yang-models[[:space:]]*$' >/dev/null \
+    || fail "srlinux_yang.model_repo must be https://github.com/nokia/srlinux-yang-models"
+
   oc_commit=$(grep -E '^[[:space:]]*openconfig_commit:[[:space:]]*[0-9a-f]{40}[[:space:]]*$' "$LOCK_FILE" | head -n1 | sed 's/.*openconfig_commit:[[:space:]]*//')
-  na_commit=$(grep -E '^[[:space:]]*sonic_native_commit:[[:space:]]*[0-9a-f]{40}[[:space:]]*$' "$LOCK_FILE" | head -n1 | sed 's/.*sonic_native_commit:[[:space:]]*//')
   [[ -n "$oc_commit" ]] || fail "openconfig_commit must be 40-hex"
-  [[ -n "$na_commit" ]] || fail "sonic_native_commit must be 40-hex"
-
   oc_pref=${oc_commit:0:8}
-  na_pref=${na_commit:0:8}
 
-  # Check that compatibility block contains expected images and version prefixes
-  grep -F "image: ${svs_full}" "$LOCK_FILE" >/dev/null || fail "compatibility missing sonic_vs image ${svs_full}"
-  grep -F "image: ${svm_full}" "$LOCK_FILE" >/dev/null || fail "compatibility missing sonic_vm image ${svm_full}"
-  grep -F "oc_version: openconfig@${oc_pref}" "$LOCK_FILE" >/dev/null || fail "compatibility oc_version must match openconfig commit prefix ${oc_pref}"
-  grep -F "native_version: sonic_yang@${na_pref}" "$LOCK_FILE" >/dev/null || fail "compatibility native_version must match sonic native commit prefix ${na_pref}"
+  grep -F "image: ${srl_full}" "$LOCK_FILE" >/dev/null || fail "srlinux_yang.compatibility missing srlinux image ${srl_full}"
+  grep -F "yang_version: srlinux_yang@${yang_release}" "$LOCK_FILE" >/dev/null \
+    || fail "compatibility yang_version must match srlinux_yang.release ${yang_release}"
+  grep -F "oc_version: openconfig@${oc_pref}" "$LOCK_FILE" >/dev/null \
+    || fail "compatibility oc_version must match openconfig commit prefix ${oc_pref}"
 }
 
 if [[ "$MODE" == "intent-tier" ]]; then

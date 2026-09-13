@@ -1,4 +1,8 @@
-# T073: Provide gNMIc TLS trust bundle and cert/key via SecretRef; configMap holds reference paths
+# gNMIc TLS trust bundle reference paths. The material itself lives in Secret
+# gnmi-lab-tls, created by lab bootstrap from the containerlab-generated CA.
+# The SR Linux gNMI server does not require a client certificate (research
+# D3), so `ca_path` is the only path the collector consumes; cert/key are kept
+# for API compatibility with consumers that still mount them.
 apiVersion: v1
 kind: ConfigMap
 metadata:

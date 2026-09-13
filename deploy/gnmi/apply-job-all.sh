@@ -11,7 +11,7 @@ kubectl --context "$CTX" apply -f "$ROOT/deploy/gnmi/gnmi-incluster-job-all.yaml
 kubectl --context "$CTX" -n agentic-netops-system wait --for=condition=Complete --timeout=180s job/gnmi-incluster-check-all || true
 POD=$(kubectl --context "$CTX" -n agentic-netops-system get pods -l job-name=gnmi-incluster-check-all -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
 if [[ -n "$POD" ]]; then
-  kubectl --context "$CTX" -n agentic-netops-system logs "$POD" > "$ROOT/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs/gnmi-incluster-check-all.logs.txt" 2>&1 || true
-  kubectl --context "$CTX" -n agentic-netops-system get pod "$POD" -o yaml > "$ROOT/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs/gnmi-incluster-check-all.pod.yaml" 2>&1 || true
+  kubectl --context "$CTX" -n agentic-netops-system logs "$POD" > "$ROOT/.wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs/gnmi-incluster-check-all.logs.txt" 2>&1 || true
+  kubectl --context "$CTX" -n agentic-netops-system get pod "$POD" -o yaml > "$ROOT/.wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs/gnmi-incluster-check-all.pod.yaml" 2>&1 || true
 fi
-echo "[gnmi] in-cluster multi-target Job applied; logs captured if available"
+echo "[gnmi] in-cluster SR Linux multi-target Job applied; logs captured if available"

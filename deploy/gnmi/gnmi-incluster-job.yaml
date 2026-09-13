@@ -1,4 +1,7 @@
-# T019 proof utility: in-cluster gNMI reachability check Job
+# Proof utility: in-cluster gNMI reachability check against one SR Linux node.
+# Proves that a pod on the cluster network can reach the fabric management
+# addresses on the gNMI port through the dedicated Docker management network,
+# with the lab CA and the generated `agentic` user.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -6,15 +9,23 @@ metadata:
   namespace: agentic-netops-system
 spec:
   template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gnmi-incluster-check
+        # Scoped device-network egress (deploy/rbac/base.yaml
+        # allow-fabric-gnmi-egress); without it the deny-all default leaves
+        # the dial to 172.31.0.11:57400 in an i/o timeout.
+        agentic-netops.io/needs-fabric-gnmi: "true"
     spec:
       restartPolicy: Never
       containers:
       - name: gnmic
-        image: ghcr.io/karimra/gnmic@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+        image: ghcr.io/openconfig/gnmic@sha256:fd59f5f1c7a98e14ff5b14f85329e5e0a4d49ef1d5b0dddfd910b6caef03b9fb
         args:
           - "--timeout=5s"
-          - "--address=172.31.0.11:9339"
-          - "--skip-verify"
+          - "--address=172.31.0.21:57400"
+          - "--tls-ca=/etc/gnmic/tls/ca.crt"
+          - "--encoding=json_ietf"
           - "capabilities"
         env:
           - name: GNMIC_USERNAME
@@ -27,6 +38,14 @@ spec:
               secretKeyRef:
                 name: gnmi-lab-creds
                 key: password
-        envFrom:
-          - secretRef:
-              name: gnmi-lab-tls
+        volumeMounts:
+          - name: tls
+            mountPath: /etc/gnmic/tls
+            readOnly: true
+      volumes:
+        - name: tls
+          secret:
+            secretName: gnmi-lab-tls
+            items:
+              - key: ca.crt
+                path: ca.crt

@@ -1,4 +1,8 @@
-# T063: Deploy gNMIc inside Kind as the sole SONiC device-metric collector
+# gNMIc inside kind as the sole SR Linux device-metric collector.
+# Subscriptions and outputs follow specs/001-agentic-netops-srlinux-evpn-fabric/contracts/telemetry.md
+# (research D7). SR Linux serves gNMI natively on :57400 over TLS, so the
+# collector subscribes to native state paths directly -- there is no database
+# target indirection and no per-key metric family fan-out.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -23,95 +27,82 @@ metadata:
     app.kubernetes.io/name: gnmic
   annotations:
     agentic-netops.dev/spec-version: "v1"
-    agentic-netops.dev/export: "otlp"
+    agentic-netops.dev/export: "prometheus"
     agentic-netops.dev/role: "device-metrics"
 data:
   gnmic.yaml: |
       username: ${GNMIC_USERNAME}
       password: ${GNMIC_PASSWORD}
+      # The SR Linux gNMI server presents the containerlab-generated server
+      # certificate; the lab CA is published into Secret gnmi-lab-tls by the
+      # bootstrap step. No client certificate is required (research D3), so
+      # only the trust bundle is referenced here.
       skip-verify: false
       tls-ca: /etc/gnmic/tls/ca.crt
-      tls-cert: /etc/gnmic/tls/tls.crt
-      tls-key: /etc/gnmic/tls/tls.key
       encoding: json_ietf
       targets:
-        spine01: { address: 172.31.0.11:8080 }
-        spine02: { address: 172.31.0.12:8080 }
-        leaf01:  { address: 172.31.0.21:8080 }
-        leaf02:  { address: 172.31.0.22:8080 }
-      # KNOWN GAP (2026-09-03): these OpenConfig paths do not stream on this build.
-      # A Subscribe without a prefix target is rejected -- the server answers
-      # "Unimplemented: Empty target data not supported", surfacing on the stream as
-      # "first message must be SubscribeRequest". Setting `target:` per subscription
-      # here does NOT satisfy it (tried and reverted). A manual subscribe WITH a DB
-      # target (e.g. --target COUNTERS_DB) is accepted and streams, so the fix is to
-      # move these to SONiC-native DB paths -- which changes the emitted metric names
-      # and therefore requires the Grafana dashboards to be rewired to match.
-      # SONiC's gNMI subscribe needs the DB as the prefix TARGET and the table as
-      # the path. Without a target the server answers "Unimplemented: Empty target
-      # data not supported", which gnmic surfaces on the stream as "first message
-      # must be SubscribeRequest" -- the error this config produced on all four
-      # nodes for every subscription.
-      #
-      # The OpenConfig paths that were here (/interfaces/interface[name=*]/state/
-      # counters, /network-instances/.../bgp/neighbors/..., /sonic-srv6:...) are not
-      # served by this build at all. Verified 2026-09-03 against a live node: with
-      # `--path COUNTERS --target COUNTERS_DB --mode stream` the subscribe is
-      # accepted and streams; the OpenConfig forms are rejected outright.
-      #
-      # NOTE on counters: flex counters must be enabled for COUNTERS_DB to hold
-      # per-port rows at all (see lab bootstrap). On sonic-vs the SAI counters exist
-      # but stay 0 -- the virtual switch forwards in the Linux kernel, not through
-      # SAI -- so rate panels are flat by design here. PORT_TABLE oper state and the
-      # BGP tables are the signals that carry real values on this platform.
+        spine01: { address: 172.31.0.11:57400 }
+        spine02: { address: 172.31.0.12:57400 }
+        leaf01:  { address: 172.31.0.21:57400 }
+        leaf02:  { address: 172.31.0.22:57400 }
       subscriptions:
-        port-counters:
-          target: COUNTERS_DB
+        interface-stats:
           paths:
-            - COUNTERS
+            - /interface[name=ethernet-1/*]/statistics
           mode: stream
           stream-mode: sample
           sample-interval: 10s
-        port-state:
-          target: APPL_DB
+        interface-state:
           paths:
-            - PORT_TABLE
+            - /interface[name=*]/oper-state
+            - /interface[name=*]/subinterface[index=*]/oper-state
           mode: stream
           stream-mode: sample
           sample-interval: 10s
         bgp-neighbors:
-          target: CONFIG_DB
           paths:
-            - BGP_NEIGHBOR
+            - /network-instance[name=*]/protocols/bgp/neighbor[peer-address=*]/session-state
+            - /network-instance[name=*]/protocols/bgp/neighbor[peer-address=*]/afi-safi[afi-safi-name=*]/received-routes
+          mode: stream
+          stream-mode: sample
+          sample-interval: 30s
+        platform:
+          paths:
+            - /platform/control[slot=*]/cpu[index=all]/total/instant
+            - /platform/control[slot=*]/memory
           mode: stream
           stream-mode: sample
           sample-interval: 30s
       outputs:
         # Native Prometheus output, scraped directly by Prometheus. The OTLP hop
-        # (gnmic -> otel-collector -> prometheus) was removed: gnmic's otlp output
-        # takes `endpoint` not `url`, so it never initialised and silently discarded
-        # every sample, and once corrected it still rejected each batch with
-        # "ResourceMetrics is empty". One hop fewer, and the collected data is
-        # inspectable with a single curl against :9273/metrics.
+        # (gnmic -> otel-collector -> prometheus) was removed in the SONiC
+        # generation because gnmic's otlp output takes `endpoint` not `url` and
+        # silently discarded every sample; the single hop is kept here because
+        # the collected data stays inspectable with one curl against
+        # :9273/metrics.
         prom:
           type: prometheus
           listen: :9273
           path: /metrics
           expiration: 60s
-          # false, deliberately: SONiC returns every DB value as a STRING ("0",
-          # "up"), and with strings-as-labels the numeric ones became LABELS instead
-          # of metric values -- so the SAI_PORT_STAT_* counters produced no series at
-          # all and only the BGP tables (whose keys happened to survive) appeared.
-          strings-as-labels: false
-          # NOTE: SONiC folds the DB key into the value name, so a port yields
-          # PORT_TABLE_Ethernet0_mtu -- one metric FAMILY per interface rather than a
-          # single family with an `interface` label. gnmic's event-extract-tags was
-          # tried here to lift the key into a label and did not match this shape;
-          # it was removed rather than left in as dead config. Dashboards therefore
-          # query these with __name__ regex. Fixing the shape properly is a
-          # follow-up, not a blocker: the data itself is correct and complete.
-      # Event processors intentionally omitted: target/device labeling is applied
-      # downstream by the OTel Collector k8sattributes/attributes processors.
+          # true, deliberately: SR Linux returns enumerations such as
+          # oper-state ("up"/"down") and session-state ("established") as
+          # strings. As labels they stay queryable next to the numeric
+          # counters instead of being dropped for not parsing as a value.
+          strings-as-labels: true
+          event-processors:
+            - add-device-label
+      processors:
+        # gnmic already tags every event with `source` (the target name).
+        # `device` is carried as well so dashboards and the topology ConfigMap
+        # can join on one label name across metric families.
+        # VERIFY LIVE: confirm the emitted label set with
+        #   curl -s :9273/metrics | grep interface_statistics_in_octets | head
+        # before relying on `device` rather than `source` in a new panel.
+        add-device-label:
+          event-add-tag:
+            tags:
+              device: "{{ .Values.source }}"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -133,7 +124,7 @@ spec:
         agentic-netops.dev/component: observability
         # Scoped device-network egress for the telemetry subscriptions
         # (deploy/rbac/base.yaml allow-fabric-gnmi-egress). Without it the
-        # enforced deny-all leaves every subscription dialing 172.31.0.x:8080
+        # enforced deny-all leaves every subscription dialing 172.31.0.x:57400
         # into an i/o timeout.
         agentic-netops.io/needs-fabric-gnmi: "true"
     spec:
@@ -170,16 +161,9 @@ spec:
             items:
               - key: ca.crt
                 path: ca.crt
-              - key: tls.crt
-                path: tls.crt
-              - key: tls.key
-                path: tls.key
 ---
-# Service for gnmic's native Prometheus output. Prometheus scrapes this directly;
-# without it the collected telemetry has no path out of the pod. The OTLP hop that
-# was the only export route silently discarded every sample (gnmic's otlp output
-# takes `endpoint`, not `url`, so it never initialised), which is why Prometheus
-# held nothing but scrape metadata while every component reported healthy.
+# Service for gnmic's native Prometheus output. Prometheus scrapes this
+# directly; without it the collected telemetry has no path out of the pod.
 apiVersion: v1
 kind: Service
 metadata:
