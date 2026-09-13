@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# T051 [US2] Update/delete lifecycle: shared fabric state and unrelated claims survive EVPN/SRv6 changes; SRv6-owned claims released
+# Update/delete lifecycle: shared fabric state and unrelated claims survive
+# service changes; service-owned claims are released on delete (FR-008).
 set -euo pipefail
 
 CTX=${CTX:-kind-agentic-netops}
-PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs}
+PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs}
 mkdir -p "$PROOF_DIR"
 
 count_sdc_srv6_configs() {

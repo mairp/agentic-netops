@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Agentic NetOps SONiC EVPN/VXLAN Fabric — shutdown/cleanup script (Phase 8)
+# Agentic NetOps SR Linux EVPN/VXLAN Fabric — shutdown/cleanup script
 # Sole implementation of environment teardown per contracts/crd-api.md
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
@@ -45,7 +45,7 @@ fi
 
 # Optional evidence capture
 if [[ "$CAPTURE_EVIDENCE" == "true" ]]; then
-  proofs="${SCRIPT_DIR}/../.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
+  proofs="${SCRIPT_DIR}/../.wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs"
   mkdir -p "$proofs"
   if command -v kubectl >/dev/null 2>&1; then
     CTX="kind-${AGENTIC_NETOPS_CLUSTER_NAME}"
@@ -58,7 +58,7 @@ fi
 # the destroy helper verifies the lab left no generated credentials behind, so
 # the lifecycle-owned removal must happen first (the test phase may have
 # materialized ./secrets/* from in-cluster Secrets).
-rm -f "${SCRIPT_DIR}/../secrets/gnmi.key" "${SCRIPT_DIR}/../secrets/gnmi.crt" "${SCRIPT_DIR}/../secrets/ca.crt" 2>/dev/null || true
+rm -f "${SCRIPT_DIR}/../secrets/tls.key" "${SCRIPT_DIR}/../secrets/tls.crt" "${SCRIPT_DIR}/../secrets/ca.crt" 2>/dev/null || true
 
 # Idempotent containerlab teardown and cleanup checks
 if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
@@ -88,6 +88,6 @@ if command -v docker >/dev/null 2>&1; then
 fi
 
 # Remove generated Secrets from local repo if present
-rm -f "${SCRIPT_DIR}/../secrets/gnmi.key" "${SCRIPT_DIR}/../secrets/gnmi.crt" "${SCRIPT_DIR}/../secrets/ca.crt" 2>/dev/null || true
+rm -f "${SCRIPT_DIR}/../secrets/tls.key" "${SCRIPT_DIR}/../secrets/tls.crt" "${SCRIPT_DIR}/../secrets/ca.crt" 2>/dev/null || true
 
 echo "[off] Teardown complete (idempotent)."

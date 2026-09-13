@@ -23,7 +23,7 @@ obs::install() {
   kubectl --context "$CTX" -n monitoring rollout status deploy/prometheus --timeout=60s || true
   kubectl --context "$CTX" -n monitoring rollout status deploy/grafana --timeout=60s || true
   # Capture independent observation proof files
-  local proofs="$ROOT_DIR/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
+  local proofs="$ROOT_DIR/.wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs"
   mkdir -p "$proofs"
   kubectl --context "$CTX" -n agentic-netops-system get deploy,po,svc -o wide | nl -ba > "$proofs/kubectl-get-observability-agentic-netops-system.txt"
   kubectl --context "$CTX" -n monitoring get deploy,po,svc,pvc -o wide | nl -ba > "$proofs/kubectl-get-observability-monitoring.txt"
@@ -37,9 +37,18 @@ obs::assert_single_device_collector() {
     echo "[obs] ERROR: expected exactly one gNMIc deployment, found $count" >&2
     return 1
   fi
-  # Ensure SDC SyncProfile subscribe is disabled to avoid overlap
-  if ! kubectl --context "$CTX" -n sdc-system get config sonic-sync-profile -o jsonpath='{.spec.data.subscribe}' 2>/dev/null | grep -q "^{}$"; then
-    echo "[obs] ERROR: SDC SyncProfile subscribe not disabled" >&2
+  # Ensure the SDC SyncProfile's own subscribe is disabled, so device telemetry
+  # has exactly one collector (gnmic) and no duplicate series. The profile is
+  # named by deploy/sdc/seed/; resolve it rather than hard-coding one name.
+  local sync_profile
+  sync_profile=${SDC_SYNC_PROFILE:-$(kubectl --context "$CTX" -n sdc-system get config -o name 2>/dev/null \
+    | sed 's|.*/||' | grep -- '-sync-profile$' | head -n1)}
+  if [[ -z "$sync_profile" ]]; then
+    echo "[obs] ERROR: no SDC SyncProfile config found in sdc-system; cannot prove device telemetry has a single collector" >&2
+    return 1
+  fi
+  if ! kubectl --context "$CTX" -n sdc-system get config "$sync_profile" -o jsonpath='{.spec.data.subscribe}' 2>/dev/null | grep -q "^{}$"; then
+    echo "[obs] ERROR: SDC SyncProfile ${sync_profile} subscribe not disabled" >&2
     return 1
   fi
   echo "[obs] single device collector and disabled SDC subscribe verified"

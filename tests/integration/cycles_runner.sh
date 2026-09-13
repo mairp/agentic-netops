@@ -1,21 +1,22 @@
 #!/usr/bin/env bash
-# T080: Run three clean provision/test/off cycles, plus a second-provision
-# idempotence check, an off-from-partial-state test, and a conformance-profile
-# cycle. Stores logs under gates/proofs/cycles/.
+# Run three clean provision/test/off cycles, plus a second-provision idempotence
+# check and an off-from-partial-state test. Stores logs under gates/proofs/cycles/.
 #
 # A "clean" cycle starts from Absent (off.sh --delete-kind true removes the
 # Kind cluster, lab, and owned network at cycle end), runs the ordered
 # provision workflow, the test phase against the live lab, and a full teardown.
 #
 # The capability gate (scripts/lib/qualify.sh) is executed by provision.sh and
-# is the single source of truth for SRv6 qualification (FR-022). When the
-# selected profile is not SRv6-qualified, provision exits non-zero with the
-# documented message; the cycle runner records that designed outcome and
-# continues with teardown so each cycle ends in a verified clean state.
+# is the single source of truth for whether the lab qualified. There is now only
+# one profile (`srlinux`): the SR Linux container needs no KVM and no
+# operator-built image, so the old two-profile "fast vs conformance" split — and
+# the gate-failure path that came with it — no longer exist. The off-from-partial
+# case below therefore creates a genuinely partial state by removing a node
+# container, rather than relying on a profile that was designed to fail.
 set -u
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-PROOFS="$ROOT_DIR/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs/cycles"
+PROOFS="$ROOT_DIR/.wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs/cycles"
 mkdir -p "$PROOFS"
 
 # --- Skip-if-fresh: reuse a just-completed, still-valid prior pass's evidence
@@ -88,10 +89,12 @@ run_tests() {
   # Additional Phase 8 required suites in the live lab window
   ( cd "$ROOT_DIR" && ./tests/integration/evpn_traffic.sh run ) >"$PROOFS/test-traffic-$idx.log" 2>&1
   echo "[cycles] test-traffic-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
-  ( cd "$ROOT_DIR" && ./tests/integration/srv6_capture_counters.sh run ) >"$PROOFS/test-srv6-capture-$idx.log" 2>&1
-  echo "[cycles] test-srv6-capture-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
-  ( cd "$ROOT_DIR" && ./tests/integration/srv6_failover_path_change.sh run ) >"$PROOFS/test-srv6-failover-$idx.log" 2>&1
-  echo "[cycles] test-srv6-failover-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
+  for t in EVPN-Type2 EVPN-Type3 EVPN-Type5 Remote-VTEP Overlay-Traffic; do
+    ( cd "$ROOT_DIR" && ./tests/integration/evpn_suite.sh --run "$t" ) >"$PROOFS/test-evpn-$t-$idx.log" 2>&1
+    echo "[cycles] test-evpn-$t-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
+  done
+  ( cd "$ROOT_DIR" && ./tests/integration/mtu_ecmp.sh run ) >"$PROOFS/test-mtu-ecmp-$idx.log" 2>&1
+  echo "[cycles] test-mtu-ecmp-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
   ( cd "$ROOT_DIR" && ./tests/integration/failure_recovery_invalid_yang.sh run ) >"$PROOFS/test-failure-$idx.log" 2>&1
   echo "[cycles] test-failure-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
 }
@@ -111,10 +114,10 @@ runtime_inventory() {
   echo "[cycles] runtime-scan-$idx exit=$?" | tee -a "$PROOFS/cycles.run.log"
 }
 
-# --- Three clean provision/test/off cycles (sonic-vs fast profile) -----------
+# --- Three clean provision/test/off cycles (the only profile: srlinux) -------
 for idx in 1 2 3; do
   echo "[cycles] ===== clean cycle $idx =====" | tee -a "$PROOFS/cycles.run.log"
-  run_provision "$PROOFS/provision-$idx.log" sonic-vs
+  run_provision "$PROOFS/provision-$idx.log" srlinux
   run_tests "$idx"
   runtime_inventory "$idx"
   run_off "$PROOFS/off-$idx.log"
@@ -124,27 +127,25 @@ done
 
 # --- Second-provision idempotence (provision twice without teardown) ---------
 echo "[cycles] ===== second-provision idempotence =====" | tee -a "$PROOFS/cycles.run.log"
-run_provision "$PROOFS/idempotence-provision-1.log" sonic-vs
-run_provision "$PROOFS/idempotence-provision-2.log" sonic-vs
+run_provision "$PROOFS/idempotence-provision-1.log" srlinux
+run_provision "$PROOFS/idempotence-provision-2.log" srlinux
 ( cd "$ROOT_DIR" && ./scripts/off.sh --cluster-name agentic-netops --delete-kind true ) >"$PROOFS/idempotence-off.log" 2>&1
 echo "[cycles] idempotence-off exit=$?" | tee -a "$PROOFS/cycles.run.log"
 
-# --- Off from partial state (provision aborted at the capability gate) -------
+# --- Off from partial state ---------------------------------------------------
+# A genuinely partial state: provision fully, then remove one fabric node
+# container behind containerlab's back. off.sh must still clean up completely and
+# report no leftovers. The previous tree produced its partial state by running a
+# profile whose capability gate was designed to fail; with one profile and no
+# KVM fallback, that path does not exist and inventing one would be theatre.
 echo "[cycles] ===== off-from-partial =====" | tee -a "$PROOFS/cycles.run.log"
-# T077 off-from-PARTIAL: the provision here must FAIL partway so off.sh cleans a
-# genuinely partial state. sonic-vs now passes the capability gate (re-pinned v2
-# gNMI image), so the old sonic-vs call degraded into a full-provision test; the
-# documented gate-fail path is the sonic-vm profile (capability gate fails →
-# exit=1 → off.sh cleans the partial state) — the same shape off-conformance
-# exercises below. (Fix 2026-09-01, operator reconciliation.)
-run_provision "$PROOFS/partial-provision.log" sonic-vm
+run_provision "$PROOFS/partial-provision.log" srlinux
+if command -v docker >/dev/null 2>&1; then
+  docker rm -f clab-agentic-netops-fabric-leaf02 >>"$PROOFS/partial-provision.log" 2>&1
+  echo "[cycles] partial-state: removed clab-agentic-netops-fabric-leaf02 exit=$?" | tee -a "$PROOFS/cycles.run.log"
+fi
 run_off "$PROOFS/off-from-partial.log"
 run_off_noop "$PROOFS/off-from-partial-noop.log"
-
-# --- Conformance-profile cycle (sonic-vm, where applicable) ------------------
-echo "[cycles] ===== conformance profile (sonic-vm) =====" | tee -a "$PROOFS/cycles.run.log"
-run_provision "$PROOFS/provision-conformance.log" sonic-vm
-run_off "$PROOFS/off-conformance.log"
 
 # --- Final runtime scan -------------------------------------------------------
 ( cd "$ROOT_DIR" && ./scripts/ci/runtime_workload_scan.sh ) >"$PROOFS/runtime-scan-runtime.log" 2>&1

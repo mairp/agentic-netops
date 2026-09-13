@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# T049 [US2] Partial target failure/recovery, provider restart mid-transaction, and invalid-YANG tests
+# Partial target failure/recovery, provider restart mid-transaction, and
+# invalid-YANG tests on the SR Linux fabric (FR-007, FR-008).
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 TOPO=${TOPO:-$ROOT_DIR/lab/topology.clab.yml}
 CTX=${CTX:-kind-agentic-netops}
-PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs}
+PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs}
 mkdir -p "$PROOF_DIR"
 
 assert_aggregate_not_ready() {
@@ -40,8 +41,8 @@ provider_restart_mid_transaction() {
   echo "[failure] provider restart mid-transaction"
   # Trigger a harmless change (annotate a network) and restart provider
   kubectl --context "$CTX" -n kubenet-system annotate network default-fabric test-restart=$(date +%s) --overwrite || true
-  kubectl --context "$CTX" -n agentic-netops-system rollout restart deploy/agentic-netops-sonic-provider
-  kubectl --context "$CTX" -n agentic-netops-system rollout status deploy/agentic-netops-sonic-provider --timeout=120s || true
+  kubectl --context "$CTX" -n agentic-netops-system rollout restart deploy/agentic-netops-srlinux-provider
+  kubectl --context "$CTX" -n agentic-netops-system rollout status deploy/agentic-netops-srlinux-provider --timeout=120s || true
   echo "provider restart mid-transaction" # proof keyword
 }
 
@@ -62,7 +63,7 @@ spec:
     encoding: JSON_IETF
     value: |
       {
-        "openconfig-foo:nonexistent-root": {"bad-field": 123}
+        "srl_nokia-nonexistent:nonexistent-root": {"bad-field": 123}
       }
 EOF
 )

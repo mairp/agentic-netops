@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# T047 [US3] EVPN client traffic tests: cross-leaf L2 reachability, intra-VRF L3/IRB, and inter-VRF isolation
-# This script exercises the traffic checks using containerlab endpoints and asserts pass/fail.
+# EVPN client traffic tests on the SR Linux fabric: cross-leaf L2 reachability
+# over the bootstrap mac-vrf, intra-VRF L3/IRB reachability, and inter-VRF
+# isolation (FR-011).
+#
+# Everything here is driven from the containerlab Linux endpoints, so it asserts
+# the data plane, not the control plane's opinion of it. Addresses come from the
+# per-node exec statements in lab/topology.clab.yml.
 set -uo pipefail
 # Defer set -e until after preconditions
 
@@ -8,6 +13,9 @@ set -uo pipefail
 CLAB_PREFIX=${CLAB_PREFIX:-clab-agentic-netops-fabric-}
 C1=${C1:-${CLAB_PREFIX}client01}
 C2=${C2:-${CLAB_PREFIX}client02}
+# client02 addresses from lab/topology.clab.yml
+L2_DST_V4=${L2_DST_V4:-192.0.2.21}
+L2_DST_V6=${L2_DST_V6:-2001:db8:9::21}
 
 # cross-leaf L2 reachability across L2VNI (IPv4 and IPv6 if configured)
 cross_leaf_l2() {
@@ -16,14 +24,15 @@ cross_leaf_l2() {
     echo "[evpn-traffic] SKIP: ${C1} not found (lab not running)"; return 0; fi
   if ! docker ps --format '{{.Names}}' | grep -q "${C2}"; then
     echo "[evpn-traffic] SKIP: ${C2} not found (lab not running)"; return 0; fi
-  echo "[evpn-traffic] cross-leaf L2 reachability"
-  # IPv4 ping between clients on bridged L2VNI (addresses are assigned by env or preconfigured)
-  if ! docker exec "$C1" ping -c 3 -W 2 192.0.2.21; then
+  echo "[evpn-traffic] cross-leaf L2 reachability over the bootstrap mac-vrf vlan100 (L2VNI 100)"
+  # Both clients sit in 192.0.2.0/24 on an untagged bridged subinterface
+  # (ethernet-1/3.0), so this ping can only succeed across the VXLAN overlay.
+  if ! docker exec "$C1" ping -c 3 -W 2 "${L2_DST_V4}"; then
     echo "[evpn-traffic] ERROR: L2VNI IPv4 ping failed (client01 -> client02)" >&2
     exit 1
   fi
-  # IPv6 ping as well if addresses are present (non-fatal if missing)
-  docker exec "$C1" ping -6 -c 3 -W 2 2001:db8:2::21 || echo "[evpn-traffic] INFO: IPv6 L2 test skipped or failed"
+  # IPv6 across the same bridge domain (non-fatal: v6 ND may still be converging)
+  docker exec "$C1" ping -6 -c 3 -W 2 "${L2_DST_V6}" || echo "[evpn-traffic] INFO: IPv6 L2 test skipped or failed"
   echo "cross-leaf L2 reachability" # proof keyword
 }
 
@@ -52,7 +61,7 @@ intra_vrf_l3_irb() {
 # inter-VRF isolation between vrf-b1 and vrf-b2 (negative test)
 inter_vrf_isolation() {
   echo "[evpn-traffic] inter-VRF isolation"
-  # Attempt traffic between isolated VRFs must fail (expect non-zero exit)
+  # Traffic between isolated ip-vrf network-instances must fail (expect non-zero exit)
   local ISOLATION_DST=${ISOLATION_DST:-10.0.30.2}
   if docker exec "$C1" ping -c 1 -W 1 $ISOLATION_DST; then
     echo "[evpn-traffic] ERROR: unexpected inter-VRF reachability (isolation breach)" >&2

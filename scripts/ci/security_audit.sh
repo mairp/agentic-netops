@@ -57,7 +57,7 @@ manifest_nonroot=$(search_ci 'runAsNonRoot:\\s*true' deploy || true)
 if [[ -n "$manifest_nonroot" ]]; then ok "Kubernetes manifests set runAsNonRoot where applicable"; else warn "runAsNonRoot not explicitly set in manifests"; fi
 
 section "Docker/KVM trust boundaries"
-if grep -nE "preflight::kvm_check|kvm_check" scripts/lib/preflight.sh >/dev/null 2>&1; then ok "KVM check present in preflight for sonic-vm"; else warn "KVM check not found in preflight"; fi
+if grep -nE "preflight::profile_check" scripts/lib/preflight.sh >/dev/null 2>&1; then ok "lab profile validated in preflight (no KVM/hardware emulation needed on SR Linux)"; else warn "profile check not found in preflight"; fi
 
 section "Grafana plugin provenance and auth"
 if [[ -f deploy/observability/grafana.yaml ]]; then

@@ -1,0 +1,51 @@
+# SR Linux Schema and profiles (pinned).
+# The schema is built from the public Nokia SR Linux YANG models at the release
+# matching the pinned image (versions.lock.yaml: srlinux_images.srlinux /
+# srlinux_yang). SDC uses it to validate and diff candidate configuration; the
+# only write path to the fabric remains the fabric-executor's gNMI Set.
+apiVersion: sdc.sdcio.dev/v1alpha1
+kind: Schema
+metadata:
+  name: srlinux
+  namespace: sdc-system
+spec:
+  provider: srl.nokia.sdcio.dev
+  version: v26.7.2
+  repositories:
+    - repoURL: https://github.com/nokia/srlinux-yang-models
+      kind: branch
+      ref: v26.7.2
+      dirs:
+        - src: srlinux-yang-models/srl_nokia/models
+          dst: .
+      schema:
+        models:
+          - srl_nokia/models
+        includes: []
+        excludes: []
+---
+apiVersion: sdc.sdcio.dev/v1alpha1
+kind: Config
+metadata:
+  name: srlinux-conn-profile
+  namespace: sdc-system
+spec:
+  type: ConnectionProfile
+  data:
+    # SR Linux serves gNMI natively on 57400 with TLS (containerlab CA).
+    encoding: JSON_IETF
+    port: 57400
+    tls: true
+---
+apiVersion: sdc.sdcio.dev/v1alpha1
+kind: Config
+metadata:
+  name: srlinux-sync-profile
+  namespace: sdc-system
+spec:
+  type: SyncProfile
+  data:
+    reconcileInterval: 30s
+    # Overlapping SDC Subscriptions stay disabled: gNMIc is the sole
+    # device-metric collector (deploy/observability/tests/no-duplicate-series.md).
+    subscribe: {}

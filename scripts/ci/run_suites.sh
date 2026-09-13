@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Run the Phase 8 verification test suites and capture logs under gates/proofs.
-# T079 contract: this runner is STRICT. Every suite records its real exit code;
+# Run the verification test suites and capture logs under gates/proofs.
+# This runner is STRICT. Every suite records its real exit code;
 # the script prints a PASS/FAIL/SKIP summary and exits non-zero if any suite
 # failed. Suites that legitimately require a live lab report their skip reason
 # explicitly, so a green summary always means every listed suite actually ran
@@ -8,7 +8,7 @@
 set -u
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
+PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs"
 mkdir -p "$PROOFS_DIR"
 SUMMARY="$PROOFS_DIR/tests.summary.txt"
 : > "$SUMMARY"
@@ -71,11 +71,17 @@ suite failure "$PROOFS_DIR/tests.failure.log" "$ROOT_DIR/tests/integration/failu
 # 7) Traffic suite — EVPN client traffic (live lab)
 suite traffic "$PROOFS_DIR/tests.traffic.log" "$ROOT_DIR/tests/integration/evpn_traffic.sh" run
 
-# 8) SRv6 packet-capture suite (live lab)
-suite srv6-capture "$PROOFS_DIR/tests.srv6-capture.log" "$ROOT_DIR/tests/integration/srv6_capture_counters.sh" run
+# 8) EVPN suite — Type-2/3/5, remote VTEP arrival and overlay traffic (live lab).
+#    SRv6 has no data plane on SR Linux: there is no SRv6 suite to run, and the
+#    capability gate records those entries as `not-applicable` with the written
+#    reason rather than leaving them silently absent from the report.
+for evpn_t in EVPN-Type2 EVPN-Type3 EVPN-Type5 Remote-VTEP Overlay-Traffic; do
+  suite "evpn-${evpn_t}" "$PROOFS_DIR/tests.evpn-${evpn_t}.log" \
+    "$ROOT_DIR/tests/integration/evpn_suite.sh" --run "$evpn_t"
+done
 
-# 9) SRv6 failover/path-change suite (live lab)
-suite srv6-failover "$PROOFS_DIR/tests.srv6-failover.log" "$ROOT_DIR/tests/integration/srv6_failover_path_change.sh" run
+# 9) MTU/ECMP suite (live lab)
+suite mtu-ecmp "$PROOFS_DIR/tests.mtu-ecmp.log" "$ROOT_DIR/tests/integration/mtu_ecmp.sh" run
 
 # 10) Topology parity suite (live lab)
 suite topology-parity "$PROOFS_DIR/tests.topology-parity.log" "$ROOT_DIR/tests/integration/topology_parity.sh"

@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# T079: Topology parity test — verify that the generated/pinned topology ConfigMap
+# Topology parity test — verify that the generated/pinned topology ConfigMap
 # (deploy/observability/topology-configmap.yaml) matches the containerlab topology
 # (lab/topology.clab.yml) by node ids and undirected link endpoints.
+#
+# Node ids are unchanged by the SR Linux migration (spine01/02, leaf01/02); only
+# the per-node interface names moved from ethN to SR Linux e1-N, and this test
+# compares node-to-node adjacency, not port names.
 #
 # The test prefers live containerlab inspect JSON on stdin or via --inspect <path.json>.
 # When inspect JSON is not available, it derives expected nodes/links from the

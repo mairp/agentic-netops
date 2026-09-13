@@ -1,45 +1,42 @@
 #!/usr/bin/env bash
-# srv6_force_clean <container> — remove all SRv6 witness keys directly and save.
-# Leftover SRv6 rows wedge GCU whole-config validation (a SID row whose locator
-# leafref cannot be resolved makes every patch fail with Data Loading Failed), so
-# tests force-clean before writing and guarantee cleanliness after — the assertion
-# itself still goes through GCU apply/remove patches.
-srv6_force_clean() {
-  local c=$1
-  docker exec "$c" bash -c 'redis-cli -n 4 --scan --pattern "SRV6_MY_LOCATORS*" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern "SRV6_MY_SIDS*" | xargs -r redis-cli -n 4 del >/dev/null; config save -y >/dev/null 2>&1'
-}
-
-# Persistence qualification helper: program a value, restart SONiC containers,
-# verify it persists (T014).
+# Persistence qualification helper: program a value over gNMI, save it, restart
+# every SR Linux node container, verify the value is still there (FR-005).
 #
-# Re-expressed per docs/SRV6_GNMI_CAPABILITY_FINDINGS.md §5.1: the gNMI→GCU Set bridge
-# is broken in this sonic-gnmi build, so the persisted write is made through GCU
-# (the programmable path that provably works) and verified over gNMI — a witness that
-# cannot pass vacuously because the reply content, not the exit code, is asserted.
+# Re-expressed for SR Linux: the write goes through the SAME path the
+# fabric-executor uses in production — a gNMI Set — followed by the same
+# post-apply persist (`/tools/system/configuration/save`). Nothing here reaches
+# into the node by another route, so a pass is evidence about the real write
+# path and not about a side door.
+#
+# `docker restart` is usable on this platform. The previous fabric could not be
+# restarted that way (the node came back with only lo+eth0 because containerlab's
+# veth links were not re-attached and the image's init refused to boot without
+# its ports); SR Linux is a containerlab-native kind, so the veth links are
+# restored and the node re-reads its saved configuration. That is precisely the
+# property under test — see NOTES item on `docker restart` in
+# lab/profiles/srlinux/config/NOTES.md.
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$ROOT_DIR"
-TARGETS=${TARGETS:-"172.31.0.21:8080,172.31.0.22:8080"}
+TARGETS=${TARGETS:-"172.31.0.11:57400,172.31.0.12:57400,172.31.0.21:57400,172.31.0.22:57400"}
 GNMIC_BIN=${GNMIC_BIN:-gnmic}
 GNMI_USER=${GNMI_USER:-admin}
 GNMI_PASS=${GNMI_PASS:-admin}
 GNMI_CACERT=${GNMI_CACERT:-./secrets/ca.crt}
-GNMI_CERT=${GNMI_CERT:-./secrets/gnmi.crt}
-GNMI_KEY=${GNMI_KEY:-./secrets/gnmi.key}
-GNMI_ENCODING=${GNMI_ENCODING:-JSON_IETF}
+GNMI_ENCODING=${GNMI_ENCODING:-json_ietf}
 CLAB_PREFIX=${CLAB_PREFIX:-clab-agentic-netops-fabric-}
 WITNESS_TAG=${WITNESS_TAG:-$(date +%s)}
-LOC_NAME="persist-loc-${WITNESS_TAG}"
-LOC_PREFIX="fc00:0:73::"
-SID_KEY="${LOC_NAME}|fc00:0:73:1::/64"
+WITNESS_PATH=${WITNESS_PATH:-/system/information/contact}
+WITNESS_VALUE="agentic-netops-persist-${WITNESS_TAG}"
+SAVE_PATH=${SAVE_PATH:-/tools/system/configuration/save}
 
 die() { echo "[persist] FAIL: $*" >&2; exit 1; }
 note() { echo "[persist] $*" >&2; }
 
 tls_args() {
-  printf '%s\n' --timeout 5s --username "$GNMI_USER" --password "$GNMI_PASS" \
-    --encoding "$GNMI_ENCODING" --tls-ca "$GNMI_CACERT" --tls-cert "$GNMI_CERT" --tls-key "$GNMI_KEY"
+  printf '%s\n' --timeout 10s --username "$GNMI_USER" --password "$GNMI_PASS" \
+    --encoding "$GNMI_ENCODING" --tls-ca "$GNMI_CACERT"
 }
 
 values_json() {
@@ -55,43 +52,30 @@ node_for_ip() {
   done | head -n1
 }
 
-gcu_apply() {
-  local c=$1 patch=$2
-  printf '%s' "$patch" | docker exec -i "$c" bash -c 'cat > /tmp/.persist_patch.json && config apply-patch -f CONFIGDB -p /tmp/.persist_patch.json 2>/dev/null >/dev/null'
-}
-
-gcu_write() {
-  local node=$1
-  local patch
-  patch=$(python3 - "$LOC_NAME" "$LOC_PREFIX" "$SID_KEY" <<'PY'
-import json,sys
-loc,pfx,sid=sys.argv[1:4]
-print(json.dumps([
- {"op":"add","path":"/SRV6_MY_LOCATORS","value":{loc:{"prefix":pfx}}},
- {"op":"add","path":"/SRV6_MY_SIDS","value":{sid:{"action":"uN"}}}]))
-PY
-)
-  gcu_apply "$node" "$patch" || die "GCU write of persistence witness failed on $node"
-  # Persist to /etc/sonic/config_db.json: start.sh reloads CONFIG_DB from the file
-  # on every boot (configdb-load.sh), so a redis-only write would be lost — the
-  # persisted file is exactly what T014 is about ("Ensure /etc/sonic persists").
-  docker exec "$node" bash -c 'config save -y >/dev/null 2>&1' || die "config save failed on $node"
-}
-
-gcu_delete() {
-  local node=$1
-  # Whole-table removal: GCU cannot address keys containing "/" (findings §4.1)
-  local patch='[
-  {"op":"remove","path":"/SRV6_MY_SIDS"},
-  {"op":"remove","path":"/SRV6_MY_LOCATORS"}
-]'
-  gcu_apply "$node" "$patch" || note "cleanup patch failed on $node (leftover ${LOC_NAME} tolerable)"
-  docker exec "$node" bash -c 'config save -y >/dev/null 2>&1' || true
-}
-
 gnmi_get() {
   local t=$1
-  "$GNMIC_BIN" --address "$t" $(tls_args) get --path /SRV6_MY_SIDS --target CONFIG_DB 2>&1
+  "$GNMIC_BIN" --address "$t" $(tls_args) get --path "$WITNESS_PATH" 2>&1
+}
+
+gnmi_write() {
+  local t=$1
+  "$GNMIC_BIN" --address "$t" $(tls_args) set \
+      --update-path "$WITNESS_PATH" --update-value "$WITNESS_VALUE" >/dev/null 2>&1 \
+    || die "gNMI Set of the persistence witness failed on $t"
+  # Persist: the running configuration must survive the restart, which is the
+  # whole point of the test. This is the same save the executor issues after
+  # every successful apply sequence (contracts/fabric-executor-api.md).
+  "$GNMIC_BIN" --address "$t" $(tls_args) set \
+      --update-path "$SAVE_PATH" --update-value '{}' >/dev/null 2>&1 \
+    || die "configuration save ($SAVE_PATH) failed on $t"
+}
+
+gnmi_delete() {
+  local t=$1
+  "$GNMIC_BIN" --address "$t" $(tls_args) set --delete "$WITNESS_PATH" >/dev/null 2>&1 \
+    || note "cleanup delete failed on $t (leftover witness tolerable)"
+  "$GNMIC_BIN" --address "$t" $(tls_args) set \
+      --update-path "$SAVE_PATH" --update-value '{}' >/dev/null 2>&1 || true
 }
 
 assert_witness_readable() {
@@ -99,55 +83,30 @@ assert_witness_readable() {
   local out vals
   out=$(gnmi_get "$t")
   vals=$(values_json "$out")
-  [[ "$vals" != "[]" ]] || die "$label $t: SRV6_MY_SIDS reply has no updates"
-  grep -q "$LOC_NAME" <<<"$vals" || die "$label $t: witness $LOC_NAME not in gNMI reply"
-  grep -q '"action":"uN"' <<<"$vals" || die "$label $t: witness SID lost action uN"
+  [[ "$vals" != "[]" ]] || die "$label $t: $WITNESS_PATH reply has no updates (got: $out)"
+  grep -q "$WITNESS_VALUE" <<<"$vals" || die "$label $t: witness $WITNESS_VALUE not in the gNMI reply (got: $vals)"
 }
 
-# Wait until gNMI serves real content: the port can accept connections before
-# configdb-load.sh has finished reloading CONFIG_DB at boot, and a TCP-only
-# check races that window (observed 2026-08-31 as empty Get replies).
+# Wait until gNMI serves real content again. The port accepts connections before
+# the management server is serving, so a TCP-only check races the boot window.
 wait_for_gnmi() {
-  local t=$1 i
+  local t=$1 i out
   for i in $(seq 1 90); do
     if out=$(gnmi_get "$t") && [[ "$(values_json "$out")" != "[]" ]]; then
       return 0
     fi
-    sleep 2
+    sleep 4
   done
   return 1
 }
 
-# restart the SONiC fabric stack inside the containerlab containers.
-# A plain `docker restart` is NOT usable here: it recreates the container
-# network namespace and containerlab's veth links are NOT re-attached (the
-# node comes back with only lo+eth0, start.sh exits 1 on missing ports and
-# the whole fabric is gone — observed 2026-09-01). Restarting supervisord
-# instead exercises the same persistence surface (configdb-load from the
-# saved /etc/sonic/config_db.json, manager daemons, agentic-netops-fabric-init
-# boot hook, durable /etc/frr/bgpd.conf) while keeping the network namespace
-# and topology links intact.
-restart_sonic_containers() {
-  local ids; ids=$(docker ps -q --filter "name=${CLAB_PREFIX}") || true
+restart_nodes() {
+  local ids c
+  ids=$(docker ps -q --filter "name=${CLAB_PREFIX}") || true
   if [[ -z "$ids" ]]; then echo "[persist] no Agentic NetOps fabric containers found" >&2; return 1; fi
-  local c
-  # stop supervisord cleanly inside every node: all programs (redis, swss,
-  # bgpd, telemetry) go down — this is the destructive part of the restart.
-  # Wait for the old process to fully release its HTTP socket before any
-  # re-kick: a new supervisord started while the old one still holds the port
-  # dies instantly with "Another program is already listening" (observed
-  # 2026-09-01), leaving the node with no supervisor at all.
-  for c in $(docker ps -q --filter "name=${CLAB_PREFIX}"); do
-    docker exec "$c" bash -c 'supervisorctl shutdown >/dev/null 2>&1 || true; for i in $(seq 1 30); do pgrep -x supervisord >/dev/null 2>&1 || break; sleep 1; done; pgrep -x supervisord >/dev/null 2>&1 && pkill -x supervisord; sleep 2' || true
-  done
-  # bring supervisord back: start.sh re-runs (configdb-load + daemons) and the
-  # agentic-netops-fabric-init boot hook restores the fabric
-  for c in $(docker ps -q --filter "name=${CLAB_PREFIX}"); do
-    docker exec "$c" bash -c 'supervisorctl status >/dev/null 2>&1 || (nohup /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf >/var/log/supervisord-restart.log 2>&1 &)' || true
-    # sshd: sonic-gnmi's user_auth path (UserPwAuth) dials 127.0.0.1:22; sshd is
-    # started once by the bootstrap and is not a supervisord program, so a restart
-    # silently breaks gNMI auth (every RPC then returns Unauthenticated)
-    docker exec "$c" bash -c 'pgrep -x sshd >/dev/null 2>&1 || /usr/sbin/sshd' || true
+  for c in $(docker ps --format '{{.Names}}' --filter "name=${CLAB_PREFIX}" | grep -E "${CLAB_PREFIX}(spine|leaf)[0-9]+$"); do
+    note "restarting $c"
+    docker restart "$c" >/dev/null || die "docker restart failed for $c"
   done
 }
 
@@ -157,20 +116,16 @@ main() {
   lab_secrets::ensure "kind-${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}" || die "could not materialize lab credentials/TLS"
 
   IFS=',' read -ra tgts <<<"$TARGETS"
-  echo "[persist] writing SRv6 witness (${LOC_NAME}) via GCU on all targets"
+  echo "[persist] writing witness (${WITNESS_VALUE}) over gNMI and saving on all targets"
   for t in "${tgts[@]}"; do
-    local node
-    node=$(node_for_ip "${t%%:*}")
-    [[ -n "$node" ]] || die "cannot resolve containerlab node for $t"
-    srv6_force_clean "$node"
-    gcu_write "$node"
+    gnmi_write "$t"
   done
 
   echo "[persist] pre-restart read-back over gNMI"
   for t in "${tgts[@]}"; do assert_witness_readable "pre-restart" "$t"; done
 
-  echo "[persist] restarting SONiC containers"
-  restart_sonic_containers
+  echo "[persist] restarting SR Linux node containers"
+  restart_nodes
 
   echo "[persist] waiting for gNMI to come back"
   for t in "${tgts[@]}"; do
@@ -184,11 +139,7 @@ main() {
   done
 
   echo "[persist] cleaning up witness"
-  for t in "${tgts[@]}"; do
-    local node
-    node=$(node_for_ip "${t%%:*}") || true
-    [[ -n "$node" ]] && gcu_delete "$node" || true
-  done
+  for t in "${tgts[@]}"; do gnmi_delete "$t"; done
   echo "[persist] persistence verified"
 }
 

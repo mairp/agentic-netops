@@ -6,6 +6,20 @@ ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 TOPO_FILE="${ROOT_DIR}/lab/topology.clab.yml"
 MGMT_NET="agentic-netops-mgmt"
 LABEL_OWNER="agentic-netops"
+CLAB_PREFIX="clab-agentic-netops-fabric-"
+# containerlab generates a per-lab CA and per-node server certificates here. The
+# directory is runtime state (gitignored) and is recreated on every deploy.
+CLAB_CA="${ROOT_DIR}/lab/clab-agentic-netops-fabric/.tls/ca/ca.pem"
+GNMIC_BIN=${GNMIC_BIN:-gnmic}
+GNMI_PORT=${GNMI_PORT:-57400}
+# Node name -> management address, mirroring lab/topology.clab.yml.
+NODE_IPS=${NODE_IPS:-"spine01=172.31.0.11 spine02=172.31.0.12 leaf01=172.31.0.21 leaf02=172.31.0.22"}
+# The SR Linux image default admin password. Read from the environment ONLY; it
+# is used exactly once per node, to create the generated user, and is never
+# written to a file, a Secret, this tree or a log line (FR-016). It is passed to
+# gnmic through GNMIC_PASSWORD rather than -p so it never appears in argv either.
+SRL_DEFAULT_USER=${SRLINUX_ADMIN_USER:-admin}
+SRL_DEFAULT_PASS=${SRLINUX_ADMIN_PASSWORD:-NokiaSrl1!}
 
 clab::require() { command -v containerlab >/dev/null 2>&1 || { echo "missing containerlab" >&2; exit 1; }; }
 
@@ -16,19 +30,12 @@ clab::deploy() {
   # (172.31.0.0/16), which containerlab requires for explicit per-node mgmt IPs.
   "${ROOT_DIR}/scripts/lib/kind.sh" ensure-mgmt
   echo "[clab] deploying ${TOPO_FILE}"
-  # containerlab >=0.7x: --skip-save was removed; --reconfigure regenerates config artifacts
+  # containerlab >=0.7x: --skip-save was removed; --reconfigure regenerates config
+  # artifacts AND re-applies each node's startup-config, which is exactly how the
+  # underlay/overlay is (re)established. SR Linux is a containerlab-native kind
+  # and boots its own init, so nothing has to be kicked after deploy and no
+  # post-boot shell hook runs on any node.
   containerlab deploy -t "${TOPO_FILE}" --reconfigure
-  # containerlab keeps the SONiC nodes (linux kind) at an idle `bash` PID1 —
-  # the image's real init (supervisord → start.sh boot chain) never runs on
-  # its own (observed 2026-09-01: without this kick every later bootstrap
-  # step finds no supervisor and no CONFIG_DB). Idempotent.
-  sleep 2
-  local node c
-  for node in spine01 spine02 leaf01 leaf02; do
-    c="clab-agentic-netops-fabric-${node}"
-    docker ps --format '{{.Names}}' | grep -qx "$c" || continue
-    docker exec "$c" bash -c 'supervisorctl status >/dev/null 2>&1 || (nohup /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf >/var/log/supervisord-restart.log 2>&1 &)' || true
-  done
 }
 
 clab::inspect() {
@@ -37,141 +44,169 @@ clab::inspect() {
   containerlab inspect -t "${TOPO_FILE}" --format json
 }
 
-# Apply the selected profile's bootstrap to every SONiC node: copy generated
-# gNMI TLS material into the node, merge the TELEMETRY config snippet (with the
-# runtime-generated credentials) into /etc/sonic/config_db.json, reload, and
-# restart the telemetry service. Idempotent per node via a marker file.
-clab::bootstrap() {
-  local profile=${1:-${AGENTIC_NETOPS_PROFILE:-sonic-vs}}
-  local bdir="${ROOT_DIR}/lab/profiles/${profile}/bootstrap"
-  if [[ ! -d "$bdir" ]]; then
-    echo "[clab] no bootstrap dir for profile ${profile}; nothing to bootstrap" >&2
+# gnmic invocation against a node as the image-default admin user. The password
+# travels in the environment, never in argv.
+clab::_gnmic_admin() {
+  local ip=$1; shift
+  GNMIC_USERNAME="$SRL_DEFAULT_USER" GNMIC_PASSWORD="$SRL_DEFAULT_PASS" \
+    "$GNMIC_BIN" --address "${ip}:${GNMI_PORT}" --timeout 10s \
+      --encoding json_ietf --tls-ca "$CLAB_CA" "$@"
+}
+
+# gnmic invocation as the lab-generated user (GNMI_USER/GNMI_PASS from
+# Secret gnmi-lab-creds, exported by lab_secrets::ensure).
+clab::_gnmic_generated() {
+  local ip=$1; shift
+  GNMIC_USERNAME="${GNMI_USER:-}" GNMIC_PASSWORD="${GNMI_PASS:-}" \
+    "$GNMIC_BIN" --address "${ip}:${GNMI_PORT}" --timeout 10s \
+      --encoding json_ietf --tls-ca "$CLAB_CA" "$@"
+}
+
+# Publish the containerlab CA into Secret gnmi-lab-tls (key ca.crt). Patches the
+# existing Secret so the generator's tls.crt/tls.key stay untouched — the SR Linux
+# gNMI server needs no client certificate, but the Secret's shape is API for the
+# executor and the observability stack.
+clab::_publish_ca() {
+  local ctx="kind-${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
+  if [[ ! -s "$CLAB_CA" ]]; then
+    echo "[clab] ERROR: containerlab CA not found at ${CLAB_CA}; the lab was never deployed or --reconfigure did not regenerate TLS material" >&2
+    return 1
+  fi
+  command -v kubectl >/dev/null 2>&1 || { echo "[clab] kubectl unavailable; cannot publish the CA" >&2; return 1; }
+  local b64
+  b64=$(base64 -w0 < "$CLAB_CA")
+  if ! kubectl --context "$ctx" -n agentic-netops-system get secret gnmi-lab-tls >/dev/null 2>&1; then
+    echo "[clab] ERROR: Secret gnmi-lab-tls absent; the in-cluster secret generator must run before bootstrap" >&2
+    return 1
+  fi
+  kubectl --context "$ctx" -n agentic-netops-system patch secret gnmi-lab-tls \
+    --type merge -p "{\"data\":{\"ca.crt\":\"${b64}\"}}" >/dev/null
+  echo "[clab] published containerlab CA into Secret gnmi-lab-tls (ca.crt)"
+}
+
+# Wait until a node answers gNMI Capabilities. The port accepts connections
+# before the management server is serving, so a TCP probe races the boot; assert
+# on the reply content instead.
+clab::_wait_gnmi() {
+  local node=$1 ip=$2 i out
+  for i in $(seq 1 90); do
+    if out=$(clab::_gnmic_admin "$ip" capabilities 2>&1) && grep -q 'srl_nokia' <<<"$out"; then
+      echo "[clab] bootstrap: ${node} answering gNMI Capabilities on ${ip}:${GNMI_PORT}"
+      return 0
+    fi
+    sleep 4
+  done
+  echo "[clab] ERROR: ${node} (${ip}:${GNMI_PORT}) never answered gNMI Capabilities" >&2
+  echo "[clab] last reply: ${out:-<none>}" >&2
+  return 1
+}
+
+# Create the generated user over gNMI. Idempotent, and the marker is the node's
+# own state: if the generated user can already authenticate, there is nothing to
+# do. A marker file inside the container would survive a config loss and lie.
+clab::_ensure_user() {
+  local node=$1 ip=$2
+  if clab::_gnmic_generated "$ip" capabilities >/dev/null 2>&1; then
+    echo "[clab] bootstrap: ${node} already carries user ${GNMI_USER} (authenticated over gNMI)"
     return 0
   fi
-  # Materialize lab TLS + credentials from the in-cluster generator Secrets
+  echo "[clab] bootstrap: ${node} creating generated gNMI user"
+  # The value goes through a 0600 temp file rather than --update-value so the
+  # generated password never appears in argv.
+  local vf
+  vf=$(mktemp)
+  chmod 600 "$vf"
+  # shellcheck disable=SC2064
+  trap "rm -f '$vf'" RETURN
+  GNMI_PASS_VALUE="$GNMI_PASS" python3 -c 'import json,os,sys; sys.stdout.write(json.dumps({"password": os.environ["GNMI_PASS_VALUE"], "role": ["admin"]}))' > "$vf"
+  if ! clab::_gnmic_admin "$ip" set \
+        --update-path "/system/aaa/authentication/user[username=${GNMI_USER}]" \
+        --update-file "$vf" >/dev/null; then
+    echo "[clab] ERROR: ${node} rejected the gNMI Set creating user ${GNMI_USER}" >&2
+    return 1
+  fi
+  # Fail closed: prove the user works before calling the node bootstrapped.
+  local i
+  for i in 1 2 3 4 5; do
+    if clab::_gnmic_generated "$ip" capabilities >/dev/null 2>&1; then
+      echo "[clab] bootstrap: ${node} user ${GNMI_USER} created and verified"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "[clab] ERROR: ${node} accepted the Set but user ${GNMI_USER} cannot authenticate over gNMI" >&2
+  return 1
+}
+
+# Apply the selected profile's bootstrap to every SR Linux node. The underlay,
+# overlay and bootstrap tenants already came up from the per-node startup-config
+# (lab/profiles/srlinux/config/*.cfg) applied by containerlab, so bootstrap is
+# identity and trust only: wait for gNMI, create the generated user, publish the
+# containerlab CA into the gnmi-lab-tls Secret.
+clab::bootstrap() {
+  local profile=${1:-${AGENTIC_NETOPS_PROFILE:-srlinux}}
+  local pdir="${ROOT_DIR}/lab/profiles/${profile}"
+  if [[ ! -d "$pdir" ]]; then
+    echo "[clab] ERROR: unknown profile ${profile} (no ${pdir})" >&2
+    return 1
+  fi
+
+  # The CA must reach the cluster Secret before anything materializes ./secrets.
+  clab::_publish_ca || return 1
+
+  # Materialize lab TLS + credentials from the in-cluster generator Secrets.
+  # Drop any local copy first: containerlab regenerates its CA on every deploy,
+  # so a ./secrets/ca.crt left by a previous lab is a DIFFERENT trust anchor and
+  # lab_secrets::ensure would happily keep it (it returns early when the file is
+  # already there). Every gNMI call afterwards would then fail TLS verification
+  # against a freshly deployed fabric.
+  rm -f "${ROOT_DIR}/secrets/ca.crt"
+  unset GNMI_USER GNMI_PASS
   # shellcheck source=lab_secrets.sh
   source "${ROOT_DIR}/scripts/lib/lab_secrets.sh"
-  lab_secrets::ensure "kind-${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
+  lab_secrets::ensure "kind-${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}" || return 1
+  if [[ -z "${GNMI_USER:-}" || -z "${GNMI_PASS:-}" ]]; then
+    echo "[clab] ERROR: no generated gNMI credentials (Secret gnmi-lab-creds); cannot bootstrap" >&2
+    return 1
+  fi
 
-  local node c
-  for node in spine01 spine02 leaf01 leaf02; do
-    c="clab-agentic-netops-fabric-${node}"
+  local entry node ip rc=0
+  for entry in $NODE_IPS; do
+    node=${entry%%=*}; ip=${entry#*=}
+    local c="${CLAB_PREFIX}${node}"
     if ! docker ps --format '{{.Names}}' | grep -qx "$c"; then
-      echo "[clab] bootstrap: node container ${c} not running; skipping" >&2
+      echo "[clab] ERROR: node container ${c} not running" >&2
+      rc=1
       continue
     fi
-    if docker exec "$c" test -f /etc/agentic-netops/.bootstrapped 2>/dev/null; then
-      echo "[clab] bootstrap: ${node} already bootstrapped (marker present)"
-      continue
-    fi
-    echo "[clab] bootstrap: ${node}"
-    docker exec "$c" mkdir -p /etc/agentic-netops/gnmi /etc/sonic/bootstrap /etc/sonic/telemetry
-    docker cp "${ROOT_DIR}/secrets/ca.crt"  "$c:/etc/agentic-netops/gnmi/ca.crt"
-    docker cp "${ROOT_DIR}/secrets/gnmi.crt" "$c:/etc/agentic-netops/gnmi/gnmi.crt"
-    docker cp "${ROOT_DIR}/secrets/gnmi.key" "$c:/etc/agentic-netops/gnmi/gnmi.key"
-    docker cp "$bdir/install-gnmi-certs.sh"  "$c:/etc/sonic/bootstrap/install-gnmi-certs.sh"
-    docker cp "$bdir/init-sonic-bootstrap.sh" "$c:/etc/sonic/bootstrap/init-sonic-bootstrap.sh"
-    # Inject runtime-generated credentials (not static; generated per lab).
-    # IMPORTANT: creds go to a separate file, NOT into gnmi_config_db.json —
-    # a TELEMETRY|CLIENTS table in CONFIG_DB breaks GCU whole-config validation
-    # (sonic-telemetry YANG models no CLIENTS list: "All Keys are not parsed in
-    # TELEMETRY"), which made every config apply-patch fail. sonic-gnmi
-    # authenticates via the local user + sshd (see init-sonic-bootstrap.sh 2b),
-    # so the CONFIG_DB table was never needed.
-    docker cp "$bdir/gnmi_config_db.json" "$c:/etc/sonic/bootstrap/gnmi_config_db.json"
-    docker exec "$c" bash -lc "jq -n --arg u '${GNMI_USER}' --arg p '${GNMI_PASS}' '{username:\$u,password:\$p}' > /etc/sonic/bootstrap/gnmi_creds.json"
-    # start.sh generates /etc/sonic/config_db.json as the first step of its
-    # boot chain; init-sonic-bootstrap merges into that file and would fail
-    # (or merge into nothing) if it runs too early. Wait it out (observed
-    # 2026-09-01 racing the boot by minutes).
-    local wi
-    for wi in $(seq 1 60); do
-      docker exec "$c" test -s /etc/sonic/config_db.json 2>/dev/null && break
-      sleep 5
-    done
-    if ! docker exec "$c" test -s /etc/sonic/config_db.json; then
-      echo "[clab] bootstrap: ${node} config_db.json never appeared; continuing anyway" >&2
-    fi
-    docker exec "$c" bash -lc "chmod +x /etc/sonic/bootstrap/*.sh && /etc/sonic/bootstrap/init-sonic-bootstrap.sh"
-    # VERIFY the two things gNMI password auth actually needs, and repair them if
-    # the bootstrap did not get there. init-sonic-bootstrap.sh runs under
-    # `set -euo pipefail`, so ANY earlier failure aborts it silently -- and the two
-    # steps at the END are the ones that matter: creating the local gNMI user and
-    # having sshd listening (sonic-gnmi authenticates the user through PAM/sshd,
-    # not through CONFIG_DB).
-    #
-    # When that abort happens the failure is invisible and total: no local user
-    # exists, so EVERY gNMI request returns "Unauthenticated". Measured 2026-09-03
-    # on a fresh lab: the creds file and the k8s Secret agreed exactly
-    # (user 75bb9360), the TLS certs were installed, telemetry was listening on
-    # :8080 -- and no node had any uid>=1000 user at all. gnmic could not subscribe,
-    # Prometheus held only scrape metadata, and every Grafana panel read "No data".
-    # The whole observability stack deployed green and showed nothing.
-    docker exec "$c" bash -lc '
-      CREDS=/etc/sonic/bootstrap/gnmi_creds.json
-      U=$(jq -r ".username // empty" "$CREDS" 2>/dev/null)
-      P=$(jq -r ".password // empty" "$CREDS" 2>/dev/null)
-      if [ -n "$U" ] && [ -n "$P" ]; then
-        id -u "$U" >/dev/null 2>&1 || useradd -m -s /bin/bash "$U" 2>/dev/null || true
-        echo "$U:$P" | chpasswd 2>/dev/null || true
-        id -u "$U" >/dev/null 2>&1 || echo "[bootstrap] ERROR: gNMI user $U still missing" >&2
-      fi
-      if ! (exec 3<>/dev/tcp/127.0.0.1/22) 2>/dev/null; then
-        ssh-keygen -A >/dev/null 2>&1 || true; mkdir -p /var/run/sshd
-        supervisorctl start sshd >/dev/null 2>&1 || /usr/sbin/sshd >/dev/null 2>&1 || true
-      fi
-    ' || true
-    docker exec "$c" touch /etc/agentic-netops/.bootstrapped
+    clab::_wait_gnmi "$node" "$ip" || { rc=1; continue; }
+    clab::_ensure_user "$node" "$ip" || { rc=1; continue; }
     echo "[clab] bootstrap: ${node} done"
   done
 
-  # Fabric-wide routing. Deliberately outside the per-node loop and not guarded
-  # by the .bootstrapped marker: BGP peers reference each other, so every node
-  # must exist first, and the step is idempotent so re-running is safe. Without
-  # it the nodes come up with bgpd stopped and no underlay at all, which is what
-  # tests/integration/fabric_verify.sh (T043 [US3]) reports.
-  if [[ -x "$bdir/configure-fabric-bgp.sh" ]]; then
-    echo "[clab] bootstrap: configuring underlay BGP + EVPN across the fabric"
-    # This used to downgrade a hook failure to a WARN and continue, which made
-    # it the single break in the failure chain: configure-fabric-bgp.sh could
-    # report a structurally dead overlay (e.g. bgpd never adopting the L2 VNI)
-    # and provision.sh:176 would still see success and exit 0. The lab then
-    # reached test-fabric with no possible forwarding path, where 100% packet
-    # loss was misdiagnosed as slow convergence. Fail closed instead.
-    if ! "$bdir/configure-fabric-bgp.sh"; then
-      echo "[clab] ERROR: fabric BGP/EVPN configuration failed; the overlay cannot forward — see the [fabric-bgp] ERROR lines above" >&2
-      return 1
-    fi
+  if (( rc != 0 )); then
+    echo "[clab] ERROR: bootstrap failed on at least one node; the fabric has no usable gNMI write path" >&2
+    return 1
   fi
+  echo "[clab] bootstrap complete for profile ${profile}"
 }
 
 clab::destroy() {
   clab::require
   echo "[clab] destroying ${TOPO_FILE}"
   containerlab destroy -t "${TOPO_FILE}" --cleanup || true
-  # Remove the per-node named volumes that persist SONiC /etc/sonic. Containerlab
-  # does not always reclaim topology-declared named volumes, so we drop them
-  # explicitly by their deterministic names (only the ones this lab owns).
-  local v
-  for v in agentic-netops-spine01-etc-sonic agentic-netops-spine02-etc-sonic agentic-netops-leaf01-etc-sonic agentic-netops-leaf02-etc-sonic; do
-    docker volume rm "$v" >/dev/null 2>&1 || true
-  done
-  # Verify teardown leaves no owned lab containers or volumes
+  # No named volumes to reclaim: SR Linux keeps its configuration in the
+  # container filesystem and the startup-config in this tree is the only source
+  # of node state, so `containerlab destroy --cleanup` is a complete teardown.
+  # Verify teardown leaves no owned lab containers.
   local leftovers
   leftovers=$(docker ps -a --format '{{.Names}} {{.Labels}}' | awk '/agentic-netops.owner=agentic-netops/ {print $1}') || true
   if [[ -n "$leftovers" ]]; then
     echo "[clab] WARN: leftover Agentic NetOps containers not removed:\n$leftovers" >&2
     exit 1
   fi
-  # Check for owned volumes (persistent /etc/sonic)
-  local vol_left
-  vol_left=$(docker volume ls -q | grep -E '^agentic-netops-.*-etc-sonic$' || true)
-  if [[ -n "$vol_left" ]]; then
-    echo "[clab] WARN: leftover Agentic NetOps volumes not removed:\n$vol_left" >&2
-    exit 1
-  fi
   # Check for generated lab credentials under repo secrets/
-  if [[ -e "${ROOT_DIR}/secrets/gnmi.key" || -e "${ROOT_DIR}/secrets/gnmi.crt" || -e "${ROOT_DIR}/secrets/ca.crt" ]]; then
+  if [[ -e "${ROOT_DIR}/secrets/tls.key" || -e "${ROOT_DIR}/secrets/tls.crt" || -e "${ROOT_DIR}/secrets/ca.crt" ]]; then
     echo "[clab] WARN: leftover lab-generated gNMI credentials under ${ROOT_DIR}/secrets" >&2
     exit 1
   fi

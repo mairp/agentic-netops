@@ -6,9 +6,16 @@
 set -euo pipefail
 
 WORKDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FEATURE="001-agentic-netops-sonic-evpn-fabric"
+FEATURE="${FEATURE:-001-agentic-netops-srlinux-evpn-fabric}"
 SPEC="$WORKDIR/specs/$FEATURE/tasks.md"
 ORCH="${ORCH:-/root/wiggum/orchestrator.sh}"
+
+# Backend selection for the proposer. wiggum passes no --model for the claude
+# backend, so the model is chosen through the environment: Claude Code honours
+# ANTHROPIC_MODEL. The critic stays on wiggum's default claude backend.
+# Both are overridable from the caller's environment.
+export WIGGUM_PROPOSER="${WIGGUM_PROPOSER:-claude}"
+export ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-claude-opus-5}"
 
 if [[ "${1:-}" == "--stop" ]]; then
   touch "$WORKDIR/.wiggum/stop.flag"
@@ -49,6 +56,9 @@ probe Loki     "$LOKI"    /loki/api/v1/labels
 probe OTLP     "$OTLP"    /v1/metrics
 probe Grafana  "$GRAFANA" /api/health
 cat <<BANNER
+
+  Feature   $FEATURE
+  Proposer  $WIGGUM_PROPOSER (model $ANTHROPIC_MODEL)   critic: wiggum default (claude)
 
   Grafana   $GRAFANA  -> Explore -> Loki
   Live      {job="ralph", task="$TASK"}

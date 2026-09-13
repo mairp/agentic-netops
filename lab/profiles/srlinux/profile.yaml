@@ -1,0 +1,65 @@
+# Agentic NetOps lab profile: srlinux
+#
+# The only profile. The previous fabric needed two — a fast container profile
+# and a KVM-backed VM fallback — because its container image could not pass the
+# capability gate on its own. Nokia SR Linux needs no fallback: gNMI
+# Set/Get/Subscribe are native on the public container image, so one profile
+# serves both the fast lab and the capability gate. See docs/legacy/ for the
+# previous generation's record.
+profile: srlinux
+kind: nokia_srlinux
+type: ixrd2l
+image: ghcr.io/nokia/srlinux:26.7.2@sha256:0096fe3ebcafabb7253492e2060425fe027a168e0e066766d1e85efbb0b48be8
+startup_config:
+  # Applied by containerlab from lab/topology.clab.yml (`startup-config:` per
+  # node). SR Linux CLI `set /` statements; see config/NOTES.md for the
+  # verify-live list.
+  dir: lab/profiles/srlinux/config
+  files:
+    - lab/profiles/srlinux/config/spine01.cfg
+    - lab/profiles/srlinux/config/spine02.cfg
+    - lab/profiles/srlinux/config/leaf01.cfg
+    - lab/profiles/srlinux/config/leaf02.cfg
+bootstrap:
+  # Post-deploy bootstrap is deliberately tiny: the underlay and overlay already
+  # came up from startup-config, so all that remains is identity and trust.
+  path: lab/profiles/srlinux/bootstrap
+  steps:
+    - wait for gNMI Capabilities on <mgmt-ip>:57400 on every node
+    - create the generated user `agentic` from Secret gnmi-lab-creds via one gNMI Set
+    - publish the containerlab CA into Secret gnmi-lab-tls (key ca.crt)
+credentials:
+  # The image default admin password is read from the environment
+  # (SRLINUX_ADMIN_PASSWORD, default NokiaSrl1!) and used exactly once, to
+  # create the generated user. It is never written to a file, a Secret, a log
+  # line or this tree (FR-016).
+  default_admin_user: admin
+  default_admin_password_env: SRLINUX_ADMIN_PASSWORD
+  generated_user: agentic
+  generated_user_secret: gnmi-lab-creds
+tls:
+  # containerlab generates a per-lab CA and per-node server certificates. The CA
+  # is the only material the clients need: the SR Linux gNMI server does not
+  # require a client certificate, it authenticates username/password.
+  ca: lab/clab-agentic-netops-fabric/.tls/ca/ca.pem
+  secret: gnmi-lab-tls
+  gnmi_port: 57400
+  encoding: JSON_IETF
+persistence:
+  # No named volumes. The node keeps its running configuration in the container
+  # filesystem across `docker restart`, and `containerlab deploy --reconfigure`
+  # re-applies the startup-config, so node state has exactly one source in the
+  # tree. The executor additionally saves after every successful apply sequence.
+  mechanism: container filesystem + startup-config on --reconfigure
+capabilities:
+  evpn_vxlan: true      # mac-vrf, ip-vrf, symmetric IRB, acl-filter
+  gnmi_set: true        # native, transactional (candidate + commit per request)
+  srv6: false           # no SRv6 data plane on the 7220 container (research D8)
+notes: |
+  Qualification runs against this profile directly:
+  tests/integration/srlinux_gnmi_suite.sh (Capabilities/Get/Set/Subscribe with
+  content assertions), scripts/lib/persistence.sh (docker restart + witness
+  re-read), tests/integration/evpn_suite.sh (Type-2/3/5, remote VTEP, overlay
+  traffic) and tests/integration/yang_paths_suite.sh. SRv6 entries are recorded
+  as `not-applicable` with the written reason — never as `pass`, and never
+  skipped silently (constitution II).

@@ -17,7 +17,7 @@ help:
 	@echo "  verify-pins       Validate versions.lock.yaml has immutable pins and consistency"
 	@echo "  verify-intent-pins Validate every feature-002 intent_tier: image is pinned by digest"
 	@echo "  validate-crds     Server-side dry-run validation of Kubenet/KUID/SDC CRDs and examples"
-	@echo "  verify-register   Guard: fail if any rendered path is missing from the OC-vs-SONiC register"
+	@echo "  verify-register   Guard: fail if any rendered path is missing from the OC-vs-SR Linux register"
 	@echo "  verify-compat     Run verify-pins, intent_tier digest validation, and validate-crds"
 	@echo "  build-intent-translator  Build the static cmd/intent-translator sidecar (feature 002)"
 	@echo "  lab-qualify       Run lab capability qualification suite (blocks downstream on failure)"
@@ -33,8 +33,8 @@ verify-pins:
 
 validate-crds:
 	@echo "[validate-crds] server-side validating CRDs and examples"
-	@mkdir -p .wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs
-	@"$(REPO_ROOT)/scripts/lib/validate_crds.sh" 2>&1 | tee .wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs/validate-crds.run.log
+	@mkdir -p .wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs
+	@"$(REPO_ROOT)/scripts/lib/validate_crds.sh" 2>&1 | tee .wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs/validate-crds.run.log
 
 verify-intent-pins:
 	@echo "[verify-intent-pins] validating intent_tier: image digests in versions.lock.yaml"
@@ -54,7 +54,7 @@ acceptance: supply-chain security-audit
 
 build:
 	@echo "[build] building provider, SRv6 controller, and migration CLI"
-	@for d in cmd/sonic-provider cmd/srv6-controller cmd/migration-translator; do \
+	@for d in cmd/srlinux-provider cmd/srv6-controller cmd/migration-translator; do \
 	  echo "Building $$d"; \
 	  GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -buildid=" ./$$d; \
 	done
@@ -68,7 +68,7 @@ build-intent-translator:
 	@GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -mod=vendor -trimpath -ldflags "-s -w -buildid=" ./cmd/intent-translator
 
 # Lifecycle wrappers (do not reimplement phases): call scripts directly
-PROF ?= sonic-vs
+PROF ?= srlinux
 CLUSTER ?= agentic-netops
 TIMEOUT ?= 180s
 
@@ -88,7 +88,7 @@ lab-qualify:
 	@"$(REPO_ROOT)/scripts/lib/qualify.sh"
 
 # verify-register: build a representative spec using current renderer scaffolds
-# and fail if any rendered path is not present in pkg/register/oc_vs_sonic.yaml.
+# and fail if any rendered path is not present in pkg/register/oc_vs_srlinux.yaml.
 verify-register:
 	@echo "[verify-register] checking renderer paths against register"
 	@go test ./tests/unit -run TestRendererPathsCoveredByRegister -v
@@ -116,9 +116,9 @@ test-static:
 	@for t in kubectl kind helm yq gnmic containerlab docker; do \
 	   command -v $$t >/dev/null || { echo "MISSING TOOL: $$t"; exit 1; }; \
 	 done
-	@echo ">> pinned SONiC image present locally"
-	@docker images --digests --format '{{.Digest}}' | grep -q "$$(yq e '.sonic_images.sonic_vs.image' versions.lock.yaml | sed 's/.*@//')" \
-	  || { echo "SONiC VS image not loaded — run: docker pull $$(yq e '.sonic_images.sonic_vs.image' versions.lock.yaml)"; exit 1; }
+	@echo ">> pinned SR Linux image present locally"
+	@docker images --digests --format '{{.Digest}}' | grep -q "$$(yq e '.srlinux_images.srlinux.image' versions.lock.yaml | sed 's/.*@//')" \
+	  || { echo "SR Linux image not loaded — run: ./scripts/install-deps.sh --pull"; exit 1; }
 
 
 test-envtest:

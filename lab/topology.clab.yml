@@ -8,53 +8,52 @@ mgmt:
 # network and container level (docker network create --label, node labels below),
 # which is how off.sh resolves its exact targets without broad globs. Containerlab
 # 0.79 removed the mgmt-level labels/annotations fields, so they are not declared here.
-# SONiC /etc/sonic persistence uses per-node named volumes (deterministic names,
-# removed explicitly by scripts/lib/containerlab.sh destroy).
+# SR Linux persists its own configuration inside the container filesystem, and the
+# underlay/overlay comes from the per-node startup-config below, so this topology
+# declares no named volumes: `containerlab deploy --reconfigure` re-applies the
+# startup-config and is the single source of node state.
 
 topology:
   kinds:
-    sonic-vs:
-      # Containerlab does not have a special kind for SONiC; we use a linux kind with SONiC images
-      kind: linux
-      image: localhost:5000/sonic-vs-gnmi:202505-v1@sha256:d1043aed28c98071c997a46d7e9e47823abacb06c31c068183541f8b5b5529e8
-      env:
-        TZ: UTC
+    nokia_srlinux:
+      image: ghcr.io/nokia/srlinux:26.7.2@sha256:0096fe3ebcafabb7253492e2060425fe027a168e0e066766d1e85efbb0b48be8
+      type: ixrd2l
 
   defaults:
     labels:
       agentic-netops.owner: agentic-netops
-      agentic-netops.topology: sonic-evpn
+      agentic-netops.topology: srlinux-evpn
 
   nodes:
+    # Fabric nodes. startup-config files carry SR Linux CLI `set /` statements
+    # (interfaces, dual-stack eBGP underlay, iBGP EVPN overlay, gNMI server, and —
+    # on the leaves — the bootstrap mac-vrf/ip-vrf). containerlab applies them on
+    # deploy and on --reconfigure; nothing is configured by a post-boot shell hook.
     spine01:
-      kind: sonic-vs
+      kind: nokia_srlinux
       mgmt-ipv4: 172.31.0.11
-      volumes:
-        - agentic-netops-spine01-etc-sonic:/etc/sonic
+      startup-config: profiles/srlinux/config/spine01.cfg
       labels:
         role: spine
         asn: "65000"
     spine02:
-      kind: sonic-vs
+      kind: nokia_srlinux
       mgmt-ipv4: 172.31.0.12
-      volumes:
-        - agentic-netops-spine02-etc-sonic:/etc/sonic
+      startup-config: profiles/srlinux/config/spine02.cfg
       labels:
         role: spine
         asn: "65000"
     leaf01:
-      kind: sonic-vs
+      kind: nokia_srlinux
       mgmt-ipv4: 172.31.0.21
-      volumes:
-        - agentic-netops-leaf01-etc-sonic:/etc/sonic
+      startup-config: profiles/srlinux/config/leaf01.cfg
       labels:
         role: leaf
         asn: "65101"
     leaf02:
-      kind: sonic-vs
+      kind: nokia_srlinux
       mgmt-ipv4: 172.31.0.22
-      volumes:
-        - agentic-netops-leaf02-etc-sonic:/etc/sonic
+      startup-config: profiles/srlinux/config/leaf02.cfg
       labels:
         role: leaf
         asn: "65102"
@@ -66,8 +65,8 @@ topology:
         role: evpn-client
         attach: leaf01
       exec:
-        # both EVPN clients share the bridged Vlan100 subnet (192.0.2.0/24) so
-        # Type-2 MAC/IP reachability is exercisable; /31s would put them in
+        # both EVPN clients share the bridged vlan100 mac-vrf subnet (192.0.2.0/24)
+        # so Type-2 MAC/IP reachability is exercisable; /31s would put them in
         # different subnets and break bridged L2 reachability
         - ip link set dev eth1 up
         - ip addr add 192.0.2.11/24 dev eth1
@@ -83,12 +82,15 @@ topology:
         - ip link set dev eth1 up
         - ip addr add 192.0.2.21/24 dev eth1
         - ip -6 addr add 2001:db8:9::21/64 dev eth1
+    # WAN-side clients on the leaves' ethernet-1/4 (the `wan1` logical attachment
+    # the ip-vrf construct renders on). The image name is kept for provenance;
+    # SRv6 has no data plane on this fabric and is declared not-applicable.
     srv6-client01:
       kind: linux
       image: localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f
       mgmt-ipv4: 172.31.0.111
       labels:
-        role: srv6-client
+        role: wan-client
         attach: leaf01
       exec:
         - ip link set dev eth1 up
@@ -99,7 +101,7 @@ topology:
       image: localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f
       mgmt-ipv4: 172.31.0.112
       labels:
-        role: srv6-client
+        role: wan-client
         attach: leaf02
       exec:
         - ip link set dev eth1 up
@@ -107,24 +109,25 @@ topology:
         - ip -6 addr add 2001:db8:4::41/127 dev eth1
 
   links:
-    # Spine-leaf fabric (explicit interface mapping) — MTU applies per link
-    - endpoints: [spine01:eth1, leaf01:eth1]
+    # Spine-leaf fabric (explicit interface mapping) — MTU applies per link.
+    # e1-N is containerlab's short form for SR Linux ethernet-1/N.
+    - endpoints: [spine01:e1-1, leaf01:e1-1]
       mtu: 9216
-    - endpoints: [spine01:eth2, leaf02:eth1]
+    - endpoints: [spine01:e1-2, leaf02:e1-1]
       mtu: 9216
-    - endpoints: [spine02:eth1, leaf01:eth2]
+    - endpoints: [spine02:e1-1, leaf01:e1-2]
       mtu: 9216
-    - endpoints: [spine02:eth2, leaf02:eth2]
-      mtu: 9216
-
-    # Leaf to EVPN Linux endpoints
-    - endpoints: [leaf01:eth3, client01:eth1]
-      mtu: 9216
-    - endpoints: [leaf02:eth3, client02:eth1]
+    - endpoints: [spine02:e1-2, leaf02:e1-2]
       mtu: 9216
 
-    # Leaf to SRv6 Linux endpoints (one per leaf)
-    - endpoints: [leaf01:eth4, srv6-client01:eth1]
+    # Leaf to EVPN Linux endpoints (bootstrap mac-vrf vlan100, untagged)
+    - endpoints: [leaf01:e1-3, client01:eth1]
       mtu: 9216
-    - endpoints: [leaf02:eth4, srv6-client02:eth1]
+    - endpoints: [leaf02:e1-3, client02:eth1]
+      mtu: 9216
+
+    # Leaf to WAN Linux endpoints (the `wan1` attachment of the ip-vrf construct)
+    - endpoints: [leaf01:e1-4, srv6-client01:eth1]
+      mtu: 9216
+    - endpoints: [leaf02:e1-4, srv6-client02:eth1]
       mtu: 9216

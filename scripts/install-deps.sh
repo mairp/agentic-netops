@@ -5,6 +5,7 @@
 #   ./scripts/install-deps.sh            install tools + resolve pins
 #   ./scripts/install-deps.sh --check    verify pins only, change nothing
 #   ./scripts/install-deps.sh --tools    install host tooling only
+#   ./scripts/install-deps.sh --pull     pull the digest-pinned SR Linux node image
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -29,11 +30,14 @@ declare -A UPSTREAM=(
   [containerlab]="srl-labs/containerlab:v0.79.0"
 )
 
-# YANG sources — tag-resolved, and a pinned sonic-buildimage branch commit
+# YANG sources — tag-resolved. The SR Linux native models ship with the image and
+# are versioned by the image release itself (srlinux_yang.release), so there is
+# no separate repository commit to resolve for them; the OpenConfig pin records
+# the translation reference the path register documents.
 OPENCONFIG_REPO="openconfig/public"
 OPENCONFIG_TAG="v5.9.0"
-SONIC_BUILDIMAGE_REPO="sonic-net/sonic-buildimage"
-SONIC_BUILDIMAGE_BRANCH="202405"
+SRLINUX_YANG_REPO="https://github.com/nokia/srlinux-yang-models"
+SRLINUX_RELEASE="26.7.2"
 
 # --- pinned images (digest resolved at runtime) --------------------------------
 declare -A IMAGES=(
@@ -42,8 +46,9 @@ declare -A IMAGES=(
   [otel_collector]="otel/opentelemetry-collector-contrib:0.104.0"
   [prometheus]="prom/prometheus:v2.53.1"
   [grafana]="grafana/grafana:11.2.0"
-  # SONiC VS: the containerlab-supported community build. Immutable date tag.
-  [sonic_vs]="docker.io/netreplica/docker-sonic-vs:20220111"
+  # Nokia SR Linux: the public containerlab node image. No local registry, no
+  # operator-acquired artifact, no KVM.
+  [srlinux]="ghcr.io/nokia/srlinux:26.7.2"
 )
 
 log()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -184,11 +189,15 @@ check_pins() {
     warn "floating references above (NFR-003 forbids them)"; bad=1
   fi
   if grep -nE 'MANUAL_ACQUISITION_REQUIRED' "$LOCK"; then
-    warn "sonic_vm conformance profile is not pinned (build via vrnetlab; see $LOCK)"
-    warn "this blocks SRv6 conformance acceptance, not Phases 3-6"
+    warn "an artifact above still requires manual acquisition; the open-source distribution pins everything it runs"; bad=1
   fi
-  if grep -qE '^\s*image:\s*MANUAL_ACQUISITION_REQUIRED' <(sed -n '/sonic_vs:/,/notes:/p' "$LOCK"); then
-    warn "sonic_vs is unpinned — Phase 2 qualification cannot run"; bad=1
+  if ! grep -qE '^\s*image:\s*ghcr\.io/nokia/srlinux:[^@[:space:]]+@sha256:[0-9a-f]{64}' "$LOCK"; then
+    warn "the SR Linux image is not pinned by digest — the lab cannot be qualified"; bad=1
+  fi
+  # The supply-chain policy forbids SONiC artifacts anywhere in the tree; a pin
+  # here would reintroduce one.
+  if grep -nEi 'sonic' "$LOCK"; then
+    warn "SONiC pin(s) above; the fabric is Nokia SR Linux"; bad=1
   fi
 
   (( bad == 0 )) || die "versions.lock.yaml contains unresolved pins"
@@ -214,11 +223,10 @@ resolve_pins() {
   otel_d="$(resolve_digest  "${IMAGES[otel_collector]}")"
   prom_d="$(resolve_digest  "${IMAGES[prometheus]}")"
   graf_d="$(resolve_digest  "${IMAGES[grafana]}")"
-  local sonic_vs_d oc_sha sonic_yang_sha
-  sonic_vs_d="$(resolve_digest "${IMAGES[sonic_vs]}")"
+  local srlinux_d oc_sha
+  srlinux_d="$(resolve_digest "${IMAGES[srlinux]}")"
   log "resolving YANG source commits"
   oc_sha="$(resolve_sha "$OPENCONFIG_REPO" "$OPENCONFIG_TAG")"
-  sonic_yang_sha="$(resolve_branch_sha "$SONIC_BUILDIMAGE_REPO" "$SONIC_BUILDIMAGE_BRANCH")"
 
   [[ -f "$LOCK" ]] && cp "$LOCK" "${LOCK}.bak"
 
@@ -279,52 +287,69 @@ tooling:
   grafana: ${IMAGES[grafana]%:*}@${graf_d}
 
 # ---------------------------------------------------------------------------
-# SONiC images
-#   sonic_vs  — pinned by digest to the containerlab-supported community build.
-#   sonic_vm  — no public registry serves it. Build via vrnetlab from a SONiC
-#               .img, then pin the resulting digest here:
-#                 git clone https://github.com/hellt/vrnetlab && cd vrnetlab/sonic
-#                 cp <sonic-vs.img> . && make docker-image
-#                 docker images --digests | grep sonic
-#               Required only for the SRv6/EVPN conformance profile when
-#               sonic_vs fails the capability gate (FR-003, FR-028).
+# Nokia SR Linux images
+#   srlinux — the public containerlab node image, pinned by the immutable
+#             manifest-list digest resolved above. Nothing needs to be built,
+#             acquired under separate terms, or served from a local registry.
 # ---------------------------------------------------------------------------
-sonic_images:
-  sonic_vs:
-    image: ${IMAGES[sonic_vs]%:*}@${sonic_vs_d}
-    tag: ${IMAGES[sonic_vs]#*:}
-    notes: Fast profile; no KVM required; containerlab kind sonic-vs
-  sonic_vm:
-    image: MANUAL_ACQUISITION_REQUIRED
-    digest: MANUAL_ACQUISITION_REQUIRED
-    notes: Conformance profile; build via vrnetlab; requires KVM
+srlinux_images:
+  srlinux:
+    image: ${IMAGES[srlinux]}@${srlinux_d}
+    digest: ${srlinux_d}
+    tag: ${IMAGES[srlinux]#*:}
+    notes: >
+      Containerlab kind nokia_srlinux, type ixrd2l; no KVM. gNMI Set/Get/Subscribe
+      are native (TLS 57400, JSON_IETF). SRv6 has no data plane on this container
+      and is declared not-applicable by the capability gate.
 
-sonic_yang:
-  openconfig:
-    repo: https://github.com/openconfig/public
-    release: ${OPENCONFIG_TAG}
-    commit: ${oc_sha}
-  sonic_native:
-    repo: https://github.com/sonic-net/sonic-buildimage
-    branch: ${SONIC_BUILDIMAGE_BRANCH}
-    commit: ${sonic_yang_sha}
+# ---------------------------------------------------------------------------
+# SR Linux / OpenConfig YANG schema pins and compatibility mapping per image
+# ---------------------------------------------------------------------------
+srlinux_yang:
+  release: v${SRLINUX_RELEASE}
+  model_repo: ${SRLINUX_YANG_REPO}
+  openconfig_repo: https://github.com/${OPENCONFIG_REPO}
+  openconfig_release: ${OPENCONFIG_TAG}
+  openconfig_commit: ${oc_sha}
+  compatibility:
+    - image: ${IMAGES[srlinux]}@${srlinux_d}
+      yang_version: srlinux_yang@v${SRLINUX_RELEASE}
+      oc_version: openconfig@${oc_sha:0:8}
   notes: >
-    Re-verify both against the acquired SONiC image before qualification (T004).
+    Re-verify the native model release against the pulled image before
+    qualification (sr_cli "show version").
 
 notes:
   redistribution: >
-    SONiC images must be acquired by the operator under upstream terms and are
-    not redistributed here. All other artifacts are pinned by immutable digest
-    or tag-resolved commit SHA.
+    Every runtime artifact is publicly pullable and pinned by immutable digest
+    or tag-resolved commit SHA. The SR Linux node image is served from the
+    public ghcr.io/nokia/srlinux repository under Nokia's own terms; nothing in
+    this tree requires an operator-acquired or locally built network OS image.
 LOCKEOF
 
   log "wrote $LOCK (previous saved as ${LOCK##*/}.bak)"
 }
 
 # ------------------------------------------------------------------------------
+# 6. pull the pinned node image
+# ------------------------------------------------------------------------------
+# The lab cannot be deployed or qualified without it, and `make test-static`
+# asserts it is present locally. Pull by the digest recorded in the lock file so
+# the local cache holds exactly the pinned artifact, never a re-resolved tag.
+pull_node_image() {
+  local ref
+  ref="$(grep -oE 'ghcr\.io/nokia/srlinux:[^@[:space:]]+@sha256:[0-9a-f]{64}' "$LOCK" | head -n1)"
+  [[ -n "$ref" ]] || die "no digest-pinned SR Linux image in $LOCK"
+  log "pulling $ref"
+  docker pull "$ref" >/dev/null || die "cannot pull $ref — check registry connectivity"
+  log "SR Linux node image present locally"
+}
+
+# ------------------------------------------------------------------------------
 case "$MODE" in
   --check) check_pins ;;
   --tools) install_tools ;;
-  all|"")  install_tools; resolve_pins; check_pins || true ;;
-  *)       die "unknown mode: $MODE (use --check, --tools, or no argument)" ;;
+  --pull)  pull_node_image ;;
+  all|"")  install_tools; resolve_pins; check_pins || true; pull_node_image ;;
+  *)       die "unknown mode: $MODE (use --check, --tools, --pull, or no argument)" ;;
 esac

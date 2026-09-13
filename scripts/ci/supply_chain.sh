@@ -4,39 +4,44 @@
 # - Vulnerabilities: run govulncheck when available (advisory)
 # - Image provenance: require pinned digests for platform images (enforced)
 # - SBOM: run syft when available to generate repository SBOM (advisory)
-# - Enforce SR Linux absence from dependency graph/runtime manifests per FR-020 (enforced)
+# - Enforce SONiC absence from dependency graph/runtime manifests per FR-013 (enforced)
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-REPORT_DIR="${ROOT_DIR}/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
+REPORT_DIR="${ROOT_DIR}/.wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs"
 mkdir -p "$REPORT_DIR"
 
 fail=0
 
 log() { echo "[supply-chain] $*" >&2; }
 
-# 1) Enforce SR Linux absence in go dependency graph and manifests (FR-020)
-log "Checking SR Linux absence in go.mod/go.sum, Dockerfiles, and Kubernetes manifests"
-SR_PAT='\bsr[ -]?linux\b|ghcr\.io/nokia/srlinux|nokia_srlinux'
+# 1) Enforce SONiC absence in go dependency graph and manifests (FR-013)
+#
+# The policy is inverted from the previous fabric: this distribution runs on the
+# public Nokia SR Linux image, and no SONiC artifact may appear in the runtime
+# manifests or the dependency graph. Deliberate historical prose lives under
+# docs/legacy/, which is not scanned.
+log "Checking SONiC absence in go.mod/go.sum, Dockerfiles, and Kubernetes manifests"
+SONIC_PAT='\bsonic\b|sonic-vs|sonic-net|sonic_yang'
 if command -v rg >/dev/null 2>&1; then
-  SR_MATCHES=$(rg -i -n --hidden \
+  SONIC_MATCHES=$(rg -i -n --hidden \
     -g '!**/.git/**' \
     -g '!**/vendor/**' \
-    -e "$SR_PAT" \
-    go.mod go.sum cmd config deploy || true)
+    -e "$SONIC_PAT" \
+    go.mod go.sum cmd config deploy lab || true)
 else
   # Fallback to grep when ripgrep is unavailable (CI/minimal envs)
-  SR_MATCHES=$(grep -RinE -I \
+  SONIC_MATCHES=$(grep -RinE -I \
     --exclude-dir=.git \
     --exclude-dir=vendor \
-    -e "$SR_PAT" \
-    go.mod go.sum cmd config deploy 2>/dev/null || true)
+    -e "$SONIC_PAT" \
+    go.mod go.sum cmd config deploy lab 2>/dev/null || true)
 fi
-if [[ -n "$SR_MATCHES" ]]; then
-  echo "::error title=SR Linux mention(s) in dependency graph/manifests::${SR_MATCHES}" | tee "$REPORT_DIR/supply-chain.srlinux.matches.txt"
+if [[ -n "$SONIC_MATCHES" ]]; then
+  echo "::error title=SONiC artifact(s) in dependency graph/manifests::${SONIC_MATCHES}" | tee "$REPORT_DIR/supply-chain.sonic.matches.txt"
   fail=1
 else
-  echo "No SR Linux artifacts detected in dependency graph/manifests" | tee "$REPORT_DIR/supply-chain.srlinux.ok.txt"
+  echo "No SONiC artifacts detected in dependency graph/manifests" | tee "$REPORT_DIR/supply-chain.sonic.ok.txt"
 fi
 
 # 2) Image provenance: require pinned digests for platform images in deploy/**.yaml
@@ -84,4 +89,4 @@ if [[ "$fail" -ne 0 ]]; then
   log "Supply-chain checks failed"
   exit 1
 fi
-log "Supply-chain checks passed (enforced: SR Linux absence, image digests; advisory: others)"
+log "Supply-chain checks passed (enforced: SONiC absence, image digests; advisory: others)"

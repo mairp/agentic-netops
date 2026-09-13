@@ -115,12 +115,17 @@ preflight::mtu() {
   if (( maxmtu < 1500 )); then preflight::warn "maximum host MTU $maxmtu < 1500; VXLAN overhead may break traffic"; fi
 }
 
-preflight::kvm_check() {
-  local profile=${AGENTIC_NETOPS_PROFILE:-sonic-vs}
-  if [[ "$profile" == "sonic-vm" ]]; then
-    # Require KVM when sonic-vm profile selected
-    [[ -e /dev/kvm ]] || preflight::die "/dev/kvm not present for sonic-vm profile"
-  fi
+# The lab has exactly one profile, and it needs no hardware emulation: the
+# Nokia SR Linux container runs on any Linux host with Docker. The KVM gate this
+# replaces existed only for the previous generation's VM-based conformance
+# profile, the documented fallback when its container image failed the
+# capability gate (docs/legacy/). There is no such fallback here, so there is
+# nothing to gate on. Unknown profiles still fail closed.
+preflight::profile_check() {
+  local profile=${AGENTIC_NETOPS_PROFILE:-srlinux}
+  local root; root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+  [[ -d "$root/lab/profiles/$profile" ]] \
+    || preflight::die "unknown lab profile '$profile' (no lab/profiles/$profile); the only profile is 'srlinux'"
 }
 
 # Extract value from versions.lock.yaml given a top-level section and key
@@ -215,7 +220,7 @@ preflight::run() {
   preflight::runtime_privileges
   preflight::address_conflicts
   preflight::mtu
-  preflight::kvm_check
+  preflight::profile_check
   preflight::tool_versions
   preflight::intent_tier_headroom
   echo "[preflight] basic host checks passed"

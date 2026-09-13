@@ -1,17 +1,33 @@
-# Required YANG path qualification (T014) — sonic-db origin mapping.
+# Required YANG path qualification (FR-005) — SR Linux native models.
 #
-# The OpenConfig translib path forms are advertised by gNMI Capabilities but NOT mapped
-# in this sonic-gnmi build (xYangSpecMap miss — docs/SRV6_GNMI_CAPABILITY_FINDINGS.md
-# §4.2), so each required path is qualified through its CONFIG_DB table on the sonic-db
-# origin. Format: <label>|<sonic-db get path>|<table-name>
-# Tables listed in NONEMPTY_TABLES (DEVICE_METADATA, TELEMETRY) must return content;
-# tables that are legitimately empty on a freshly bootstrapped node are asserted for a
-# well-formed reply only — their content is covered by the configured-fabric suites.
-openconfig-interfaces|sonic-db:/CONFIG_DB/INTERFACE|INTERFACE
-openconfig-network-instance|sonic-db:/CONFIG_DB/VRF|VRF
-openconfig-vlan|sonic-db:/CONFIG_DB/VLAN|VLAN
-openconfig-bgp|sonic-db:/CONFIG_DB/BGP_GLOBALS|BGP_GLOBALS
-sonic-telemetry|/TELEMETRY|TELEMETRY
-sonic-vrf|sonic-db:/CONFIG_DB/VRF|VRF
-sonic-tunnel|sonic-db:/CONFIG_DB/TUNNEL|TUNNEL
-sonic-srv6|sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS|SRV6_MY_LOCATORS
+# Every path below is read over gNMI against the native srl_nokia-* models, which
+# are the models the renderer writes and the executor verifies. There is no
+# translation layer in the write path, so there is no gap between "the path the
+# gate qualified" and "the path the product uses".
+#
+# Format: <label>|<gnmi get path>|<expectation>
+#   content  — the path MUST come back with a non-empty value on a bootstrapped
+#              node. An empty reply is a failure, not an absence.
+#   optional — the subtree is legitimately empty until a Network renders onto it.
+#              A well-formed reply (including NotFound) passes; an rpc error does
+#              not. Content for these is covered by the construct suites.
+#
+# The default TARGETS are the two leaves, because the bootstrap tenants
+# (vlan100 mac-vrf, VrfBlue ip-vrf, vxlan1) only exist there — the spines carry
+# no tenant state by design and fabric_verify.sh asserts that separately.
+srl_nokia-interfaces|/interface[name=ethernet-1/1]|content
+srl_nokia-interfaces-subinterface|/interface[name=ethernet-1/1]/subinterface[index=0]|content
+srl_nokia-interfaces-bridged|/interface[name=ethernet-1/3]/subinterface[index=0]|content
+srl_nokia-system-info|/system/information|content
+srl_nokia-system-gnmi-server|/system/gnmi-server|content
+srl_nokia-system-aaa|/system/aaa/authentication|content
+srl_nokia-network-instance|/network-instance[name=default]|content
+srl_nokia-network-instance-bgp|/network-instance[name=default]/protocols/bgp|content
+srl_nokia-network-instance-mac-vrf|/network-instance[name=vlan100]|content
+srl_nokia-bgp-evpn|/network-instance[name=vlan100]/protocols/bgp-evpn|content
+srl_nokia-bgp-vpn|/network-instance[name=vlan100]/protocols/bgp-vpn|content
+srl_nokia-network-instance-ip-vrf|/network-instance[name=VrfBlue]|content
+srl_nokia-tunnel-interfaces|/tunnel-interface[name=vxlan1]|content
+srl_nokia-tunnel-vxlan-interface|/tunnel-interface[name=vxlan1]/vxlan-interface[index=100]|content
+srl_nokia-acl|/acl|optional
+srl_nokia-routing-policy|/routing-policy/policy[name=export-loopbacks]|content

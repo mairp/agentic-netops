@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# T048 [US2] Repeat-apply proof: unchanged intent produces zero SDC spec writes and zero gNMI Sets
+# Repeat-apply proof: unchanged intent produces zero SDC spec writes and zero
+# gNMI Sets (FR-006 idempotency).
+#
+# On SR Linux an update that matches running configuration is a no-op commit, so
+# idempotency is asserted where it is observable: no new Config spec hash and no
+# new Set/Apply/Transaction event on a no-op re-apply.
 set -euo pipefail
 
 CTX=${CTX:-kind-agentic-netops}
-PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs}
+PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs}
 mkdir -p "$PROOF_DIR"
 
 get_config_hashes() {

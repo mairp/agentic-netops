@@ -5,7 +5,7 @@
 # with STATUS first (PASS|FAIL|SKIP-LIVE) followed by the suite name.
 set -euo pipefail
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
+PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs"
 SUMMARY="$PROOFS_DIR/tests.summary.txt"
 mkdir -p "$PROOFS_DIR"
 
@@ -18,8 +18,8 @@ log_for(){
     integration)       echo "$PROOFS_DIR/tests.integration.log" ;;
     failure)           echo "$PROOFS_DIR/tests.failure.log" ;;
     traffic)           echo "$PROOFS_DIR/tests.traffic.log" ;;
-    srv6-capture)      echo "$PROOFS_DIR/tests.srv6-capture.log" ;;
-    srv6-failover)     echo "$PROOFS_DIR/tests.srv6-failover.log" ;;
+    evpn-*)            echo "$PROOFS_DIR/tests.${1}.log" ;;
+    mtu-ecmp)          echo "$PROOFS_DIR/tests.mtu-ecmp.log" ;;
     topology-parity)   echo "$PROOFS_DIR/tests.topology-parity.log" ;;
     observability)     echo "$PROOFS_DIR/tests.observability.log" ;;
     teardown)          echo "$PROOFS_DIR/tests.teardown.log" ;;
@@ -55,15 +55,22 @@ status_for(){
     integration)
       # Mark PASS if there are positive assertions and no failures/skip markers
       grep -q 'assertion passed' "$log" && { echo PASS; return; } || { echo FAIL; return; } ;;
-    failure|traffic|srv6-capture|srv6-failover)
+    failure|traffic|mtu-ecmp)
       # These suites use explicit SKIP-LIVE when lab is absent; otherwise rely on ERROR/ASSERTION FAILED above
       echo PASS; return ;;
+    evpn-*)
+      # evpn_suite.sh prints "assertion passed" on every satisfied check and
+      # "ASSERTION FAILED" otherwise (caught above), so a log with neither is
+      # not a pass.
+      grep -q 'assertion passed' "$log" && { echo PASS; return; } || { echo FAIL; return; } ;;
     *) echo FAIL ;;
   esac
 }
 
 main(){
-  local suites=(api unit golden sdc-validation integration failure traffic srv6-capture srv6-failover topology-parity observability teardown)
+  local suites=(api unit golden sdc-validation integration failure traffic
+                evpn-EVPN-Type2 evpn-EVPN-Type3 evpn-EVPN-Type5 evpn-Remote-VTEP evpn-Overlay-Traffic
+                mtu-ecmp topology-parity observability teardown)
   : > "$SUMMARY"
   for s in "${suites[@]}"; do
     l=$(log_for "$s")

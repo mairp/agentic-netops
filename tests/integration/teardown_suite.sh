@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# T079: Teardown suite — exercise scripts/off.sh from live and partial states,
+# Teardown suite — exercise scripts/off.sh from live and partial states,
 # verify idempotence, evidence capture, and cleanliness checks. Emits
 # TEARDOWN_SUITE_OK on success.
 set -euo pipefail
@@ -8,7 +8,7 @@ ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 OFF_SH="$ROOT_DIR/scripts/off.sh"
 PROV_SH="$ROOT_DIR/scripts/provision.sh"
 CLUSTER=${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}
-PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
+PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-agentic-netops-srlinux-evpn-fabric/gates/proofs"
 mkdir -p "$PROOFS_DIR/cycles"
 
 log(){ echo "[teardown] $*"; }
