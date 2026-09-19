@@ -1,6 +1,7 @@
 # agentic-netops - Autonomous intent-to-fabric operations.
 
 [![CI](https://github.com/mairp/agentic-netops/actions/workflows/ci.yaml/badge.svg)](https://github.com/mairp/agentic-netops/actions/workflows/ci.yaml)
+[![Mergify](https://img.shields.io/endpoint.svg?url=https://api.mergify.com/v1/badges/mairp/agentic-netops&style=flat)](https://mergify.com)
 [![SONiC](https://img.shields.io/badge/SONiC-202505-blue)](versions.lock.yaml)
 [![FRR](https://img.shields.io/badge/FRR-10.3-blue)](versions.lock.yaml)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.31.6-326ce5)](versions.lock.yaml)
