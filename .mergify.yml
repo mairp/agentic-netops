@@ -1,0 +1,31 @@
+# Mergify: merge a pull request into main automatically once every CI job
+# is green. Put the `do-not-merge` label on a PR (or keep it a draft) to hold it.
+queue_rules:
+  - name: default
+    merge_method: squash
+    queue_conditions:
+      - base = main
+      - -draft
+      - -conflict
+      - label != do-not-merge
+      - check-success = build-and-test
+      - check-success = python-tier (openai/gpt-4o-mini)
+      - check-success = python-tier (anthropic/claude-3-haiku)
+      - check-success = ui
+      - check-success = no-credential-literals
+      - check-success = tier-absent-gates
+      - check-success = lifecycle-idempotence
+
+pull_request_rules:
+  - name: automatic merge when CI passes
+    conditions:
+      - base = main
+    actions:
+      queue:
+        name: default
+
+  - name: delete the head branch after merge
+    conditions:
+      - merged
+    actions:
+      delete_head_branch: {}
