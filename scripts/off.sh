@@ -61,7 +61,11 @@ fi
 rm -f "${SCRIPT_DIR}/../secrets/gnmi.key" "${SCRIPT_DIR}/../secrets/gnmi.crt" "${SCRIPT_DIR}/../secrets/ca.crt" 2>/dev/null || true
 
 # Idempotent containerlab teardown and cleanup checks
-if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
+if ! command -v containerlab >/dev/null 2>&1; then
+  # No containerlab on this host means no lab was ever deployed here (e.g. a
+  # CI runner); there is nothing to destroy.
+  echo "[off] containerlab not installed; no lab to tear down" >&2
+elif [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
   "${LIB_DIR}/containerlab.sh" destroy || {
     echo "[off] containerlab destroy reported leftovers" >&2
     exit 1

@@ -121,7 +121,7 @@ jobs:
           fi
           # Hard-coded secret assignments in manifests/Dockerfiles/scripts.
           # Placeholders are allowed: ${...}, <...>, empty, or 'changeme' markers.
-          if grep -RInE '(password|passwd|secret|api_?key|token)[[:space:]]*[:=][[:space:]]*["'"']?[A-Za-z0-9!@#$%^&*._-]{8,}' deploy/agents docker \
+          if grep -RInE '(password|passwd|secret|api_?key|token)[[:space:]]*[:=][[:space:]]*["'\'']?[A-Za-z0-9!@#$%^&*._-]{8,}' deploy/agents docker \
              | grep -vE '\$\{|<[^>]*>|changeme|CHANGE_ME|REPLACE_ME|generated|example' ; then
             echo "FAIL: hard-coded credential literal detected in deploy/agents/ or docker/" >&2
             exit 1
