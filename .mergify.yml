@@ -1,5 +1,7 @@
-# Mergify: merge a pull request into main automatically once every CI job
-# is green. Put the `do-not-merge` label on a PR (or keep it a draft) to hold it.
+# Mergify: queue and squash-merge every pull request into main as soon as all
+# CI jobs are green. Keep a PR in draft or label it `do-not-merge` to hold it.
+# The head branch is deleted by the repository's "delete branch on merge"
+# setting, not by Mergify.
 queue_rules:
   - name: default
     merge_method: squash
@@ -16,11 +18,7 @@ queue_rules:
       - check-success = tier-absent-gates
       - check-success = lifecycle-idempotence
 
-pull_request_rules:
-  - name: automatic merge when CI passes
-    conditions:
-      - base = main
-    actions:
-      queue:
-        name: default
-
+# Enqueue automatically instead of waiting for the "Queue this pull request"
+# checkbox or `@mergifyio queue`.
+merge_protections_settings:
+  auto_merge_conditions: true
