@@ -17,6 +17,12 @@ queue_rules:
       - check-success = no-credential-literals
       - check-success = tier-absent-gates
       - check-success = lifecycle-idempotence
+      # No AI-assistant session or conversation may be exposed (.github/workflows/no-session-links.yml):
+      # the status covers files, commit messages and the whole PR conversation; title and body are
+      # also refused here directly.
+      - check-success = no-session-links
+      - -title ~= (?i)claude[.]ai
+      - -body ~= (?i)claude[.]ai
 
 # Enqueue automatically instead of waiting for the "Queue this pull request"
 # checkbox or `@mergifyio queue`.
