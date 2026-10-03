@@ -7,7 +7,7 @@
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.31.6-326ce5)](versions.lock.yaml)
 [![containerlab](https://img.shields.io/badge/containerlab-sonic--vs-0a7bbb)](lab/topology.clab.yml)
 [![Tutorial](https://img.shields.io/badge/docs-TUTORIAL.md-green)](TUTORIAL.md)
-[![Built with Specstride](https://img.shields.io/badge/built%20with-Specstride-5a9a0a)](https://github.com/mairp/specstride)
+[![Built with Specstride](https://img.shields.io/badge/built%20with-Specstride-5a9a0a)](https://specstride.ai)
 
 [![AGNTCY](https://img.shields.io/badge/AGNTCY-intent%20tier-6f42c1)](agents/README.md)
 [![LangGraph](https://img.shields.io/badge/LangGraph-supervisor-1c3c3c)](agents/supervisors/provisioning)
