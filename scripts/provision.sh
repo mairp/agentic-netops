@@ -271,7 +271,6 @@ cm = {"apiVersion": "v1", "kind": "ConfigMap",
         # L3VNI/Type-5 limitation is tracked separately as D-A2.
         "cap-sai-srv6": "true",
     }}
-}
 print(json.dumps(cm, indent=1))
 PY
 fi
