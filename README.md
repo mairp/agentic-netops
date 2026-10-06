@@ -40,7 +40,7 @@ reported deployed, and then proven in the terminal with `kubectl` (the
 the SONiC leaf itself (CONFIG_DB, the bridge, the tenant VRF's L3VNI and
 Type-5 EVPN route, the VNI tunnel map on both leaves).
 
-https://github.com/user-attachments/assets/1568c5d4-9a05-4028-9c70-200ce6b6cd2b
+https://github.com/user-attachments/assets/09b5c615-8dc5-4e3e-8937-f6eb16ea770f
 
 Every "deployed" claim in the recording was re-verified from `kubectl` JSON;
 the collected evidence is in
