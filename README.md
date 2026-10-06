@@ -29,16 +29,9 @@ feeding back into it.
 Everything below is self-contained: the instructions live here rather than in
 a separate specification.
 
-> **Built with [Specstride](https://specstride.ai).** Not a badge — the method.
-> Every spec, plan, task and verification gate in this lab was driven through
-> Specstride's spec-driven pipeline: the autonomous tier, the controllers and
-> the fabric weren't hand-waved into existence, they were *specified* into
-> existence, then proven against the running system. A network that writes
-> itself deserves a process that does too — **spec it, stride it, ship it.**
-
 ## Demo
 
-Full walkthrough (~6½ min, 1.7x) — the intent tier end to end: three services
+Full walkthrough (~6½ min, 6x) — the intent tier end to end: three services
 provisioned from plain-language prompts typed into the operator console (a
 **vlan**, an **ip-vrf** with its prefix, and a **mac-vrf** stretched across
 both leaves), each one confirmed through the mapper and allocator agents,
@@ -47,7 +40,7 @@ reported deployed, and then proven in the terminal with `kubectl` (the
 the SONiC leaf itself (CONFIG_DB, the bridge, the tenant VRF's L3VNI and
 Type-5 EVPN route, the VNI tunnel map on both leaves).
 
-[![Three services provisioned from plain-language prompts and proven on the fabric](docs/media/agentic-netops-demo-thumb.jpg)](docs/media/agentic-netops-demo.mp4)
+https://github.com/user-attachments/assets/09b5c615-8dc5-4e3e-8937-f6eb16ea770f
 
 Every "deployed" claim in the recording was re-verified from `kubectl` JSON;
 the collected evidence is in
