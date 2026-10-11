@@ -17,7 +17,7 @@ from Kubernetes. For the call-planning view see
 cd /root/agentic-netops
 cp .env.example .env          # set LLM_MODEL — without it the tier deploys but cannot reason
 ./scripts/provision.sh --profile sonic-vs --cluster-name agentic-netops --with-intent-tier
-export CTX=--context kind-agentic-netops
+export CTX='--context kind-agentic-netops'
 ```
 
 > **Paste-safety tip:** every command below is a single line on purpose. When
