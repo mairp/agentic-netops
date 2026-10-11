@@ -11,6 +11,10 @@
 # documented limitation, not asserted here.
 set -euo pipefail
 
+# node-side op dispatch (docker exec vs SSH-into-guest for sonic-vm)
+# shellcheck source=lib/node_exec.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/node_exec.sh"
+
 GNMIC_BIN=${GNMIC_BIN:-gnmic}
 GNMI_USER=${GNMI_USER:-admin}
 GNMI_PASS=${GNMI_PASS:-admin}
@@ -69,7 +73,7 @@ node_for_ip() {
 # gcu_apply <container> <patch-json> — apply a JSON patch to CONFIG_DB through GCU
 gcu_apply() {
   local c=$1 patch=$2
-  printf '%s' "$patch" | docker exec -i "$c" bash -c 'cat > /tmp/.gate_patch.json && config apply-patch -f CONFIGDB -p /tmp/.gate_patch.json 2>/dev/null >/dev/null'
+  printf '%s' "$patch" | node_run_i "$c" 'cat > /tmp/.gate_patch.json && sudo config apply-patch -f CONFIGDB -p /tmp/.gate_patch.json 2>/dev/null >/dev/null'
   return $?
 }
 
@@ -80,7 +84,7 @@ gcu_apply() {
 # itself still goes through GCU apply/remove patches.
 srv6_force_clean() {
   local c=$1
-  docker exec "$c" bash -c 'redis-cli -n 4 --scan --pattern "SRV6_MY_LOCATORS*" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern "SRV6_MY_SIDS*" | xargs -r redis-cli -n 4 del >/dev/null; config save -y >/dev/null 2>&1'
+  node_run "$c" 'redis-cli -n 4 --scan --pattern "SRV6_MY_LOCATORS*" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern "SRV6_MY_SIDS*" | xargs -r redis-cli -n 4 del >/dev/null; sudo config save -y >/dev/null 2>&1'
 }
 
 

@@ -6,7 +6,9 @@
 # itself still goes through GCU apply/remove patches.
 srv6_force_clean() {
   local c=$1
-  docker exec "$c" bash -c 'redis-cli -n 4 --scan --pattern "SRV6_MY_LOCATORS*" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern "SRV6_MY_SIDS*" | xargs -r redis-cli -n 4 del >/dev/null; config save -y >/dev/null 2>&1'
+  # shellcheck source=../../tests/integration/lib/node_exec.sh
+  source "$(dirname -- "${BASH_SOURCE[0]}")/../../tests/integration/lib/node_exec.sh"
+  node_run "$c" 'redis-cli -n 4 --scan --pattern "SRV6_MY_LOCATORS*" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern "SRV6_MY_SIDS*" | xargs -r redis-cli -n 4 del >/dev/null; sudo config save -y >/dev/null 2>&1'
 }
 
 # Persistence qualification helper: program a value, restart SONiC containers,
@@ -57,7 +59,7 @@ node_for_ip() {
 
 gcu_apply() {
   local c=$1 patch=$2
-  printf '%s' "$patch" | docker exec -i "$c" bash -c 'cat > /tmp/.persist_patch.json && config apply-patch -f CONFIGDB -p /tmp/.persist_patch.json 2>/dev/null >/dev/null'
+  printf '%s' "$patch" | node_run_i "$c" 'cat > /tmp/.persist_patch.json && sudo config apply-patch -f CONFIGDB -p /tmp/.persist_patch.json 2>/dev/null >/dev/null'
 }
 
 gcu_write() {
@@ -75,7 +77,7 @@ PY
   # Persist to /etc/sonic/config_db.json: start.sh reloads CONFIG_DB from the file
   # on every boot (configdb-load.sh), so a redis-only write would be lost — the
   # persisted file is exactly what T014 is about ("Ensure /etc/sonic persists").
-  docker exec "$node" bash -c 'config save -y >/dev/null 2>&1' || die "config save failed on $node"
+  node_run "$node" 'sudo config save -y >/dev/null 2>&1' || die "config save failed on $node"
 }
 
 gcu_delete() {
@@ -86,7 +88,7 @@ gcu_delete() {
   {"op":"remove","path":"/SRV6_MY_LOCATORS"}
 ]'
   gcu_apply "$node" "$patch" || note "cleanup patch failed on $node (leftover ${LOC_NAME} tolerable)"
-  docker exec "$node" bash -c 'config save -y >/dev/null 2>&1' || true
+  node_run "$node" 'sudo config save -y >/dev/null 2>&1' || true
 }
 
 gnmi_get() {
@@ -131,6 +133,18 @@ restart_sonic_containers() {
   local ids; ids=$(docker ps -q --filter "name=${CLAB_PREFIX}") || true
   if [[ -z "$ids" ]]; then echo "[persist] no Agentic NetOps fabric containers found" >&2; return 1; fi
   local c
+  # sonic-vm: the launcher is a QEMU wrapper — the persistence surface is the
+  # GUEST's /etc/sonic/config_db.json. `config reload` re-reads exactly that
+  # file into CONFIG_DB (redis is flushed and swss re-runs), exercising the
+  # same persisted-path guarantee as the supervisord restart below.
+  if node_is_vm "$(docker ps --format '{{.Names}}' | grep "^${CLAB_PREFIX}" | head -n1)"; then
+    for c in $(docker ps --format '{{.Names}}' | grep "^${CLAB_PREFIX}"); do
+      node_is_vm "$c" || continue
+      echo "[persist] config reload in guest of $c"
+      node_run "$c" 'sudo config reload -y' >/dev/null 2>&1 || echo "[persist] WARN: config reload failed on $c" >&2
+    done
+    return 0
+  fi
   # stop supervisord cleanly inside every node: all programs (redis, swss,
   # bgpd, telemetry) go down — this is the destructive part of the restart.
   # Wait for the old process to fully release its HTTP socket before any
