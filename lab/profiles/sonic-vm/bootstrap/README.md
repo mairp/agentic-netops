@@ -10,13 +10,20 @@ VM-specific execution model (differs from sonic-vs):
   inside a VM. `clab::bootstrap` docker-exec's `init-sonic-bootstrap.sh` into the
   launcher, which then provisions the guest over SSH (vrnetlab forwards guest
   port 22 into the launcher namespace; `sshpass` ships in the vrnetlab sonic
-  image; factory credentials `admin`/`YourPaSsWoRd` are overridable via
-  `SONIC_VM_ADMIN_USER` / `SONIC_VM_ADMIN_PASS`).
+  image). vrnetlab resets the guest admin password to containerlab's `PASSWORD`
+  env (default `admin`) during launch — the factory `YourPaSsWoRd` no longer
+  works afterward. The guest is reachable on the **launcher's own mgmt IP**, not
+  127.0.0.1 (the loopback→slirp path stalls); `SONIC_VM_GUEST_ADDR`,
+  `SONIC_VM_ADMIN_USER` / `SONIC_VM_ADMIN_PASS` override the discovery/creds.
 - TLS key/cert are installed into the guest's /etc/sonic/telemetry/ (mandatory
   .cer suffixes, same YANG validation as the VS profile).
-- gNMI/telemetry is enabled via TELEMETRY|gnmi + TELEMETRY|certs in the guest
-  CONFIG_DB (`config load` + `config save` for persistence), TLS only, JSON_IETF
-  encoding. The gNMI account is created as a Linux user in the guest (PAM/sshd
+- gNMI/telemetry is enabled via the **`GNMI` CONFIG_DB table** (`GNMI|gnmi` +
+  `GNMI|certs`) in the guest (`config load` + `config save` for persistence),
+  TLS only, JSON_IETF encoding. In the 202505 image `gnmi-native.sh` renders
+  `telemetry_vars.j2` against `GNMI` — writing only the legacy `TELEMETRY`
+  table leaves the table undefined and the server starts with `--noTLS`. The
+  bootstrap applies both tables (`gnmi_config_db.json`) for compatibility.
+  The gNMI account is created as a Linux user in the guest (PAM/sshd
   password auth), with the lab-generated credentials from gnmi_creds.json.
 - There is deliberately no configure-fabric-bgp.sh here: it drives FRR/redis via
   docker exec, which cannot cross into the VM guest. Fabric configuration is

@@ -158,7 +158,8 @@ Verify on the fabric:
 docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show segment-routing srv6 locator'
 ```
 
-Honest limitations to state: full SRv6 conformance runs on the `sonic-vm` profile;
+Honest limitations to state: full SRv6/EVPN conformance runs on the `sonic-vm`
+profile and passes the full qualification gate there (17/17, `scripts/lib/qualify.sh`);
 on the virtual-SONiC image the proven path is GCU-write → gNMI read-back witnesses
 (locator, `SRV6_MY_SIDS`, counters) — details in
 [SRV6_GNMI_CAPABILITY_FINDINGS.md](SRV6_GNMI_CAPABILITY_FINDINGS.md).
