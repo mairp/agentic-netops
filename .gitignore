@@ -54,3 +54,12 @@ testautomation/
 /migration-translator
 /intent-translator
 /fabric-executor
+
+# Mixture-of-loops generated pipeline artifacts (contract + verification plan stay
+# committable; the launcher bundle and run state do not).
+.mixture-of-loops/**
+!.mixture-of-loops/**/
+!.mixture-of-loops/**/launch-contract.json
+!.mixture-of-loops/**/verification-commands.json
+.mixture-of-loops/**/generated/
+.mixture-of-loops/**/runs/

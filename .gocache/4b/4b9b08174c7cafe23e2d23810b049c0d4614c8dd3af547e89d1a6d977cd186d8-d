@@ -1,8 +1,0 @@
-./acl.go
-./batch.go
-./constructs.go
-./input.go
-./parse.go
-./site.go
-./translate.go
-./yaml.go
