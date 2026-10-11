@@ -97,7 +97,7 @@ sonic_images:
       artifact ships no gNMI telemetry server.
   sonic_vm:
     image: local/sonic-vm
-    digest: sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5
+    digest: sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
     notes: Conformance profile; build via vrnetlab; requires KVM; digest is operator-built
 
 # ---------------------------------------------------------------------------
@@ -159,7 +159,7 @@ sonic_yang:
     - image: localhost:5000/sonic-vs-gnmi:202505-v1@sha256:d1043aed28c98071c997a46d7e9e47823abacb06c31c068183541f8b5b5529e8
       oc_version: openconfig@f3443414
       native_version: sonic_yang@cfc766e1
-    - image: local/sonic-vm@sha256:b2c77f0a1426e7a93cad0b191f0c04dcf98b3f4b7467348ed550f4b1a706e3d5
+    - image: local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
       oc_version: openconfig@f3443414
       native_version: sonic_yang@cfc766e1
   notes: >

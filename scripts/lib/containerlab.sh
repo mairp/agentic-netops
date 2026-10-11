@@ -3,14 +3,27 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-TOPO_FILE="${ROOT_DIR}/lab/topology.clab.yml"
 MGMT_NET="agentic-netops-mgmt"
 LABEL_OWNER="agentic-netops"
+
+# Topology file depends on the active profile: the sonic-vm conformance profile
+# deploys full SONiC VMs (containerlab native sonic-vm kind) and must not reuse
+# the sonic-vs linux-kind topology. AGENTIC_NETOPS_PROFILE is exported by
+# scripts/provision.sh; anything else falls back to the fast-profile topology.
+clab::topo_file() {
+  if [[ "${AGENTIC_NETOPS_PROFILE:-sonic-vs}" == "sonic-vm" ]]; then
+    echo "${ROOT_DIR}/lab/topology.sonic-vm.clab.yml"
+  else
+    echo "${ROOT_DIR}/lab/topology.clab.yml"
+  fi
+}
+TOPO_FILE=$(clab::topo_file)
 
 clab::require() { command -v containerlab >/dev/null 2>&1 || { echo "missing containerlab" >&2; exit 1; }; }
 
 clab::deploy() {
   clab::require
+  TOPO_FILE=$(clab::topo_file)
   echo "[clab] ensuring external Docker network ${MGMT_NET} exists (subnet-correct)"
   # Delegate to the shared helper so the subnet is always user-configured
   # (172.31.0.0/16), which containerlab requires for explicit per-node mgmt IPs.
@@ -33,6 +46,7 @@ clab::deploy() {
 
 clab::inspect() {
   clab::require
+  TOPO_FILE=$(clab::topo_file)
   # containerlab >=0.7x uses -f/--format (not -o) for output format selection
   containerlab inspect -t "${TOPO_FILE}" --format json
 }
@@ -79,18 +93,32 @@ clab::bootstrap() {
     # authenticates via the local user + sshd (see init-sonic-bootstrap.sh 2b),
     # so the CONFIG_DB table was never needed.
     docker cp "$bdir/gnmi_config_db.json" "$c:/etc/sonic/bootstrap/gnmi_config_db.json"
-    docker exec "$c" bash -lc "jq -n --arg u '${GNMI_USER}' --arg p '${GNMI_PASS}' '{username:\$u,password:\$p}' > /etc/sonic/bootstrap/gnmi_creds.json"
+    # Inject runtime-generated credentials (not static; generated per lab).
+    # Generated on the HOST and docker-cp'd: the sonic-vs image ships jq but
+    # the vrnetlab sonic-vm launcher does not ("jq: command not found" made
+    # the whole bootstrap fail there).
+    local creds_tmp
+    creds_tmp=$(mktemp)
+    jq -n --arg u "${GNMI_USER}" --arg p "${GNMI_PASS}" '{username:$u,password:$p}' > "$creds_tmp"
+    docker cp "$creds_tmp" "$c:/etc/sonic/bootstrap/gnmi_creds.json"
+    rm -f "$creds_tmp"
     # start.sh generates /etc/sonic/config_db.json as the first step of its
     # boot chain; init-sonic-bootstrap merges into that file and would fail
     # (or merge into nothing) if it runs too early. Wait it out (observed
     # 2026-09-01 racing the boot by minutes).
-    local wi
-    for wi in $(seq 1 60); do
-      docker exec "$c" test -s /etc/sonic/config_db.json 2>/dev/null && break
-      sleep 5
-    done
-    if ! docker exec "$c" test -s /etc/sonic/config_db.json; then
-      echo "[clab] bootstrap: ${node} config_db.json never appeared; continuing anyway" >&2
+    #
+    # sonic-vm: this wait would burn 5 min per node — the docker-exec target is
+    # the vrnetlab QEMU launcher, not the SONiC guest, and never has
+    # /etc/sonic/config_db.json. The VM bootstrap waits for guest SSH itself.
+    if [[ "$profile" != "sonic-vm" ]]; then
+      local wi
+      for wi in $(seq 1 60); do
+        docker exec "$c" test -s /etc/sonic/config_db.json 2>/dev/null && break
+        sleep 5
+      done
+      if ! docker exec "$c" test -s /etc/sonic/config_db.json; then
+        echo "[clab] bootstrap: ${node} config_db.json never appeared; continuing anyway" >&2
+      fi
     fi
     docker exec "$c" bash -lc "chmod +x /etc/sonic/bootstrap/*.sh && /etc/sonic/bootstrap/init-sonic-bootstrap.sh"
     # VERIFY the two things gNMI password auth actually needs, and repair them if
@@ -107,6 +135,10 @@ clab::bootstrap() {
     # :8080 -- and no node had any uid>=1000 user at all. gnmic could not subscribe,
     # Prometheus held only scrape metadata, and every Grafana panel read "No data".
     # The whole observability stack deployed green and showed nothing.
+    # For sonic-vm the gNMI user/sshd live in the VM guest (provisioned over
+    # SSH by init-sonic-bootstrap.sh); the launcher container has neither, so
+    # the repair below would be a no-op at best and misleading at worst.
+    if [[ "$profile" != "sonic-vm" ]]; then
     docker exec "$c" bash -lc '
       CREDS=/etc/sonic/bootstrap/gnmi_creds.json
       U=$(jq -r ".username // empty" "$CREDS" 2>/dev/null)
@@ -121,6 +153,7 @@ clab::bootstrap() {
         supervisorctl start sshd >/dev/null 2>&1 || /usr/sbin/sshd >/dev/null 2>&1 || true
       fi
     ' || true
+    fi
     docker exec "$c" touch /etc/agentic-netops/.bootstrapped
     echo "[clab] bootstrap: ${node} done"
   done
@@ -147,13 +180,16 @@ clab::bootstrap() {
 
 clab::destroy() {
   clab::require
+  TOPO_FILE=$(clab::topo_file)
   echo "[clab] destroying ${TOPO_FILE}"
   containerlab destroy -t "${TOPO_FILE}" --cleanup || true
-  # Remove the per-node named volumes that persist SONiC /etc/sonic. Containerlab
+  # Remove the per-node named volumes that persist SONiC config. Containerlab
   # does not always reclaim topology-declared named volumes, so we drop them
-  # explicitly by their deterministic names (only the ones this lab owns).
+  # explicitly by their deterministic names (only the ones this lab owns):
+  # -etc-sonic for the sonic-vs profile, -vm-config for sonic-vm.
   local v
-  for v in agentic-netops-spine01-etc-sonic agentic-netops-spine02-etc-sonic agentic-netops-leaf01-etc-sonic agentic-netops-leaf02-etc-sonic; do
+  for v in agentic-netops-spine01-etc-sonic agentic-netops-spine02-etc-sonic agentic-netops-leaf01-etc-sonic agentic-netops-leaf02-etc-sonic \
+           agentic-netops-spine01-vm-config agentic-netops-spine02-vm-config agentic-netops-leaf01-vm-config agentic-netops-leaf02-vm-config; do
     docker volume rm "$v" >/dev/null 2>&1 || true
   done
   # Verify teardown leaves no owned lab containers or volumes
@@ -165,7 +201,7 @@ clab::destroy() {
   fi
   # Check for owned volumes (persistent /etc/sonic)
   local vol_left
-  vol_left=$(docker volume ls -q | grep -E '^agentic-netops-.*-etc-sonic$' || true)
+  vol_left=$(docker volume ls -q | grep -E '^agentic-netops-.*-(etc-sonic|vm-config)$' || true)
   if [[ -n "$vol_left" ]]; then
     echo "[clab] WARN: leftover Agentic NetOps volumes not removed:\n$vol_left" >&2
     exit 1

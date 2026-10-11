@@ -13,6 +13,11 @@ the same intent is applied twice. Those are the sections that matter here.
 
 ## The loop
 
+> Preparing to present this lab? See [docs/DEMO_STRATEGY_WEBEX.md](docs/DEMO_STRATEGY_WEBEX.md)
+> (run of show, building-blocks narrative, lessons learned) and
+> [docs/DEMO_TUTORIAL.md](docs/DEMO_TUTORIAL.md) (hands-on steps for SDC/Kubenet/KUID/SRv6,
+> services, and UUID/identifier retrieval).
+
 ```
    plain language          ┌──────────────┐
    "connect tenant  ──────►│  supervisor  │  classify: provisionable?
@@ -226,9 +231,36 @@ Real, reproduced, documented rather than hidden:
 
 - The former SONiC ASan/L2-VNI and EVPN Type-5 gaps (D-A2/D-A3) are resolved
   on the pinned `sonic-vs-gnmi:202505-v1` image and their waivers are retired.
-- **SRv6 conformance needs the `sonic-vm` profile**, which requires an
-  operator-built vrnetlab image *and* a `lab/profiles/sonic-vm/bootstrap/` directory
-  that does not exist yet.
+- **SRv6 conformance runs on the `sonic-vm` profile**, which is now fully
+  wired AND qualified: `lab/profiles/sonic-vm/bootstrap/` (VM-aware,
+  SSH-driven gNMI/TLS provisioning) and `lab/topology.sonic-vm.clab.yml`
+  exist, `scripts/build-sonic-vm.sh` builds the vrnetlab image, and the full
+  qualification gate (`scripts/lib/qualify.sh`: Capabilities/Get/Set/
+  Subscribe, sonic-srv6, persistence, EVPN Type-2/3/5, SRv6 underlay/End/
+  End.DT46/decap/counters, YANG paths) passes end-to-end against
+  `local/sonic-vm:202505`. It still requires the **operator** to build the
+  `local/sonic-vm` image
+  (`scripts/build-sonic-vm.sh --image-url <sonic-vs.img.gz> --update-pin`),
+  because no public registry serves it, plus KVM/nested virtualization on the
+  host. Until that build exists on your host, `--profile sonic-vm` fails at
+  deploy with a missing-image error (the documented gate-fail path).
+  sonic-vm-profile notes (all verified on the pinned image):
+  - gNMI TLS is driven by the **`GNMI` CONFIG_DB table** (`GNMI|gnmi` +
+    `GNMI|certs`), not the legacy `TELEMETRY` table — `gnmi-native.sh`
+    renders `telemetry_vars.j2` against `GNMI`, and an undefined table makes
+    it fall back to `--noTLS`. The bootstrap applies both tables.
+  - The vrnetlab launcher resets the guest admin password to containerlab's
+    `PASSWORD` env (default `admin`); the guest is reachable over SSH on the
+    **launcher's own mgmt IP**, not 127.0.0.1 (loopback→slirp stalls).
+  - The image default config gives every node `Loopback0=10.1.0.1/32` and
+    bgpd AS 65100/route-id 10.1.0.1 — test topologies must not use 10.1.0.1
+    as a peer address (martian-dropped) and must set distinct router-ids.
+  - The guest kernel (SONiC Debian 6.1) has **no kernel seg6 lwtunnel**
+    support: the kernel-side `encap seg6` dataplane witnesses are
+    auto-skipped on this profile; SRv6 control-plane state is still asserted
+    over gNMI. Kernel seg6 witnesses run on the `sonic-vs` profile.
+  - Persistence on `sonic-vm` is verified with a guest `config reload`
+    (re-reads `/etc/sonic/config_db.json`) rather than a container restart.
 - **Two pinned images have no local build step** (`grafana/flow-plugin`,
   `ghcr.io/agentic-netops/topology-generator`); `deployment/ui` ends in `ImagePullBackOff`.
 - **`docs/INTENT_TIER_OPS_READINESS.md` holds resource figures that were never

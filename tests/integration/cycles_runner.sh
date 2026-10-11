@@ -134,9 +134,14 @@ echo "[cycles] ===== off-from-partial =====" | tee -a "$PROOFS/cycles.run.log"
 # T077 off-from-PARTIAL: the provision here must FAIL partway so off.sh cleans a
 # genuinely partial state. sonic-vs now passes the capability gate (re-pinned v2
 # gNMI image), so the old sonic-vs call degraded into a full-provision test; the
-# documented gate-fail path is the sonic-vm profile (capability gate fails →
-# exit=1 → off.sh cleans the partial state) — the same shape off-conformance
-# exercises below. (Fix 2026-09-01, operator reconciliation.)
+# documented gate-fail path is the sonic-vm profile — provision fails whenever
+# the operator-built vrnetlab image (local/sonic-vm, versions.lock.yaml
+# sonic_images.sonic_vm) is absent on the host (exit=1 → off.sh cleans the
+# partial state), the same shape off-conformance exercises below. On a host
+# where that image HAS been built and passes the gate, this cycle degrades to
+# an extra full-provision/off pass, which the runner tolerates (exit logged,
+# not fatal). (Fix 2026-09-01, operator reconciliation; updated when the
+# sonic-vm bootstrap/topology wiring landed.)
 run_provision "$PROOFS/partial-provision.log" sonic-vm
 run_off "$PROOFS/off-from-partial.log"
 run_off_noop "$PROOFS/off-from-partial-noop.log"

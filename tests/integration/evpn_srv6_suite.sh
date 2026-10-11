@@ -14,6 +14,11 @@
 # Every test asserts reply/state *content*; none decides pass/fail on an empty result.
 set -euo pipefail
 
+# node-side op dispatch (docker exec vs SSH-into-guest for sonic-vm)
+# shellcheck source=lib/node_exec.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/node_exec.sh"
+
+
 GNMIC_BIN=${GNMIC_BIN:-gnmic}
 GNMI_USER=${GNMI_USER:-admin}
 GNMI_PASS=${GNMI_PASS:-admin}
@@ -63,7 +68,7 @@ node_for_ip() {
 
 gcu_apply() {
   local c=$1 patch=$2
-  printf '%s' "$patch" | docker exec -i "$c" bash -c 'cat > /tmp/.gate_patch.json && config apply-patch -f CONFIGDB -p /tmp/.gate_patch.json 2>/dev/null >/dev/null'
+  printf '%s' "$patch" | node_run_i "$c" 'cat > /tmp/.gate_patch.json && sudo config apply-patch -f CONFIGDB -p /tmp/.gate_patch.json 2>/dev/null >/dev/null'
   return $?
 }
 
@@ -74,7 +79,7 @@ gcu_apply() {
 # itself still goes through GCU apply/remove patches.
 srv6_force_clean() {
   local c=$1
-  docker exec "$c" bash -c 'redis-cli -n 4 --scan --pattern "SRV6_MY_LOCATORS*" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern "SRV6_MY_SIDS*" | xargs -r redis-cli -n 4 del >/dev/null; config save -y >/dev/null 2>&1'
+  node_run "$c" 'redis-cli -n 4 --scan --pattern "SRV6_MY_LOCATORS*" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern "SRV6_MY_SIDS*" | xargs -r redis-cli -n 4 del >/dev/null; sudo config save -y >/dev/null 2>&1'
 }
 
 
@@ -202,14 +207,34 @@ seg6_witness() {
     local node probe out
     node=$(node_for_ip "${t%%:*}")
     [[ -n "$node" ]] || die "$label: cannot resolve containerlab node for $t"
+    # Kernel seg6 lwtunnel is required for this witness. The sonic-vs image
+    # runs on the container host kernel (supports seg6); the sonic-vm guest
+    # runs the SONiC Debian kernel where LWTUNNEL/seg6 is disabled — "ip
+    # route ... encap seg6" is silently accepted but the encap is dropped.
+    # Probe once and skip the kernel witness with an explicit note when the
+    # node kernel cannot host it (the gNMI CONFIG_DB SRv6 witnesses above
+    # still cover SRv6 control-plane state on both profiles).
+    if [[ -z "${SEG6_KERNEL_OK:-}" ]]; then
+      local probe_out
+      probe_out=$(node_run "$node" "sudo ip -6 route replace 2001:db8:7fff:ffff::/64 encap seg6 mode encap segs fc00::1 dev lo 2>/dev/null && sudo ip -6 route show 2001:db8:7fff:ffff::/64; sudo ip -6 route del 2001:db8:7fff:ffff::/64 >/dev/null 2>&1" 2>/dev/null || true)
+      if grep -q 'encap seg6' <<<"$probe_out"; then
+        SEG6_KERNEL_OK=1
+      else
+        SEG6_KERNEL_OK=0
+        note "$t: kernel seg6 lwtunnel unavailable — skipping $label kernel witness (control-plane SRv6 state asserted via gNMI)"
+        continue
+      fi
+    elif [[ "$SEG6_KERNEL_OK" == "0" ]]; then
+      continue
+    fi
     # WITNESS_TAG is a decimal epoch; fold it into a valid 16-bit hextet
     local tag_hex
     tag_hex=$(printf '%04x' $(( WITNESS_TAG % 65536 )))
     probe="2001:db8:7f:${tag_hex}::/64"
-    docker exec "$node" ip -6 route replace "$probe" encap seg6 mode "$mode" segs "$segs" dev lo \
+    node_run "$node" "sudo ip -6 route replace '$probe' encap seg6 mode '$mode' segs '$segs' dev lo" \
       || die "$label $t: kernel rejected seg6 $mode encap route"
-    out=$(docker exec "$node" ip -6 route show "$probe")
-    docker exec "$node" ip -6 route del "$probe" >/dev/null 2>&1 || true
+    out=$(node_run "$node" "sudo ip -6 route show '$probe'")
+    node_run "$node" "sudo ip -6 route del '$probe'" >/dev/null 2>&1 || true
     grep -qF "$expect" <<<"$out" || die "$label $t: seg6 state does not show '$expect' (got: $out)"
     note "$t: $label asserted (seg6 $mode programmed and read back)"
   done
@@ -256,6 +281,10 @@ evpn_session_up() {
   local na nb
   na=$(node_for_ip "$a"); nb=$(node_for_ip "$b")
   [[ -n "$na" && -n "$nb" ]] || die "EVPN: cannot resolve containerlab nodes for $a/$b"
+  if node_is_vm "$na"; then
+    evpn_session_up_vm "$na" "$nb"
+    return $?
+  fi
   # The peering runs over the management addresses; SONiC renders every interface
   # from CONFIG_DB and leaves eth0 admin-down once intent-config is loaded, so the
   # witness owns its interface state (idempotent bring-up with address intact).
@@ -267,9 +296,21 @@ evpn_session_up() {
   for n in "$na" "$nb"; do
     docker exec "$n" supervisorctl start bgpd >/dev/null 2>&1 || true
   done
-  # wait for the bgpd processes to exist (spawning can lag on a freshly booted,
-  # CPU-saturated node — racing it leaves the session stuck in Active)
-  local i up=0
+  evpn_wait_bgpd "$na" "$nb"
+  docker exec "$na" vtysh -c 'configure terminal' -c 'router bgp 65101' \
+    -c 'no bgp ebgp-requires-policy' -c "neighbor $b remote-as 65102" \
+    -c 'address-family l2vpn evpn' -c "neighbor $b activate" >/dev/null 2>&1 \
+    || die "EVPN: bgpd on $na rejected EVPN AF configuration"
+  docker exec "$nb" vtysh -c 'configure terminal' -c 'router bgp 65102' \
+    -c 'no bgp ebgp-requires-policy' -c "neighbor $a remote-as 65101" \
+    -c 'address-family l2vpn evpn' -c "neighbor $a activate" >/dev/null 2>&1 \
+    || die "EVPN: bgpd on $nb rejected EVPN AF configuration"
+  evpn_wait_established "$na" "$nb"
+}
+
+# evpn_wait_bgpd <na> <nb> — wait until bgpd exists on both sonic-vs nodes
+evpn_wait_bgpd() {
+  local na=$1 nb=$2 n i up=0
   for i in $(seq 1 30); do
     up=1
     for n in "$na" "$nb"; do
@@ -279,15 +320,11 @@ evpn_session_up() {
     sleep 2
   done
   [[ $up -eq 1 ]] || die "EVPN: bgpd did not come up on $na/$nb"
-  docker exec "$na" vtysh -c 'configure terminal' -c 'router bgp 65101' \
-    -c 'no bgp ebgp-requires-policy' -c "neighbor $b remote-as 65102" \
-    -c 'address-family l2vpn evpn' -c "neighbor $b activate" >/dev/null 2>&1 \
-    || die "EVPN: bgpd on $na rejected EVPN AF configuration"
-  docker exec "$nb" vtysh -c 'configure terminal' -c 'router bgp 65102' \
-    -c 'no bgp ebgp-requires-policy' -c "neighbor $a remote-as 65101" \
-    -c 'address-family l2vpn evpn' -c "neighbor $a activate" >/dev/null 2>&1 \
-    || die "EVPN: bgpd on $nb rejected EVPN AF configuration"
-  # poll for Established; nudge the session past connect backoff halfway through
+}
+
+# evpn_wait_established <na> <nb> — poll for Established; nudge past backoff
+evpn_wait_established() {
+  local na=$1 nb=$2 i
   for i in $(seq 1 20); do
     if docker exec "$na" vtysh -c 'show bgp l2vpn evpn summary json' 2>/dev/null | grep -q '"state":"Established"'; then
       return 0
@@ -300,11 +337,66 @@ evpn_session_up() {
   done
 }
 
+# evpn_session_up_vm <na> <nb> — sonic-vm flavour.
+# The guests have no shared management network (each sits behind its own
+# qemu-slirp), so the eBGP EVPN session is brought up across the real fabric:
+# leaf01 eth1 — spine01 (L3 forward) — leaf02 eth1. The spine needs no BGP —
+# kernel forwarding between the two /30s carries the peering TCP.
+# Peer addresses: na=10.2.0.1 (bgp 65101), nb=10.2.0.6 (bgp 65102).
+# NOTE: NOT 10.1.0.x — every sonic-vm guest boots with Loopback0=10.2.0.1/32
+# (image default config), which makes 10.2.0.1 a local address on every node:
+# the kernel martian-drops packets carrying it as source.
+evpn_session_up_vm() {
+  local na=$1 nb=$2 ns n
+  ns=$(docker ps --format '{{.Names}}' | grep "^${CLAB_PREFIX}" | grep spine | head -n1)
+  [[ -n "$ns" ]] || die "EVPN-VM: cannot resolve spine node"
+  node_run "$ns" "sudo ip addr replace 10.2.0.2/30 dev eth1 2>/dev/null || true; sudo ip addr replace 10.2.0.5/30 dev eth2 2>/dev/null || true; sudo ip link set eth1 up; sudo ip link set eth2 up" || true
+  node_run "$na" "sudo ip addr replace 10.2.0.1/30 dev eth1; sudo ip link set eth1 up" || true
+  node_run "$nb" "sudo ip addr replace 10.2.0.6/30 dev eth1; sudo ip link set eth1 up" || true
+  node_run "$na" 'ping -q -c1 -W2 10.2.0.2 >/dev/null' || die "EVPN-VM: leaf01 cannot reach spine over eth1"
+  node_run "$nb" 'ping -q -c1 -W2 10.2.0.5 >/dev/null' || die "EVPN-VM: leaf02 cannot reach spine over eth1"
+  # static routes so the leaves can reach each other's peering subnet via the spine
+  node_run "$na" 'sudo ip route replace 10.2.0.4/30 via 10.2.0.2 dev eth1' || true
+  node_run "$nb" 'sudo ip route replace 10.2.0.0/30 via 10.2.0.5 dev eth1' || true
+  node_run "$nb" 'ping -q -c1 -W3 10.2.0.1 >/dev/null' || die "EVPN-VM: leaf02 cannot route to leaf01 via spine"
+  for n in "$na" "$nb"; do
+    node_run "$n" 'sudo systemctl start bgp >/dev/null 2>&1' || true
+  done
+  # The image boots bgpd with AS 65100 and router-id 10.1.0.1 (Loopback0) on EVERY
+  # node — peering must reuse the running AS (iBGP) and set distinct router-ids or
+  # the OPEN clash fails with Bad BGP Identifier.
+  # wait for the bgpd to exist inside each guest's bgp container
+  local i up=0
+  for i in $(seq 1 30); do
+    up=1
+    for n in "$na" "$nb"; do
+      node_run "$n" 'pgrep -x bgpd >/dev/null' || up=0
+    done
+    [[ $up -eq 1 ]] && break
+    sleep 2
+  done
+  [[ $up -eq 1 ]] || die "EVPN-VM: bgpd did not come up on $na/$nb"
+  node_run "$na" "sudo vtysh -c 'configure terminal' -c 'router bgp 65100' -c 'bgp router-id 10.2.0.1' -c 'neighbor 10.2.0.6 remote-as 65100' -c 'address-family l2vpn evpn' -c 'neighbor 10.2.0.6 activate'" >/dev/null 2>&1 \
+    || die "EVPN-VM: bgpd on $na rejected EVPN AF configuration"
+  node_run "$nb" "sudo vtysh -c 'configure terminal' -c 'router bgp 65100' -c 'bgp router-id 10.2.0.6' -c 'neighbor 10.2.0.1 remote-as 65100' -c 'address-family l2vpn evpn' -c 'neighbor 10.2.0.1 activate'" >/dev/null 2>&1 \
+    || die "EVPN-VM: bgpd on $nb rejected EVPN AF configuration"
+  for i in $(seq 1 20); do
+    if node_run "$na" 'vtysh -c "show bgp l2vpn evpn summary json"' 2>/dev/null | grep -q '"state":"Established"'; then
+      return 0
+    fi
+    (( i == 10 )) && {
+      node_run "$na" 'vtysh -c "clear bgp *"' >/dev/null 2>&1 || true
+      node_run "$nb" 'vtysh -c "clear bgp *"' >/dev/null 2>&1 || true
+    }
+    sleep 4
+  done
+}
+
 # assert EVPN session Established with real content from `show bgp l2vpn evpn summary json`
 assert_evpn_established() {
   local label=$1 node=$2 peer=$3
   local out
-  out=$(docker exec "$node" vtysh -c 'show bgp l2vpn evpn summary json' 2>&1)
+  out=$(node_run "$node" 'vtysh -c "show bgp l2vpn evpn summary json"' 2>&1)
   grep -q '"state":"Established"' <<<"$out" \
     || die "$label: L2VPN EVPN session to $peer not Established (output: $out)"
   grep -q '"afiSafiName":"l2vpn-evpn"' <<<"$out" || true # json key varies; Established is the assert
@@ -331,7 +423,7 @@ EVPN_Type5() {
   # in the table dump the way SONiC's bgpd exposes it)
   local node out
   node=$(node_for_ip "${tgts[0]%%:*}")
-  out=$(docker exec "$node" vtysh -c 'show bgp l2vpn evpn json' 2>&1)
+  out=$(node_run "$node" 'vtysh -c "show bgp l2vpn evpn json"' 2>&1)
   jq -e . >/dev/null 2>&1 <<<"$out" || die "EVPN-Type5: EVPN RIB not parsable as JSON: $out"
   assert_evpn_established "EVPN-Type5 (IP prefix AF)" "$node" "${tgts[1]%%:*}"
 }

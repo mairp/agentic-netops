@@ -1,0 +1,130 @@
+name: agentic-netops-fabric
+mgmt:
+  network: agentic-netops-mgmt  # external Agentic NetOps-owned Docker network (created by scripts/provision.sh)
+  ipv4-subnet: 172.31.0.0/16  # reused management subnet (no overlap with pod/service per preflight)
+  mtu: 9216
+
+# Conformance-profile topology (AGENTIC_NETOPS_PROFILE=sonic-vm). Selected by
+# scripts/lib/containerlab.sh when the profile is sonic-vm; the fabric nodes are
+# full SONiC VMs (containerlab native `sonic-vm` kind, vrnetlab QEMU launcher)
+# instead of the containerized sonic-vs image. Node names, mgmt IPs, links,
+# clients and labels are identical to lab/topology.clab.yml so that the
+# bootstrap, tests, and gNMI qualification see the same fabric.
+#
+# The sonic-vm kind runs nodes privileged with /dev/kvm (preflight enforces
+# KVM for this profile) and boots a full SONiC VM per node (~1-3 min, 2 vCPU /
+# 4 GB RAM each by default; tune via QEMU_SMP / QEMU_MEMORY env if needed).
+# Persistence: the vrnetlab sonic image declares its own VOLUME /config where
+# backup.sh stores the VM's saved config_db.json — it survives container
+# restarts but not destroy/recreate. Do NOT add a named mount at /config here:
+# docker rejects it with 'Duplicate mount point: /config' (image already owns it).
+#
+# The image is operator-built via scripts/build-sonic-vm.sh (vrnetlab) and
+# pinned by digest in versions.lock.yaml; this file references the local tag
+# the build script produces.
+
+topology:
+  defaults:
+    labels:
+      agentic-netops.owner: agentic-netops
+      agentic-netops.topology: sonic-evpn
+
+  nodes:
+    spine01:
+      kind: sonic-vm
+      image: local/sonic-vm:202505
+      mgmt-ipv4: 172.31.0.11
+      labels:
+        role: spine
+        asn: "65000"
+    spine02:
+      kind: sonic-vm
+      image: local/sonic-vm:202505
+      mgmt-ipv4: 172.31.0.12
+      labels:
+        role: spine
+        asn: "65000"
+    leaf01:
+      kind: sonic-vm
+      image: local/sonic-vm:202505
+      mgmt-ipv4: 172.31.0.21
+      labels:
+        role: leaf
+        asn: "65101"
+    leaf02:
+      kind: sonic-vm
+      image: local/sonic-vm:202505
+      mgmt-ipv4: 172.31.0.22
+      labels:
+        role: leaf
+        asn: "65102"
+    client01:
+      kind: linux
+      image: localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f
+      mgmt-ipv4: 172.31.0.101
+      labels:
+        role: evpn-client
+        attach: leaf01
+      exec:
+        # both EVPN clients share the bridged Vlan100 subnet (192.0.2.0/24) so
+        # Type-2 MAC/IP reachability is exercisable; /31s would put them in
+        # different subnets and break bridged L2 reachability
+        - ip link set dev eth1 up
+        - ip addr add 192.0.2.11/24 dev eth1
+        - ip -6 addr add 2001:db8:9::11/64 dev eth1
+    client02:
+      kind: linux
+      image: localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f
+      mgmt-ipv4: 172.31.0.102
+      labels:
+        role: evpn-client
+        attach: leaf02
+      exec:
+        - ip link set dev eth1 up
+        - ip addr add 192.0.2.21/24 dev eth1
+        - ip -6 addr add 2001:db8:9::21/64 dev eth1
+    srv6-client01:
+      kind: linux
+      image: localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f
+      mgmt-ipv4: 172.31.0.111
+      labels:
+        role: srv6-client
+        attach: leaf01
+      exec:
+        - ip link set dev eth1 up
+        - ip addr add 192.0.2.31/31 dev eth1
+        - ip -6 addr add 2001:db8:3::31/127 dev eth1
+    srv6-client02:
+      kind: linux
+      image: localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f
+      mgmt-ipv4: 172.31.0.112
+      labels:
+        role: srv6-client
+        attach: leaf02
+      exec:
+        - ip link set dev eth1 up
+        - ip addr add 192.0.2.41/31 dev eth1
+        - ip -6 addr add 2001:db8:4::41/127 dev eth1
+
+  links:
+    # Spine-leaf fabric (explicit interface mapping) — MTU applies per link
+    - endpoints: [spine01:eth1, leaf01:eth1]
+      mtu: 9216
+    - endpoints: [spine01:eth2, leaf02:eth1]
+      mtu: 9216
+    - endpoints: [spine02:eth1, leaf01:eth2]
+      mtu: 9216
+    - endpoints: [spine02:eth2, leaf02:eth2]
+      mtu: 9216
+
+    # Leaf to EVPN Linux endpoints
+    - endpoints: [leaf01:eth3, client01:eth1]
+      mtu: 9216
+    - endpoints: [leaf02:eth3, client02:eth1]
+      mtu: 9216
+
+    # Leaf to SRv6 Linux endpoints (one per leaf)
+    - endpoints: [leaf01:eth4, srv6-client01:eth1]
+      mtu: 9216
+    - endpoints: [leaf02:eth4, srv6-client02:eth1]
+      mtu: 9216
