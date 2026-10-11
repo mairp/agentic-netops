@@ -137,6 +137,20 @@ def get_llm(streaming: bool = True):
             tokens_out = int(usage.get("completion_tokens", 0) or 0)
             cost = float(getattr(res, "cost", 0.0) or 0.0)
             metrics.model_call(model=model_name, tokens_in=tokens_in, tokens_out=tokens_out, cost_usd=cost)
+            # Token counts on the active span, next to the model id and redacted
+            # prompt/response already stamped here: trace backends (Arize Phoenix via
+            # the agent-observability-stack collector's OpenInference transform) map
+            # agentic-netops.tokens.* to llm.token_count.* so each model call shows
+            # its usage in the trace tree. NOTE (2026-10-11): the SDK's context
+            # scoping currently keeps agentic-netops.* off exported spans (the
+            # OpenInference instrumentation already records usage natively as
+            # gen_ai.usage.* / llm.usage.total_tokens), so this stamping is
+            # redundant-but-harmless until the SDK context is fixed.
+            span = trace.get_current_span()
+            if span is not None and hasattr(span, "set_attribute"):
+                span.set_attribute("agentic-netops.tokens.prompt", tokens_in)
+                span.set_attribute("agentic-netops.tokens.completion", tokens_out)
+                span.set_attribute("agentic-netops.tokens.total", tokens_in + tokens_out)
             # Update per-thread token budget
             if _TOK_BUDGET > 0:
                 _add_tokens(tokens_in + tokens_out)
@@ -178,6 +192,12 @@ def get_llm(streaming: bool = True):
             tokens_out = int(usage.get("completion_tokens", 0) or 0)
             cost = float(getattr(res, "cost", 0.0) or 0.0)
             metrics.model_call(model=model_name, tokens_in=tokens_in, tokens_out=tokens_out, cost_usd=cost)
+            # Token counts on the active span (see the ainvoke wrapper above for why).
+            span = trace.get_current_span()
+            if span is not None and hasattr(span, "set_attribute"):
+                span.set_attribute("agentic-netops.tokens.prompt", tokens_in)
+                span.set_attribute("agentic-netops.tokens.completion", tokens_out)
+                span.set_attribute("agentic-netops.tokens.total", tokens_in + tokens_out)
             if _TOK_BUDGET > 0:
                 _add_tokens(tokens_in + tokens_out)
             # Record redacted response on the span (T335)
