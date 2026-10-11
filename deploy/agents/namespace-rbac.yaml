@@ -358,3 +358,32 @@ spec:
       port: 443
     - protocol: TCP
       port: 6443
+---
+# T051: OTLP/HTTP egress for the tier collector ONLY, to the host-side
+# agent-observability-stack collector (the otlphttp/phoenix third fan-out sink
+# in telemetry.yaml). From inside kind the docker host is bridge gateway
+# 172.17.0.1 and the AOS stack publishes OTLP/HTTP on host :4318. The broad
+# allow-egress-scoped policy admits 172.x only on 443 (T049), so without this
+# policy the collector's dial i/o-times-out and the Phoenix sink silently
+# never receives traces (observed 2026-10-11: code=000 from a tier-labelled
+# probe pod). Scoped to the collector pod alone -- the four agents reach AOS
+# only via the tier collector and keep their existing egress. If
+# AOS_OTLP_HTTP_ENDPOINT is overridden to a different host, update this
+# ipBlock to match.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-aos-otel
+  namespace: agentic-netops-agents
+spec:
+  podSelector:
+    matchLabels:
+      app: agent-otel-collector
+  policyTypes: ["Egress"]
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 172.17.0.1/32
+    ports:
+    - protocol: TCP
+      port: 4318
