@@ -20,6 +20,13 @@ cp .env.example .env          # set LLM_MODEL — without it the tier deploys bu
 export CTX=--context kind-agentic-netops
 ```
 
+> **Paste-safety tip:** every command below is a single line on purpose. When
+> pasting multi-line commands from notes or slides, a broken `\` continuation
+> makes kubectl read the column spec as an object *name* — the tell-tale error is
+> `Error from server (NotFound): ... "custom-columns=..." not found`. If you see
+> it, re-run the line as one; also confirm `echo $CTX` prints
+> `--context kind-agentic-netops`.
+
 Confirm the three stacks are installed:
 
 ```bash
@@ -77,10 +84,7 @@ kubectl $CTX -n kubenet-system get topology
 kubectl $CTX -n agentic-netops-intent get networks.network.kubenet.dev
 
 # watch desired state and the controller's verdict, live
-kubectl $CTX -n agentic-netops-intent get networks.network.kubenet.dev \
-  -o custom-columns=NAME:.metadata.name,\
-TYPE:.metadata.annotations.agentic-netops\\.io/service-type,\
-READY:.status.conditions[?(@.type==\"Ready\")].status -w
+kubectl $CTX -n agentic-netops-intent get networks.network.kubenet.dev -o 'custom-columns=NAME:.metadata.name,TYPE:.metadata.annotations.agentic-netops\.io/service-type,READY:.status.conditions[?(@.type=="Ready")].status' -w
 ```
 
 `Ready=True` is written only after every rendered operation applied **and** every
@@ -151,8 +155,7 @@ kubectl $CTX -n agentic-netops-intent get srv6services demo-srv6 -w
 Verify on the fabric:
 
 ```bash
-docker exec clab-agentic-netops-fabric-leaf01 \
-  vtysh -c 'show segment-routing srv6 locator'
+docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show segment-routing srv6 locator'
 ```
 
 Honest limitations to state: full SRv6 conformance runs on the `sonic-vm` profile;
@@ -184,8 +187,7 @@ Prove each one where it counts:
 
 ```bash
 # vlan: CONFIG_DB on the leaf
-docker exec clab-agentic-netops-fabric-leaf01 \
-  docker exec sonic /usr/local/bin/sonic-cfggen -d --print-data | grep -A3 VLAN
+docker exec clab-agentic-netops-fabric-leaf01 docker exec sonic /usr/local/bin/sonic-cfggen -d --print-data | grep -A3 VLAN
 
 # mac-vrf: EVPN overlay on BOTH leaves — Remote VTEPs = 1 is the signal that matters
 docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show evpn vni'
@@ -212,12 +214,10 @@ Every CR carries an immutable etcd-level `metadata.uid`:
 
 ```bash
 # all Networks with their UUIDs
-kubectl $CTX -n agentic-netops-intent get networks.network.kubenet.dev \
-  -o custom-columns=NAME:.metadata.name,UID:.metadata.uid,AGE:.metadata.creationTimestamp
+kubectl $CTX -n agentic-netops-intent get networks.network.kubenet.dev -o 'custom-columns=NAME:.metadata.name,UID:.metadata.uid,CREATED:.metadata.creationTimestamp'
 
 # SRv6Services as name<TAB>uid
-kubectl $CTX -n agentic-netops-intent get srv6services \
-  -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.metadata.uid}{"\n"}{end}'
+kubectl $CTX -n agentic-netops-intent get srv6services -o 'jsonpath={range .items[*]}{.metadata.name}{"\t"}{.metadata.uid}{"\n"}{end}'
 
 # one object, full metadata including uid
 kubectl $CTX -n agentic-netops-intent get network <name> -o jsonpath='{.metadata.uid}'
@@ -229,12 +229,7 @@ The console stamps each request with a `correlation_id`, carried on the Network 
 a label — the thread from chat to CR to events:
 
 ```bash
-kubectl $CTX -n agentic-netops-intent get networks \
-  -l agentic-netops.io/correlation-id=<id-shown-in-the-console> \
-  -o custom-columns=NAME:.metadata.name,\
-TYPE:.metadata.annotations.agentic-netops\\.io/service-type,\
-READY:.status.conditions[?(@.type==\"Ready\")].status,\
-REASON:.status.conditions[?(@.type==\"Ready\")].reason
+kubectl $CTX -n agentic-netops-intent get networks -l agentic-netops.io/correlation-id=<id-shown-in-the-console> -o 'custom-columns=NAME:.metadata.name,TYPE:.metadata.annotations.agentic-netops\.io/service-type,READY:.status.conditions[?(@.type=="Ready")].status,REASON:.status.conditions[?(@.type=="Ready")].reason'
 
 # the controller's own verdict as events
 kubectl $CTX -n agentic-netops-intent get events --field-selector reason=ApplySucceeded
@@ -249,8 +244,7 @@ fabric evidence) is captured in
 Not Kubernetes UUIDs — the actual network identity allocated to each service:
 
 ```bash
-kubectl $CTX -n kuid-system get claims \
-  -o custom-columns=NAME:.metadata.name,POOL:.spec.from.name,PURPOSE:.spec.purpose
+kubectl $CTX -n kuid-system get claims -o 'custom-columns=NAME:.metadata.name,POOL:.spec.from.name,PURPOSE:.spec.purpose'
 ```
 
 Together the three layers give a complete audit chain: `metadata.uid` proves which
