@@ -1,0 +1,32 @@
+{
+  "DEVICE_METADATA": {
+    "localhost": {
+      "switch_type": "npu"
+    }
+  },
+  "GNMI": {
+    "gnmi": {
+      "port": "8080",
+      "client_auth": "true",
+      "log_level": "2"
+    },
+    "certs": {
+      "server_key": "/etc/sonic/telemetry/gnmi.key",
+      "server_crt": "/etc/sonic/telemetry/gnmi.cer",
+      "ca_crt": "/etc/sonic/telemetry/ca.cer"
+    }
+  },
+  "TELEMETRY": {
+    "gnmi": {
+      "port": "8080",
+      "client_auth": "true",
+      "user_auth": "password",
+      "log_level": "2"
+    },
+    "certs": {
+      "server_key": "/etc/sonic/telemetry/gnmi.key",
+      "server_crt": "/etc/sonic/telemetry/gnmi.cer",
+      "ca_crt": "/etc/sonic/telemetry/ca.cer"
+    }
+  }
+}
