@@ -193,8 +193,8 @@ class Driver:
         self.proc["ttyd"] = subprocess.Popen(
             ["ttyd", "-p", "7681", "-W",
              "-t", "fontSize=24",   # 135x39 on a 1920x1080 page; never CSS-zoom the page
-             # NVIDIA dark palette, the console's: black ground, the prompt's ANSI green is #76b900
-             "-t", 'theme={"background":"#000000","foreground":"#ffffff","cursor":"#76b900","green":"#76b900","brightGreen":"#76b900"}',
+             # mairp.ai teal palette, the console's: #0f1512 ground, the prompt's ANSI green is the site's --ok #4ade80
+             "-t", 'theme={"background":"#0f1512","foreground":"#d2ddd8","cursor":"#00b3a4","green":"#4ade80","brightGreen":"#4ade80","cyan":"#22d3ee"}',
              "env", f"PS1={ps1}", "KUBECONFIG=/root/.kube/config",
              "bash", "--norc", "--noprofile"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
