@@ -78,6 +78,39 @@ else
   echo "[provision] WARN: kind helper not found; skipping Kind cluster ensure" >&2
 fi
 
+# T023/T598 (FR-009): the sonic-vm topology names its image by TAG because
+# containerlab cannot resolve a local image by digest without a registry
+# (proof p1-image-by-digest: clab normalizes name@sha256:<digest> to a
+# registry reference and pulls). So the sonic-vm bring-up asserts, BEFORE
+# deploy, that the tagged image's ID equals the digest pinned in
+# versions.lock.yaml (sonic_vm, one image@sha256:<digest> line) and fails
+# otherwise — the tag is the known exception, the digest is still the pin.
+if [[ "${AGENTIC_NETOPS_PROFILE}" == "sonic-vm" ]]; then
+  pinned_svm=$(awk '
+    $1=="sonic_images:" {sec=1; next}
+    sec && /^[^[:space:]]/ {exit}
+    sec && $1=="sonic_vm:" {vm=1; next}
+    sec && vm && /^[^[:space:]]/ {vm=0}
+    sec && vm && $1=="image:" {print $2; exit}
+  ' "${REPO_ROOT}/versions.lock.yaml")
+  if [[ ! "$pinned_svm" =~ ^local/sonic-vm@sha256:[0-9a-f]{64}$ ]]; then
+    echo "[provision] versions.lock.yaml sonic_vm must pin one line local/sonic-vm@sha256:<digest>; got: ${pinned_svm:-<missing>}" >&2
+    exit 1
+  fi
+  pinned_svm_digest=${pinned_svm##*@}
+  live_svm_id=$(docker image inspect local/sonic-vm:202505 --format '{{.Id}}' 2>/dev/null || true)
+  if [[ -z "$live_svm_id" ]]; then
+    echo "[provision] local image local/sonic-vm:202505 not found; build it per lab/profiles/sonic-vm/README.md before provisioning this profile" >&2
+    exit 1
+  fi
+  if [[ "$live_svm_id" != "$pinned_svm_digest" ]]; then
+    echo "[provision] local/sonic-vm:202505 image ID ${live_svm_id} != pinned ${pinned_svm_digest} (versions.lock.yaml sonic_vm); refusing to bring up the sonic-vm lab against an unpinned image" >&2
+    exit 1
+  fi
+  echo "[provision] sonic-vm image pin verified: local/sonic-vm:202505 == ${pinned_svm}"
+  echo "[provision] WARN: known exception to the one-form image rule: lab/topology.sonic-vm.clab.yml names the image by TAG (local/sonic-vm:202505) because containerlab cannot resolve a local image by digest without a registry (proof p1-image-by-digest); asserted this bring-up against ${pinned_svm}" >&2
+fi
+
 # Deploy lab topology with containerlab
 if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
   "${LIB_DIR}/containerlab.sh" deploy || { echo "[provision] containerlab deploy failed" >&2; exit 1; }
@@ -229,6 +262,8 @@ if command -v kubectl >/dev/null 2>&1 && [[ -f versions.lock.yaml ]]; then
   CTX="kind-${AGENTIC_NETOPS_CLUSTER_NAME}"
   echo "[provision] generating fabric-compat-pins ConfigMap from versions.lock.yaml"
   python3 - <<'PY' | kubectl --context "$CTX" -n agentic-netops-system apply -f - >/dev/null 2>&1 || echo "[provision] WARN: compat-pins generation failed" >&2
+import json
+import os
 import re
 
 lock = open("versions.lock.yaml").read()
@@ -237,7 +272,22 @@ def grab(pattern, default="", flags=0):
     m = re.search(pattern, lock, flags)
     return m.group(1).strip() if m else default
 
-sonic_image = grab(r"^\s*-\s*image:\s*(localhost:5000/sonic-vs-gnmi:\S+)$", "", re.M)
+def image_of(entry_name):
+    # T024 (FR-009): the sonic-image pin comes from the ACTIVE PROFILE's lock
+    # entry (sonic_images.sonic_vm for --profile sonic-vm, sonic_vs otherwise)
+    # — never from a sonic-vs-only literal. The entry body is the slice up to
+    # the next 2-space key or a column-0 comment, so comments inside the entry
+    # and sibling entries cannot confuse it.
+    m = re.search(rf"^  {entry_name}:[^\n]*\n(.*?)(?=^  \S|^#|\Z)", lock, re.M | re.S)
+    if not m:
+        return ""
+    im = re.search(r"^    image:\s*(\S+)", m.group(1), re.M)
+    return im.group(1) if im else ""
+
+profile = os.environ.get("AGENTIC_NETOPS_PROFILE", "sonic-vs")
+sonic_image = image_of("sonic_vm" if profile == "sonic-vm" else "sonic_vs")
+if not sonic_image:
+    raise SystemExit(f"versions.lock.yaml sonic_images has no image for profile {profile}")
 oc = grab(r"^\s*-\s*image:.*\n\s*oc_version:\s*openconfig@([0-9a-f]+)", "", re.M)
 native = grab(r"^\s*-\s*image:.*\n\s*oc_version:.*\n\s*native_version:\s*sonic_yang@([0-9a-f]+)", "", re.M)
 kubenet = grab(r"^kubenet:.*?^\s*commit:\s*([0-9a-f]+)", "", re.M | re.S)
@@ -247,7 +297,6 @@ sdc = grab(r"^sdc:.*?^\s*version:\s*(\S+)", "", re.M | re.S)
 def shorten(sha, n=8):
     return sha[:n] if sha else ""
 
-import json
 cm = {"apiVersion": "v1", "kind": "ConfigMap",
     "metadata": {"name": "fabric-compat-pins", "namespace": "agentic-netops-system",
                  "labels": {"agentic-netops.owner": "agentic-netops"}},
@@ -264,12 +313,16 @@ cm = {"apiVersion": "v1", "kind": "ConfigMap",
         "sdc-release": ("v" + sdc) if sdc and not sdc.startswith("v") else sdc,
         "topology-label-contract": "v0.1.0",
         "telemetry-label-contract": "v0.1.0",
-        # Site capability assertions, not guesses: versions.lock.yaml declares
-        # this image SRv6/gNMI-qualified and scripts/lib/qualify.sh gated it
-        # live ("[qualify] OK", sonic-srv6 locator read-back asserted on both
-        # leaves — gates/proofs/cycles/idempotence-provision-1.log). The FRR
-        # L3VNI/Type-5 limitation is tracked separately as D-A2.
-        "cap-sai-srv6": "true",
+        # T025 (FR-007): capability assertions are DERIVED, never guessed.
+        # Generation writes the honest default "false"; the post-gate
+        # derivation step (scripts/lib/capability.sh, T033) patches the
+        # ConfigMap from the qualification gate report and the profile's
+        # srv6-supported.yaml. A failed or skipped gate leaves "false".
+        "cap-sai-srv6": "false",
+        # Informational (T025): which profile this generation served, so a
+        # reader of the live ConfigMap can trace the pins back to the lab
+        # profile without asking the provisioner.
+        "lab-profile": profile,
     }}
 print(json.dumps(cm, indent=1))
 PY
@@ -290,9 +343,10 @@ if command -v kubectl >/dev/null 2>&1; then
   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/l2-bridged.yaml"
   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/l3-routed.yaml"
   kubectl --context "$CTX" apply -f "${REPO_ROOT}/deploy/kubenet/networks/tenants/irb-symmetric.yaml"
-  kubectl --context "$CTX" apply -f "${REPO_ROOT}/config/samples/agentic-netops_v1alpha1_srv6service.yaml"
-  # Wait for SRv6Service readiness (best-effort; controller enforces compatibility gates)
-  kubectl --context "$CTX" -n default wait --for=condition=Ready --timeout="${AGENTIC_NETOPS_TIMEOUT}" srv6service/example-srv6 || true
+  # T034: no sample SRv6Service here. Provisioning an SRv6 service is a
+  # deliberate, tier-mediated act (refusal R1/R4 semantics, capability gates);
+  # an unconditional sample apply would either claim capability this site has
+  # not proven or dead-lock the bring-up on a refused Ready condition.
   # Capture independent observation of applied Network resources
   kubectl --context "$CTX" -n kubenet-system get networkconfigs,networks 2>/dev/null | nl -ba > "${REPO_ROOT}/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs/kubectl-get-kubenet-networks.txt" || true
 fi
@@ -333,10 +387,33 @@ if [[ -x "${LIB_DIR}/qualify.sh" ]]; then
   if ! "${LIB_DIR}/qualify.sh"; then
     echo "[provision] capability gate failed for profile ${AGENTIC_NETOPS_PROFILE}" >&2
     if [[ "${AGENTIC_NETOPS_PROFILE}" == "sonic-vs" ]]; then
-      echo "[provision] sonic-vs failed gate; this profile is not SRv6-qualified. Use --profile sonic-vm for conformance." >&2
+      # T035: worded to match versions.lock.yaml — sonic_vs is gNMI/SRv6
+      # gate-qualified (core capability checks run against its telemetry
+      # server); full EVPN/SRv6 conformance runs on sonic_vm.
+      echo "[provision] sonic-vs failed the capability gate; per versions.lock.yaml sonic_vs runs the core gNMI gate and full EVPN/SRv6 conformance runs on sonic_vm (use --profile sonic-vm)" >&2
     fi
     exit 1
   fi
+fi
+
+# T033 (contracts/capability-record.md §2): the ConfigMap was generated with
+# the honest default cap-sai-srv6: "false" BEFORE the gate (the Network
+# controller needs its pins before the gate runs). Now that the gate has
+# passed, derive the capability keys from the gate report (path via
+# qualify.sh --print-report-path) plus the profile's srv6-supported.yaml and
+# patch them in. A failed gate exits above and leaves "false"; the derivation
+# itself only yields "true" from a passing, non-skipped SRv6 check set.
+if command -v kubectl >/dev/null 2>&1 && [[ -x "${LIB_DIR}/capability.sh" ]]; then
+  CTX="kind-${AGENTIC_NETOPS_CLUSTER_NAME}"
+  # shellcheck source=./lib/capability.sh
+  source "${LIB_DIR}/capability.sh"
+  capability_kv=$(capability::derive)
+  capability_cap=$(sed -n 's/^cap-sai-srv6=//p' <<<"$capability_kv")
+  capability_supported=$(sed -n 's/^srv6-supported=//p' <<<"$capability_kv")
+  kubectl --context "$CTX" -n agentic-netops-system patch configmap fabric-compat-pins \
+    --type merge -p "{\"data\":{\"cap-sai-srv6\":\"${capability_cap}\",\"srv6-supported\":\"${capability_supported}\"}}" \
+    || echo "[provision] WARN: capability patch failed" >&2
+  echo "[provision] capability derived from gate report: cap-sai-srv6=${capability_cap} srv6-supported=${capability_supported}"
 fi
 
 if [[ "$TIER_FAILED" == "true" ]]; then

@@ -45,4 +45,42 @@ Rules this record follows:
 
 ## Review records
 
-(empty — filled at T593, plan 12-25, alongside the proofs column above)
+### R1 — interim SRv6 refusal and classifier routing (T597, phase 2, 2026-10-11)
+
+What changed and why (FR-003, FR-003a, FR-015; contracts/operator-phrasings.md §3): before this
+feature's own service type exists, a request naming SRv6 must not be answered with a generic
+unsupported text, a clarification, or — worst — a silent fold into a VXLAN service. The mapper now
+recognizes SRv6 (case-insensitive: `srv6`, `segment routing v6`, `segment routing over ipv6`) and
+flags it as the unsupported property `srv6Transport`; the supervisor's mapper node renders the
+official interim refusal R1 for it; the classifier routes a request naming SRv6 to the provisioning
+path so R1 — not a diversion — is what the operator sees.
+
+Texts before / after:
+
+- Classifier (prompts/system.py, decision order) — BEFORE: a request naming SRv6 with a known
+  construct (e.g. "ip-vrf over SRv6") classified PROVISIONABLE only by construct-word accident, and
+  a bare "SRv6 service" fell through to INFORMATIONAL ("here is what I can do" — no refusal). AFTER:
+  decision-order rule 2 — any request naming SRv6 is PROVISIONABLE, so the provisioning path's
+  official R1 refusal is what the operator sees.
+- Mapper — BEFORE: `srv6Transport` unknown; "ip-vrf over SRv6" mapped to `ip-vrf`; "SRv6 + a legacy
+  service alias" folded through the alias to `ip-vrf` (a VXLAN-equivalent claim for an SRv6
+  request). AFTER:
+  the request is terminal with `unsupported_properties=["srv6Transport"]` and empty
+  `missing_fields`; nothing is mapped, allocated, or claimed.
+- Operator-facing refusal — BEFORE: generic `I can't do that. unsupported properties: … (no
+  equivalent in the fabric). …` (or no refusal at all). AFTER (R1, composed by the supervisor
+  template): `I can't do that. SRv6 services are not available yet. This request names SRv6, so it
+  is not provisioned as a VXLAN service. This tier never opens a device session, issues a device
+  command, or writes device configuration. Every change to the fabric flows only through declarative
+  service intent submitted to the cluster API, which the control plane reconciles. Try instead:
+  nothing was provisioned and nothing was claimed — SRv6 has no supported service type on this tier
+  yet. If you want a VXLAN service today, ask for it explicitly as its own request — e.g. 'extend
+  vlan 100 as a mac-vrf across <siteA> <portA> and <siteB> <portB> for tenant <tenant>' — and I will
+  map that request through the same two confirmations. (correlation id: <id>)`
+
+Proofs this record rests on: `gates/proofs/q10-srv6.out` (the five-case interim SRv6 corpus —
+mapper-level unsupported result and graph-level R1 refusal for each), `gates/proofs/q10-baseline.out`
+(existing corpus replay identical to the snapshot — nothing else moved), `gates/proofs/q10-guard.out`
+(vocabulary guard, no entry relaxed), `gates/proofs/p1-agents.out` (whole agents suite green after
+the change). The refusal text itself is pinned in `agents/tests/unit/test_phrasings_srv6.py` and
+`agents/tests/unit/test_refusal_paths.py` (`TestSRv6InterimRefusal`).

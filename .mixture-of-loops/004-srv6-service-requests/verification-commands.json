@@ -32,10 +32,8 @@
       "phase": 2,
       "executable": "bash",
       "args": [
-        "bash",
-        "-c",
-        "cd agents && pytest tests/unit/test_phrasings_baseline.py"
-      ],
+        "scripts/proofs/run-q10-baseline.sh"
+    ],
       "cwd": "/root/agentic-netops",
       "timeoutSec": 600
     },
@@ -44,10 +42,8 @@
       "phase": 2,
       "executable": "bash",
       "args": [
-        "bash",
-        "-c",
-        "cd agents && pytest tests/unit/test_phrasings_srv6.py"
-      ],
+        "scripts/proofs/run-q10-srv6.sh"
+    ],
       "cwd": "/root/agentic-netops",
       "timeoutSec": 600
     },
@@ -56,10 +52,8 @@
       "phase": 2,
       "executable": "bash",
       "args": [
-        "bash",
-        "-c",
-        "cd agents && pytest tests/unit/test_vocabulary_guard.py"
-      ],
+        "scripts/proofs/run-q10-guard.sh"
+    ],
       "cwd": "/root/agentic-netops",
       "timeoutSec": 600
     },
@@ -68,10 +62,8 @@
       "phase": 2,
       "executable": "bash",
       "args": [
-        "bash",
-        "-c",
-        "cd agents && pytest"
-      ],
+        "scripts/proofs/run-p1-agents.sh"
+    ],
       "cwd": "/root/agentic-netops",
       "timeoutSec": 1800
     },

@@ -71,7 +71,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	pins := compat.ResolveSitePins(ctx, pinReader, svc.Annotations, svc.Labels)
 	set := compat.FromAnnotations(pins.Annotations)
 	discovered := map[string]bool{"sai.srv6": pins.Labels["agentic-netops.dev/cap.sai.srv6"] == "true"}
-	if err := compat.FullValidate(set, pins.Labels, discovered); err != nil {
+	// T019: the SRv6Service kind — the one kind that requires the SRv6
+	// capability (FR-007). Until the gate proves SRv6 on the site, this
+	// object honestly stays CapabilityMissing instead of pretending.
+	if err := compat.FullValidate(set, pins.Labels, compat.KindSRv6Service, discovered); err != nil {
 		reason := compat.ReasonFor(err)
 		cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: svc.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reason, Message: err.Error() + " (" + pins.Provenance() + ")"}
 		updated.Status.Conditions = upsertCondition(updated.Status.Conditions, cond)

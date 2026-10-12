@@ -147,7 +147,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	pins := compat.ResolveSitePins(ctx, pinReader, nd.Annotations, nd.Labels)
 	set := compat.FromAnnotations(pins.Annotations)
 	discovered := map[string]bool{"sai.srv6": pins.Labels["agentic-netops.dev/cap.sai.srv6"] == "true"}
-	if err := compat.FullValidate(set, pins.Labels, discovered); err != nil {
+	// T018: the NetworkDevice kind — like Network, no SRv6 capability
+	// requirement (FR-007): cap-sai-srv6=false must not block VXLAN day-2.
+	if err := compat.FullValidate(set, pins.Labels, compat.KindNetworkDevice, discovered); err != nil {
 		// Set SchemaMismatch/CapabilityMissing and requeue with terminal backoff, no downstream change
 		reason := compat.ReasonFor(err)
 		cond := metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, ObservedGeneration: nd.Generation, LastTransitionTime: metav1.NewTime(time.Now()), Reason: reason, Message: err.Error() + " (" + pins.Provenance() + ")"}

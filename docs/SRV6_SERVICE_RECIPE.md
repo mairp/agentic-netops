@@ -68,7 +68,7 @@ Approaches to try (written before the first attempt):
 | --- | --- | --- | --- |
 |  |  |  |  |
 
-## 2. `ip-vrf` / `vpn` (L3VPN over SRv6)
+## 2. `ip-vrf` / `vpn` (routed service over SRv6)
 
 **Status: empty — no attempt recorded.**
 
@@ -80,9 +80,9 @@ Approaches to try (written before the first attempt):
 - Per-service SID function value allocated from the node locator's function
   block; VRF name derived from the service id — the identifier candidates in
   data-model §8.1, to be confirmed with real ranges.
-- BGP signals the per-VRF SRv6 SID to the remote PE (L3VPN over SRv6
-  signalling in FRR on 202505 — presence and shape to be confirmed by the
-  spike; nothing here is verified).
+- BGP signals the per-VRF SRv6 SID to the remote PE (routed service over
+  SRv6, vpn signalling in FRR on 202505 — presence and shape to be confirmed
+  by the spike; nothing here is verified).
 - Encapsulation by the ingress leaf toward the remote locator's `uN` SID: with
   ASIC `vs`, the Linux kernel is the forwarding plane, so a kernel `seg6`
   route encapsulation is the dataplane candidate (research addendum).

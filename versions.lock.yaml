@@ -96,8 +96,9 @@ sonic_images:
       and rebuilds. It is ASan-free but not qualified alone because upstream's VS
       artifact ships no gNMI telemetry server.
   sonic_vm:
-    image: local/sonic-vm
-    digest: sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+    # T020 (FR-009): one image form — image@sha256:<digest> on one line; the
+    # digest read from `docker image inspect local/sonic-vm:202505` (.Id).
+    image: local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
     notes: Conformance profile; build via vrnetlab; requires KVM; digest is operator-built
 
 # ---------------------------------------------------------------------------

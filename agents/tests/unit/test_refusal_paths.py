@@ -324,6 +324,78 @@ class TestDirectActionRefusal:
 
 
 # ---------------------------------------------------------------------------
+# T010 — the interim SRv6 refusal (feature 004, plan 1-07).
+# ---------------------------------------------------------------------------
+class TestSRv6InterimRefusal:
+    """T010 — an SRv6 phrasing reaches refusal R1 and is not diverted.
+
+    A request naming SRv6 must be refused terminally with R1
+    (contracts/operator-phrasings.md §3): "SRv6 services are not available
+    yet. This request names SRv6, so it is not provisioned as a VXLAN
+    service." — rendered by the mapper node from the mapper's
+    ``srv6Transport`` result (T008/T009). The CLASSIFIER must not divert the
+    request into a different refusal (direct-device, unsupported-feature) or
+    a clarification, because the refusal the operator sees must be R1.
+    Passes (for the stated reason that the classifier routes SRv6 to the
+    provisioning path and the mapper node renders R1 — T011 pins the
+    prompt-side rule this relies on for a production LLM).
+    """
+
+    @pytest.mark.asyncio
+    async def test_srv6_request_reaches_refusal_r1(self):
+        llm = StubClassifierLLM()
+        transport = StubTransport()
+        state = await _run(
+            "give tenant acme an ip-vrf over SRv6 carrying 10.50.0.0/24 "
+            "between leaf01 wan1 and leaf02 wan1",
+            llm,
+            transport,
+        )
+        assert state.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
+        reason = state.get("refusal_reason") or ""
+        # R1 itself — not a different refusal, not a clarification (FR-003)
+        assert reason.startswith("SRv6 services are not available yet")
+        assert "not provisioned as a VXLAN service" in reason
+        assert "unsupported properties" not in reason
+        msg = _last_ai(state)
+        assert "I can't do that." in msg
+        assert REFUSAL_EXPLANATION in msg
+        assert "Try instead:" in msg
+        # terminal at the failing stage: the mapper is consulted (R1 renders
+        # from its srv6Transport result), but NO worker beyond it — nothing
+        # is allocated or deployed (FR-030, SC-008)
+        assert [stage for stage, _ in transport.calls] == ["mapper"]
+        from common.audit import get_audit_sink
+
+        assert _refuses(get_audit_sink().events)
+        # nothing was accepted for confirmation on an SRv6 request (SC-008)
+        assert not state.get("mapped_parameters")
+        assert state.get("pending_action") in (None, "")
+
+    @pytest.mark.asyncio
+    async def test_bare_srv6_request_not_diverted_to_informational(self):
+        """A bare "SRv6 service" names no construct — the classifier's
+        escape hatch to INFORMATIONAL must not fire for it (T011)."""
+        llm = StubClassifierLLM()
+        transport = StubTransport()
+        state = await _run("provision an SRv6 service for tenant acme", llm, transport)
+        assert state.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
+        assert "SRv6 services are not available yet" in (state.get("refusal_reason") or "")
+        assert state.get("pending_action") in (None, "")
+        assert [stage for stage, _ in transport.calls] == ["mapper"]
+
+    def test_classifier_prompt_routes_srv6_to_provisioning(self):
+        """T011 — the production classifier prompt carries the SRv6 rule
+        (route a request naming SRv6 to the provisioning path so the
+        mapper's R1 refusal is what the operator sees)."""
+        from supervisors.provisioning.prompts.system import CLASSIFIER_PROMPT
+
+        low = CLASSIFIER_PROMPT.lower()
+        assert "srv6" in low
+        assert "provisionable" in low
+
+
+# ---------------------------------------------------------------------------
 # T128 — malformed payload rejection tests.
 # ---------------------------------------------------------------------------
 class _FixedPayloadTransport(StubTransport):

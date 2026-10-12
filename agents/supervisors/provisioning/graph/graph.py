@@ -85,6 +85,7 @@ from common.schemas.interpretation import Interpretation
 from common.schemas.normalized_intent import NormalizedServiceIntent
 from common.schemas.refs import ResourceRef
 from config.config import LLM_MODEL
+from provisioning.mapper.agent import SRV6_UNSUPPORTED_PROPERTY
 from supervisors.provisioning.graph.shared import (
     Decision,
     RequestClassification,
@@ -226,6 +227,25 @@ DEFAULT_SUGGESTION = (
     "'give tenant <tenant> an ip-vrf carrying 10.50.0.0/24 on <siteA> wan1'. "
     "I will map it into an interpretation, allocate from the allocation authority, "
     "and submit it to the cluster only after your two explicit confirmations."
+)
+
+# T009 — interim SRv6 refusal R1 (FR-003, FR-015; contracts/operator-phrasings.md
+# §3). Until feature 004 delivers a supported SRv6 service type, EVERY request
+# naming SRv6 is refused terminally with this text — the mapper flags
+# ``srv6Transport`` and the mapper node below renders R1 (not the generic
+# unsupported-property text). The suggestion names no SRv6 equivalent (there
+# is none yet) and never folds the request into a VXLAN service silently
+# (SC-008): a VXLAN service is offered only as an explicit, separate request.
+SRV6_REFUSAL_REASON = (
+    "SRv6 services are not available yet. This request names SRv6, so it is "
+    "not provisioned as a VXLAN service"
+)
+SRV6_REFUSAL_SUGGESTION = (
+    "nothing was provisioned and nothing was claimed — SRv6 has no supported "
+    "service type on this tier yet. If you want a VXLAN service today, ask for "
+    "it explicitly as its own request — e.g. 'extend vlan 100 as a mac-vrf "
+    "across <siteA> <portA> and <siteB> <portB> for tenant <tenant>' — and I "
+    "will map that request through the same two confirmations."
 )
 # FR-010 companion (live finding, 2026-09-04): a clarification that only
 # names the missing fields invites an equally vague restatement ("provision
@@ -1582,6 +1602,18 @@ class ProvisioningGraph:
         # FR-012: unsupported properties -> refusal naming them, NO
         # partial assignment (SC-003).
         if interpretation.unsupported_properties:
+            # T009 — the mapper's SRv6 result renders R1 (contracts/
+            # operator-phrasings.md §3): the interim SRv6 refusal names the
+            # transport and never falls through to the generic
+            # unsupported-property text.
+            if SRV6_UNSUPPORTED_PROPERTY in interpretation.unsupported_properties:
+                return self._refuse(
+                    state,
+                    config,
+                    SRV6_REFUSAL_REASON,
+                    SRV6_REFUSAL_SUGGESTION,
+                    stage="mapper",
+                )
             props = ", ".join(interpretation.unsupported_properties)
             return self._refuse(
                 state,

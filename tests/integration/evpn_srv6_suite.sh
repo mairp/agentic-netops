@@ -199,10 +199,56 @@ trap cleanup_trap EXIT
 
 # --- dataplane witnesses (kernel seg6 / FRR) -----------------------------------
 
+# T027/T028 — the suite's kernel seg6 probe: install a seg6 route, read it
+# back, delete it. The probe output is the single source of truth for "can
+# this node host a kernel seg6 lwtunnel route" (seg6_witness) and for the
+# probe selftest below. SEG6_PROBE_DEV is the device the probe binds:
+# T028 moves it to a REAL interface (Loopback0) — live-verified on the
+# sonic-vm guest, `dev lo` installs the route but the kernel silently DROPS
+# the encap (`ip -6 route show` lists the route WITHOUT encap), while
+# `dev Loopback0` programs and shows `encap seg6 ... dev Loopback0`.
+# The fallback to `lo` keeps the sonic-vs profile (no Loopback0 in some
+# container builds) working: there the host kernel honors seg6 on any device.
+SEG6_PROBE_PREFIX="2001:db8:7fff:ffff::/64"
+# T028: the probe (and every witness install) binds Loopback0 — the real
+# interface every SONiC node carries — falling back to `lo` only when the
+# node has no Loopback0 (some sonic-vs container builds). Overridable via
+# SEG6_PROBE_DEV for targeted debugging.
+seg6_probe_dev() {
+  if [[ -n "${SEG6_PROBE_DEV:-}" ]]; then
+    printf '%s\n' "$SEG6_PROBE_DEV"
+  else
+    node_run "$1" "ip -6 link show Loopback0 >/dev/null 2>&1 && echo Loopback0 || echo lo" 2>/dev/null | tail -n1
+  fi
+}
+seg6_probe_out() {
+  local node=$1 dev
+  dev=$(seg6_probe_dev "$node")
+  node_run "$node" "sudo ip -6 route replace ${SEG6_PROBE_PREFIX} encap seg6 mode encap segs fc00::1 dev ${dev} && sudo ip -6 route show ${SEG6_PROBE_PREFIX}; rc=\$?; sudo ip -6 route del ${SEG6_PROBE_PREFIX} >/dev/null 2>&1 || true; exit \$rc" 2>/dev/null || true
+}
+
+# T027 — probe selftest: install a seg6 route with the suite's own probe and
+# assert the installed route is VISIBLE with its encap. This is the guard that
+# keeps seg6_witness honest: a probe that installs-but-drops (the sonic-vm
+# `dev lo` behavior before T028) must fail HERE, not silently skip witnesses.
+seg6_probe_selftest() {
+  local node out dev
+  IFS=',' read -ra tgts <<<"$TARGETS"
+  node=$(node_for_ip "${tgts[0]%%:*}")
+  [[ -n "$node" ]] || die "seg6-probe-selftest: cannot resolve containerlab node for ${tgts[0]%%:*}"
+  dev=$(seg6_probe_dev "$node")
+  out=$(seg6_probe_out "$node")
+  grep -q 'encap seg6' <<<"$out" \
+    || die "seg6 probe selftest: the probe's route is not visible with its encap on ${dev} (probe output: ${out:-<none>})"
+  note "seg6 probe selftest: route installed on ${dev} and visible with encap (${out})"
+}
+
 # For each target node, verify kernel SRv6 encap state with exact ordered content
 seg6_witness() {
   local mode=$1 segs=$2 expect=$3 label=$4
   IFS=',' read -ra tgts <<<"$TARGETS"
+  local dev
+  dev=$(seg6_probe_dev "$(node_for_ip "${tgts[0]%%:*}")")
   for t in "${tgts[@]}"; do
     local node probe out
     node=$(node_for_ip "${t%%:*}")
@@ -211,27 +257,28 @@ seg6_witness() {
     # runs on the container host kernel (supports seg6); the sonic-vm guest
     # runs the SONiC Debian kernel where LWTUNNEL/seg6 is disabled — "ip
     # route ... encap seg6" is silently accepted but the encap is dropped.
-    # Probe once and skip the kernel witness with an explicit note when the
-    # node kernel cannot host it (the gNMI CONFIG_DB SRv6 witnesses above
-    # still cover SRv6 control-plane state on both profiles).
+    # Probe once; when the node kernel cannot host the witness the check
+    # exits SKIP (77) so the gate counts it as skipped, never passed (T029) —
+    # the gNMI CONFIG_DB SRv6 witnesses still cover SRv6 control-plane state
+    # on both profiles.
     if [[ -z "${SEG6_KERNEL_OK:-}" ]]; then
       local probe_out
-      probe_out=$(node_run "$node" "sudo ip -6 route replace 2001:db8:7fff:ffff::/64 encap seg6 mode encap segs fc00::1 dev lo 2>/dev/null && sudo ip -6 route show 2001:db8:7fff:ffff::/64; sudo ip -6 route del 2001:db8:7fff:ffff::/64 >/dev/null 2>&1" 2>/dev/null || true)
+      probe_out=$(seg6_probe_out "$node")
       if grep -q 'encap seg6' <<<"$probe_out"; then
         SEG6_KERNEL_OK=1
       else
         SEG6_KERNEL_OK=0
-        note "$t: kernel seg6 lwtunnel unavailable — skipping $label kernel witness (control-plane SRv6 state asserted via gNMI)"
-        continue
+        note "$t: kernel seg6 lwtunnel unavailable — $label exits SKIP (77); control-plane SRv6 state is still asserted via gNMI"
+        exit 77
       fi
     elif [[ "$SEG6_KERNEL_OK" == "0" ]]; then
-      continue
+      exit 77
     fi
     # WITNESS_TAG is a decimal epoch; fold it into a valid 16-bit hextet
     local tag_hex
     tag_hex=$(printf '%04x' $(( WITNESS_TAG % 65536 )))
     probe="2001:db8:7f:${tag_hex}::/64"
-    node_run "$node" "sudo ip -6 route replace '$probe' encap seg6 mode '$mode' segs '$segs' dev lo" \
+    node_run "$node" "sudo ip -6 route replace '$probe' encap seg6 mode '$mode' segs '$segs' dev ${dev}" \
       || die "$label $t: kernel rejected seg6 $mode encap route"
     out=$(node_run "$node" "sudo ip -6 route show '$probe'")
     node_run "$node" "sudo ip -6 route del '$probe'" >/dev/null 2>&1 || true
@@ -440,6 +487,7 @@ main() {
     SID-list) SID_list_steering ;;
     Decapsulation) Decapsulation ;;
     Counters) Counters ;;
+    seg6-probe-selftest) seg6_probe_selftest ;;
     *) echo "unknown test $1" >&2; exit 2 ;;
   esac
 }

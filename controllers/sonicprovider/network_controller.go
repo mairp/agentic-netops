@@ -155,6 +155,9 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// Compatibility gate against the site pins (versions.lock defaults, object
 	// annotations override). Failures are truthful SchemaMismatch, not guesses.
+	// T018: the Network kind — the SRv6 capability is NOT required here
+	// (FR-007): a lab that honestly reports cap-sai-srv6=false still
+	// provisions VXLAN services.
 	pinReader := compat.PinReader(r.Client)
 	if r.APIReader != nil {
 		pinReader = r.APIReader
@@ -162,7 +165,7 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	pins := compat.ResolveSitePins(ctx, pinReader, net.Annotations, net.Labels)
 	set := compat.FromAnnotations(pins.Annotations)
 	discovered := map[string]bool{"sai.srv6": pins.Labels["agentic-netops.dev/cap.sai.srv6"] == "true"}
-	if err := compat.FullValidate(set, pins.Labels, discovered); err != nil {
+	if err := compat.FullValidate(set, pins.Labels, compat.KindNetwork, discovered); err != nil {
 		r.setConditions(ctx, &net, false, compat.ReasonFor(err), err.Error()+" ("+pins.Provenance()+")", false)
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}

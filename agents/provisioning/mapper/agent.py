@@ -115,6 +115,31 @@ _UNSUPPORTED_SERVICE_TYPES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bpbb[- ]?evpn\b", re.I), "PBB-EVPN"),
 ]
 
+# --- SRv6 recognition (feature 004, T008; contracts/operator-phrasings.md §1)
+# An SRv6 qualifier decides the TRANSPORT, and the fabric has no supported SRv6
+# service type yet (interim refusal R1, FR-015). Recognition therefore runs
+# BEFORE _detect_service_type and every alias/construct pattern in
+# _SERVICE_PATTERNS: an SRv6 qualifier beside a legacy service name, and
+# "ip-vrf over SRv6 ...", name a transport the fabric cannot offer yet, and
+# letting them fall through to the patterns below would map the request onto a
+# VXLAN construct and provision exactly the service the operator did not ask
+# for (SC-008). A bare "segment routing" does not name SRv6 and stays with the
+# existing patterns, so a refusal never claims a request named SRv6 when it
+# did not.
+_SRV6_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"\bsrv6\b", re.I),
+    re.compile(r"\bsegment[- ]routing\s+over\s+ipv6\b", re.I),
+    re.compile(r"\bsegment[- ]routing\s+v6\b", re.I),
+]
+# The unsupported-property literal the refusal, the audit trail and the Go
+# translator share (common/schemas/normalized_intent.py vocabulary, FR-012).
+SRV6_UNSUPPORTED_PROPERTY = "srv6Transport"
+
+
+def _detect_srv6(text: str) -> bool:
+    """True when the request names SRv6 (contracts/operator-phrasings.md §1)."""
+    return any(pat.search(text) for pat in _SRV6_PATTERNS)
+
 # "between A and B" and "across A and B" are the same two-attachment clause.
 # "across" is the phrasing the served suggestions use for a mac-vrf, and the
 # one DEFAULT_SUGGESTION and CLARIFICATION_HINT tell a refused operator to use,
@@ -504,7 +529,21 @@ class MappingAgent:
         missing: list[str] = []
         unsupported: list[str] = _detect_unsupported(low)
 
-        st = _detect_service_type(low)
+        # T008 — SRv6 recognition runs BEFORE _detect_service_type and before
+        # every alias/construct pattern below (contracts/operator-phrasings.md
+        # §1): the SRv6 qualifier decides the transport, and a legacy service
+        # name beside it is never enough to select a VXLAN construct. The
+        # result is terminal via unsupported_properties (missing_fields is
+        # emptied below whenever unsupported is non-empty), so nothing is
+        # routed onward and no DataPart is emitted (T204/T206).
+        if _detect_srv6(low):
+            unsupported.append(SRV6_UNSUPPORTED_PROPERTY)
+            # Coerce to a valid enum for schema validation only; the terminal
+            # unsupported flag prevents routing (mirrors the unknown-construct
+            # coerce below).
+            st = ServiceType.VLAN
+        else:
+            st = _detect_service_type(low)
         if st is None:
             # T202: check for explicitly unsupported service types (distinct from missing)
             ust = _detect_unsupported_service_type(low)

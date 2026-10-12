@@ -46,11 +46,16 @@ valid_name() {
 }
 
 # render_out <exit-code> <combined-output-file>: print the raw output,
-# newline-terminated, followed by the exit-code line.
+# newline-terminated, followed by the exit-code line. The elapsed time a test
+# runner prints in its summary line (pytest: "N passed in 2.78s") is
+# normalized to ELAPSED at render time — both when recording and when
+# replaying — so a re-run regenerates byte-identical output (FR-039, SC-015):
+# durations necessarily differ between two live runs; nothing else in the
+# summary line may.
 render_out() {
     local exit_code="$1" out_file="$2"
     if [[ -s "$out_file" ]]; then
-        cat "$out_file"
+        sed -E 's/in [0-9]+\.[0-9]+s([ =]|$)/in ELAPSED\1/' "$out_file"
         [[ "$(tail -c 1 "$out_file")" == $'\n' ]] || printf '\n'
     fi
     printf '[exit code: %s]\n' "$exit_code"

@@ -1,0 +1,38 @@
+# T006 — interim SRv6 transport phrasings (FR-003, FR-015; plan 1-03).
+#
+# Natural-language ways an operator can ask for an SRv6 service while the
+# feature has no supported SRv6 type yet. Every phrasing must produce a
+# TERMINAL refusal naming SRv6 (refusal R1, contracts/operator-phrasings.md
+# §3) and must never map to a VXLAN construct (SC-008) — "SRv6 L3VPN
+# between ..." (migration alias) and "ip-vrf over SRv6 ..." name a transport
+# the fabric cannot offer yet, not an ip-vrf/mac-vrf service.
+#
+# This file is deliberately NOT replayed into baseline_snapshot.json
+# (tests/unit/test_phrasings_baseline.py skips srv6_* files) and not run by
+# the generic unsupported-property runner (the refusal names SRv6, not a Go
+# unsupported-property literal). It is exercised by
+# tests/unit/test_phrasings_srv6.py.
+category: srv6_transport
+property: srv6Transport
+cases:
+  - id: srv6-alias-001
+    # legacy alias beside the SRv6 qualifier: the qualifier decides, the
+    # alias never selects a VXLAN construct (contract §1)
+    text: "SRv6 L3VPN between leaf01 and leaf02 for tenant acme"
+    expect: refusal
+
+  - id: srv6-evpn-002
+    text: "EVPN over SRv6 across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme"
+    expect: refusal
+
+  - id: srv6-ipvrf-003
+    text: "give tenant acme an ip-vrf over SRv6 carrying 10.50.0.0/24 between leaf01 wan1 and leaf02 wan1"
+    expect: refusal
+
+  - id: srv6-macvrf-004
+    text: "extend vlan 100 as a mac-vrf over SRv6 across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme"
+    expect: refusal
+
+  - id: srv6-bare-005
+    text: "provision an SRv6 service for tenant acme"
+    expect: refusal

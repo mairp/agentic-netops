@@ -67,6 +67,7 @@ from common.provisioning_states import NetworkProvisioningStatus
 from common.schemas.audit import AuditEvent
 from common.schemas.interpretation import Interpretation
 from common.schemas.normalized_intent import NormalizedServiceIntent
+from provisioning.mapper.agent import SRV6_UNSUPPORTED_PROPERTY, _detect_srv6
 from supervisors.provisioning.graph.graph import (
     MAPPER_MARKER,
     ProvisioningGraph,
@@ -326,6 +327,22 @@ def _parse_gateway(low: str) -> tuple[dict[str, str] | None, bool]:
 def parse_service_request(text: str) -> dict | None:
     """Deterministic structural parse; None when the request shape is absent."""
     low = text.lower()
+    # Feature 004 (T008 parity): the stub mapper mirrors the real mapper's
+    # SRv6 recognition — literally the SAME detector
+    # (provisioning.mapper.agent._detect_srv6), so stub and production cannot
+    # drift. An SRv6 request is a terminal unsupported result (interim refusal
+    # R1, contracts/operator-phrasings.md §3); it is never mapped to a VXLAN
+    # construct (SC-008). Recognition runs before the construct-word scan
+    # below, mirroring the mapper's ordering.
+    if _detect_srv6(text):
+        m_tenant = _TENANT_RE.search(low)
+        return {
+            "service_id": "svc-srv6",
+            "service_type": "vlan",  # schema-valid placeholder; the terminal flag refuses
+            "tenant": m_tenant.group(1) if m_tenant else "missing",
+            "endpoints": [{"site_or_node": "missing", "attachment": "missing"}],
+            "unsupported_properties": [SRV6_UNSUPPORTED_PROPERTY],
+        }
     service_type = None
     for word, t in _SERVICE_TYPE_WORDS:
         if re.search(rf"\b{re.escape(word)}\b", low):
@@ -529,6 +546,12 @@ class StubClassifierLLM:
         for pattern in REDIRECT_PATTERNS:
             if pattern.search(text.lower()):
                 return "unsupported"
+        # T011 parity: the classifier prompt's decision-order rule 2 — a
+        # request naming SRv6 routes to the provisioning path (PROVISIONABLE)
+        # so the mapper's interim R1 refusal is what the operator sees, never
+        # the generic unsupported answer or an informational fallback.
+        if _detect_srv6(text):
+            return "provisionable"
         # A request the deterministic parser can interpret is provisionable
         # regardless of its leading verb — the corpora include verb-less
         # shapes ("IRB between ...") and "deploy ..." alongside "provision

@@ -1,0 +1,2039 @@
+{
+ "comment": "T005 baseline: mapper output for every pre-existing phrasing corpus case, service_id dropped (random). Regenerate only with UPDATE_BASELINE=1 on an unmodified mapper (git diff --quiet -- agents/provisioning/mapper).",
+ "cases": [
+  {
+   "file": "acl.yaml",
+   "id": "allow_https_ingress",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": {
+     "name": null,
+     "stage": "ingress",
+     "type": "l3",
+     "default_action": null,
+     "rules": [
+      {
+       "name": "rule-1",
+       "priority": 100,
+       "action": "permit",
+       "protocol": "tcp",
+       "sourcePrefix": "10.0.0.0/24",
+       "destinationPrefix": null,
+       "sourcePort": null,
+       "destinationPort": "443",
+       "description": null
+      }
+     ]
+    },
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "constructs: vlan, mac-vrf, ip-vrf, acl"
+    ]
+   }
+  },
+  {
+   "file": "acl.yaml",
+   "id": "deny_all_egress_two_nodes",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "blue",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "constructs: vlan, mac-vrf, ip-vrf, acl"
+    ]
+   }
+  },
+  {
+   "file": "acl.yaml",
+   "id": "clarify_missing_tenant",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "missing",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet3",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": {
+     "name": null,
+     "stage": "ingress",
+     "type": "l3",
+     "default_action": null,
+     "rules": [
+      {
+       "name": "rule-1",
+       "priority": 100,
+       "action": "permit",
+       "protocol": "tcp",
+       "sourcePrefix": null,
+       "destinationPrefix": null,
+       "sourcePort": null,
+       "destinationPort": "53",
+       "description": null
+      }
+     ]
+    },
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "constructs: vlan, mac-vrf, ip-vrf, acl"
+    ]
+   }
+  },
+  {
+   "file": "acl.yaml",
+   "id": "attached_shape_macvrf_with_acl",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": 120
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": 120
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": {
+     "name": null,
+     "stage": "ingress",
+     "type": "l3",
+     "default_action": null,
+     "rules": [
+      {
+       "name": "rule-1",
+       "priority": 100,
+       "action": "deny",
+       "protocol": "tcp",
+       "sourcePrefix": null,
+       "destinationPrefix": null,
+       "sourcePort": null,
+       "destinationPort": "80",
+       "description": null
+      }
+     ]
+    },
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "ipvrf.yaml",
+   "id": "basic-ipvrf",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "wan1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "wan1",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [
+     "10.0.10.0/24"
+    ],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "ipvrf.yaml",
+   "id": "casing-variant",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "blue",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "wan1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "wan1",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [
+     "10.1.0.0/24"
+    ],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "ipvrf.yaml",
+   "id": "punctuation-variant",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "green",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "wan1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "wan1",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [
+     "10.2.0.0/24"
+    ],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "ipvrf.yaml",
+   "id": "no-punct-variant",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "wan1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "wan1",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [
+     "10.3.0.0/24"
+    ],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "ipvrf.yaml",
+   "id": "mixedcase-hyphen",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "blue",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "wan1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "wan1",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [
+     "10.4.0.0/24"
+    ],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "ipvrf.yaml",
+   "id": "uppercase",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "green",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "wan2",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "wan2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [
+     "10.5.0.0/24"
+    ],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "irb.yaml",
+   "id": "irb-001",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": 100
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": 100
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "irb.yaml",
+   "id": "irb-002",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet3",
+      "vlan": 200
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet4",
+      "vlan": 200
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "irb.yaml",
+   "id": "irb-003",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet5",
+      "vlan": 300
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet6",
+      "vlan": 300
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "irb.yaml",
+   "id": "irb-004",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet7",
+      "vlan": 400
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet8",
+      "vlan": 400
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "irb.yaml",
+   "id": "irb-005",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet9",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet10",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "constructs: vlan, mac-vrf, ip-vrf, acl"
+    ]
+   }
+  },
+  {
+   "file": "irb.yaml",
+   "id": "irb-006",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "missing",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "constructs: vlan, mac-vrf, ip-vrf, acl"
+    ]
+   }
+  },
+  {
+   "file": "l3vpn.yaml",
+   "id": "l3vpn-001",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "l3vpn.yaml",
+   "id": "l3vpn-002",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet3",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet4",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "constructs: vlan, mac-vrf, ip-vrf, acl"
+    ]
+   }
+  },
+  {
+   "file": "l3vpn.yaml",
+   "id": "l3vpn-003",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet5",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet6",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "l3vpn.yaml",
+   "id": "l3vpn-004",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet7",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet8",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "l3vpn.yaml",
+   "id": "l3vpn-005",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet9",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet10",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "l3vpn.yaml",
+   "id": "l3vpn-006",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "missing",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [
+     "tenant"
+    ],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "macvrf.yaml",
+   "id": "basic-macvrf",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": 100
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": 100
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "macvrf.yaml",
+   "id": "casing-variant",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "blue",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "Ethernet1",
+      "vlan": 200
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "Ethernet1",
+      "vlan": 200
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "macvrf.yaml",
+   "id": "punctuation-variant",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "green",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet-3",
+      "vlan": 300
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet-3",
+      "vlan": 300
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "macvrf.yaml",
+   "id": "no-punct-variant",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": 150
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": 150
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "macvrf.yaml",
+   "id": "mixedcase-hyphen",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "blue",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "Ethernet1",
+      "vlan": 250
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "Ethernet1",
+      "vlan": 250
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "macvrf.yaml",
+   "id": "uppercase-space",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "green",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet4",
+      "vlan": 350
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet4",
+      "vlan": 350
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "macvrf_gateway.yaml",
+   "id": "gateway-ipv4",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": 100
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": 100
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": {
+     "ipv4": "10.250.10.1",
+     "ipv6": null
+    },
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "macvrf_gateway.yaml",
+   "id": "gateway-ipv6-only",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "blue",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet3",
+      "vlan": 200
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet3",
+      "vlan": 200
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [
+     "anycast_gateway"
+    ],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "macvrf_gateway.yaml",
+   "id": "gateway-both-families",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "green",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet4",
+      "vlan": 300
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet4",
+      "vlan": 300
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": {
+     "ipv4": "10.250.30.1",
+     "ipv6": null
+    },
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "macvrf_gateway.yaml",
+   "id": "gateway-no-address",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "red",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet5",
+      "vlan": 400
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet5",
+      "vlan": 400
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [
+     "anycast_gateway"
+    ],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vlan.yaml",
+   "id": "basic-vlan",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": 120
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vlan.yaml",
+   "id": "casing-variant",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "blue",
+    "endpoints": [
+     {
+      "site_or_node": "Leaf01",
+      "attachment": "Ethernet1",
+      "vlan": 200
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vlan.yaml",
+   "id": "punctuation-variant",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "green",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet-2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vpls.yaml",
+   "id": "vpls-001",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": 200
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": 200
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vpls.yaml",
+   "id": "vpls-002",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet3",
+      "vlan": 110
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet4",
+      "vlan": 110
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vpls.yaml",
+   "id": "vpls-003",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet5",
+      "vlan": 300
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet6",
+      "vlan": 300
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vpls.yaml",
+   "id": "vpls-004",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet7",
+      "vlan": 120
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet8",
+      "vlan": 120
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vpls.yaml",
+   "id": "vpls-005",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet9",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet10",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vpls.yaml",
+   "id": "vpls-006",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "missing",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [
+     "tenant"
+    ],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vpws.yaml",
+   "id": "vpws-001",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": 100
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": 100
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vpws.yaml",
+   "id": "vpws-002",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet3",
+      "vlan": 200
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet4",
+      "vlan": 200
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vpws.yaml",
+   "id": "vpws-003",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet5",
+      "vlan": 300
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet6",
+      "vlan": 300
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vpws.yaml",
+   "id": "vpws-004",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet7",
+      "vlan": 400
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet8",
+      "vlan": 400
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vpws.yaml",
+   "id": "vpws-005",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet9",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet10",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "vpws.yaml",
+   "id": "vpws-006",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "missing",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [
+     "tenant"
+    ],
+    "unsupported_properties": []
+   }
+  },
+  {
+   "file": "unsupported/multicast.yaml",
+   "id": "multicast-phrasing-001",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "multicastVPN"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/multicast.yaml",
+   "id": "multicast-phrasing-002",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "missing",
+      "attachment": "missing",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "multicastVPN"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/multicast.yaml",
+   "id": "multicast-phrasing-003",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "missing",
+      "attachment": "missing",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "multicastVPN"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/multicast.yaml",
+   "id": "multicast-phrasing-004",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "needs",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "multicastVPN"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/multicast.yaml",
+   "id": "multicast-phrasing-005",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "multicastVPN",
+     "constructs: vlan, mac-vrf, ip-vrf, acl"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/pseudowire_oam.yaml",
+   "id": "pw-oam-phrasing-001",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "pseudowireOAM"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/pseudowire_oam.yaml",
+   "id": "pw-oam-phrasing-002",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "pseudowireOAM"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/pseudowire_oam.yaml",
+   "id": "pw-oam-phrasing-003",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "pseudowireOAM"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/pseudowire_oam.yaml",
+   "id": "pw-oam-phrasing-004",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "pseudowireOAM"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/pseudowire_oam.yaml",
+   "id": "pw-oam-phrasing-005",
+   "interpretation": {
+    "service_type": "vlan",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "pseudowireOAM",
+     "constructs: vlan, mac-vrf, ip-vrf, acl"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/service_chaining.yaml",
+   "id": "chain-phrasing-001",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "serviceChain"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/service_chaining.yaml",
+   "id": "chain-phrasing-002",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "serviceChain"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/service_chaining.yaml",
+   "id": "chain-phrasing-003",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "serviceChain"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/service_chaining.yaml",
+   "id": "chain-phrasing-004",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "needs",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "serviceChain"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/service_chaining.yaml",
+   "id": "chain-phrasing-005",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "missing",
+      "attachment": "missing",
+      "vlan": null
+     },
+     {
+      "site_or_node": "missing",
+      "attachment": "missing",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "serviceChain"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/transport_engineering.yaml",
+   "id": "te-phrasing-001",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "tePolicy"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/transport_engineering.yaml",
+   "id": "te-phrasing-002",
+   "interpretation": {
+    "service_type": "ip-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "missing",
+      "attachment": "missing",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "tePolicy"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/transport_engineering.yaml",
+   "id": "te-phrasing-003",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "tePolicy"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/transport_engineering.yaml",
+   "id": "te-phrasing-004",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "acme",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "tePolicy"
+    ]
+   }
+  },
+  {
+   "file": "unsupported/transport_engineering.yaml",
+   "id": "te-phrasing-005",
+   "interpretation": {
+    "service_type": "mac-vrf",
+    "source_service_type": null,
+    "tenant": "needs",
+    "endpoints": [
+     {
+      "site_or_node": "leaf01",
+      "attachment": "ethernet1",
+      "vlan": null
+     },
+     {
+      "site_or_node": "leaf02",
+      "attachment": "ethernet2",
+      "vlan": null
+     }
+    ],
+    "bandwidth": null,
+    "sla": null,
+    "ipv4_prefixes": [],
+    "ipv6_prefixes": [],
+    "acl": null,
+    "anycast_gateway": null,
+    "missing_fields": [],
+    "unsupported_properties": [
+     "tePolicy"
+    ]
+   }
+  }
+ ]
+}
