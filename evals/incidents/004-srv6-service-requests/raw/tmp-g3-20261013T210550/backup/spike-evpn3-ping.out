@@ -1,0 +1,35 @@
+===== pre-check: EVPN table on leaf01 (no EVPN-derived forwarding state) =====
+No prefixes displayed, 0 exist
+===== A: remove the §2 steering route on both leaves =====
+STEERING-ROUTE-ABSENT
+STEERING-ROUTE-ABSENT
+-- leak witness: client subnets in the DEFAULT tables --
+-- leaf01: LEAKED-SUBNETS-IN-DEFAULT
+-- spine01: CLIENT-ROUTES-PRESENT
+-- witness: Vrf1 holds no route toward the peer (VPN import is RT-gated) --
+PEER-VRF-ROUTE-ABSENT
+===== A: client01 -> client02 (default size) with only the leaked default-table state =====
+3 packets transmitted, 0 received, 100% packet loss, time Xms
+
+===== B: remove the per-VRF export knobs (honest EVPN-signalling attempt) =====
+-- leak witness after knob removal --
+-- leaf01: DEFAULT-TABLE-CLEAN
+-- leaf02: DEFAULT-TABLE-CLEAN
+===== B: client01 -> client02 with ONLY EVPN signalling standing =====
+3 packets transmitted, 0 received, 100% packet loss, time Xms
+
+===== B: client02 -> client01 with ONLY EVPN signalling standing =====
+3 packets transmitted, 0 received, 100% packet loss, time Xms
+
+===== C: restore knobs and the §2 steering route =====
+192.168.2.0/24  encap seg6 mode encap segs 1 [ fcbb:bbbb:4:11:: ] dev Ethernet0 scope link 
+192.168.1.0/24  encap seg6 mode encap segs 1 [ fcbb:bbbb:3:11:: ] dev Ethernet0 scope link 
+===== C: client01 -> client02 after restore (8900-byte payload DF) =====
+3 packets transmitted, 3 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+===== C: client02 -> client01 after restore (8900-byte payload DF) =====
+3 packets transmitted, 3 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+===== verdict material: EVPN-signalled dataplane absent; only the §2 static encap forwards; the export knobs leak client subnets into the default table =====
+
+[exit code: 0]

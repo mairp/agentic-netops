@@ -1,0 +1,66 @@
+    37	## 1. Underlay and locators
+    38	
+    39	**Status: proven on the pinned sonic-vm lab.** The underlay (per-node
+    40	identity, fabric addressing, IPv4+IPv6 BGP) and one locator per node are
+    41	bootstrap-owned (`scripts/spike/identity-assert.sh`, `underlay-apply.sh`,
+    42	`locator-node.sh`); a service never touches them (FR-006).
+    43	
+    44	Approaches to try (written before the first attempt):
+    45	
+    46	- Per-node identity at boot first: per-node IPv4 and IPv6 loopbacks, the ASNs
+    47	  already in the topology labels (65000 spines, 65101/65102 leaves), router
+    48	  ids, IPv6 addressing or unnumbered peering on the four fabric links, and
+    49	  underlay BGP for IPv4 and IPv6 unicast — replacing the image default where
+    50	  every guest boots as `Loopback0 10.1.0.1/32`, AS 65100 (research addendum,
+    51	  item 4). No locator is reachable until this holds (SC-002).
+    52	- One locator per node from a common block, uSID style
+    53	  (`fcbb:bbbb:<node>::/48` as the candidate block), matching the `uN`/`uDT46`
+    54	  rows the gate already writes through GCU; owned by the bootstrap and
+    55	  advertised into the IPv6 underlay (research addendum, item 6).
+    56	- Locator rows written via GCU `config apply-patch` over SSH — the write path
+    57	  the 202505 YANG already accepts — then read back over TLS gNMI, as the gate
+    58	  does today; not gNMI Set.
+    59	- FRR `segment-routing srv6` locator configured per node so
+    60	  `show segment-routing srv6 locator` lists it (FRR answers with an empty
+    61	  table today; the daemon supports SRv6 and nothing is configured).
+    62	- `seg6_enabled=1` on the fabric interfaces
+    63	  (`net.ipv6.conf.all.seg6_enabled` is 0 on the guest today), and
+    64	  `net.vrf.strict_mode=1` if `End.DT46` needs it — a kernel requirement stated
+    65	  from general knowledge, to confirm or refute in the spike (data-model §8.8).
+    66	- Classic (non-uSID) `End`/`End.DT46` behaviour as a fallback if uSID rows
+    67	  accept but do not forward.
+    68	- Kernel seg6 lwtunnel witness installed on a real interface (`Loopback0`),
+    69	  never on `dev lo`: on the guest `dev lo` returns 0 but silently drops the
+    70	  encap, which is the false negative that made the gate record two skips as
+    71	  passes (research addendum).
+    72	
+    73	| item | verdict | proofs | note |
+    74	| --- | --- | --- | --- |
+    75	| per-node identity (loopbacks v4/v6, ASN, router-id) | proven | `spike-identity-spine01`, `spike-identity-spine02`, `spike-identity-leaf01`, `spike-identity-leaf02` | replaces the image default (Loopback0 10.1.0.1/32, AS 65100); idempotent re-assert |
+    76	| fabric link addressing (/31 v4 + /127 v6, 4 links) | proven | `spike-underlay-v4`, `spike-underlay-v6`, `spike-underlay-v4-leaf01` … per node | measured addresses match §7 of data-model.md |
+    77	| underlay BGP IPv4 + IPv6 unicast established | proven | `spike-underlay-apply-leaf01` … per node, `spike-underlay-v4`, `spike-underlay-v6` | 2 sessions per family per leaf, 3 per spine; loopback reachability both families |
+    78	| one locator per node via GCU (CONFIG_DB) + FRR | proven | `spike-locator-spine01`, `spike-locator-spine02`, `spike-locator-leaf01`, `spike-locator-leaf02` | `fcbb:bbbb:<node>::/48`, `loc-<node>` Up in the FRR locator table and in CONFIG_DB |
+    79	| locator end-to-end reachability | proven | `spike-locator-reach` | 12/12 ordered pairs pass (test address inside each /48) |
+    80	| `seg6_enabled` + `net.vrf.strict_mode` | proven | `spike-kernel-seg6`, `spike-kernel-strict-mode` | knobs are 0 on the factory image; write path is `/proc/sys` (no sysctl binary on the guest) |
+    81	| `vrf` kernel module | proven | `spike-kernel-vrf-module` | not loaded on a fresh boot; auto-loads on first VRF device |
+    82	| seg6 lwtunnel witness on a real interface | proven | `spike-kernel-seg6` | `Loopback0` works; `dev lo` silently drops the encap (false negative confirmed) |
+    83	| guest port map (EthernetN ↔ launcher iface) | proven | `spike-portmap-leaf01`, `spike-portmap-spine01`, `spike-portmap-spine02`, `spike-portmap-leaf02` | recorded for captures and failure actions |
+    84	
+    85	### 1a. As-built locator recipe
+    86	
+    87	- Locator row: GCU add onto `/SRV6_MY_LOCATORS` —
+    88	  `locator_name: loc-<node>`, `prefix: fcbb:bbbb:<node>::/48` — plus the FRR
+    89	  half under `router bgp <asn>`: `segment-routing srv6 locator loc-<node>`,
+    90	  and the /48 advertised (`ipv6 route fcbb:bbbb:<node>::/48 Loopback0` +
+    91	  `network fcbb:bbbb:<node>::/64`… as measured in the locator proofs:
+    92	  the /48 origination is a kernel static + BGP `network`).
+    93	- Read-back: `redis-cli -n 4 --scan --pattern 'SRV6_MY_LOCATORS*'` (CONFIG_DB),
+    94	  `show segment-routing srv6 locator` (FRR), `ip -6 route show` (the /48 as a
+    95	  `proto 196` static).
+    96	- **Persistence caveat (measured, `spike-persistence`)**: after
+    97	  `config reload -y` the locator survives in CONFIG_DB and FRR, but ALL
+    98	  kernel state is lost and the FRR locator line is not restored by the image;
+    99	  the bootstrap must re-run after any reload. This is an honest
+   100	  negative — the recipe treats the fabric as rebuilt-by-builder, not
+   101	  persisted-on-device.
+   102	

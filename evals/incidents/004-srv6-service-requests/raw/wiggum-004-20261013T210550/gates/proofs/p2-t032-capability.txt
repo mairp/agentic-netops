@@ -1,0 +1,8 @@
+ok   all-pass + proven variants: cap-sai-srv6=true srv6-supported=ip-vrf/vpn,steering
+ok   one-skip is not proven: cap-sai-srv6=false srv6-supported=false
+ok   one-fail is not proven: cap-sai-srv6=false srv6-supported=false
+ok   missing verdict file: cap-sai-srv6=false srv6-supported=false
+ok   no-yaml profile: cap-sai-srv6=false srv6-supported=false
+ok   default report path matches qualify.sh --print-report-path
+capability_derive_test: all green
+exit: 0

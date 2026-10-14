@@ -1,0 +1,35 @@
+===== service SID: CONFIG_DB SRV6_MY_SIDS write class =====
+SID-ROW-ABSENT (write class proven+reverted by spike-sid-write; as-built decap below)
+===== End.DT46 decap asserted in the kernel (both leaves) =====
+fcbb:bbbb:3:11::/64  encap seg6local action End.DT46 vrftable 1001 dev Vrf1 metric 1024 pref medium
+fcbb:bbbb:4:11::/64  encap seg6local action End.DT46 vrftable 1001 dev Vrf1 metric 1024 pref medium
+===== ingress steering toward the peer's uDT46 SID (in Vrf1) =====
+192.168.2.0/24  encap seg6 mode encap segs 1 [ fcbb:bbbb:4:11:: ] dev Ethernet0 scope link 
+192.168.1.0/24  encap seg6 mode encap segs 1 [ fcbb:bbbb:3:11:: ] dev Ethernet0 scope link 
+===== client addressing (both srv6 clients) =====
+srv6-client01: eth1@ifI       UP             192.168.1.2/24 
+srv6-client02: eth1@ifI       UP             192.168.2.2/24 
+===== leaf01: service SID read-back =====
+-- CONFIG_DB SRV6_MY_SIDS row (write class attempted by the builder) --
+
+-- as-built kernel End.DT46 decap for Vrf1 --
+fcbb:bbbb:3:11::/64  encap seg6local action End.DT46 vrftable 1001 dev Vrf1 metric 1024 pref medium
+-- Vrf1 table id the decap uses --
+table 1001
+===== leaf01: BGP signalling read-back =====
+-- locator bound under router bgp --
+-- locator table --
+Name                 ID      Prefix                   Status
+loc-leaf01                 1 fcbb:bbbb:3::/48         Up
+-- signalling approaches this bgpd build does not carry (recorded) --
+% Unknown command: address-family vpnv4 unicast
+% Unknown command: address-family vpnv6 unicast
+===== leaf01: remote route read-back =====
+-- peer service prefix inside Vrf1 (kernel as-built, encap toward the SID) --
+192.168.2.0/24  encap seg6 mode encap segs 1 [ fcbb:bbbb:4:11:: ] dev Ethernet0 scope link 
+-- BGP /48 carrying the peer SID --
+% Network not in table
+fcbb:bbbb:3::/48 dev Loopback0 proto 196 metric 20 pref medium
+fcbb:bbbb:4::/48 via 2001:db8:1::3 dev Ethernet0 metric 5 pref medium
+
+[exit code: 0]

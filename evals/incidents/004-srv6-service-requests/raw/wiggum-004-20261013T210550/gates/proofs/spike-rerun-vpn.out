@@ -1,0 +1,11 @@
+ok spike-vpn-state-leaf01
+ok spike-vpn-state-leaf02
+ok spike-vpn-ping
+ok spike-vpn-capture
+ok spike-vpn-readback-leaf01
+ok spike-vpn-readback-leaf02
+ok spike-vpn-clients
+ok spike-vpn-rollback
+replay spike-vpn: 8 proof(s) checked, no difference (0 skipped)
+
+[exit code: 0]

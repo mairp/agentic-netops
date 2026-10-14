@@ -1,0 +1,121 @@
+===== spine01: BGP v4 sessions (timers normalized) =====
+
+IPv4 Unicast Summary:
+BGP router identifier 10.0.0.11, local AS number 65000 VRF default vrf-id 0
+BGP table version X
+RIB entries X
+Peers 3, using 71 KiB of memory
+Peer groups 2, using 128 bytes of memory
+
+Neighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc
+10.0.0.12       4      65000         C C C C C UPTIME            3        4 FRRouting/10.3
+10.1.0.1        4      65101         C C C C C UPTIME            4        4 N/A
+10.1.0.3        4      65102         C C C C C UPTIME            4        4 N/A
+
+Total number of neighbors 3
+===== spine01: BGP-learned v4 routes =====
+B>* 10.0.0.12/32 [20/0] via 10.1.0.1, Ethernet0, rmapsrc 10.0.0.11, weight 1, UPTIME
+B>* 10.0.0.21/32 [20/0] via 10.1.0.1, Ethernet0, rmapsrc 10.0.0.11, weight 1, UPTIME
+B>* 10.0.0.22/32 [20/0] via 10.1.0.3, Ethernet4, rmapsrc 10.0.0.11, weight 1, UPTIME
+===== spine01: v4 loopback reachability (sourced from own loopback) =====
+-- spine01 -> spine02 (10.0.0.12): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- spine01 -> leaf01 (10.0.0.21): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- spine01 -> leaf02 (10.0.0.22): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+REACHABILITY spine01 v4: 3/3
+===== spine02: BGP v4 sessions (timers normalized) =====
+
+IPv4 Unicast Summary:
+BGP router identifier 10.0.0.12, local AS number 65000 VRF default vrf-id 0
+BGP table version X
+RIB entries X
+Peers 3, using 71 KiB of memory
+Peer groups 2, using 128 bytes of memory
+
+Neighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc
+10.0.0.11       4      65000         C C C C C UPTIME            3        4 FRRouting/10.3
+10.1.0.5        4      65101        C C C C C UPTIME            4        4 N/A
+10.1.0.7        4      65102         C C C C C UPTIME            4        4 N/A
+
+Total number of neighbors 3
+===== spine02: BGP-learned v4 routes =====
+B>* 10.0.0.11/32 [20/0] via 10.1.0.5, Ethernet0, rmapsrc 10.0.0.12, weight 1, UPTIME
+B>* 10.0.0.21/32 [20/0] via 10.1.0.5, Ethernet0, rmapsrc 10.0.0.12, weight 1, UPTIME
+B>* 10.0.0.22/32 [20/0] via 10.1.0.7, Ethernet4, rmapsrc 10.0.0.12, weight 1, UPTIME
+===== spine02: v4 loopback reachability (sourced from own loopback) =====
+-- spine02 -> spine01 (10.0.0.11): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- spine02 -> leaf01 (10.0.0.21): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- spine02 -> leaf02 (10.0.0.22): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+REACHABILITY spine02 v4: 3/3
+===== leaf01: BGP v4 sessions (timers normalized) =====
+
+IPv4 Unicast Summary:
+BGP router identifier 10.0.0.21, local AS number 65101 VRF default vrf-id 0
+BGP table version X
+RIB entries X
+Peers 2, using 47 KiB of memory
+Peer groups 2, using 128 bytes of memory
+
+Neighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc
+10.1.0.0        4      65000         C C C C C UPTIME            2        4 N/A
+10.1.0.4        4      65000         C C C C C UPTIME            2        4 N/A
+
+Total number of neighbors 2
+===== leaf01: BGP-learned v4 routes =====
+B>* 10.0.0.11/32 [20/0] via 10.1.0.0, Ethernet0, rmapsrc 10.0.0.21, weight 1, UPTIME
+B>* 10.0.0.12/32 [20/0] via 10.1.0.4, Ethernet4, rmapsrc 10.0.0.21, weight 1, UPTIME
+B>* 10.0.0.22/32 [20/0] via 10.1.0.0, Ethernet0, rmapsrc 10.0.0.21, weight 1, UPTIME
+===== leaf01: v4 loopback reachability (sourced from own loopback) =====
+-- leaf01 -> spine01 (10.0.0.11): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- leaf01 -> spine02 (10.0.0.12): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- leaf01 -> leaf02 (10.0.0.22): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+REACHABILITY leaf01 v4: 3/3
+===== leaf02: BGP v4 sessions (timers normalized) =====
+
+IPv4 Unicast Summary:
+BGP router identifier 10.0.0.22, local AS number 65102 VRF default vrf-id 0
+BGP table version X
+RIB entries X
+Peers 2, using 47 KiB of memory
+Peer groups 2, using 128 bytes of memory
+
+Neighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc
+10.1.0.2        4      65000         C C C C C UPTIME            3        4 N/A
+10.1.0.6        4      65000         C C C C C UPTIME            3        4 N/A
+
+Total number of neighbors 2
+===== leaf02: BGP-learned v4 routes =====
+B>* 10.0.0.11/32 [20/0] via 10.1.0.2, Ethernet0, rmapsrc 10.0.0.22, weight 1, UPTIME
+B>* 10.0.0.12/32 [20/0] via 10.1.0.6, Ethernet4, rmapsrc 10.0.0.22, weight 1, UPTIME
+B>* 10.0.0.21/32 [20/0] via 10.1.0.2, Ethernet0, rmapsrc 10.0.0.22, weight 1, UPTIME
+===== leaf02: v4 loopback reachability (sourced from own loopback) =====
+-- leaf02 -> spine01 (10.0.0.11): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- leaf02 -> spine02 (10.0.0.12): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- leaf02 -> leaf01 (10.0.0.21): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+REACHABILITY leaf02 v4: 3/3
+TOTAL REACHABILITY v4: 12/12
+
+[exit code: 0]

@@ -1,0 +1,1565 @@
+===== leaf02: sonic running config (show runningconfig all) =====
+{
+    "AUTO_TECHSUPPORT": {
+        "GLOBAL": {
+            "available_mem_threshold": "10.0",
+            "max_core_limit": "5.0",
+            "max_techsupport_limit": "10.0",
+            "min_available_mem": "200",
+            "rate_limit_interval": "180",
+            "since": "NORMALIZED",
+            "state": "enabled"
+        }
+    },
+    "AUTO_TECHSUPPORT_FEATURE": {
+        "bgp": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "database": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "dhcp_relay": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "eventd": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "gbsyncd": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "gnmi": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "lldp": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "macsec": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "mgmt-framework": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "mux": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "nat": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "pmon": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "radv": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "sflow": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "snmp": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "swss": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "syncd": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        },
+        "teamd": {
+            "available_mem_threshold": "10.0",
+            "rate_limit_interval": "600",
+            "state": "enabled"
+        }
+    },
+    "BANNER_MESSAGE": {
+        "global": {
+            "login": "Debian GNU/Linux 11",
+            "logout": "",
+            "motd": "You are on\n  ____   ___  _   _ _  ____\n / ___| / _ \\| \\ | (_)/ ___|\n \\___ \\| | | |  \\| | | |\n  ___) | |_| | |\\  | | |___\n |____/ \\___/|_| \\_|_|\\____|\n\n-- Software for Open Networking in the Cloud --\n\nUnauthorized access and/or use are prohibited.\nAll access and/or use are subject to monitoring.\n\nHelp:    https://sonic-net.github.io/SONiC/\n\n",
+            "state": "disabled"
+        }
+    },
+    "BGP_DEVICE_GLOBAL": {
+        "STATE": {
+            "idf_isolation_state": "unisolated",
+            "tsa_enabled": "false",
+            "wcmp_enabled": "false"
+        }
+    },
+    "BGP_NEIGHBOR": {
+        "10.1.0.2": {
+            "asn": "65000",
+            "holdtime": "180",
+            "keepalive": "60",
+            "local_addr": "10.1.0.3",
+            "nhopself": "0",
+            "rrclient": "0"
+        },
+        "10.1.0.6": {
+            "asn": "65000",
+            "holdtime": "180",
+            "keepalive": "60",
+            "local_addr": "10.1.0.7",
+            "nhopself": "0",
+            "rrclient": "0"
+        },
+        "2001:db8:1::5": {
+            "asn": "65000",
+            "holdtime": "180",
+            "keepalive": "60",
+            "local_addr": "2001:db8:1::4",
+            "nhopself": "0",
+            "rrclient": "0"
+        },
+        "2001:db8:2::5": {
+            "asn": "65000",
+            "holdtime": "180",
+            "keepalive": "60",
+            "local_addr": "2001:db8:2::4",
+            "nhopself": "0",
+            "rrclient": "0"
+        }
+    },
+    "CRM": {
+        "Config": {
+            "acl_counter_high_threshold": "85",
+            "acl_counter_low_threshold": "70",
+            "acl_counter_threshold_type": "percentage",
+            "acl_entry_high_threshold": "85",
+            "acl_entry_low_threshold": "70",
+            "acl_entry_threshold_type": "percentage",
+            "acl_group_high_threshold": "85",
+            "acl_group_low_threshold": "70",
+            "acl_group_threshold_type": "percentage",
+            "acl_table_high_threshold": "85",
+            "acl_table_low_threshold": "70",
+            "acl_table_threshold_type": "percentage",
+            "dnat_entry_high_threshold": "85",
+            "dnat_entry_low_threshold": "70",
+            "dnat_entry_threshold_type": "percentage",
+            "fdb_entry_high_threshold": "85",
+            "fdb_entry_low_threshold": "70",
+            "fdb_entry_threshold_type": "percentage",
+            "ipmc_entry_high_threshold": "85",
+            "ipmc_entry_low_threshold": "70",
+            "ipmc_entry_threshold_type": "percentage",
+            "ipv4_neighbor_high_threshold": "85",
+            "ipv4_neighbor_low_threshold": "70",
+            "ipv4_neighbor_threshold_type": "percentage",
+            "ipv4_nexthop_high_threshold": "85",
+            "ipv4_nexthop_low_threshold": "70",
+            "ipv4_nexthop_threshold_type": "percentage",
+            "ipv4_route_high_threshold": "85",
+            "ipv4_route_low_threshold": "70",
+            "ipv4_route_threshold_type": "percentage",
+            "ipv6_neighbor_high_threshold": "85",
+            "ipv6_neighbor_low_threshold": "70",
+            "ipv6_neighbor_threshold_type": "percentage",
+            "ipv6_nexthop_high_threshold": "85",
+            "ipv6_nexthop_low_threshold": "70",
+            "ipv6_nexthop_threshold_type": "percentage",
+            "ipv6_route_high_threshold": "85",
+            "ipv6_route_low_threshold": "70",
+            "ipv6_route_threshold_type": "percentage",
+            "mpls_inseg_high_threshold": "85",
+            "mpls_inseg_low_threshold": "70",
+            "mpls_inseg_threshold_type": "percentage",
+            "mpls_nexthop_high_threshold": "85",
+            "mpls_nexthop_low_threshold": "70",
+            "mpls_nexthop_threshold_type": "percentage",
+            "nexthop_group_high_threshold": "85",
+            "nexthop_group_low_threshold": "70",
+            "nexthop_group_member_high_threshold": "85",
+            "nexthop_group_member_low_threshold": "70",
+            "nexthop_group_member_threshold_type": "percentage",
+            "nexthop_group_threshold_type": "percentage",
+            "polling_interval": "300",
+            "snat_entry_high_threshold": "85",
+            "snat_entry_low_threshold": "70",
+            "snat_entry_threshold_type": "percentage"
+        }
+    },
+    "DEVICE_METADATA": {
+        "localhost": {
+            "bgp_adv_lo_prefix_as_128": "true",
+            "bgp_asn": "65102",
+            "bgp_router_id": "10.0.0.22",
+            "buffer_model": "traditional",
+            "default_bgp_status": "up",
+            "default_pfcwd_status": "disable",
+            "hostname": "leaf02",
+            "hwsku": "Force10-S6000",
+            "mac": "MAC-NORMALIZED",
+            "platform": "x86_64-kvm_x86_64-r0",
+            "switch_type": "npu",
+            "timezone": "UTC",
+            "type": "LeafRouter"
+        }
+    },
+    "FEATURE": {
+        "bgp": {
+            "auto_restart": "enabled",
+            "check_up_status": "false",
+            "delayed": "False",
+            "has_global_scope": "False",
+            "has_per_asic_scope": "True",
+            "high_mem_alert": "disabled",
+            "state": "enabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "database": {
+            "auto_restart": "always_enabled",
+            "delayed": "False",
+            "has_global_scope": "True",
+            "has_per_asic_scope": "True",
+            "high_mem_alert": "disabled",
+            "state": "always_enabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "dhcp_relay": {
+            "auto_restart": "enabled",
+            "check_up_status": "False",
+            "delayed": "False",
+            "has_global_scope": "True",
+            "has_per_asic_scope": "False",
+            "high_mem_alert": "disabled",
+            "set_owner": "local",
+            "state": "disabled",
+            "support_syslog_rate_limit": "True"
+        },
+        "eventd": {
+            "auto_restart": "enabled",
+            "delayed": "False",
+            "has_global_scope": "True",
+            "has_per_asic_scope": "False",
+            "high_mem_alert": "disabled",
+            "state": "enabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "gbsyncd": {
+            "auto_restart": "enabled",
+            "delayed": "False",
+            "has_global_scope": "False",
+            "has_per_asic_scope": "True",
+            "high_mem_alert": "disabled",
+            "state": "enabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "gnmi": {
+            "auto_restart": "enabled",
+            "delayed": "True",
+            "has_global_scope": "True",
+            "has_per_asic_scope": "False",
+            "high_mem_alert": "disabled",
+            "state": "enabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "lldp": {
+            "auto_restart": "enabled",
+            "delayed": "True",
+            "has_global_scope": "True",
+            "has_per_asic_scope": "True",
+            "high_mem_alert": "disabled",
+            "state": "enabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "macsec": {
+            "auto_restart": "enabled",
+            "check_up_status": "False",
+            "delayed": "False",
+            "has_global_scope": "False",
+            "has_per_asic_scope": "True",
+            "high_mem_alert": "disabled",
+            "set_owner": "local",
+            "state": "disabled",
+            "support_syslog_rate_limit": "True"
+        },
+        "mgmt-framework": {
+            "auto_restart": "enabled",
+            "delayed": "True",
+            "has_global_scope": "True",
+            "has_per_asic_scope": "False",
+            "high_mem_alert": "disabled",
+            "state": "enabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "mux": {
+            "auto_restart": "enabled",
+            "delayed": "False",
+            "has_global_scope": "True",
+            "has_per_asic_scope": "False",
+            "high_mem_alert": "disabled",
+            "state": "always_disabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "nat": {
+            "auto_restart": "enabled",
+            "delayed": "False",
+            "has_global_scope": "True",
+            "has_per_asic_scope": "False",
+            "high_mem_alert": "disabled",
+            "state": "disabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "pmon": {
+            "auto_restart": "enabled",
+            "check_up_status": "false",
+            "delayed": "True",
+            "has_global_scope": "True",
+            "has_per_asic_scope": "False",
+            "high_mem_alert": "disabled",
+            "state": "enabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "radv": {
+            "auto_restart": "enabled",
+            "delayed": "False",
+            "has_global_scope": "True",
+            "has_per_asic_scope": "False",
+            "high_mem_alert": "disabled",
+            "state": "enabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "sflow": {
+            "auto_restart": "enabled",
+            "delayed": "True",
+            "has_global_scope": "True",
+            "has_per_asic_scope": "False",
+            "high_mem_alert": "disabled",
+            "state": "disabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "snmp": {
+            "auto_restart": "enabled",
+            "delayed": "True",
+            "has_global_scope": "True",
+            "has_per_asic_scope": "False",
+            "high_mem_alert": "disabled",
+            "state": "enabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "swss": {
+            "auto_restart": "enabled",
+            "check_up_status": "false",
+            "delayed": "False",
+            "has_global_scope": "False",
+            "has_per_asic_scope": "True",
+            "high_mem_alert": "disabled",
+            "state": "enabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "syncd": {
+            "auto_restart": "enabled",
+            "delayed": "False",
+            "has_global_scope": "False",
+            "has_per_asic_scope": "True",
+            "high_mem_alert": "disabled",
+            "state": "enabled",
+            "support_syslog_rate_limit": "true"
+        },
+        "teamd": {
+            "auto_restart": "enabled",
+            "delayed": "False",
+            "has_global_scope": "False",
+            "has_per_asic_scope": "True",
+            "high_mem_alert": "disabled",
+            "state": "enabled",
+            "support_syslog_rate_limit": "true"
+        }
+    },
+    "FLEX_COUNTER_TABLE": {
+        "ACL": {
+            "FLEX_COUNTER_STATUS": "disable",
+            "POLL_INTERVAL": "10000"
+        },
+        "BUFFER_POOL_WATERMARK": {
+            "FLEX_COUNTER_STATUS": "enable"
+        },
+        "PFCWD": {
+            "FLEX_COUNTER_STATUS": "enable"
+        },
+        "PG_DROP": {
+            "FLEX_COUNTER_STATUS": "enable"
+        },
+        "PG_WATERMARK": {
+            "FLEX_COUNTER_STATUS": "enable"
+        },
+        "PORT": {
+            "FLEX_COUNTER_STATUS": "enable"
+        },
+        "PORT_BUFFER_DROP": {
+            "FLEX_COUNTER_STATUS": "enable"
+        },
+        "PORT_PHY_ATTR": {
+            "FLEX_COUNTER_STATUS": "enable"
+        },
+        "QUEUE": {
+            "FLEX_COUNTER_STATUS": "enable"
+        },
+        "QUEUE_WATERMARK": {
+            "FLEX_COUNTER_STATUS": "enable"
+        },
+        "RIF": {
+            "FLEX_COUNTER_STATUS": "enable"
+        }
+    },
+    "GNMI": {
+        "certs": {
+            "ca_crt": "/etc/sonic/telemetry/ca.cer",
+            "server_crt": "/etc/sonic/telemetry/gnmi.cer",
+            "server_key": "/etc/sonic/telemetry/gnmi.key"
+        },
+        "gnmi": {
+            "client_auth": "true",
+            "log_level": "2",
+            "port": "8080"
+        }
+    },
+    "INTERFACE": {
+        "Ethernet0": {},
+        "Ethernet4": {},
+        "Ethernet0|10.1.0.3/31": {},
+        "Ethernet0|2001:db8:1::4/127": {},
+        "Ethernet4|10.1.0.7/31": {},
+        "Ethernet4|2001:db8:2::4/127": {}
+    },
+    "KDUMP": {
+        "config": {
+            "enabled": "false",
+            "memory": "0M-2G:256M,2G-4G:320M,4G-8G:384M,8G-:448M",
+            "num_dumps": "3",
+            "remote": "false",
+            "ssh_path": "/a/b/c",
+            "ssh_string": "user@localhost"
+        }
+    },
+    "LOGGER": {
+        "SAI_API_ACL": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_ARS": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_ARS_PROFILE": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_BFD": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_BMTOR": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_BRIDGE": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_BUFFER": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_COUNTER": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_ACL": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_APPLIANCE": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_DIRECTION_LOOKUP": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_ENI": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_FLOW": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_HA": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_INBOUND_ROUTING": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_METER": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_OUTBOUND_CA_TO_PA": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_OUTBOUND_PORT_MAP": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_OUTBOUND_ROUTING": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_PA_VALIDATION": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_TRUSTED_VNI": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_TUNNEL": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_VIP": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DASH_VNET": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DEBUG_COUNTER": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_DTEL": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_FDB": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_GENERIC_PROGRAMMABLE": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_HASH": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_HOSTIF": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_ICMP_ECHO": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_IPMC": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_IPMC_GROUP": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_IPSEC": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_ISOLATION_GROUP": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_L2MC": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_L2MC_GROUP": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_LAG": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_MACSEC": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_MCAST_FDB": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_MIRROR": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_MPLS": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_MY_MAC": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_NAT": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_NEIGHBOR": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_NEXT_HOP": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_NEXT_HOP_GROUP": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_POE": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_POLICER": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_PORT": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_PREFIX_COMPRESSION": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_QOS_MAP": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_QUEUE": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_ROUTE": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_ROUTER_INTERFACE": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_RPF_GROUP": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_SAMPLEPACKET": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_SCHEDULER": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_SCHEDULER_GROUP": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_SRV6": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_STP": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_SWITCH": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_SYNCE": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_SYSTEM_PORT": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_TAM": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_TUNNEL": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_TWAMP": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_UDF": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_VIRTUAL_ROUTER": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_VLAN": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "SAI_API_WRED": {
+            "LOGLEVEL": "SAI_LOG_LEVEL_NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "buffermgrd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "coppmgrd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "fabricmgrd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "fdbsyncd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "fpmsyncd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "gearsyncd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "intfmgrd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "nbrmgrd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "neighsyncd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "orchagent": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "portmgrd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "portsyncd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "rebootbackend": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "syncd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "teammgrd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "teamsyncd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "telemetry": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "tlm_teamd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "tunnelmgrd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "vlanmgrd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "vrfmgrd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        },
+        "vxlanmgrd": {
+            "LOGLEVEL": "NOTICE",
+            "LOGOUTPUT": "SYSLOG"
+        }
+    },
+    "LOOPBACK_INTERFACE": {
+        "Loopback0": {},
+        "Loopback0|10.0.0.22/32": {},
+        "Loopback0|2001:db8:ff::22/128": {}
+    },
+    "NTP": {
+        "global": {
+            "admin_state": "enabled",
+            "authentication": "disabled",
+            "dhcp": "enabled",
+            "server_role": "disabled",
+            "src_intf": "eth0",
+            "vrf": "default"
+        }
+    },
+    "PASSW_HARDENING": {
+        "POLICIES": {
+            "digits_class": "true",
+            "expiration": "180",
+            "expiration_warning": "15",
+            "history_cnt": "10",
+            "len_min": "8",
+            "lower_class": "true",
+            "reject_user_passw_match": "true",
+            "special_class": "true",
+            "state": "disabled",
+            "upper_class": "true"
+        }
+    },
+    "PORT": {
+        "Ethernet0": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/0",
+            "dhcp_rate_limit": "300",
+            "index": "0",
+            "lanes": "25,26,27,28",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet100": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/100",
+            "dhcp_rate_limit": "300",
+            "index": "25",
+            "lanes": "121,122,123,124",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet104": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/104",
+            "dhcp_rate_limit": "300",
+            "index": "26",
+            "lanes": "81,82,83,84",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet108": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/108",
+            "dhcp_rate_limit": "300",
+            "index": "27",
+            "lanes": "85,86,87,88",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet112": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/112",
+            "dhcp_rate_limit": "300",
+            "index": "28",
+            "lanes": "93,94,95,96",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet116": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/116",
+            "dhcp_rate_limit": "300",
+            "index": "29",
+            "lanes": "89,90,91,92",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet12": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/12",
+            "dhcp_rate_limit": "300",
+            "index": "3",
+            "lanes": "37,38,39,40",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet120": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/120",
+            "dhcp_rate_limit": "300",
+            "index": "30",
+            "lanes": "101,102,103,104",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet124": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/124",
+            "dhcp_rate_limit": "300",
+            "index": "31",
+            "lanes": "97,98,99,100",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet16": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/16",
+            "dhcp_rate_limit": "300",
+            "index": "4",
+            "lanes": "45,46,47,48",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet20": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/20",
+            "dhcp_rate_limit": "300",
+            "index": "5",
+            "lanes": "41,42,43,44",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet24": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/24",
+            "dhcp_rate_limit": "300",
+            "index": "6",
+            "lanes": "1,2,3,4",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet28": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/28",
+            "dhcp_rate_limit": "300",
+            "index": "7",
+            "lanes": "5,6,7,8",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet32": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/32",
+            "dhcp_rate_limit": "300",
+            "index": "8",
+            "lanes": "13,14,15,16",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet36": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/36",
+            "dhcp_rate_limit": "300",
+            "index": "9",
+            "lanes": "9,10,11,12",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet4": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/4",
+            "dhcp_rate_limit": "300",
+            "index": "1",
+            "lanes": "29,30,31,32",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet40": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/40",
+            "dhcp_rate_limit": "300",
+            "index": "10",
+            "lanes": "17,18,19,20",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet44": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/44",
+            "dhcp_rate_limit": "300",
+            "index": "11",
+            "lanes": "21,22,23,24",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet48": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/48",
+            "dhcp_rate_limit": "300",
+            "index": "12",
+            "lanes": "53,54,55,56",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet52": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/52",
+            "dhcp_rate_limit": "300",
+            "index": "13",
+            "lanes": "49,50,51,52",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet56": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/56",
+            "dhcp_rate_limit": "300",
+            "index": "14",
+            "lanes": "57,58,59,60",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet60": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/60",
+            "dhcp_rate_limit": "300",
+            "index": "15",
+            "lanes": "61,62,63,64",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet64": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/64",
+            "dhcp_rate_limit": "300",
+            "index": "16",
+            "lanes": "69,70,71,72",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet68": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/68",
+            "dhcp_rate_limit": "300",
+            "index": "17",
+            "lanes": "65,66,67,68",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet72": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/72",
+            "dhcp_rate_limit": "300",
+            "index": "18",
+            "lanes": "73,74,75,76",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet76": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/76",
+            "dhcp_rate_limit": "300",
+            "index": "19",
+            "lanes": "77,78,79,80",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet8": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/8",
+            "dhcp_rate_limit": "300",
+            "index": "2",
+            "lanes": "33,34,35,36",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet80": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/80",
+            "dhcp_rate_limit": "300",
+            "index": "20",
+            "lanes": "109,110,111,112",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet84": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/84",
+            "dhcp_rate_limit": "300",
+            "index": "21",
+            "lanes": "105,106,107,108",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet88": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/88",
+            "dhcp_rate_limit": "300",
+            "index": "22",
+            "lanes": "113,114,115,116",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet92": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/92",
+            "dhcp_rate_limit": "300",
+            "index": "23",
+            "lanes": "117,118,119,120",
+            "mtu": "9100",
+            "speed": "40000"
+        },
+        "Ethernet96": {
+            "admin_status": "up",
+            "alias": "fortyGigE0/96",
+            "dhcp_rate_limit": "300",
+            "index": "24",
+            "lanes": "125,126,127,128",
+            "mtu": "9100",
+            "speed": "40000"
+        }
+    },
+    "SNMP": {
+        "LOCATION": {
+            "Location": "public"
+        }
+    },
+    "SNMP_COMMUNITY": {
+        "public": {
+            "TYPE": "RO"
+        }
+    },
+    "SYSLOG_CONFIG": {
+        "GLOBAL": {
+            "rate_limit_burst": "0",
+            "rate_limit_interval": "0"
+        }
+    },
+    "SYSLOG_CONFIG_FEATURE": {
+        "bgp": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "database": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "dhcp_relay": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "eventd": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "gbsyncd": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "gnmi": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "lldp": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "macsec": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "mgmt-framework": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "mux": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "nat": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "pmon": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "radv": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "sflow": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "snmp": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "swss": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "syncd": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        },
+        "teamd": {
+            "rate_limit_burst": "20000",
+            "rate_limit_interval": "300"
+        }
+    },
+    "SYSTEM_DEFAULTS": {
+        "mux_tunnel_egress_acl": {
+            "status": "disabled"
+        }
+    },
+    "TELEMETRY": {
+        "certs": {
+            "ca_crt": "/etc/sonic/telemetry/ca.cer",
+            "server_crt": "/etc/sonic/telemetry/gnmi.cer",
+            "server_key": "/etc/sonic/telemetry/gnmi.key"
+        },
+        "gnmi": {
+            "client_auth": "true",
+            "log_level": "2",
+            "port": "8080",
+            "user_auth": "password"
+        }
+    },
+    "VERSIONS": {
+        "DATABASE": {
+            "VERSION": "version_202505_01"
+        }
+    },
+}
+===== leaf02: interfaces (show interface status, oper-up ports only) =====
+  Interface            Lanes       Speed    MTU    FEC           Alias    Vlan    Oper    Admin    Type    Asym PFC
+-----------  ---------------  ----------  -----  -----  --------------  ------  ------  -------  ------  ----------
+  Ethernet0      25,26,27,28  4294967.3G   9100    N/A    fortyGigE0/0  routed      up       up     N/A         N/A
+  Ethernet4      29,30,31,32  4294967.3G   9100    N/A    fortyGigE0/4  routed      up       up     N/A         N/A
+  Ethernet8      33,34,35,36  4294967.3G   9100    N/A    fortyGigE0/8  routed      up       up     N/A         N/A
+ Ethernet12      37,38,39,40  4294967.3G   9100    N/A   fortyGigE0/12  routed      up       up     N/A         N/A
+===== leaf02: kernel addresses (data ports + loopback) =====
+Bridge           UP             fe80::LL/64 
+dummy            UNKNOWN        fe80::LL/64 
+eth0             UP             10.0.0.15/24 fec0::LL/64 fe80::LL/64 
+eth1             UP             10.2.0.6/30 fe80::LL/64 
+eth2             UP             fe80::LL/64 
+eth3             UP             fe80::LL/64 
+eth4             UP             fe80::LL/64 
+Ethernet0        UNKNOWN        10.1.0.3/31 2001:db8:1::4/127 fe80::LL/64 
+Ethernet12       UNKNOWN        fe80::LL/64 
+Ethernet4        UNKNOWN        10.1.0.7/31 2001:db8:2::4/127 fe80::LL/64 
+Ethernet8        UNKNOWN        fe80::LL/64 
+Loopback0        UNKNOWN        10.0.0.22/32 2001:db8:ff::22/128 fcbb:bbbb:4::1/128 fe80::LL/64 
+===== leaf02: FRR running config =====
+Building configuration...
+
+Current configuration:
+!
+frr version 10.3
+frr defaults traditional
+hostname leaf02
+log syslog informational
+log facility local4
+zebra nexthop-group keep 1
+no zebra nexthop kernel enable
+fpm address 127.0.0.1
+no fpm use-next-hop-groups
+agentx
+no service integrated-vtysh-config
+!
+ip prefix-list DEFAULT_IPV4 seq 5 permit 0.0.0.0/0
+ip prefix-list PL_LoopbackV4 seq 5 permit 10.0.0.22/32
+!
+ipv6 prefix-list DEFAULT_IPV6 seq 5 permit ::/0
+ipv6 prefix-list PL_LoopbackV6 seq 5 permit 2001:db8:ff::22/128
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+password zebra
+enable password zebra
+!
+ipv6 route 2001:db8:ff::22/128 Loopback0
+!
+router bgp 65102
+ bgp router-id 10.0.0.22
+ bgp suppress-fib-pending
+ bgp log-neighbor-changes
+ no bgp ebgp-requires-policy
+ no bgp default ipv4-unicast
+ bgp bestpath as-path multipath-relax
+ neighbor PEER_V4 peer-group
+ neighbor PEER_V6 peer-group
+ neighbor 10.1.0.2 remote-as 65000
+ neighbor 10.1.0.2 peer-group PEER_V4
+ neighbor 10.1.0.2 timers connect 10
+ neighbor 10.1.0.6 remote-as 65000
+ neighbor 10.1.0.6 peer-group PEER_V4
+ neighbor 10.1.0.6 timers connect 10
+ neighbor 2001:db8:1::5 remote-as 65000
+ neighbor 2001:db8:1::5 peer-group PEER_V6
+ neighbor 2001:db8:1::5 timers connect 10
+ neighbor 2001:db8:2::5 remote-as 65000
+ neighbor 2001:db8:2::5 peer-group PEER_V6
+ neighbor 2001:db8:2::5 timers connect 10
+ !
+ address-family ipv4 unicast
+  network 10.0.0.22/32
+  neighbor PEER_V4 soft-reconfiguration inbound
+  neighbor PEER_V4 route-map FROM_BGP_PEER_V4 in
+  neighbor PEER_V4 route-map TO_BGP_PEER_V4 out
+  neighbor 10.1.0.2 activate
+  neighbor 10.1.0.6 activate
+ exit-address-family
+ !
+ address-family ipv6 unicast
+  network 2001:db8:ff::22/128
+  neighbor PEER_V6 soft-reconfiguration inbound
+  neighbor PEER_V6 route-map FROM_BGP_PEER_V6 in
+  neighbor PEER_V6 route-map TO_BGP_PEER_V6 out
+  neighbor 2001:db8:1::5 activate
+  neighbor 2001:db8:2::5 activate
+ exit-address-family
+exit
+!
+bgp community-list standard allow_list_default_community seq 5 permit no-export
+bgp community-list standard allow_list_default_community seq 10 permit 5060:12345
+!
+ip protocol bgp route-map RM_SET_SRC
+!
+ipv6 protocol bgp route-map RM_SET_SRC6
+!
+ip nht resolve-via-default
+!
+ipv6 nht resolve-via-default
+!
+end
+===== leaf02: FRR routes (ages normalized) =====
+Codes: K - kernel route, C - connected, L - local, S - static,
+       R - RIP, O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,
+       T - Table, v - VNC, V - VNC-Direct, A - Babel, F - PBR,
+       f - OpenFabric, t - Table-Direct,
+       > - selected route, * - FIB route, q - queued, r - rejected, b - backup
+       t - trapped, o - offload failure
+
+IPv4 unicast VRF default:
+K>* 0.0.0.0/0 [0/202] via 10.0.0.2, eth0, weight 1, UPTIME
+C>* 10.0.0.0/24 is directly connected, eth0, weight 1, UPTIME
+B>* 10.0.0.12/32 [20/0] via 10.1.0.6, Ethernet4, rmapsrc 10.0.0.22, weight 1, UPTIME
+B>* 10.0.0.21/32 [20/0] via 10.1.0.6, Ethernet4, rmapsrc 10.0.0.22, weight 1, UPTIME
+C>* 10.0.0.22/32 is directly connected, Loopback0, weight 1, UPTIME
+C>* 10.1.0.2/31 is directly connected, Ethernet0, weight 1, UPTIME
+C>* 10.1.0.6/31 is directly connected, Ethernet4, weight 1, UPTIME
+K>* 10.2.0.0/30 [0/0] via 10.2.0.5, eth1, weight 1, UPTIME
+C>* 10.2.0.4/30 is directly connected, eth1, weight 1, UPTIME
+K   240.127.1.0/24 [0/0] is directly connected, docker0 inactive linkdown, weight 1, UPTIME
+Codes: K - kernel route, C - connected, L - local, S - static,
+       R - RIPng, O - OSPFv3, I - IS-IS, B - BGP, N - NHRP,
+       T - Table, v - VNC, V - VNC-Direct, A - Babel, F - PBR,
+       f - OpenFabric, t - Table-Direct,
+       > - selected route, * - FIB route, q - queued, r - rejected, b - backup
+       t - trapped, o - offload failure
+
+IPv6 unicast VRF default:
+C>* 2001:db8:1::4/127 is directly connected, Ethernet0, weight 1, UPTIME
+C>* 2001:db8:2::4/127 is directly connected, Ethernet4, weight 1, UPTIME
+B>* 2001:db8:ff::12/128 [20/0] via 2001:db8:2::5, Ethernet4, rmapsrc 2001:db8:ff::22, weight 1, UPTIME
+B>* 2001:db8:ff::21/128 [20/0] via 2001:db8:2::5, Ethernet4, rmapsrc 2001:db8:ff::22, weight 1, UPTIME
+S   2001:db8:ff::22/128 [1/0] is directly connected, Loopback0, weight 1, UPTIME
+C>* 2001:db8:ff::22/128 is directly connected, Loopback0, weight 1, UPTIME
+K>* fcbb:bbbb:3::/48 [0/5] via 2001:db8:1::5, Ethernet0, weight 1, UPTIME
+C>* fcbb:bbbb:4::1/128 is directly connected, Loopback0, weight 1, UPTIME
+C * fe80::/64 is directly connected, Loopback0, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet96, weight 1, UPTIME
+C * fe80::/64 is directly connected, dummy, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet100, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet92, weight 1, UPTIME
+C * fe80::/64 is directly connected, Bridge, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet88, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet80, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet84, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet120, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet124, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet112, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet116, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet108, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet104, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet76, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet72, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet64, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet68, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet60, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet56, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet48, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet52, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet16, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet20, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet44, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet40, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet32, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet36, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet28, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet24, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet12, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet8, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet4, weight 1, UPTIME
+C * fe80::/64 is directly connected, Ethernet0, weight 1, UPTIME
+C * fe80::/64 is directly connected, eth4, weight 1, UPTIME
+C * fe80::/64 is directly connected, eth3, weight 1, UPTIME
+C * fe80::/64 is directly connected, eth2, weight 1, UPTIME
+C * fe80::/64 is directly connected, eth1, weight 1, UPTIME
+C>* fe80::/64 is directly connected, eth0, weight 1, UPTIME
+C>* fec0::/64 is directly connected, eth0, weight 1, UPTIME
+===== leaf02: kernel routes =====
+default via 10.0.0.2 dev eth0 metric 202 
+10.0.0.0/24 dev eth0 proto kernel scope link src 10.0.0.15 metric 202 
+10.0.0.12 via 10.1.0.6 dev Ethernet4 proto bgp src 10.0.0.22 metric 20 
+10.0.0.21 via 10.1.0.6 dev Ethernet4 proto bgp src 10.0.0.22 metric 20 
+10.1.0.2/31 dev Ethernet0 proto kernel scope link src 10.1.0.3 
+10.1.0.6/31 dev Ethernet4 proto kernel scope link src 10.1.0.7 
+10.2.0.0/30 via 10.2.0.5 dev eth1 
+10.2.0.4/30 dev eth1 proto kernel scope link src 10.2.0.6 
+240.127.1.0/24 dev docker0 proto kernel scope link src 240.127.1.1 linkdown 
+-- v6 global --
+2001:db8:1::4/127 dev Ethernet0 proto kernel metric 256 pref medium
+2001:db8:2::4/127 dev Ethernet4 proto kernel metric 256 pref medium
+2001:db8:ff::12 via 2001:db8:2::5 dev Ethernet4 proto bgp src 2001:db8:ff::22 metric 20 pref medium
+2001:db8:ff::21 via 2001:db8:2::5 dev Ethernet4 proto bgp src 2001:db8:ff::22 metric 20 pref medium
+2001:db8:ff::22 dev Loopback0 proto kernel metric 256 pref medium
+fcbb:bbbb:3::/48 via 2001:db8:1::5 dev Ethernet0 metric 5 pref medium
+fcbb:bbbb:4::1 dev Loopback0 proto kernel metric 256 pref medium
+fd00::/80 dev docker0 proto kernel metric 256 linkdown pref medium
+fd00::/80 dev docker0 metric 1024 linkdown pref medium
+fe80::/64 dev docker0 proto kernel metric 256 linkdown pref medium
+fe80::/64 dev eth0 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet0 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet100 proto kernel metric 256 pref medium
+fe80::/64 dev dummy proto kernel metric 256 pref medium
+fe80::/64 dev Bridge proto kernel metric 256 pref medium
+fe80::/64 dev eth1 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet104 proto kernel metric 256 pref medium
+fe80::/64 dev eth4 proto kernel metric 256 pref medium
+fe80::/64 dev eth2 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet108 proto kernel metric 256 pref medium
+fe80::/64 dev eth3 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet112 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet116 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet120 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet124 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet16 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet20 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet24 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet28 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet32 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet36 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet4 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet40 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet44 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet48 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet52 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet56 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet60 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet64 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet68 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet72 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet76 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet8 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet80 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet84 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet88 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet92 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet96 proto kernel metric 256 pref medium
+fe80::/64 dev Loopback0 proto kernel metric 256 pref medium
+fe80::/64 dev Ethernet12 proto kernel metric 256 pref medium
+fec0::/64 dev eth0 proto kernel metric 256 expires Xsec pref medium
+===== leaf02: FRR BGP state (timers normalized) =====
+
+IPv4 Unicast Summary:
+BGP router identifier 10.0.0.22, local AS number 65102 VRF default vrf-id 0
+BGP table version X
+RIB entries X
+Peers 2, using 47 KiB of memory
+Peer groups 2, using 128 bytes of memory
+
+Neighbor V AS MsgRcvd MsgSent TblVer InQ OutQ Up/Down State/PfxRcd PfxSnt Desc
+10.1.0.2 4 65000 C C C C C never DOWN 0 N/A
+10.1.0.6 4 65000 C C C C C UPTIME 2 3 N/A
+
+Total number of neighbors 2
+BGP router identifier 10.0.0.22, local AS number 65102 VRF default vrf-id 0
+BGP table version X
+RIB entries X
+Peers 2, using 47 KiB of memory
+Peer groups 2, using 128 bytes of memory
+
+Neighbor V AS MsgRcvd MsgSent TblVer InQ OutQ Up/Down State/PfxRcd PfxSnt Desc
+2001:db8:1::5 4 65000 C C C C C never DOWN 0 N/A
+2001:db8:2::5 4 65000 C C C C C UPTIME 2 3 N/A
+
+Total number of neighbors 2
+% No BGP neighbors found in VRF default
+===== leaf02: FRR SRv6 state =====
+Locator:
+Name                 ID      Prefix                   Status
+-------------------- ------- ------------------------ -------
+
+% Unknown command: show segment-routing srv6 local-sids
+===== leaf02: FRR daemons (command lines only) =====
+/usr/lib/frr/bgpd -A 127.0.0.1 -P 0 -M snmp
+/usr/lib/frr/staticd -A 127.0.0.1 -P 0
+/usr/lib/frr/zebra -A 127.0.0.1 -s 90000000 -M dplane_fpm_sonic -M snmp --asic-offload=notify_on_offload
+
+[exit code: 0]

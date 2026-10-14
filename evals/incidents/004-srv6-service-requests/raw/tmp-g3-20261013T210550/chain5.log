@@ -1,0 +1,5 @@
+##### 14:19:45 START H-conv: converge
+##### 14:26:23 RC H-conv=0
+##### 14:26:23 START H-canary: canary
+##### 14:30:42 RC H-canary=1
+##### 14:30:42 LAB-SICK: canary failed (CANARY-FAIL vrf-apply leaf01: APPLY-STUCK: kernel VRF state did not converge after 3 attempts (applied='APPLIED'))

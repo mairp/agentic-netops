@@ -1,0 +1,8 @@
+{"contract": "specstride-pass-yield/v1",
+ "reason": "Waiting on detached chain2 (pid 1024502, setsid, launched 05:23:06): fresh provision -> converge+canary -> seed/baseline re-record -> vpn x8 + steering x5 re-records -> the five rerun receipts T105-T109; GATE3-EVIDENCE.md cannot be written until the receipts exist.",
+ "job": {"mode": "adopt", "pid": 1024502,
+         "argv": ["/usr/bin/bash", "/tmp/g3/chain2.sh"],
+         "cwd": "/root/agentic-netops"},
+ "resume_when": {"kind": "file_exists", "path": "/tmp/g3/chain2.done"},
+ "deadline_sec": 16200,
+ "on_resume": "Read /tmp/g3/chain2.summary, /tmp/g3/chain2.log and the five /tmp/g3/spike-rerun-*.verdict files. (1) If summary says ABORT: read /tmp/g3/P-provision.log and /tmp/g3/Q-canary.log first; the lab is broken at a deeper level - diagnose before any recording. (2) If any receipt verdict is 'differ': harvest /tmp/proof-got-<name>.txt, diff vs the stored .out, fix the one group's normalizer or re-record that group in canonical order plus its receipt, then proceed. (3) If all five verdicts are 'clean': refresh the p3-* proof slices that cite re-recorded proofs (p3-baseline-fresh, p3-proof-readback-leaf01, p3-proof-rollback, p3-proof-steering-*, p3-proof-{evpn2,evpn3}-negatives), fill the RECEIPT-* and gate-sweep markers in /tmp/g3/evidence-final.md from the actual .out files, publish .wiggum/features/004-srv6-service-requests/gates/GATE3-EVIDENCE.md atomically (tmp then mv), append the final PROGRESS.md entry, STOP. Do not run any scripts/spike/* while chain2 is alive (done marker absent)."}

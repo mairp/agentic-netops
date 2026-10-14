@@ -1,0 +1,2577 @@
+# Specstride critic transcript
+phase: 1
+attempt: 1
+provider: dsh:compass-gpt5-high/gpt-5
+nonce: 3ea7ba0bc794f1fd
+verdict: APPROVED
+parse: ok
+
+═══════════ PROMPT ═══════════
+You are the CRITIC (an automated approval gate). Be adversarial, not helpful.
+A proposer agent claims it has completed Phase 1 of a spec. Your job is to
+decide — strictly — whether the EVIDENCE actually satisfies EVERY acceptance
+criterion in the SPEC below. This is the only thing standing between unverified
+work and it being marked done, so do not give the benefit of the doubt.
+
+Rules:
+- Check each acceptance criterion individually. If ANY criterion is unmet, unclear,
+  or only asserted without support, the verdict is REJECTED.
+- The evidence is the proposer grading its own homework. Trust the GROUNDING
+  SNAPSHOT (verified on-disk state) over the evidence's prose when they conflict.
+  A criterion "proven" only by a claim about a file that the snapshot shows is
+  missing or empty is NOT met.
+- A snapshot entry reading "content excerpt omitted — grounding byte budget
+  reached; file verified present" is a TOOLING limitation, NOT evidence of absence:
+  the file EXISTS and was verified on disk; only its excerpt was elided for length.
+  You MUST NOT count a criterion unmet solely because that file's excerpt was
+  elided. If you genuinely cannot judge a criterion because the content you need is
+  not in the snapshot, say so explicitly in your feedback as
+  `NEEDS-GROUNDING:<path>` (name the file whose content you need) rather than
+  rejecting it as unimplemented. Criterion-named files are shown with anchored
+  excerpts (±lines around each named symbol, line-numbered) and are never elided.
+- The DESIGN CONTEXT (if present) is background only — never an extra criterion.
+- Do not be talked into approving by confident language. Substance only.
+
+If REJECTED, first list the specific unmet criteria and exactly what is missing —
+this text becomes the feedback the proposer must address, so be concrete and
+actionable (name the criterion, name the gap).
+
+End your reply with EXACTLY ONE line, on its own, verbatim (copy the token):
+    VERDICT 3ea7ba0bc794f1fd: APPROVED
+or
+    VERDICT 3ea7ba0bc794f1fd: REJECTED
+
+════════════════════════ SPEC — Phase 1 ════════════════════════
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: the proof recorder and the two record documents everything else writes into.
+
+- [ ] T001 Create `scripts/proof.sh`: `scripts/proof.sh <name> -- <command>` writes the exact command to `<name>.cmd` and its combined output plus exit code to `<name>.out` under `.wiggum/features/004-srv6-service-requests/gates/proofs/`, creating the directory. Done when `scripts/proof.sh selftest -- true` writes both files (plan 0-01)
+- [ ] T632 In `scripts/proof.sh`, add `replay <prefix>`: re-run every stored `<prefix>*.cmd` in the order it was recorded, compare each output with its `.out`, print the names that differ and exit non-zero if any does; destructive proofs are skipped unless `--all` is given. Done when `scripts/proof.sh replay selftest` reports no difference (plan 0-01)
+- [ ] T002 [P] Create `docs/SRV6_SERVICE_RECIPE.md` as a skeleton: one empty section each for underlay and locators, `ip-vrf`/`vpn`, `ip-vrf`/`evpn`, `mac-vrf`/`evpn`, steering, each starting with an "Approaches to try" list filled before the first attempt, and an empty verdict table with columns item, verdict, proofs, note (plan 0-02)
+- [ ] T003 [P] Create `docs/SRV6_ACCEPTANCE_004.md` as a skeleton: one row per SC-001 to SC-018 with empty proof-name cells, and an empty "Review records" section (plan 12-25, skeleton only)
+
+---
+
+## Verification obligations
+Canonical verification plan: verification-99fa5bc902894115a62b
+Verification plan hash: 35f650e23fbc093ca22d36262ab456180830e49192663133df82d48db2e9762c
+Source semantic hash: 9b670c75c09d5b8fb2377a9d8ad7b8d367c3e848aaa63bfdafaabee550069cf2
+
+### VO-b5104e61f0db5bc4174b — T001 Create `scripts/proof.sh`: `scripts/proof.sh <name> -- <command>` writes the exact command to `<name>.cmd` and its combined output plus exit code to `<name>.out` under `.wiggum/features/004-srv6-service-requests/gates/proofs/`, creating the directory. Done when `scripts/proof.sh selftest -- true` writes both files (plan 0-01)
+- Level: integration
+- Kind: effect-witness
+- Action: Setup (Shared Infrastructure)
+- Oracle: T001 Create `scripts/proof.sh`: `scripts/proof.sh <name> -- <command>` writes the exact command to `<name>.cmd` and its combined output plus exit code to `<name>.out` under `.wiggum/features/004-srv6-service-requests/gates/proofs/`, creating the directory. Done when `scripts/proof.sh selftest -- true` writes both files (plan 0-01)
+- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
+- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
+- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
+
+### VO-bfb6c1df2e6a25a56291 — T632 In `scripts/proof.sh`, add `replay <prefix>`: re-run every stored `<prefix>*.cmd` in the order it was recorded, compare each output with its `.out`, print the names that differ and exit non-zero if any does; destructive proofs are skipped unless `--all` is given. Done when `scripts/proof.sh replay selftest` reports no difference (plan 0-01)
+- Level: contract
+- Kind: positive
+- Action: Setup (Shared Infrastructure)
+- Oracle: T632 In `scripts/proof.sh`, add `replay <prefix>`: re-run every stored `<prefix>*.cmd` in the order it was recorded, compare each output with its `.out`, print the names that differ and exit non-zero if any does; destructive proofs are skipped unless `--all` is given. Done when `scripts/proof.sh replay selftest` reports no difference (plan 0-01)
+- Witness: Observe independently that this criterion is true: T632 In `scripts/proof.sh`, add `replay <prefix>`: re-run every stored `<prefix>*.cmd` in the order it was recorded, compare each output with its `.out`, print the names that differ and exit non-zero if any does; destructive proofs are skipped unless `--all` is given. Done when `scripts/proof.sh replay selftest` reports no difference (plan 0-01)
+
+### VO-9aacc570be3d37cd52f4 — T002 [P] Create `docs/SRV6_SERVICE_RECIPE.md` as a skeleton: one empty section each for underlay and locators, `ip-vrf`/`vpn`, `ip-vrf`/`evpn`, `mac-vrf`/`evpn`, steering, each starting with an "Approaches to try" list filled before the first attempt, and an empty verdict table with columns item, verdict, proofs, note (plan 0-02)
+- Level: integration
+- Kind: effect-witness
+- Action: Setup (Shared Infrastructure)
+- Oracle: T002 [P] Create `docs/SRV6_SERVICE_RECIPE.md` as a skeleton: one empty section each for underlay and locators, `ip-vrf`/`vpn`, `ip-vrf`/`evpn`, `mac-vrf`/`evpn`, steering, each starting with an "Approaches to try" list filled before the first attempt, and an empty verdict table with columns item, verdict, proofs, note (plan 0-02)
+- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
+- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
+- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
+
+### VO-7293c2cd5e2d3d866026 — T003 [P] Create `docs/SRV6_ACCEPTANCE_004.md` as a skeleton: one row per SC-001 to SC-018 with empty proof-name cells, and an empty "Review records" section (plan 12-25, skeleton only)
+- Level: integration
+- Kind: effect-witness
+- Action: Setup (Shared Infrastructure)
+- Oracle: T003 [P] Create `docs/SRV6_ACCEPTANCE_004.md` as a skeleton: one row per SC-001 to SC-018 with empty proof-name cells, and an empty "Review records" section (plan 12-25, skeleton only)
+- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
+- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
+- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
+
+### Commands this phase's gate will execute
+These run with shell=False before the critic sees anything. They are the only thing that can clear the gate — restating the evidence cannot.
+- `/usr/lib/go-1.24/bin/go test ./...` (cwd /root/agentic-netops, timeout 1800s)
+- `/usr/bin/bash scripts/proof.sh selftest -- true` (cwd /root/agentic-netops, timeout 60s)
+- `/usr/bin/bash scripts/proof.sh replay selftest` (cwd /root/agentic-netops, timeout 120s)
+
+Create or update automated tests for these obligations. Generated TODO/skip scaffolds are starting points only and are never passing evidence.
+The phase evidence must map every obligation above to independently observable evidence.
+
+════════════════════════ EVIDENCE (proposer-written) ════════════════════════
+# GATE 1 Evidence — Phase 1: Setup (Shared Infrastructure), feature 004
+
+Phase tasks T001, T632, T002, T003 — all complete. No Go code was changed (shell + docs
+only); `/usr/lib/go-1.24/bin/go test ./...` (cwd `/root/agentic-netops`) exits 0.
+
+## T001 — `scripts/proof.sh` record mode
+
+**File created**: `scripts/proof.sh` (executable, `bash -n` clean).
+
+- `scripts/proof.sh [--destructive] <name> -- <command...>` creates the directory
+  `.wiggum/features/004-srv6-service-requests/gates/proofs/` (`mkdir -p`, line 77 in
+  `cmd_record`, lines 59–102) and writes the **exact command** (shell-quoted with `printf %q`, line 74) to
+  `<name>.cmd` and the **combined output plus exit code** (`render_out`, lines 50–57: raw
+  stdout+stderr, newline-terminated, followed by the literal line `[exit code: N]`) to
+  `<name>.out`. Neither file carries a timestamp, so re-running the stored `.cmd` regenerates
+  the `.out` (FR-039/SC-015). `proof.sh` exits with the recorded command's exit code.
+- Proof slice: `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-scripts-proof-sh.txt`
+  (whole file, line-numbered; `cmd_record` at lines 59–102, `render_out` at 50–57,
+  `valid_name` at 44–46).
+
+**Done-criterion satisfied**: the gate command `/usr/bin/bash scripts/proof.sh selftest -- true`
+(cwd `/root/agentic-netops`) exits 0 and wrote both files:
+`.wiggum/features/004-srv6-service-requests/gates/proofs/selftest.cmd` containing exactly `true`
+and `.wiggum/features/004-srv6-service-requests/gates/proofs/selftest.out` containing exactly
+`[exit code: 0]` — slices `p1-selftest-cmd.txt`, `p1-selftest-out.txt` in the same proofs dir.
+
+## T632 — `scripts/proof.sh replay <prefix>`
+
+**Same file**: `cmd_replay` (lines 137–183) and `ordered_names` (lines 107–135).
+
+- `scripts/proof.sh replay <prefix>` re-runs every stored `<prefix>*.cmd` **in the order it was
+  recorded**: the per-proof order is kept in `proofs/.record-order` (`cmd_record` appends at
+  lines 93–99; a re-recorded name is moved to its latest position), unindexed files fall back to
+  ascending mtime (`ordered_names`). Each output is rendered the same way (`render_out`) and
+  compared with the stored `.out` via `cmp`; differing proofs print as `differ: <name>` and the
+  command exits 1. Destructive proofs (recorded with `--destructive`, marked by an empty
+  `<name>.destructive` file, line 89) are **skipped unless `--all`** (lines 156–161). A prefix
+  matching nothing exits 2 with `no stored proofs match`.
+- Proof slice: `p1-scripts-proof-sh.txt` (same file as T001; `cmd_replay` at 137–183).
+
+**Done-criterion satisfied**: `/usr/bin/bash scripts/proof.sh replay selftest` (gate command)
+prints `ok selftest` and `replay selftest: 1 proof(s) checked, no difference (0 skipped)`, exit 0.
+Additional live behaviour checks run this pass (temporary `PROOF_DIR`): a tampered `.out` yields
+`differ: <name>` + exit 1; `--destructive` proofs are skipped and reported by plain `replay`
+(exit 2 when nothing else remains) and run under `replay --all`; re-record ordering moves the
+proof to its latest position (`ord-b` before re-recorded `ord-a`).
+
+## T002 — `docs/SRV6_SERVICE_RECIPE.md` skeleton [P]
+
+**File created**: `docs/SRV6_SERVICE_RECIPE.md` (159 lines).
+
+- One section each for the five recipe areas: `## 1. Underlay and locators`,
+  `## 2. ip-vrf / vpn (L3VPN over SRv6)`, `## 3. ip-vrf / evpn (routed EVPN over SRv6)`,
+  `## 4. mac-vrf / evpn (bridged EVPN over SRv6)`, `## 5. Steering` (headings at lines 34, 71,
+  98, 117, 137; each section's empty table header `| item | verdict | proofs | note |` at
+  67, 94, 113, 133, 157).
+- **Every section starts with an "Approaches to try" list filled before the first attempt**
+  (the phrase `Approaches to try (written before the first attempt):` appears in all five
+  sections) — candidates grounded in `roadmap/srv6-enablement-research.md` (per-node identity
+  and underlay BGP, `fcbb:bbbb:<node>::/48` uSID locator owned by bootstrap, GCU-over-SSH write
+  path, FRR `segment-routing srv6` locator, `seg6_enabled`/`net.vrf.strict_mode`, kernel-`seg6`
+  dataplane on ASIC `vs`, End.DT46 `decap_vrf`, EVPN Type-5 / Type-2-3, ingress-only steering on
+  two spines) — explicitly marked as candidates to confirm or refute; no device command invented.
+- **Empty verdict table** with columns `item | verdict | proofs | note` closes every section
+  (the header row `| item | verdict | proofs | note |` appears 5 times).
+- Proof slice: `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-doc-recipe-symbols.txt`
+  (whole file, line-numbered).
+
+## T003 — `docs/SRV6_ACCEPTANCE_004.md` skeleton [P]
+
+**File created**: `docs/SRV6_ACCEPTANCE_004.md` (48 lines).
+
+- **One row per SC-001 to SC-018** (18 rows, lines 27–44), each with an empty Proofs cell and an
+  empty Verdict cell; outcome column is a one-line restatement of
+  `specs/004-srv6-service-requests/spec.md` Success Criteria.
+- **Empty "Review records" section** (`## Review records`, line 46, marked "(empty — filled at
+  T593, plan 12-25 ...)").
+- Header rules record the proof-name discipline: proof via `scripts/proof.sh <name> -- <command>`,
+  `.cmd` regenerates `.out` (SC-015), suffixed re-takes (`-default`, `-us4`, `-final`), and the
+  `q17-*` proofs for SC-011.
+- Proof slice: `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-doc-acceptance-symbols.txt`
+  (whole file, line-numbered).
+
+## Automated test for the obligations
+
+**File created**: `tests/unit/proof_sh_test.sh` — 20 assertions over `scripts/proof.sh` in an
+isolated `PROOF_DIR`: both files written and directory created, exact-command round-trip (FR-039),
+combined output + exit-code capture (including a failing command), quoting round-trip,
+`replay` no-difference + record order (including re-record ordering), `differ:` naming + exit 1,
+destructive skip and `--all`, no-match exit 2, invalid/escaping name refusals.
+Run this pass: `20 passed, 0 failed` — durable replayable proof
+`gates/proofs/p1-setup-unittest.{cmd,out}` (`bash scripts/proof.sh p1-setup-unittest -- bash
+tests/unit/proof_sh_test.sh`; `replay p1-setup` reports no difference).
+Slice: `gates/proofs/p1-tests-proof-sh-test.txt` (whole file, line-numbered).
+
+## Gate commands observed this pass (cwd /root/agentic-netops)
+
+| Command | Result |
+| --- | --- |
+| `/usr/lib/go-1.24/bin/go test ./...` | exit 0 (ok `tests/unit`, `tests/envtest`, `pkg/...`; no FAIL lines) |
+| `/usr/bin/bash scripts/proof.sh selftest -- true` | exit 0; wrote `gates/proofs/selftest.cmd` (`true`) and `selftest.out` (`[exit code: 0]`) |
+| `/usr/bin/bash scripts/proof.sh replay selftest` | exit 0; `ok selftest` … `1 proof(s) checked, no difference (0 skipped)` |
+
+## Notes
+
+- Pre-existing workdir changes **not** made by this phase and left untouched (hard rule):
+  git shows `.gitignore` modified, `vendor/sonic-buildimage` modified, untracked
+  `.mixture-of-loops/`, `tmp_research/`, `versions.lock.yaml.bak` — present before this phase's
+  first command; recorded in `.wiggum/features/004-srv6-service-requests/PROGRESS.md`.
+- Proof-slice files are named `p1-*.txt` (never `*.cmd`) so `replay <prefix>` cannot mistake them
+  for recorded proofs; the only `selftest*` proof is the gate's own.
+
+
+## Grounding snapshot (verified by the critic, read-only)
+The following is the ACTUAL on-disk state of files the evidence cites.
+Claims about files that do not exist, are empty, or contradict this snapshot are NOT substantiated — weigh them accordingly.
+
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/.record-order` — exists, 27 bytes, mtime 2026-10-11T21:59:17
+  ```
+       1	p1-setup-unittest
+       2	selftest
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-selftest-cmd.txt` — exists, 12 bytes, mtime 2026-10-11T21:54:16
+  ```
+       1	     1	true
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-selftest-out.txt` — exists, 22 bytes, mtime 2026-10-11T21:54:16
+  ```
+       1	     1	[exit code: 0]
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-setup-unittest.cmd` — exists, 33 bytes, mtime 2026-10-11T21:55:12
+  ```
+       1	bash tests/unit/proof_sh_test.sh
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-setup-unittest.out` — exists, 57 bytes, mtime 2026-10-11T21:55:12
+  ```
+       1	proof.sh unit tests: 20 passed, 0 failed
+       2	
+       3	[exit code: 0]
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-tests-proof-sh-test.txt` — exists, 5472 bytes, mtime 2026-10-11T21:54:16
+  ```
+       1	     1	#!/usr/bin/env bash
+       2	     2	# Unit tests for scripts/proof.sh (feature 004, tasks T001 and T632).
+       3	     3	# Runs entirely in a temporary PROOF_DIR; no lab and no network needed.
+       4	     4	#   bash tests/unit/proof_sh_test.sh
+       5	     5	set -u
+       6	     6	
+       7	     7	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+       8	     8	REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+       9	     9	PROOF_SH="$REPO_ROOT/scripts/proof.sh"
+      10	    10	
+      11	    11	PASS=0
+      12	    12	FAIL=0
+      13	    13	WORK="$(mktemp -d)"
+      14	    14	trap 'rm -rf "$WORK"' EXIT
+      15	    15	
+      16	    16	# run_proof <expected-rc> <args...>: run proof.sh with an isolated PROOF_DIR.
+      17	    17	run_proof() {
+      18	    18	    local expect="$1"
+      19	    19	    shift
+      20	    20	    local out rc
+      21	    21	    out="$(PROOF_DIR="$WORK/proofs" bash "$PROOF_SH" "$@" 2>&1)"
+      22	    22	    rc=$?
+      23	    23	    printf '%s' "$out" > "$WORK/last-output"
+      24	    24	    LAST_RC="$rc"
+      25	    25	    if [[ "$rc" != "$expect" ]]; then
+      26	    26	        echo "FAIL: proof.sh $* -> exit $rc (expected $expect)" >&2
+      27	    27	        echo "$out" >&2
+      28	    28	        FAIL=$((FAIL + 1))
+      29	    29	        return 1
+      30	    30	    fi
+      31	    31	    return 0
+      32	    32	}
+      33	    33	
+      34	    34	check() { # check <description> <condition...>
+      35	    35	    local desc="$1"
+      36	    36	    shift
+      37	    37	    if "$@"; then
+      38	    38	        PASS=$((PASS + 1))
+      39	    39	    else
+      40	    40	        echo "FAIL: $desc" >&2
+      41	    41	        FAIL=$((FAIL + 1))
+      42	    42	    fi
+      43	    43	}
+      44	    44	
+      45	    45	# --- T001: record writes .cmd and .out, creating the directory --------------
+      46	    46	run_proof 0 selftest -- true
+      47	    47	check "record creates the proof directory" test -d "$WORK/proofs"
+      48	    48	check "record writes selftest.cmd" test -f "$WORK/proofs/selftest.cmd"
+      49	    49	check "record writes selftest.out" test -f "$WORK/proofs/selftest.out"
+      50	    50	check ".cmd holds the exact command" grep -qx 'true' "$WORK/proofs/selftest.cmd"
+      51	    51	check ".out holds the exit-code line" grep -Fqx '[exit code: 0]' "$WORK/proofs/selftest.out"
+      52	    52	
+      53	    53	# Re-running the stored .cmd line regenerates the .out content (FR-039/SC-015).
+      54	    54	cmd="$(cat "$WORK/proofs/selftest.cmd")"
+      55	    55	bash -c "$cmd" > "$WORK/regen" 2>&1
+      56	    56	rc=$?
+      57	    57	{ cat "$WORK/regen"; printf '[exit code: %s]\n' "$rc"; } > "$WORK/regen.out"
+      58	    58	check ".cmd re-run regenerates .out" cmp -s "$WORK/regen.out" "$WORK/proofs/selftest.out"
+      59	    59	
+      60	    60	# Output (stdout+stderr) and a non-zero exit code are both captured.
+      61	    61	run_proof 3 failing -- bash -c 'echo out; echo err >&2; exit 3'
+      62	    62	check "recorded command's exit code is mirrored" test "$LAST_RC" = 3
+      63	    63	grep -q '^out$' "$WORK/proofs/failing.out" && grep -q '^err$' "$WORK/proofs/failing.out"
+      64	    64	check ".out holds combined output" test $? -eq 0
+      65	    65	check ".out holds the failing exit code" grep -Fqx '[exit code: 3]' "$WORK/proofs/failing.out"
+      66	    66	
+      67	    67	# Quoting round-trips: the stored line is re-runnable as written.
+      68	    68	run_proof 0 quoted -- bash -c 'printf "a b\tc"'
+      69	    69	bash -c "$(cat "$WORK/proofs/quoted.cmd")" > "$WORK/quoted.regen" 2>&1
+      70	    70	check "quoted command round-trips" grep -qx 'a b	c' "$WORK/quoted.regen"
+      71	    71	
+      72	    72	# --- T632: replay -------------------------------------------------------------
+      73	    73	run_proof 0 echo-one -- echo one
+      74	    74	run_proof 0 echo-two -- echo two
+      75	    75	run_proof 0 replay echo-
+      76	    76	check "replay reports no difference" grep -q 'no difference' "$WORK/last-output"
+      77	    77	check "replay runs every stored proof in record order" \
+      78	    78	    test "$(grep -c '^ok ' "$WORK/last-output")" = 2
+      79	    79	check "replay keeps record order (one before two)" \
+      80	    80	    test "$(sed -n 's/^ok //p' "$WORK/last-output" | tr '\n' ',')" = "echo-one,echo-two,"
+      81	    81	
+      82	    82	# A stored .out that no longer matches prints the name and exits non-zero.
+      83	    83	cp "$WORK/proofs/echo-one.out" "$WORK/echo-one.bak"
+      84	    84	printf 'tampered\n[exit code: 0]\n' > "$WORK/proofs/echo-one.out"
+      85	    85	run_proof 1 replay echo-
+      86	    86	check "replay names the proof that differs" grep -q '^differ: echo-one$' "$WORK/last-output"
+      87	    87	cp "$WORK/echo-one.bak" "$WORK/proofs/echo-one.out"
+      88	    88	
+      89	    89	# Destructive proofs are skipped unless --all is given.
+      90	    90	run_proof 0 --destructive destructive-proof -- true
+      91	    91	check "record writes the destructive marker" test -f "$WORK/proofs/destructive-proof.destructive"
+      92	    92	run_proof 2 replay destructive-proof
+      93	    93	check "replay skips destructive proofs" grep -q '^skip destructive-proof' "$WORK/last-output"
+      94	    94	run_proof 0 replay destructive-proof --all
+      95	    95	check "replay --all runs destructive proofs" grep -q '^ok destructive-proof' "$WORK/last-output"
+      96	    96	check "replay --all reports no difference" grep -q 'no difference' "$WORK/last-output"
+      97	    97	
+      98	    98	# Ordering: a re-recorded proof takes its latest recording position.
+      99	    99	run_proof 0 ord-a -- echo a
+     100	   100	run_proof 0 ord-b -- echo b
+     101	   101	run_proof 0 ord-a -- echo a
+     102	   102	run_proof 0 replay ord-
+     103	   103	check "re-recorded proof replays last" \
+     104	   104	    test "$(sed -n 's/^ok //p' "$WORK/last-output" | tr '\n' ',')" = "ord-b,ord-a,"
+     105	   105	
+     106	   106	# Refusals.
+     107	   107	run_proof 2 replay no-such-prefix
+     108	   108	check "replay with no matching proof fails loudly" \
+     109	   109	    grep -q 'no stored proofs match' "$WORK/last-output"
+     110	   110	run_proof 2 'bad name' -- true
+     111	   111	run_proof 2 ../escape -- true
+     112	   112	
+     113	   113	echo "proof.sh unit tests: $PASS passed, $FAIL failed"
+     114	   114	if [[ "$FAIL" -gt 0 ]]; then
+     115	   115	    exit 1
+     116	   116	fi
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-scripts-proof-sh.txt` — exists, 8085 bytes, mtime 2026-10-11T21:54:16
+  ```
+       1	     1	#!/usr/bin/env bash
+       2	     2	# proof.sh — record and replay acceptance proofs for feature 004.
+       3	     3	#
+       4	     4	# Record:   scripts/proof.sh [--destructive] <name> -- <command...>
+       5	     5	#   Runs <command...>, writes the exact command line to <name>.cmd and its
+       6	     6	#   combined output plus an exit-code line to <name>.out under
+       7	     7	#   .wiggum/features/004-srv6-service-requests/gates/proofs/ (created if
+       8	     8	#   missing). Re-running the stored <name>.cmd line must regenerate <name>.out
+       9	     9	#   (FR-039, SC-015), so neither file carries a timestamp.
+      10	    10	#   --destructive records a proof that changes lab or device state; it also
+      11	    11	#   writes an empty <name>.destructive marker. proof.sh exits with the
+      12	    12	#   recorded command's exit code.
+      13	    13	#
+      14	    14	# Replay:   scripts/proof.sh replay <prefix> [--all]
+      15	    15	#   Re-runs every stored <prefix>*.cmd in the order it was recorded (the
+      16	    16	#   per-proof record order is kept in .record-order), renders output the same
+      17	    17	#   way, compares with the stored <name>.out and prints the names that differ.
+      18	    18	#   Exits non-zero when any compared proof differs. Destructive proofs (those
+      19	    19	#   with a <name>.destructive marker) are skipped unless --all is given.
+      20	    20	#
+      21	    21	# Both subcommands expect the repo root as the working directory, so the
+      22	    22	# recorded commands can use repo-relative paths (tasks.md "Path Conventions").
+      23	    23	#
+      24	    24	# PROOF_DIR overrides the proof directory (used by tests/unit/proof_sh_test.sh
+      25	    25	# to stay out of the real gates tree); the default is the feature 004 path.
+      26	    26	set -u
+      27	    27	set -o pipefail
+      28	    28	
+      29	    29	usage() {
+      30	    30	    cat >&2 <<'EOF'
+      31	    31	usage:
+      32	    32	  scripts/proof.sh [--destructive] <name> -- <command...>
+      33	    33	  scripts/proof.sh replay <prefix> [--all]
+      34	    34	EOF
+      35	    35	    exit 2
+      36	    36	}
+      37	    37	
+      38	    38	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+      39	    39	REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+      40	    40	PROOF_DIR="${PROOF_DIR:-$REPO_ROOT/.wiggum/features/004-srv6-service-requests/gates/proofs}"
+      41	    41	ORDER_FILE="$PROOF_DIR/.record-order"
+      42	    42	
+      43	    43	# Proof names are file names; keep them to a safe single-path-component shape.
+      44	    44	valid_name() {
+      45	    45	    [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+      46	    46	}
+      47	    47	
+      48	    48	# render_out <exit-code> <combined-output-file>: print the raw output,
+      49	    49	# newline-terminated, followed by the exit-code line.
+      50	    50	render_out() {
+      51	    51	    local exit_code="$1" out_file="$2"
+      52	    52	    if [[ -s "$out_file" ]]; then
+      53	    53	        cat "$out_file"
+      54	    54	        [[ "$(tail -c 1 "$out_file")" == $'\n' ]] || printf '\n'
+      55	    55	    fi
+      56	    56	    printf '[exit code: %s]\n' "$exit_code"
+      57	    57	}
+      58	    58	
+      59	    59	cmd_record() {
+      60	    60	    local name="$1"
+      61	    61	    shift
+      62	    62	    local destructive=0
+      63	    63	    if [[ "$name" == "--destructive" ]]; then
+      64	    64	        destructive=1
+      65	    65	        name="$1"
+      66	    66	        shift
+      67	    67	    fi
+      68	    68	    [[ $# -ge 2 && "$1" == "--" ]] || usage
+      69	    69	    shift
+      70	    70	    [[ $# -ge 1 ]] || usage
+      71	    71	    valid_name "$name" || { echo "proof.sh: invalid proof name '$name'" >&2; exit 2; }
+      72	    72	
+      73	    73	    local cmdline cap_tmp
+      74	    74	    printf -v cmdline '%q ' "$@"
+      75	    75	    cmdline="${cmdline% }"
+      76	    76	
+      77	    77	    mkdir -p "$PROOF_DIR"
+      78	    78	    cap_tmp="$(mktemp "$PROOF_DIR/.tmp.cap.XXXXXX")"
+      79	    79	
+      80	    80	    bash -c "$cmdline" > "$cap_tmp" 2>&1
+      81	    81	    local exit_code=$?
+      82	    82	
+      83	    83	    printf '%s\n' "$cmdline" > "$PROOF_DIR/.tmp.$name.cmd"
+      84	    84	    render_out "$exit_code" "$cap_tmp" > "$PROOF_DIR/.tmp.$name.out"
+      85	    85	    rm -f "$cap_tmp"
+      86	    86	    mv -f "$PROOF_DIR/.tmp.$name.cmd" "$PROOF_DIR/$name.cmd"
+      87	    87	    mv -f "$PROOF_DIR/.tmp.$name.out" "$PROOF_DIR/$name.out"
+      88	    88	    if [[ "$destructive" == 1 ]]; then
+      89	    89	        : > "$PROOF_DIR/$name.destructive"
+      90	    90	    fi
+      91	    91	
+      92	    92	    # Remember the record order: drop any earlier position, then append, so a
+      93	    93	    # re-recorded proof takes its latest recording position.
+      94	    94	    if [[ -f "$ORDER_FILE" ]]; then
+      95	    95	        grep -Fvx -- "$name" "$ORDER_FILE" > "$ORDER_FILE.next" || true
+      96	    96	        mv -f "$ORDER_FILE.next" "$ORDER_FILE"
+      97	    97	    fi
+      98	    98	    printf '%s\n' "$name" >> "$ORDER_FILE"
+      99	    99	
+     100	   100	    echo "proof recorded: $name (exit $exit_code) -> $PROOF_DIR/$name.out"
+     101	   101	    return "$exit_code"
+     102	   102	}
+     103	   103	
+     104	   104	# ordered_names <prefix>: proof names whose <name>.cmd exists, in the order
+     105	   105	# they were recorded (.record-order, a re-record takes its latest position),
+     106	   106	# then any not yet indexed in ascending mtime order.
+     107	   107	ordered_names() {
+     108	   108	    local prefix="$1" name f base
+     109	   109	    local -a indexed=()
+     110	   110	    local -A known=()
+     111	   111	    if [[ -f "$ORDER_FILE" ]]; then
+     112	   112	        while IFS= read -r name; do
+     113	   113	            [[ -n "$name" && "$name" == "$prefix"* && -f "$PROOF_DIR/$name.cmd" ]] || continue
+     114	   114	            indexed+=("$name")
+     115	   115	            known["$name"]=1
+     116	   116	        done < "$ORDER_FILE"
+     117	   117	    fi
+     118	   118	    # Emit each indexed name at its LAST occurrence in the order file.
+     119	   119	    local i j dup
+     120	   120	    for ((i = 0; i < ${#indexed[@]}; i++)); do
+     121	   121	        dup=0
+     122	   122	        for ((j = i + 1; j < ${#indexed[@]}; j++)); do
+     123	   123	            if [[ "${indexed[i]}" == "${indexed[j]}" ]]; then dup=1; break; fi
+     124	   124	        done
+     125	   125	        if [[ "$dup" == 0 ]]; then printf '%s\n' "${indexed[i]}"; fi
+     126	   126	    done
+     127	   127	    # Proofs not in the index: order by mtime, oldest first.
+     128	   128	    while IFS= read -r f; do
+     129	   129	        [[ -n "$f" ]] || continue
+     130	   130	        base="$(basename "$f" .cmd)"
+     131	   131	        [[ -n "${known[$base]:-}" ]] && continue
+     132	   132	        known["$base"]=1
+     133	   133	        printf '%s\n' "$base"
+     134	   134	    done < <(ls -tr "$PROOF_DIR/$prefix"*.cmd 2>/dev/null || true)
+     135	   135	}
+     136	   136	
+     137	   137	cmd_replay() {
+     138	   138	    local prefix="$1" all=0
+     139	   139	    shift
+     140	   140	    if [[ "${1:-}" == "--all" ]]; then
+     141	   141	        all=1
+     142	   142	        shift
+     143	   143	    fi
+     144	   144	    [[ $# -eq 0 ]] || usage
+     145	   145	
+     146	   146	    local -a names=()
+     147	   147	    mapfile -t names < <(ordered_names "$prefix")
+     148	   148	    if [[ ${#names[@]} -eq 0 ]]; then
+     149	   149	        echo "replay $prefix: no stored proofs match" >&2
+     150	   150	        exit 2
+     151	   151	    fi
+     152	   152	
+     153	   153	    local name exit_code differ=0 compared=0 skipped=0 cap_tmp
+     154	   154	    cap_tmp="$(mktemp "${TMPDIR:-/tmp}/proof.replay.XXXXXX")"
+     155	   155	
+     156	   156	    for name in "${names[@]}"; do
+     157	   157	        if [[ -f "$PROOF_DIR/$name.destructive" && "$all" != 1 ]]; then
+     158	   158	            echo "skip $name (destructive; replay --all to include)"
+     159	   159	            skipped=$((skipped + 1))
+     160	   160	            continue
+     161	   161	        fi
+     162	   162	        bash -c "$(cat "$PROOF_DIR/$name.cmd")" > "$cap_tmp" 2>&1
+     163	   163	        exit_code=$?
+     164	   164	        if render_out "$exit_code" "$cap_tmp" | cmp -s - "$PROOF_DIR/$name.out"; then
+     165	   165	            echo "ok $name"
+     166	   166	        else
+     167	   167	            echo "differ: $name"
+     168	   168	            differ=$((differ + 1))
+     169	   169	        fi
+     170	   170	        compared=$((compared + 1))
+     171	   171	    done
+     172	   172	    rm -f "$cap_tmp"
+     173	   173	
+     174	   174	    if [[ "$differ" -gt 0 ]]; then
+     175	   175	        echo "replay $prefix: $differ of $compared proof(s) differ" >&2
+     176	   176	        return 1
+     177	   177	    fi
+     178	   178	    if [[ "$compared" -eq 0 ]]; then
+     179	   179	        echo "replay $prefix: nothing to replay (all $skipped skipped); use --all" >&2
+     180	   180	        exit 2
+     181	   181	    fi
+     182	   182	    echo "replay $prefix: $compared proof(s) checked, no difference ($skipped skipped)"
+     183	   183	}
+     184	   184	
+     185	   185	if [[ $# -lt 1 ]]; then
+     186	   186	    usage
+     187	   187	fi
+     188	   188	case "$1" in
+     189	   189	    replay)
+     190	   190	        [[ $# -ge 2 ]] || usage
+     191	   191	        shift
+     192	   192	        cmd_replay "$@"
+     193	   193	        ;;
+     194	   194	    -h|--help)
+     195	   195	        usage
+     196	   196	        ;;
+     197	   197	    *)
+     198	   198	        cmd_record "$@"
+     199	   199	        ;;
+     200	   200	esac
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/selftest.cmd` — exists, 5 bytes, mtime 2026-10-11T21:59:17
+  ```
+       1	true
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/selftest.out` — exists, 15 bytes, mtime 2026-10-11T21:59:17
+  ```
+       1	[exit code: 0]
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-doc-recipe-symbols.txt` — exists, 8614 bytes, mtime 2026-10-11T21:54:26
+  ```
+       1	     1	# SRv6 Service Recipe (feature 004)
+       2	     2	
+       3	     3	**Status: skeleton. Nothing in this file is proven.** The Phase 0 spike fills it
+       4	     4	on the live sonic-vm lab; until then every verdict cell below is empty.
+       5	     5	
+       6	     6	This file records the device recipe for one SRv6 VPN service on the pinned
+       7	     7	SONiC image, per the spike task (`specs/004-srv6-service-requests/tasks.md`,
+       8	     8	plan 0-02) and the evidence base `roadmap/srv6-enablement-research.md`.
+       9	     9	
+      10	    10	## How this file is used
+      11	    11	
+      12	    12	- Each section below starts with an **Approaches to try** list that is written
+      13	    13	  **before the first attempt**, so the spike tests candidates instead of
+      14	    14	  rationalising whatever happened. Approaches are candidates to confirm or
+      15	    15	  refute; none is a proven device command. Device commands and read-backs are
+      16	    16	  recorded only from the live lab, never invented.
+      17	    17	- A verdict is `proven` or `not achievable` (spec SC-001). A `proven` verdict
+      18	    18	  must be reproducible by replaying the recorded commands alone on a freshly
+      19	    19	  brought-up lab (`scripts/proof.sh replay <prefix>`).
+      20	    20	- `proofs` cites proofs by name, as recorded by
+      21	    21	  `scripts/proof.sh <name> -- <command>` under
+      22	    22	  `.wiggum/features/004-srv6-service-requests/gates/proofs/` (FR-039, SC-015).
+      23	    23	- The supported set this file decides is what
+      24	    24	  `lab/profiles/sonic-vm/srv6-supported.yaml` may declare; an item without a
+      25	    25	  `proven` verdict is refused by name, never half-delivered (spec FR-005,
+      26	    26	  tasks rule on `(V:x)` tags).
+      27	    27	- A service never creates, changes or removes a node locator (FR-006); the
+      28	    28	  locator work below belongs to the bootstrap, not to any service.
+      29	    29	
+      30	    30	Verdict vocabulary for the tables: `proven`, `not achievable`, `deferred`
+      31	    31	(owner decision 1 allows deferring bridged EVPN; requests for a deferred or
+      32	    32	unproven item are refused by name).
+      33	    33	
+      34	    34	## 1. Underlay and locators
+      35	    35	
+      36	    36	**Status: empty — no attempt recorded.**
+      37	    37	
+      38	    38	Approaches to try (written before the first attempt):
+      39	    39	
+      40	    40	- Per-node identity at boot first: per-node IPv4 and IPv6 loopbacks, the ASNs
+      41	    41	  already in the topology labels (65000 spines, 65101/65102 leaves), router
+      42	    42	  ids, IPv6 addressing or unnumbered peering on the four fabric links, and
+      43	    43	  underlay BGP for IPv4 and IPv6 unicast — replacing the image default where
+      44	    44	  every guest boots as `Loopback0 10.1.0.1/32`, AS 65100 (research addendum,
+      45	    45	  item 4). No locator is reachable until this holds (SC-002).
+      46	    46	- One locator per node from a common block, uSID style
+      47	    47	  (`fcbb:bbbb:<node>::/48` as the candidate block), matching the `uN`/`uDT46`
+      48	    48	  rows the gate already writes through GCU; owned by the bootstrap and
+      49	    49	  advertised into the IPv6 underlay (research addendum, item 6).
+      50	    50	- Locator rows written via GCU `config apply-patch` over SSH — the write path
+      51	    51	  the 202505 YANG already accepts — then read back over TLS gNMI, as the gate
+      52	    52	  does today; not gNMI Set.
+      53	    53	- FRR `segment-routing srv6` locator configured per node so
+      54	    54	  `show segment-routing srv6 locator` lists it (FRR answers with an empty
+      55	    55	  table today; the daemon supports SRv6 and nothing is configured).
+      56	    56	- `seg6_enabled=1` on the fabric interfaces
+      57	    57	  (`net.ipv6.conf.all.seg6_enabled` is 0 on the guest today), and
+      58	    58	  `net.vrf.strict_mode=1` if `End.DT46` needs it — a kernel requirement stated
+      59	    59	  from general knowledge, to confirm or refute in the spike (data-model §8.8).
+      60	    60	- Classic (non-uSID) `End`/`End.DT46` behaviour as a fallback if uSID rows
+      61	    61	  accept but do not forward.
+      62	    62	- Kernel seg6 lwtunnel witness installed on a real interface (`Loopback0`),
+      63	    63	  never on `dev lo`: on the guest `dev lo` returns 0 but silently drops the
+      64	    64	  encap, which is the false negative that made the gate record two skips as
+      65	    65	  passes (research addendum).
+      66	    66	
+      67	    67	| item | verdict | proofs | note |
+      68	    68	| --- | --- | --- | --- |
+      69	    69	|  |  |  |  |
+      70	    70	
+      71	    71	## 2. `ip-vrf` / `vpn` (L3VPN over SRv6)
+      72	    72	
+      73	    73	**Status: empty — no attempt recorded.**
+      74	    74	
+      75	    75	Approaches to try (written before the first attempt):
+      76	    76	
+      77	    77	- Per-VRF `End.DT46` SID with `decap_vrf` set to the customer VRF (the gate
+      78	    78	  writes `decap_vrf: default` today; a non-default `decap_vrf` is not yet
+      79	    79	  exercised anywhere).
+      80	    80	- Per-service SID function value allocated from the node locator's function
+      81	    81	  block; VRF name derived from the service id — the identifier candidates in
+      82	    82	  data-model §8.1, to be confirmed with real ranges.
+      83	    83	- BGP signals the per-VRF SRv6 SID to the remote PE (L3VPN over SRv6
+      84	    84	  signalling in FRR on 202505 — presence and shape to be confirmed by the
+      85	    85	  spike; nothing here is verified).
+      86	    86	- Encapsulation by the ingress leaf toward the remote locator's `uN` SID: with
+      87	    87	  ASIC `vs`, the Linux kernel is the forwarding plane, so a kernel `seg6`
+      88	    88	  route encapsulation is the dataplane candidate (research addendum).
+      89	    89	- Client attachment: `srv6-client01` on `leaf01` and `srv6-client02` on
+      90	    90	  `leaf02` (the `eth4` attachments the research names) placed in the customer
+      91	    91	  VRF; client-to-client traffic is the acceptance bar (owner decision 2,
+      92	    92	  SC-005).
+      93	    93	
+      94	    94	| item | verdict | proofs | note |
+      95	    95	| --- | --- | --- | --- |
+      96	    96	|  |  |  |  |
+      97	    97	
+      98	    98	## 3. `ip-vrf` / `evpn` (routed EVPN over SRv6)
+      99	    99	
+     100	   100	**Status: empty — no attempt recorded.**
+     101	   101	
+     102	   102	Approaches to try (written before the first attempt):
+     103	   103	
+     104	   104	- EVPN Type-5 (IP-prefix) routes carrying the per-VRF SRv6 SID, reusing the
+     105	   105	  iBGP L2VPN EVPN AF session the gate already reaches Established across
+     106	   106	  leaf-spine-leaf; the session today asserts no route of any type.
+     107	   107	- Per-VRF `End.DT46` decapsulation as in §2, with the SID learnt through EVPN
+     108	   108	  signalling instead of VPN signalling.
+     109	   109	- Ingress encapsulation as in §2 (kernel `seg6` on the `vs` ASIC).
+     110	   110	- Same client attachment and traffic bar as §2, so the two routed variants
+     111	   111	  differ only in signalling.
+     112	   112	
+     113	   113	| item | verdict | proofs | note |
+     114	   114	| --- | --- | --- | --- |
+     115	   115	|  |  |  |  |
+     116	   116	
+     117	   117	## 4. `mac-vrf` / `evpn` (bridged EVPN over SRv6)
+     118	   118	
+     119	   119	**Status: empty — no attempt recorded.** The owner allows deferring this
+     120	   120	variant (owner decision 1); if deferred or unproven, requests are refused by
+     121	   121	name.
+     122	   122	
+     123	   123	Approaches to try (written before the first attempt):
+     124	   124	
+     125	   125	- EVPN Type-2/3 MAC/IP routes over SRv6 with a per-EVI or per-(EVI, VLAN)
+     126	   126	  End.DX2-style SID — the SRv6 equivalent of the VXLAN bridged service; SID
+     127	   127	  scope per EVI or per VLAN is a spike question.
+     128	   128	- The operator-supplied VLAN tag (as in feature 003) carried on the attachment
+     129	   129	  ports, bridged into the EVI.
+     130	   130	- Kernel bridging plus `seg6` encapsulation on the `vs` ASIC as the dataplane
+     131	   131	  candidate, as in §2.
+     132	   132	
+     133	   133	| item | verdict | proofs | note |
+     134	   134	| --- | --- | --- | --- |
+     135	   135	|  |  |  |  |
+     136	   136	
+     137	   137	## 5. Steering
+     138	   138	
+     139	   139	**Status: empty — no attempt recorded.**
+     140	   140	
+     141	   141	Approaches to try (written before the first attempt):
+     142	   142	
+     143	   143	- Two spines give two equal paths; preference expressed on the ingress leaf
+     144	   144	  only (the renderer never emits ops for a spine —
+     145	   145	  `specs/004-srv6-service-requests/contracts/fabricplan-srv6.md` §1), by
+     146	   146	  either an explicit SID list through the preferred spine or a lower path
+     147	   147	  preference/metric — which of the two the image supports is a spike question.
+     148	   148	- Failover to the alternate spine and return on restoration, bounded by 5
+     149	   149	  seconds with at most 2 consecutive losses after the switch (SC-007,
+     150	   150	  FR-026a); measured with 1 Hz probes from the client attachments, as
+     151	   151	  `tests/integration/srv6_failover_path_change.sh` does today.
+     152	   152	- Detection via BFD or fast BGP timers if passive convergence misses the 5 s
+     153	   153	  bound (timers are a data-model §8.8 baseline question).
+     154	   154	- The read-back that shows the active path (data-model §8.6), recorded as the
+     155	   155	  per-node check that backs any steering verdict.
+     156	   156	
+     157	   157	| item | verdict | proofs | note |
+     158	   158	| --- | --- | --- | --- |
+     159	   159	|  |  |  |  |
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-doc-acceptance-symbols.txt` — exists, 4834 bytes, mtime 2026-10-11T21:54:26
+  ```
+       1	     1	# Acceptance record: SRv6 Service Requests End to End (004)
+       2	     2	
+       3	     3	**Status: skeleton.** Every proof-name cell is empty until the criterion's
+       4	     4	proofs exist on the live lab. Filled at T593 (plan 12-25); this file is the
+       5	     5	tracked index that cites proofs by name (FR-039, SC-015).
+       6	     6	
+       7	     7	Source of the criteria: `specs/004-srv6-service-requests/spec.md`
+       8	     8	("Success Criteria", SC-001 to SC-018). The outcome column is a one-line
+       9	     9	restatement, not a substitute for the spec text.
+      10	    10	
+      11	    11	Rules this record follows:
+      12	    12	
+      13	    13	- A proof name is a capture taken through
+      14	    14	  `scripts/proof.sh <name> -- <command>`; its `.cmd` sits next to its `.out`
+      15	    15	  under `.wiggum/features/004-srv6-service-requests/gates/proofs/`, and
+      16	    16	  re-running the `.cmd` must regenerate the `.out` (SC-015).
+      17	    17	- A proof taken again later carries a suffix (`-default`, `-us4`, `-final`)
+      18	    18	  so it never overwrites the capture an earlier gate rested on
+      19	    19	  (`specs/004-srv6-service-requests/quickstart.md`).
+      20	    20	- A criterion whose proof did not regenerate is marked not met.
+      21	    21	- SC-011 includes the `q17-*` proofs (T593).
+      22	    22	
+      23	    23	## Acceptance criteria
+      24	    24	
+      25	    25	| Criterion | Outcome | Proofs | Verdict |
+      26	    26	| --- | --- | --- | --- |
+      27	    27	| SC-001 | Recipe spike records "proven" or "not achievable" for each of the four items; an unattended replay on a freshly brought-up lab reproduces every "proven" verdict from the recorded commands alone. | | |
+      28	    28	| SC-002 | Default bring-up yields four switches with four distinct identities, underlay sessions on four of four fabric links, each locator reachable from the three others. | | |
+      29	    29	| SC-003 | All four existing constructs provision, verify, update and delete on the default lab, and 100% of the existing suites pass there. | | |
+      30	    30	| SC-004 | For each supported service type, a twice-confirmed plain-language request yields exactly one SRv6 service reaching Ready, readable from both leaves. | | |
+      31	    31	| SC-005 | For each supported service type, client-to-client traffic passes and a fabric-link capture shows SRv6 encapsulation carrying the service's identifier; Ready is never True before this holds at first activation. | | |
+      32	    32	| SC-006 | Ready is never True while a per-node check fails; a check broken on one leaf turns Ready False naming that leaf within one re-verification interval. | | |
+      33	    33	| SC-007 | A steered service carries 100% of traffic through the preferred spine while usable; failure moves it to the alternate and restoration returns it, each within 5 seconds and at most 2 consecutive losses after the switch. | | |
+      34	    34	| SC-008 | Of the four named SRv6 phrasings and every SRv6 corpus phrasing, zero produce a VXLAN service, at every delivered increment. | | |
+      35	    35	| SC-009 | A resource applied directly, tier stopped, meets SC-004 to SC-007 with zero hand-typed identifiers. | | |
+      36	    36	| SC-010 | 100% of identifiers trace to a claim carrying the request's correlation id; after delete, zero such claims and zero service-owned items remain on any node, other services unchanged. | | |
+      37	    37	| SC-011 | Re-applying an unchanged request writes nothing; out-of-band removal on one leaf is restored within one re-verification interval; a changed mutable field converges, verifies, and leaves nothing of the previous version on any node. | | |
+      38	    38	| SC-012 | The chat page offers at least one runnable SRv6 example per supported type; the status views list every SRv6 service with type and Ready state. | | |
+      39	    39	| SC-013 | On the container profile, 100% of direct SRv6 resources are refused with a capability reason and 100% of chat SRv6 requests refused with zero identifiers claimed, while the four existing constructs still provision. | | |
+      40	    40	| SC-014 | On the SONiC VM profile the gate executes the encapsulation and SID-list checks; on any profile, passed equals ran-and-passed, skips counted separately. | | |
+      41	    41	| SC-015 | Every acceptance proof regenerates by re-running the command stored next to it on the live lab; zero approvals rest on a proof that fails this. | | |
+      42	    42	| SC-016 | The existing phrasing corpus maps identically before and after this feature, and the vocabulary guard passes with no entry relaxed. | | |
+      43	    43	| SC-017 | An operator following the documentation's SRv6 section on the live lab reaches every stated outcome, and every stated verify command returns what the text says. | | |
+      44	    44	| SC-018 | While an SRv6 service carries traffic, every panel of the SRv6 dashboard shows data, and disabling a steered service's preferred path raises the existing alert. | | |
+      45	    45	
+      46	    46	## Review records
+      47	    47	
+      48	    48	(empty — filled at T593, plan 12-25, alongside the proofs column above)
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-setup-unittest.cmd` — exists, 33 bytes, mtime 2026-10-11T21:55:12
+  ```
+       1	bash tests/unit/proof_sh_test.sh
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-setup-unittest.out` — exists, 57 bytes, mtime 2026-10-11T21:55:12
+  ```
+       1	proof.sh unit tests: 20 passed, 0 failed
+       2	
+       3	[exit code: 0]
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-tests-proof-sh-test.txt` — exists, 5472 bytes, mtime 2026-10-11T21:54:16
+  ```
+       1	     1	#!/usr/bin/env bash
+       2	     2	# Unit tests for scripts/proof.sh (feature 004, tasks T001 and T632).
+       3	     3	# Runs entirely in a temporary PROOF_DIR; no lab and no network needed.
+       4	     4	#   bash tests/unit/proof_sh_test.sh
+       5	     5	set -u
+       6	     6	
+       7	     7	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+       8	     8	REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+       9	     9	PROOF_SH="$REPO_ROOT/scripts/proof.sh"
+      10	    10	
+      11	    11	PASS=0
+      12	    12	FAIL=0
+      13	    13	WORK="$(mktemp -d)"
+      14	    14	trap 'rm -rf "$WORK"' EXIT
+      15	    15	
+      16	    16	# run_proof <expected-rc> <args...>: run proof.sh with an isolated PROOF_DIR.
+      17	    17	run_proof() {
+      18	    18	    local expect="$1"
+      19	    19	    shift
+      20	    20	    local out rc
+      21	    21	    out="$(PROOF_DIR="$WORK/proofs" bash "$PROOF_SH" "$@" 2>&1)"
+      22	    22	    rc=$?
+      23	    23	    printf '%s' "$out" > "$WORK/last-output"
+      24	    24	    LAST_RC="$rc"
+      25	    25	    if [[ "$rc" != "$expect" ]]; then
+      26	    26	        echo "FAIL: proof.sh $* -> exit $rc (expected $expect)" >&2
+      27	    27	        echo "$out" >&2
+      28	    28	        FAIL=$((FAIL + 1))
+      29	    29	        return 1
+      30	    30	    fi
+      31	    31	    return 0
+      32	    32	}
+      33	    33	
+      34	    34	check() { # check <description> <condition...>
+      35	    35	    local desc="$1"
+      36	    36	    shift
+      37	    37	    if "$@"; then
+      38	    38	        PASS=$((PASS + 1))
+      39	    39	    else
+      40	    40	        echo "FAIL: $desc" >&2
+      41	    41	        FAIL=$((FAIL + 1))
+      42	    42	    fi
+      43	    43	}
+      44	    44	
+      45	    45	# --- T001: record writes .cmd and .out, creating the directory --------------
+      46	    46	run_proof 0 selftest -- true
+      47	    47	check "record creates the proof directory" test -d "$WORK/proofs"
+      48	    48	check "record writes selftest.cmd" test -f "$WORK/proofs/selftest.cmd"
+      49	    49	check "record writes selftest.out" test -f "$WORK/proofs/selftest.out"
+      50	    50	check ".cmd holds the exact command" grep -qx 'true' "$WORK/proofs/selftest.cmd"
+      51	    51	check ".out holds the exit-code line" grep -Fqx '[exit code: 0]' "$WORK/proofs/selftest.out"
+      52	    52	
+      53	    53	# Re-running the stored .cmd line regenerates the .out content (FR-039/SC-015).
+      54	    54	cmd="$(cat "$WORK/proofs/selftest.cmd")"
+      55	    55	bash -c "$cmd" > "$WORK/regen" 2>&1
+      56	    56	rc=$?
+      57	    57	{ cat "$WORK/regen"; printf '[exit code: %s]\n' "$rc"; } > "$WORK/regen.out"
+      58	    58	check ".cmd re-run regenerates .out" cmp -s "$WORK/regen.out" "$WORK/proofs/selftest.out"
+      59	    59	
+      60	    60	# Output (stdout+stderr) and a non-zero exit code are both captured.
+      61	    61	run_proof 3 failing -- bash -c 'echo out; echo err >&2; exit 3'
+      62	    62	check "recorded command's exit code is mirrored" test "$LAST_RC" = 3
+      63	    63	grep -q '^out$' "$WORK/proofs/failing.out" && grep -q '^err$' "$WORK/proofs/failing.out"
+      64	    64	check ".out holds combined output" test $? -eq 0
+      65	    65	check ".out holds the failing exit code" grep -Fqx '[exit code: 3]' "$WORK/proofs/failing.out"
+      66	    66	
+      67	    67	# Quoting round-trips: the stored line is re-runnable as written.
+      68	    68	run_proof 0 quoted -- bash -c 'printf "a b\tc"'
+      69	    69	bash -c "$(cat "$WORK/proofs/quoted.cmd")" > "$WORK/quoted.regen" 2>&1
+      70	    70	check "quoted command round-trips" grep -qx 'a b	c' "$WORK/quoted.regen"
+      71	    71	
+      72	    72	# --- T632: replay -------------------------------------------------------------
+      73	    73	run_proof 0 echo-one -- echo one
+      74	    74	run_proof 0 echo-two -- echo two
+      75	    75	run_proof 0 replay echo-
+      76	    76	check "replay reports no difference" grep -q 'no difference' "$WORK/last-output"
+      77	    77	check "replay runs every stored proof in record order" \
+      78	    78	    test "$(grep -c '^ok ' "$WORK/last-output")" = 2
+      79	    79	check "replay keeps record order (one before two)" \
+      80	    80	    test "$(sed -n 's/^ok //p' "$WORK/last-output" | tr '\n' ',')" = "echo-one,echo-two,"
+      81	    81	
+      82	    82	# A stored .out that no longer matches prints the name and exits non-zero.
+      83	    83	cp "$WORK/proofs/echo-one.out" "$WORK/echo-one.bak"
+      84	    84	printf 'tampered\n[exit code: 0]\n' > "$WORK/proofs/echo-one.out"
+      85	    85	run_proof 1 replay echo-
+      86	    86	check "replay names the proof that differs" grep -q '^differ: echo-one$' "$WORK/last-output"
+      87	    87	cp "$WORK/echo-one.bak" "$WORK/proofs/echo-one.out"
+      88	    88	
+      89	    89	# Destructive proofs are skipped unless --all is given.
+      90	    90	run_proof 0 --destructive destructive-proof -- true
+      91	    91	check "record writes the destructive marker" test -f "$WORK/proofs/destructive-proof.destructive"
+      92	    92	run_proof 2 replay destructive-proof
+      93	    93	check "replay skips destructive proofs" grep -q '^skip destructive-proof' "$WORK/last-output"
+      94	    94	run_proof 0 replay destructive-proof --all
+      95	    95	check "replay --all runs destructive proofs" grep -q '^ok destructive-proof' "$WORK/last-output"
+      96	    96	check "replay --all reports no difference" grep -q 'no difference' "$WORK/last-output"
+      97	    97	
+      98	    98	# Ordering: a re-recorded proof takes its latest recording position.
+      99	    99	run_proof 0 ord-a -- echo a
+     100	   100	run_proof 0 ord-b -- echo b
+     101	   101	run_proof 0 ord-a -- echo a
+     102	   102	run_proof 0 replay ord-
+     103	   103	check "re-recorded proof replays last" \
+     104	   104	    test "$(sed -n 's/^ok //p' "$WORK/last-output" | tr '\n' ',')" = "ord-b,ord-a,"
+     105	   105	
+     106	   106	# Refusals.
+     107	   107	run_proof 2 replay no-such-prefix
+     108	   108	check "replay with no matching proof fails loudly" \
+     109	   109	    grep -q 'no stored proofs match' "$WORK/last-output"
+     110	   110	run_proof 2 'bad name' -- true
+     111	   111	run_proof 2 ../escape -- true
+     112	   112	
+     113	   113	echo "proof.sh unit tests: $PASS passed, $FAIL failed"
+     114	   114	if [[ "$FAIL" -gt 0 ]]; then
+     115	   115	    exit 1
+     116	   116	fi
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/selftest.cmd` — exists, 5 bytes, mtime 2026-10-11T21:59:17
+  ```
+       1	true
+  ```
+  (complete file, line-numbered)
+- `scripts/proof.sh` — exists, 6685 bytes, mtime 2026-10-11T21:51:07
+  ```
+       1	#!/usr/bin/env bash
+       2	# proof.sh — record and replay acceptance proofs for feature 004.
+       3	#
+       4	# Record:   scripts/proof.sh [--destructive] <name> -- <command...>
+       5	#   Runs <command...>, writes the exact command line to <name>.cmd and its
+       6	#   combined output plus an exit-code line to <name>.out under
+       7	#   .wiggum/features/004-srv6-service-requests/gates/proofs/ (created if
+       8	#   missing). Re-running the stored <name>.cmd line must regenerate <name>.out
+       9	#   (FR-039, SC-015), so neither file carries a timestamp.
+      10	#   --destructive records a proof that changes lab or device state; it also
+      11	#   writes an empty <name>.destructive marker. proof.sh exits with the
+      12	#   recorded command's exit code.
+      13	#
+      14	# Replay:   scripts/proof.sh replay <prefix> [--all]
+      15	#   Re-runs every stored <prefix>*.cmd in the order it was recorded (the
+      16	#   per-proof record order is kept in .record-order), renders output the same
+      17	#   way, compares with the stored <name>.out and prints the names that differ.
+      18	#   Exits non-zero when any compared proof differs. Destructive proofs (those
+      19	#   with a <name>.destructive marker) are skipped unless --all is given.
+      20	#
+      21	# Both subcommands expect the repo root as the working directory, so the
+      22	# recorded commands can use repo-relative paths (tasks.md "Path Conventions").
+      23	#
+      24	# PROOF_DIR overrides the proof directory (used by tests/unit/proof_sh_test.sh
+      25	# to stay out of the real gates tree); the default is the feature 004 path.
+      26	set -u
+      27	set -o pipefail
+      28	
+      29	usage() {
+      30	    cat >&2 <<'EOF'
+      31	usage:
+      32	  scripts/proof.sh [--destructive] <name> -- <command...>
+      33	  scripts/proof.sh replay <prefix> [--all]
+      34	EOF
+      35	    exit 2
+      36	}
+      37	
+      38	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+      39	REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+      40	PROOF_DIR="${PROOF_DIR:-$REPO_ROOT/.wiggum/features/004-srv6-service-requests/gates/proofs}"
+      41	ORDER_FILE="$PROOF_DIR/.record-order"
+      42	
+      43	# Proof names are file names; keep them to a safe single-path-component shape.
+      44	valid_name() {
+      45	    [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+      46	}
+      47	
+      48	# render_out <exit-code> <combined-output-file>: print the raw output,
+      49	# newline-terminated, followed by the exit-code line.
+      50	render_out() {
+      51	    local exit_code="$1" out_file="$2"
+      52	    if [[ -s "$out_file" ]]; then
+      53	        cat "$out_file"
+      54	        [[ "$(tail -c 1 "$out_file")" == $'\n' ]] || printf '\n'
+      55	    fi
+      56	    printf '[exit code: %s]\n' "$exit_code"
+      57	}
+      58	
+      59	cmd_record() {
+      60	    local name="$1"
+      61	    shift
+      62	    local destructive=0
+      63	    if [[ "$name" == "--destructive" ]]; then
+      64	        destructive=1
+      65	        name="$1"
+      66	        shift
+      67	    fi
+      68	    [[ $# -ge 2 && "$1" == "--" ]] || usage
+      69	    shift
+      70	    [[ $# -ge 1 ]] || usage
+      71	    valid_name "$name" || { echo "proof.sh: invalid proof name '$name'" >&2; exit 2; }
+      72	
+      73	    local cmdline cap_tmp
+      74	    printf -v cmdline '%q ' "$@"
+      75	    cmdline="${cmdline% }"
+      76	
+      77	    mkdir -p "$PROOF_DIR"
+      78	    cap_tmp="$(mktemp "$PROOF_DIR/.tmp.cap.XXXXXX")"
+      79	
+      80	    bash -c "$cmdline" > "$cap_tmp" 2>&1
+      81	    local exit_code=$?
+      82	
+      83	    printf '%s\n' "$cmdline" > "$PROOF_DIR/.tmp.$name.cmd"
+      84	    render_out "$exit_code" "$cap_tmp" > "$PROOF_DIR/.tmp.$name.out"
+      85	    rm -f "$cap_tmp"
+      86	    mv -f "$PROOF_DIR/.tmp.$name.cmd" "$PROOF_DIR/$name.cmd"
+      87	    mv -f "$PROOF_DIR/.tmp.$name.out" "$PROOF_DIR/$name.out"
+      88	    if [[ "$destructive" == 1 ]]; then
+      89	        : > "$PROOF_DIR/$name.destructive"
+      90	    fi
+      91	
+      92	    # Remember the record order: drop any earlier position, then append, so a
+      93	    # re-recorded proof takes its latest recording position.
+      94	    if [[ -f "$ORDER_FILE" ]]; then
+      95	        grep -Fvx -- "$name" "$ORDER_FILE" > "$ORDER_FILE.next" || true
+      96	        mv -f "$ORDER_FILE.next" "$ORDER_FILE"
+      97	    fi
+      98	    printf '%s\n' "$name" >> "$ORDER_FILE"
+      99	
+     100	    echo "proof recorded: $name (exit $exit_code) -> $PROOF_DIR/$name.out"
+     101	    return "$exit_code"
+     102	}
+     103	
+     104	# ordered_names <prefix>: proof names whose <name>.cmd exists, in the order
+     105	# they were recorded (.record-order, a re-record takes its latest position),
+     106	# then any not yet indexed in ascending mtime order.
+     107	ordered_names() {
+     108	    local prefix="$1" name f base
+     109	    local -a indexed=()
+     110	    local -A known=()
+     111	    if [[ -f "$ORDER_FILE" ]]; then
+     112	        while IFS= read -r name; do
+     113	            [[ -n "$name" && "$name" == "$prefix"* && -f "$PROOF_DIR/$name.cmd" ]] || continue
+     114	            indexed+=("$name")
+     115	            known["$name"]=1
+     116	        done < "$ORDER_FILE"
+     117	    fi
+     118	    # Emit each indexed name at its LAST occurrence in the order file.
+     119	    local i j dup
+     120	    for ((i = 0; i < ${#indexed[@]}; i++)); do
+     121	        dup=0
+     122	        for ((j = i + 1; j < ${#indexed[@]}; j++)); do
+     123	            if [[ "${indexed[i]}" == "${indexed[j]}" ]]; then dup=1; break; fi
+     124	        done
+     125	        if [[ "$dup" == 0 ]]; then printf '%s\n' "${indexed[i]}"; fi
+     126	    done
+     127	    # Proofs not in the index: order by mtime, oldest first.
+     128	    while IFS= read -r f; do
+     129	        [[ -n "$f" ]] || continue
+     130	        base="$(basename "$f" .cmd)"
+     131	        [[ -n "${known[$base]:-}" ]] && continue
+     132	        known["$base"]=1
+     133	        printf '%s\n' "$base"
+     134	    done < <(ls -tr "$PROOF_DIR/$prefix"*.cmd 2>/dev/null || true)
+     135	}
+     136	
+     137	cmd_replay() {
+     138	    local prefix="$1" all=0
+     139	    shift
+     140	    if [[ "${1:-}" == "--all" ]]; then
+     141	        all=1
+     142	        shift
+     143	    fi
+     144	    [[ $# -eq 0 ]] || usage
+     145	
+     146	    local -a names=()
+     147	    mapfile -t names < <(ordered_names "$prefix")
+     148	    if [[ ${#names[@]} -eq 0 ]]; then
+     149	        echo "replay $prefix: no stored proofs match" >&2
+     150	        exit 2
+     151	    fi
+     152	
+     153	    local name exit_code differ=0 compared=0 skipped=0 cap_tmp
+     154	    cap_tmp="$(mktemp "${TMPDIR:-/tmp}/proof.replay.XXXXXX")"
+     155	
+     156	    for name in "${names[@]}"; do
+     157	        if [[ -f "$PROOF_DIR/$name.destructive" && "$all" != 1 ]]; then
+     158	            echo "skip $name (destructive; replay --all to include)"
+     159	            skipped=$((skipped + 1))
+     160	            continue
+     161	        fi
+     162	        bash -c "$(cat "$PROOF_DIR/$name.cmd")" > "$cap_tmp" 2>&1
+     163	        exit_code=$?
+     164	        if render_out "$exit_code" "$cap_tmp" | cmp -s - "$PROOF_DIR/$name.out"; then
+     165	            echo "ok $name"
+     166	        else
+     167	            echo "differ: $name"
+     168	            differ=$((differ + 1))
+     169	        fi
+     170	        compared=$((compared + 1))
+     171	    done
+     172	    rm -f "$cap_tmp"
+     173	
+     174	    if [[ "$differ" -gt 0 ]]; then
+     175	        echo "replay $prefix: $differ of $compared proof(s) differ" >&2
+     176	        return 1
+     177	    fi
+     178	    if [[ "$compared" -eq 0 ]]; then
+     179	        echo "replay $prefix: nothing to replay (all $skipped skipped); use --all" >&2
+     180	        exit 2
+     181	    fi
+     182	    echo "replay $prefix: $compared proof(s) checked, no difference ($skipped skipped)"
+     183	}
+     184	
+     185	if [[ $# -lt 1 ]]; then
+     186	    usage
+     187	fi
+     188	case "$1" in
+     189	    replay)
+     190	        [[ $# -ge 2 ]] || usage
+     191	        shift
+     192	        cmd_replay "$@"
+     193	        ;;
+     194	    -h|--help)
+     195	        usage
+     196	        ;;
+     197	    *)
+     198	        cmd_record "$@"
+     199	        ;;
+     200	esac
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-setup-unittest.cmd` — exists, 33 bytes, mtime 2026-10-11T21:55:12
+  ```
+       1	bash tests/unit/proof_sh_test.sh
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-setup-unittest.out` — exists, 57 bytes, mtime 2026-10-11T21:55:12
+  ```
+       1	proof.sh unit tests: 20 passed, 0 failed
+       2	
+       3	[exit code: 0]
+  ```
+  (complete file, line-numbered)
+- `docs/SRV6_SERVICE_RECIPE.md` — exists, 7501 bytes, mtime 2026-10-11T21:53:44
+  ```
+       1	# SRv6 Service Recipe (feature 004)
+       2	
+       3	**Status: skeleton. Nothing in this file is proven.** The Phase 0 spike fills it
+       4	on the live sonic-vm lab; until then every verdict cell below is empty.
+       5	
+       6	This file records the device recipe for one SRv6 VPN service on the pinned
+       7	SONiC image, per the spike task (`specs/004-srv6-service-requests/tasks.md`,
+       8	plan 0-02) and the evidence base `roadmap/srv6-enablement-research.md`.
+       9	
+      10	## How this file is used
+      11	
+      12	- Each section below starts with an **Approaches to try** list that is written
+      13	  **before the first attempt**, so the spike tests candidates instead of
+      14	  rationalising whatever happened. Approaches are candidates to confirm or
+      15	  refute; none is a proven device command. Device commands and read-backs are
+      16	  recorded only from the live lab, never invented.
+      17	- A verdict is `proven` or `not achievable` (spec SC-001). A `proven` verdict
+      18	  must be reproducible by replaying the recorded commands alone on a freshly
+      19	  brought-up lab (`scripts/proof.sh replay <prefix>`).
+      20	- `proofs` cites proofs by name, as recorded by
+      21	  `scripts/proof.sh <name> -- <command>` under
+      22	  `.wiggum/features/004-srv6-service-requests/gates/proofs/` (FR-039, SC-015).
+      23	- The supported set this file decides is what
+      24	  `lab/profiles/sonic-vm/srv6-supported.yaml` may declare; an item without a
+      25	  `proven` verdict is refused by name, never half-delivered (spec FR-005,
+      26	  tasks rule on `(V:x)` tags).
+      27	- A service never creates, changes or removes a node locator (FR-006); the
+      28	  locator work below belongs to the bootstrap, not to any service.
+      29	
+      30	Verdict vocabulary for the tables: `proven`, `not achievable`, `deferred`
+      31	(owner decision 1 allows deferring bridged EVPN; requests for a deferred or
+      32	unproven item are refused by name).
+      33	
+      34	## 1. Underlay and locators
+      35	
+      36	**Status: empty — no attempt recorded.**
+      37	
+      38	Approaches to try (written before the first attempt):
+      39	
+      40	- Per-node identity at boot first: per-node IPv4 and IPv6 loopbacks, the ASNs
+      41	  already in the topology labels (65000 spines, 65101/65102 leaves), router
+      42	  ids, IPv6 addressing or unnumbered peering on the four fabric links, and
+      43	  underlay BGP for IPv4 and IPv6 unicast — replacing the image default where
+      44	  every guest boots as `Loopback0 10.1.0.1/32`, AS 65100 (research addendum,
+      45	  item 4). No locator is reachable until this holds (SC-002).
+      46	- One locator per node from a common block, uSID style
+      47	  (`fcbb:bbbb:<node>::/48` as the candidate block), matching the `uN`/`uDT46`
+      48	  rows the gate already writes through GCU; owned by the bootstrap and
+      49	  advertised into the IPv6 underlay (research addendum, item 6).
+      50	- Locator rows written via GCU `config apply-patch` over SSH — the write path
+      51	  the 202505 YANG already accepts — then read back over TLS gNMI, as the gate
+      52	  does today; not gNMI Set.
+      53	- FRR `segment-routing srv6` locator configured per node so
+      54	  `show segment-routing srv6 locator` lists it (FRR answers with an empty
+      55	  table today; the daemon supports SRv6 and nothing is configured).
+      56	- `seg6_enabled=1` on the fabric interfaces
+      57	  (`net.ipv6.conf.all.seg6_enabled` is 0 on the guest today), and
+      58	  `net.vrf.strict_mode=1` if `End.DT46` needs it — a kernel requirement stated
+      59	  from general knowledge, to confirm or refute in the spike (data-model §8.8).
+      60	- Classic (non-uSID) `End`/`End.DT46` behaviour as a fallback if uSID rows
+      61	  accept but do not forward.
+      62	- Kernel seg6 lwtunnel witness installed on a real interface (`Loopback0`),
+      63	  never on `dev lo`: on the guest `dev lo` returns 0 but silently drops the
+      64	  encap, which is the false negative that made the gate record two skips as
+      65	  passes (research addendum).
+      66	
+      67	| item | verdict | proofs | note |
+      68	| --- | --- | --- | --- |
+      69	|  |  |  |  |
+      70	
+      71	## 2. `ip-vrf` / `vpn` (L3VPN over SRv6)
+      72	
+      73	**Status: empty — no attempt recorded.**
+      74	
+      75	Approaches to try (written before the first attempt):
+      76	
+      77	- Per-VRF `End.DT46` SID with `decap_vrf` set to the customer VRF (the gate
+      78	  writes `decap_vrf: default` today; a non-default `decap_vrf` is not yet
+      79	  exercised anywhere).
+      80	- Per-service SID function value allocated from the node locator's function
+      81	  block; VRF name derived from the service id — the identifier candidates in
+      82	  data-model §8.1, to be confirmed with real ranges.
+      83	- BGP signals the per-VRF SRv6 SID to the remote PE (L3VPN over SRv6
+      84	  signalling in FRR on 202505 — presence and shape to be confirmed by the
+      85	  spike; nothing here is verified).
+      86	- Encapsulation by the ingress leaf toward the remote locator's `uN` SID: with
+      87	  ASIC `vs`, the Linux kernel is the forwarding plane, so a kernel `seg6`
+      88	  route encapsulation is the dataplane candidate (research addendum).
+      89	- Client attachment: `srv6-client01` on `leaf01` and `srv6-client02` on
+      90	  `leaf02` (the `eth4` attachments the research names) placed in the customer
+      91	  VRF; client-to-client traffic is the acceptance bar (owner decision 2,
+      92	  SC-005).
+      93	
+      94	| item | verdict | proofs | note |
+      95	| --- | --- | --- | --- |
+      96	|  |  |  |  |
+      97	
+      98	## 3. `ip-vrf` / `evpn` (routed EVPN over SRv6)
+      99	
+     100	**Status: empty — no attempt recorded.**
+     101	
+     102	Approaches to try (written before the first attempt):
+     103	
+     104	- EVPN Type-5 (IP-prefix) routes carrying the per-VRF SRv6 SID, reusing the
+     105	  iBGP L2VPN EVPN AF session the gate already reaches Established across
+     106	  leaf-spine-leaf; the session today asserts no route of any type.
+     107	- Per-VRF `End.DT46` decapsulation as in §2, with the SID learnt through EVPN
+     108	  signalling instead of VPN signalling.
+     109	- Ingress encapsulation as in §2 (kernel `seg6` on the `vs` ASIC).
+     110	- Same client attachment and traffic bar as §2, so the two routed variants
+     111	  differ only in signalling.
+     112	
+     113	| item | verdict | proofs | note |
+     114	| --- | --- | --- | --- |
+     115	|  |  |  |  |
+     116	
+     117	## 4. `mac-vrf` / `evpn` (bridged EVPN over SRv6)
+     118	
+     119	**Status: empty — no attempt recorded.** The owner allows deferring this
+     120	variant (owner decision 1); if deferred or unproven, requests are refused by
+     121	name.
+     122	
+     123	Approaches to try (written before the first attempt):
+     124	
+     125	- EVPN Type-2/3 MAC/IP routes over SRv6 with a per-EVI or per-(EVI, VLAN)
+     126	  End.DX2-style SID — the SRv6 equivalent of the VXLAN bridged service; SID
+     127	  scope per EVI or per VLAN is a spike question.
+     128	- The operator-supplied VLAN tag (as in feature 003) carried on the attachment
+     129	  ports, bridged into the EVI.
+     130	- Kernel bridging plus `seg6` encapsulation on the `vs` ASIC as the dataplane
+     131	  candidate, as in §2.
+     132	
+     133	| item | verdict | proofs | note |
+     134	| --- | --- | --- | --- |
+     135	|  |  |  |  |
+     136	
+     137	## 5. Steering
+     138	
+     139	**Status: empty — no attempt recorded.**
+     140	
+     141	Approaches to try (written before the first attempt):
+     142	
+     143	- Two spines give two equal paths; preference expressed on the ingress leaf
+     144	  only (the renderer never emits ops for a spine —
+     145	  `specs/004-srv6-service-requests/contracts/fabricplan-srv6.md` §1), by
+     146	  either an explicit SID list through the preferred spine or a lower path
+     147	  preference/metric — which of the two the image supports is a spike question.
+     148	- Failover to the alternate spine and return on restoration, bounded by 5
+     149	  seconds with at most 2 consecutive losses after the switch (SC-007,
+     150	  FR-026a); measured with 1 Hz probes from the client attachments, as
+     151	  `tests/integration/srv6_failover_path_change.sh` does today.
+     152	- Detection via BFD or fast BGP timers if passive convergence misses the 5 s
+     153	  bound (timers are a data-model §8.8 baseline question).
+     154	- The read-back that shows the active path (data-model §8.6), recorded as the
+     155	  per-node check that backs any steering verdict.
+     156	
+     157	| item | verdict | proofs | note |
+     158	| --- | --- | --- | --- |
+     159	|  |  |  |  |
+  ```
+  (complete file, line-numbered)
+- `docs/SRV6_ACCEPTANCE_004.md` — exists, 4498 bytes, mtime 2026-10-11T21:54:02
+  ```
+       1	# Acceptance record: SRv6 Service Requests End to End (004)
+       2	
+       3	**Status: skeleton.** Every proof-name cell is empty until the criterion's
+       4	proofs exist on the live lab. Filled at T593 (plan 12-25); this file is the
+       5	tracked index that cites proofs by name (FR-039, SC-015).
+       6	
+       7	Source of the criteria: `specs/004-srv6-service-requests/spec.md`
+       8	("Success Criteria", SC-001 to SC-018). The outcome column is a one-line
+       9	restatement, not a substitute for the spec text.
+      10	
+      11	Rules this record follows:
+      12	
+      13	- A proof name is a capture taken through
+      14	  `scripts/proof.sh <name> -- <command>`; its `.cmd` sits next to its `.out`
+      15	  under `.wiggum/features/004-srv6-service-requests/gates/proofs/`, and
+      16	  re-running the `.cmd` must regenerate the `.out` (SC-015).
+      17	- A proof taken again later carries a suffix (`-default`, `-us4`, `-final`)
+      18	  so it never overwrites the capture an earlier gate rested on
+      19	  (`specs/004-srv6-service-requests/quickstart.md`).
+      20	- A criterion whose proof did not regenerate is marked not met.
+      21	- SC-011 includes the `q17-*` proofs (T593).
+      22	
+      23	## Acceptance criteria
+      24	
+      25	| Criterion | Outcome | Proofs | Verdict |
+      26	| --- | --- | --- | --- |
+      27	| SC-001 | Recipe spike records "proven" or "not achievable" for each of the four items; an unattended replay on a freshly brought-up lab reproduces every "proven" verdict from the recorded commands alone. | | |
+      28	| SC-002 | Default bring-up yields four switches with four distinct identities, underlay sessions on four of four fabric links, each locator reachable from the three others. | | |
+      29	| SC-003 | All four existing constructs provision, verify, update and delete on the default lab, and 100% of the existing suites pass there. | | |
+      30	| SC-004 | For each supported service type, a twice-confirmed plain-language request yields exactly one SRv6 service reaching Ready, readable from both leaves. | | |
+      31	| SC-005 | For each supported service type, client-to-client traffic passes and a fabric-link capture shows SRv6 encapsulation carrying the service's identifier; Ready is never True before this holds at first activation. | | |
+      32	| SC-006 | Ready is never True while a per-node check fails; a check broken on one leaf turns Ready False naming that leaf within one re-verification interval. | | |
+      33	| SC-007 | A steered service carries 100% of traffic through the preferred spine while usable; failure moves it to the alternate and restoration returns it, each within 5 seconds and at most 2 consecutive losses after the switch. | | |
+      34	| SC-008 | Of the four named SRv6 phrasings and every SRv6 corpus phrasing, zero produce a VXLAN service, at every delivered increment. | | |
+      35	| SC-009 | A resource applied directly, tier stopped, meets SC-004 to SC-007 with zero hand-typed identifiers. | | |
+      36	| SC-010 | 100% of identifiers trace to a claim carrying the request's correlation id; after delete, zero such claims and zero service-owned items remain on any node, other services unchanged. | | |
+      37	| SC-011 | Re-applying an unchanged request writes nothing; out-of-band removal on one leaf is restored within one re-verification interval; a changed mutable field converges, verifies, and leaves nothing of the previous version on any node. | | |
+      38	| SC-012 | The chat page offers at least one runnable SRv6 example per supported type; the status views list every SRv6 service with type and Ready state. | | |
+      39	| SC-013 | On the container profile, 100% of direct SRv6 resources are refused with a capability reason and 100% of chat SRv6 requests refused with zero identifiers claimed, while the four existing constructs still provision. | | |
+      40	| SC-014 | On the SONiC VM profile the gate executes the encapsulation and SID-list checks; on any profile, passed equals ran-and-passed, skips counted separately. | | |
+      41	| SC-015 | Every acceptance proof regenerates by re-running the command stored next to it on the live lab; zero approvals rest on a proof that fails this. | | |
+      42	| SC-016 | The existing phrasing corpus maps identically before and after this feature, and the vocabulary guard passes with no entry relaxed. | | |
+      43	| SC-017 | An operator following the documentation's SRv6 section on the live lab reaches every stated outcome, and every stated verify command returns what the text says. | | |
+      44	| SC-018 | While an SRv6 service carries traffic, every panel of the SRv6 dashboard shows data, and disabling a steered service's preferred path raises the existing alert. | | |
+      45	
+      46	## Review records
+      47	
+      48	(empty — filled at T593, plan 12-25, alongside the proofs column above)
+  ```
+  (complete file, line-numbered)
+- `.wiggum/features/004-srv6-service-requests/gates/proofs` — directory, 11 entries
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-selftest-cmd.txt` — exists, 12 bytes, mtime 2026-10-11T21:54:16
+  ```
+       1	true
+  ```
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-selftest-out.txt` — exists, 22 bytes, mtime 2026-10-11T21:54:16
+  ```
+       1	[exit code: 0]
+  ```
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/p1-scripts-proof-sh.txt` — exists, 8085 bytes, mtime 2026-10-11T21:54:16
+  ```
+       1	#!/usr/bin/env bash
+       2	# proof.sh — record and replay acceptance proofs for feature 004.
+       3	#
+       4	# Record:   scripts/proof.sh [--destructive] <name> -- <command...>
+       5	#   Runs <command...>, writes the exact command line to <name>.cmd and its
+       6	#   combined output plus an exit-code line to <name>.out under
+       7	#   .wiggum/features/004-srv6-service-requests/gates/proofs/ (created if
+       8	#   missing). Re-running the stored <name>.cmd line must regenerate <name>.out
+       9	#   (FR-039, SC-015), so neither file carries a timestamp.
+      10	#   --destructive records a proof that changes lab or device state; it also
+      11	#   writes an empty <name>.destructive marker. proof.sh exits with the
+      12	#   recorded command's exit code.
+      13	#
+      14	# Replay:   scripts/proof.sh replay <prefix> [--all]
+      15	#   Re-runs every stored <prefix>*.cmd in the order it was recorded (the
+      16	#   per-proof record order is kept in .record-order), renders output the same
+      17	#   way, compares with the stored <name>.out and prints the names that differ.
+      18	#   Exits non-zero when any compared proof differs. Destructive proofs (those
+      19	#   with a <name>.destructive marker) are skipped unless --all is given.
+      20	#
+      21	# Both subcommands expect the repo root as the working directory, so the
+      22	# recorded commands can use repo-relative paths (tasks.md "Path Conventions").
+      23	#
+      24	# PROOF_DIR overrides the proof directory (used by tests/unit/proof_sh_test.sh
+      25	# to stay out of the real gates tree); the default is the feature 004 path.
+      26	set -u
+      27	set -o pipefail
+      28	
+      29	usage() {
+      30	    cat >&2 <<'EOF'
+      31	usage:
+      32	  scripts/proof.sh [--destructive] <name> -- <command...>
+      33	  scripts/proof.sh replay <prefix> [--all]
+      34	EOF
+      35	    exit 2
+      36	}
+      37	
+      38	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+      39	REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+      40	PROOF_DIR="${PROOF_DIR:-$REPO_ROOT/.wiggum/features/004-srv6-service-requests/gates/proofs}"
+      41	ORDER_FILE="$PROOF_DIR/.record-order"
+      42	
+      43	# Proof names are file names; keep them to a safe single-path-component shape.
+      44	valid_name() {
+      45	    [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+      46	}
+      47	
+      48	# render_out <exit-code> <combined-output-file>: print the raw output,
+      49	# newline-terminated, followed by the exit-code line.
+      50	render_out() {
+      51	    local exit_code="$1" out_file="$2"
+      52	    if [[ -s "$out_file" ]]; then
+      53	        cat "$out_file"
+      54	        [[ "$(tail -c 1 "$out_file")" == $'\n' ]] || printf '\n'
+      55	    fi
+      56	    printf '[exit code: %s]\n' "$exit_code"
+      57	}
+      58	
+      59	cmd_record() {
+      60	    local name="$1"
+      61	    shift
+      62	    local destructive=0
+      63	    if [[ "$name" == "--destructive" ]]; then
+      64	        destructive=1
+      65	        name="$1"
+      66	        shift
+      67	    fi
+      68	    [[ $# -ge 2 && "$1" == "--" ]] || usage
+      69	    shift
+      70	    [[ $# -ge 1 ]] || usage
+      71	    valid_name "$name" || { echo "proof.sh: invalid proof name '$name'" >&2; exit 2; }
+      72	
+      73	    local cmdline cap_tmp
+      74	    printf -v cmdline '%q ' "$@"
+      75	    cmdline="${cmdline% }"
+      76	
+      77	    mkdir -p "$PROOF_DIR"
+      78	    cap_tmp="$(mktemp "$PROOF_DIR/.tmp.cap.XXXXXX")"
+      79	
+      80	    bash -c "$cmdline" > "$cap_tmp" 2>&1
+      81	    local exit_code=$?
+      82	
+      83	    printf '%s\n' "$cmdline" > "$PROOF_DIR/.tmp.$name.cmd"
+      84	    render_out "$exit_code" "$cap_tmp" > "$PROOF_DIR/.tmp.$name.out"
+      85	    rm -f "$cap_tmp"
+      86	    mv -f "$PROOF_DIR/.tmp.$name.cmd" "$PROOF_DIR/$name.cmd"
+      87	    mv -f "$PROOF_DIR/.tmp.$name.out" "$PROOF_DIR/$name.out"
+      88	    if [[ "$destructive" == 1 ]]; then
+      89	        : > "$PROOF_DIR/$name.destructive"
+      90	    fi
+      91	
+      92	    # Remember the record order: drop any earlier position, then appe
+  … (truncated) …
+    166	        else
+     167	            echo "differ: $name"
+     168	            differ=$((differ + 1))
+     169	        fi
+     170	        compared=$((compared + 1))
+     171	    done
+     172	    rm -f "$cap_tmp"
+     173	
+     174	    if [[ "$differ" -gt 0 ]]; then
+     175	        echo "replay $prefix: $differ of $compared proof(s) differ" >&2
+     176	        return 1
+     177	    fi
+     178	    if [[ "$compared" -eq 0 ]]; then
+     179	        echo "replay $prefix: nothing to replay (all $skipped skipped); use --all" >&2
+     180	        exit 2
+     181	    fi
+     182	    echo "replay $prefix: $compared proof(s) checked, no difference ($skipped skipped)"
+     183	}
+     184	
+     185	if [[ $# -lt 1 ]]; then
+     186	    usage
+     187	fi
+     188	case "$1" in
+     189	    replay)
+     190	        [[ $# -ge 2 ]] || usage
+     191	        shift
+     192	        cmd_replay "$@"
+     193	        ;;
+     194	    -h|--help)
+     195	        usage
+     196	        ;;
+     197	    *)
+     198	        cmd_record "$@"
+     199	        ;;
+     200	esac
+  ```
+- `roadmap/srv6-enablement-research.md` — exists, 54569 bytes, mtime 2026-10-11T19:36:11
+  ```
+  # SRv6 request enablement: research
+  
+  Date: 2026-10-11. Branch: `feat/sonic-vm-conformance` at `0720c4e2`. Read-only research; no code,
+  lab or cluster was changed.
+  
+  Conventions: every code claim carries `file:line`. Anything not read directly from the repo or
+  the proof logs is tagged **(inferred)**. Paths under `specs/` and `.wiggum/` are untracked and
+  were read from disk.
+  
+  ## Summary
+  
+  - **The SONiC image was never the only blocker, and it is no longer the main one.** An SRv6
+    request fails in every layer above the device: the agent tier has no SRv6 construct, the Go
+    translator can only emit a Kubenet `Network`, and the `SRv6Service` controller is a scaffold
+    that sets `Ready=False / WaitingDependencies` forever and never renders or writes anything
+    (`controllers/srv6service/controller.go:43-50,84-89`).
+  - **Two SRv6 phrasings are silently mis-provisioned today.** "SRv6 L3VPN ..." matches the
+    `l3vpn` pattern and becomes a VXLAN `ip-vrf`; "EVPN over SRv6 ..." matches `evpn` and becomes
+    a VXLAN `mac-vrf` (`agents/provisioning/mapper/agent.py:67-82`). The word "SRv6" is dropped
+    without a refusal. Only a bare "SRv6 service" is refused.
+  - **The only working southbound cannot reach a sonic-vm guest.** Device writes go through the
+    host fabric-executor using `docker exec` (`cmd/fabric-executor/main.go:9-18,653-675`); on
+    sonic-vm the container is a QEMU launcher without `config`/`redis-cli`/`vtysh`
+    (`tests/integration/lib/node_exec.sh:4-9`). So on the SRv6-capable profile nothing, including
+    the existing four constructs, can be provisioned by the controllers **(inferred)**.
+  - **The sonic-vm gate proves SRv6 control-plane tables only**: `SRV6_MY_LOCATORS` /
+    `SRV6_MY_SIDS` (uN, uDT46) written by GCU over SSH and read back over TLS gNMI. It proves no
+    SRv6 VPN service, no BGP SRv6 signalling, no SRv6 forwarding, and two of its 17 checks
+    (H.Encaps.Red, SID-list) pass by skipping on this profile.
+  - **Three entry points, one foundation.** Direct `SRv6Service` submission is blocked at the stub
+    controller and carries most of the work; the agent path adds the construct across mapper,
+    schemas, allocator and translator; the UI is chat-only and inherits the agent path, needing
+    only a suggested prompt and status listing. `sonic-vs` stays the default profile; the
+    recommendation is capability-based refusal rather than switching the default to `sonic-vm`.
+  - **Size**: 17 work items across 10 layers (3 L, 9 M, 5 S), 11 owner decisions, and
+    acceptance that needs a live lab. **Recommendation: a new spec (004), not a prompt.** A spec
+    seed is drafted at the end. The 001 reconciliation already called for exactly this spec
+    (candidate C2, `specs/001-agentic-netops-sonic-evpn-fabric/reconciliation-2026-09-19.md:259`).
+  
+  ## Current state (what works)
+  
+  ### Implemented and tested
+  
+  | Piece | Evidence | Note |
+  | --- | --- | --- |
+  | `SRv6Service` CRD installed by provision | `config/crd/bases/agentic-netops.io_srv6services.yaml:105-113` (5 CEL rules); applied at `scripts/provision.sh:282` | Admission-time shape checks only |
+  | CRD envtest | `tests/envtest/srv6service_crd_envtest_test.go:23`, skipped without `KUBEBUILDER_ASSETS` (`:38`); `Makefile:125-126` | Tests the CRD, not a reconcile |
+  | srv6-controller binary, deploy, RBAC | `cmd/srv6-controller/main.go:68-77`; `scripts/provision.sh:134-164`; `deploy/rbac/srv6-crd-rbac.yaml:4-23` | Runs, but see next table |
+  | Deployer allow-list accepts `SRv6Service` | `agents/provisioning/deployer/submit.py:41-44`; RBAC `deploy/agents/namespace-rbac.yaml:87`; unit tests `agents/tests/unit/test_deployment_transaction.py:91,260-279` | The apply/rollback/watch transaction is kind-agnostic and already ordered Network before SRv6Service |
+  | KUID SRv6 pools | `deploy/kubenet/srv6-pools.yaml:3-61` (locator /48, SID /64, service-id range); applied at `scripts/provision.sh:288` | Three static sample claims; nothing consumes them |
+  | Lab topology with SRv6 clients on both profiles | `lab/topology.sonic-
+  … (truncated) …
+  f scope until it is proven on this image.
+  - **7. Placeholder renderers and register entries:** rewrite against the tables the gate
+    writes (`SRV6_MY_LOCATORS`, `SRV6_MY_SIDS`); delete what has no SONiC schema behind it.
+  - **4. Operator vocabulary:** an "over srv6" qualifier on `ip-vrf` and `mac-vrf`, not a fifth
+    construct.
+  
+  Path steering being in scope means the mapper's `tePolicy` refusal is lifted for the
+  preferred/alternate-spine case only, and the work list grows by one item (steering policy
+  render, verify and failover test; roughly L).
+  
+  **Risk raised by decision 1 (from general knowledge, not verified on this image).** FRR's SRv6
+  VPN support covers L3 services (`End.DT4` / `End.DT6` / `End.DT46`, which the gate's `uDT46`
+  rows match). Layer-2 EVPN over SRv6 (MAC-VRF, route types 2 and 3 with `End.DT2U` /
+  `End.DT2M`) may not be implemented in the FRR shipped with SONiC 202505. The recipe spike must
+  answer this first, per service type, before the rest of the EVPN work is planned.
+  ```
+- `specs/004-srv6-service-requests/spec.md` — exists, 51879 bytes, mtime 2026-10-11T20:57:55
+  ```
+  # Feature Specification: SRv6 Service Requests End to End
+  
+  **Feature Branch**: `004-srv6-service-requests`
+  
+  **Created**: 2026-10-11
+  
+  **Status**: Draft
+  
+  **Input**: User description: "roadmap/srv6-speckit-specify-prompt.md" (SRv6 service requests end to end, feature 004). Evidence base: `roadmap/srv6-enablement-research.md` (2026-10-11), which carries the code citations, the 21 blocking points, the work list and the owner decisions. This specification states behaviour and outcomes and cites that document for evidence.
+  
+  ## Context
+  
+  An operator who asks for a service carried over SRv6 does not get one.
+  
+  - Through chat, "SRv6 L3VPN ..." and "EVPN over SRv6 ..." are provisioned as
+    VXLAN services (`ip-vrf` and `mac-vrf`). The word SRv6 is dropped and nothing
+    tells the operator. Other SRv6 phrasings are refused.
+  - An `SRv6Service` resource applied directly is accepted by the cluster and then
+    stays not-Ready forever. Nothing is programmed, verified or cleaned up. Lab
+    bring-up hides the failure, and the demo tutorial describes an outcome that
+    does not occur.
+  - No device recipe for an SRv6 VPN service has been proven on the pinned SONiC
+    image.
+  - The controllers' write path cannot reach the nodes of the SONiC VM lab, so on
+    that lab nothing can be provisioned, the four existing constructs included.
+  - The SONiC VM lab boots every switch with the same identity and no underlay.
+  - The capability gate records two SRv6 checks as passed while skipping them, and
+    the capability flag that should gate SRv6 is a constant.
+  
+  Feature 001 required SRv6 services (US5, FR-026 to FR-030, SC-013 to SC-015).
+  Its 2026-09-19 reconciliation recorded them as never held and called for a
+  dedicated specification (candidate C2). This is that specification. The SONiC VM
+  image now in the lab has an SRv6-capable kernel dataplane and accepts SRv6
+  locator and SID configuration, so the remaining gaps are in this repository
+  (research, "Summary" and "Addendum 2026-10-11").
+  
+  **Who it is for.** A network operator asks for a tenant service between
+  attachment points, carried over the SRv6 underlay, in one of three ways: in
+  plain language, through the chat UI, or by applying an `SRv6Service` resource.
+  The service reaches Ready only when the devices' own state shows it and client
+  traffic passes. Withdrawing it releases everything it claimed. An SRv6 request
+  is never provisioned over a different transport.
+  
+  ### Settled decisions (owner, 2026-10-11)
+  
+  These are givens for this specification and for its clarification step.
+  
+  1. Service types are L3VPN over SRv6 and EVPN over SRv6. EVPN covers routed (IP
+     prefix) and bridged (MAC-VRF) services.
+  2. The bridged EVPN service is conditional. If the recipe spike shows the image
+     cannot carry it, it is deferred to a follow-up and requests for it are
+     refused by name.
+  3. The acceptance target is the SONiC VM lab. Client-to-client traffic is
+     required; control-plane state alone is not acceptance.
+  4. `SRv6Service` stays a separate resource kind. The upstream Kubenet `Network`
+     field names do not change.
+  5. Path steering is in scope in one form: a service may name a preferred spine
+     with the other as alternate, with failover and return. The tier's existing
+     refusal of traffic-engineering requests is lifted for that case only.
+  6. UI: chat with SRv6 example prompts, plus SRv6 services in the status views.
+     No structured form.
+  7. Direct resources carry no hand-typed locator, SID or VRF. The controller
+     allocates them from the cluster allocation authority, as for requests that
+     come through the tier.
+  8. Lab: the SONiC VM image runs all four switches and becomes the default
+     profile. The container image stays as a second selectable profile, never
+     mixed into the same fabric. SRv6 is refused on it by capability, not by
+     profile name.
+  9. All three entry points are in scope: plain-language request, UI, direct
+     resource.
+  
+  The settled outcomes of features 001 to 003 are also givens, in particular the
+  closed four-c
+  … (truncated) …
+  with the image may not implement
+    it. This is stated from general knowledge and is not verified on this image.
+    FR-003 and FR-004 bound the consequence.
+  - **The write-path change touches every existing construct** and is not covered
+    by the current unit suites. FR-011 and FR-040 are the guard.
+  - **Request recognition is order-sensitive.** Recognising SRv6 ahead of the
+    existing patterns can change how existing phrasings map. FR-040 and SC-016 are
+    the guard.
+  - **Approvals contradicted by evidence.** This repository's history includes
+    them. FR-039 and SC-015 are the guard.
+  
+  ## Out of Scope
+  
+  - Operator-chosen SID lists beyond a preferred and an alternate spine,
+    flex-algo, bandwidth or latency constraints.
+  - Multihoming, service chaining, multicast, QoS.
+  - Making gNMI Set work on images where it is blocked.
+  - Migrating existing VXLAN services to SRv6.
+  - Changing the upstream Kubenet `Network` field names.
+  - A structured SRv6 form in the UI.
+  - Mixing the two images in one fabric.
+  ```
+- `tests/unit/proof_sh_test.sh` — exists, 4660 bytes, mtime 2026-10-11T21:52:52
+  ```
+  #!/usr/bin/env bash
+  # Unit tests for scripts/proof.sh (feature 004, tasks T001 and T632).
+  # Runs entirely in a temporary PROOF_DIR; no lab and no network needed.
+  #   bash tests/unit/proof_sh_test.sh
+  set -u
+  
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+  PROOF_SH="$REPO_ROOT/scripts/proof.sh"
+  
+  PASS=0
+  FAIL=0
+  WORK="$(mktemp -d)"
+  trap 'rm -rf "$WORK"' EXIT
+  
+  # run_proof <expected-rc> <args...>: run proof.sh with an isolated PROOF_DIR.
+  run_proof() {
+      local expect="$1"
+      shift
+      local out rc
+      out="$(PROOF_DIR="$WORK/proofs" bash "$PROOF_SH" "$@" 2>&1)"
+      rc=$?
+      printf '%s' "$out" > "$WORK/last-output"
+      LAST_RC="$rc"
+      if [[ "$rc" != "$expect" ]]; then
+          echo "FAIL: proof.sh $* -> exit $rc (expected $expect)" >&2
+          echo "$out" >&2
+          FAIL=$((FAIL + 1))
+          return 1
+      fi
+      return 0
+  }
+  
+  check() { # check <description> <condition...>
+      local desc="$1"
+      shift
+      if "$@"; then
+          PASS=$((PASS + 1))
+      else
+          echo "FAIL: $desc" >&2
+          FAIL=$((FAIL + 1))
+      fi
+  }
+  
+  # --- T001: record writes .cmd and .out, creating the directory --------------
+  run_proof 0 selftest -- true
+  check "record creates the proof directory" test -d "$WORK/proofs"
+  check "record writes selftest.cmd" test -f "$WORK/proofs/selftest.cmd"
+  check "record writes selftest.out" test -f "$WORK/proofs/selftest.out"
+  check ".cmd holds the exact command" grep -qx 'true' "$WORK/proofs/selftest.cmd"
+  check ".out holds the exit-code line" grep -Fqx '[exit code: 0]' "$WORK/proofs/selftest.out"
+  
+  # Re-running the stored .cmd line regenerates the .out content (FR-039/SC-015).
+  cmd="$(cat "$WORK/proofs/selftest.cmd")"
+  bash -c "$cmd" > "$WORK/regen" 2>&1
+  rc=$?
+  { cat "$WORK/regen"; printf '[exit code: %s]\n' "$rc"; } > "$WORK/regen.out"
+  check ".cmd re-run regenerates .out" cmp -s "$WORK/regen.out" "$WORK/proofs/selftest.out"
+  
+  # Output (stdout+stderr) and a non-zero exit code are both captured.
+  run_proof 3 failing -- bash -c 'echo out; echo err >&2; exit 3'
+  check "recorded command's exit code is mirrored" test "$LAST_RC" = 3
+  grep -q '^out$' "$WORK/proofs/failing.out" && grep -q '^err$' "$WORK/proofs/failing.out"
+  check ".out holds combined output" test $? -eq 0
+  check ".out holds the failing exit code" grep -Fqx '[exit code: 3]' "$WORK/proofs/failing.out"
+  
+  # Quoting round-trips: the stored line is re-runnable as written.
+  run_proof 0 quoted -- bash -c 'printf "a b\tc"'
+  bash -c "$(cat "$WORK/proofs/quoted.cmd")" > "$WORK/quoted.regen" 2>&1
+  check "quoted command round-trips" grep -qx 'a b	c' "$WORK/quoted.regen"
+  
+  # --- T632: replay -------------------------------------------------------------
+  run_proof 0 echo-one -- echo one
+  run_proof 0 echo-two -- echo two
+  run_proof 0 replay echo-
+  check "replay reports no difference" grep -q 'no difference' "$WORK/last-output"
+  check "replay runs every stored proof in record order" \
+      test "$(grep -c '^ok ' "$WORK/last-output")" = 2
+  check "replay keeps record order (one before two)" \
+      test "$(sed -n 's/^ok //p' "$WORK/last-output" | tr '\n' ',')" = "echo-one,echo-two,"
+  
+  # A stored .out that no longer matches prints the name and exits non-zero.
+  cp "$WORK/proofs/echo-one.out" "$WORK/echo-one.bak"
+  printf 'tampered\n[exit code: 0]\n' > "$WORK/proofs/echo-one.out"
+  run_proof 1 replay echo-
+  check "replay names the proof that differs" grep -q '^differ: echo-one$' "$WORK/last-output"
+  cp "$WORK/echo-one.bak" "$WORK/proofs/echo-one.out"
+  
+  # Destructive proofs are skipped unless --all is given.
+  run_proof 0 --destructive destructive-proof -- true
+  check "record writes the destructive marker" test -f "$WORK/proofs/destructive-proof.destructive"
+  run_proof 2 replay destructive-proof
+  check "replay skips destructive proofs" grep -q '^skip destructive-proof' "$WORK/last-output"
+  run_proof 0 replay destructive-proof --all
+  check "replay --all runs destructive proofs" grep -q '^ok destructive-proof' "$WORK/last-output"
+  check "replay --all reports no difference" grep
+  ```
+- `.wiggum/features/004-srv6-service-requests/gates/proofs/selftest.out` — exists, 15 bytes, mtime 2026-10-11T21:59:17
+  ```
+  [exit code: 0]
+  ```
+- `.gitignore` — exists, 2173 bytes, mtime 2026-10-11T21:29:18
+  ```
+  # Demo presentation docs (local prep, not shipped documentation)
+  docs/DEMO_STRATEGY_WEBEX.md
+  
+  # Pre-existing inputs (not products of the wiggum loop)
+  REVERSE.md
+  specs/
+  .specify/
+  plan.md
+  
+  # Prior project's loop state, unrelated to this feature
+  
+  # Loop churn
+  testautomation/*/generated/
+  
+  # TLS material generated per-deployment by the lab bootstrap. These are real private
+  # keys; they were committed once (2026-09-01, 26e9c8d4) and purged from the unpushed
+  # history on 2026-09-02 before this repo's first push carrying them. Never track them:
+  # scripts/provision.sh regenerates them on every run.
+  secrets/
+  *.key
+  *.pem
+  # LLM provider credentials live in .env (copied from .env.example); the
+  # provisioning scripts and python-dotenv read it, git never does.
+  .env
+  .env.local
+  .env.*.local
+  lab/clab-agentic-netops-fabric/.tls/
+  
+  # Wiggum harness working state -- not source. Holds a vendored toolchain
+  # (features/*/tools, ~30k files), build-gnmi sources, gate evidence, verdicts,
+  # attempts and run logs. Regenerated by the loop; never needed to build or run
+  # the platform.
+  .wiggum/
+  # containerlab runtime state (topology data, node keys) -- regenerated per lab
+  lab/clab-agentic-netops-fabric/
+  
+  # Python build artifacts (the 002 merge carried 52 .pyc files in)
+  __pycache__/
+  *.py[cod]
+  .pytest_cache/
+  
+  # Generated verification plans -- derived from spec task lists, not source
+  testautomation/
+  
+  # Agent-run prompts (moved out of docs/: prompts live here, untracked, never
+  # shipped with the documentation).
+  /prompts/
+  
+  # Compiled binaries `go build ./cmd/<x>` drops in the repo root. Three of these
+  # (sonic-provider, srv6-controller, migration-translator — 37 MB) had been
+  # committed; the build produces them fresh, and provision.sh builds to /tmp.
+  /sonic-provider
+  /srv6-controller
+  /migration-translator
+  /intent-translator
+  /fabric-executor
+  
+  # Mixture-of-loops generated pipeline artifacts (contract + verification plan stay
+  # committable; the launcher bundle and run state do not).
+  .mixture-of-loops/**
+  !.mixture-of-loops/**/
+  !.mixture-of-loops/**/launch-contract.json
+  !.mixture-of-loops/**/verification-commands.json
+  .mixture-of-loops/**/generated/
+  .mixture-of-loops/**/runs/
+  ```
+- `versions.lock.yaml.bak` — exists, 8811 bytes, mtime 2026-10-11T12:15:19
+  ```
+  # Compatibility manifest — immutable pins (NFR-003)
+  # GENERATED by scripts/install-deps.sh. Every value below was resolved against a
+  # live upstream; nothing here is hand-written. Re-run the script to refresh.
+  # Resolved: 2026-08-28T20:45:00Z
+  
+  kind:
+    binary: v0.27.0
+    node_image: kindest/node@sha256:28b7cbb993dfe093c76641a0c95807637213c9109b761f1d422c2400e22b8e87
+    kubernetes: v1.31.6
+  
+  kubernetes:
+    kubernetes: v1.31.6
+    controller_runtime: v0.17.5
+    go: '1.22.5'
+  
+  kubenet:
+    repo: https://github.com/kubenet-dev/kubenet
+    release: v0.0.1
+    commit: bae1c4878257194b64b8435208663a9e286547ed
+    release_bundle: artifacts/kubenet-release.yaml
+    api_shape: NetworkConfig   # confirm against the bundle before use (T008)
+  
+  kuid:
+    repo: https://github.com/kuidio/kuid
+    release: v0.0.13
+    commit: 7528e81528c2e9f586b6fe657907424ad93c7ead
+    artifacts_dir: artifacts
+  
+  sdc:
+    core:
+      repo: https://github.com/sdcio/sdc
+      release: v0.31.0
+    config_server:
+      repo: https://github.com/sdcio/config-server
+      release: v0.0.58
+      commit: bcc56b045a689032c5123a9f50bcf56ed8c630dc
+    schema_server:
+      repo: https://github.com/sdcio/schema-server
+      release: v0.0.34
+      commit: c57e9d699c981251081988fd39bd81149dd3d9b3
+  
+  containerlab:
+    repo: https://github.com/srl-labs/containerlab
+    version: 0.79.0
+    commit: 89055fd504f1b862c8bbab4fea186025c2ce6647
+  
+  host_tools:
+    kubectl: v1.31.6
+    helm: v3.14.4
+    yq: v4.44.1
+    gnmic: 0.47.0
+  
+  # Tooling images/charts pinned by immutable digests
+  # Required: gnmic, OTel Collector, Prometheus, Grafana, Grafana Flow plugin, topology generator
+  # Note: digests are immutable; registries may vary by operator preference
+  
+  tooling:
+    gnmic: ghcr.io/openconfig/gnmic@sha256:fd59f5f1c7a98e14ff5b14f85329e5e0a4d49ef1d5b0dddfd910b6caef03b9fb
+    otel_collector: otel/opentelemetry-collector-contrib@sha256:e07e325e303e86f4a87a617491e921b579a92da6d404007394757ac910bf9587
+    prometheus: prom/prometheus@sha256:f20d3127bf2876f4a1df76246fca576b41ddf1125ed1c546fbd8b16ea55117e6
+    grafana: grafana/grafana@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+    # presentation reference only (FR-032): records the upstream visualization
+    # pattern; NOT installed by the lab Grafana (built-in panels only).
+    grafana_flow_plugin: grafana/flow-plugin@sha256:5c9d6b4d6b899be4a3f3c728b3acb0a8f8c3e6a46c9f5b07d705e8ca3c1a2c44
+    topology_generator: ghcr.io/agentic-netops/topology-generator@sha256:9a0b2b0d57a4c2b2b5c78a7d34c8a0c1f9a3b7d6e2c4e5f6a7b8c9d0e1f2a3b4
+  
+  # ---------------------------------------------------------------------------
+  # SONiC images
+  #   sonic_vs  — pinned by digest to the containerlab-supported community build.
+  #   sonic_vm  — built via vrnetlab from a SONiC .img by the operator; pin the
+  #               resulting local image digest here. Required only for the SRv6/EVPN
+  #               conformance profile when sonic_vs fails the capability gate.
+  # ---------------------------------------------------------------------------
+  sonic_images:
+    sonic_vs:
+      image: localhost:5000/sonic-vs-gnmi:202505-v1@sha256:d1043aed28c98071c997a46d7e9e47823abacb06c31c068183541f8b5b5529e8
+      digest: sha256:d1043aed28c98071c997a46d7e9e47823abacb06c31c068183541f8b5b5529e8
+      tag: 202505-v1
+      notes: >
+        Fast profile; no KVM required; containerlab kind sonic-vs. SRv6/gNMI-qualified:
+        carries /usr/sbin/telemetry (gNMI server, supervisord program:telemetry) and
+        sonic-srv6.yang, so the capability gate in scripts/lib/qualify.sh can run
+        Capabilities/Get/Set/Subscribe/sonic-srv6 against a live endpoint. Verified
+        2026-09-04: clean upstream 202505 build 1207609, FRR 10.3; core managers
+        are not linked to libasan. The 202605-built telemetry binary uses only its
+        compatibility libraries under /opt/agentic-netops/telemetry/lib, leaving
+        SONiC's system libraries untouched. dbus-daemon and sonic-host-server provide
+        the GCU write path. Recipe: lab/images/sonic-vs-gnmi/Dockerfile.compat.
+    sonic_vs_base
+  … (truncated) …
+  : f34434149a47aa8ff82ffd32add3aacb7c880af2
+    sonic_native_repo: https://github.com/sonic-net/sonic-buildimage
+    sonic_native_branch: '202405'
+    sonic_native_commit: cfc766e13eccab4e7603808db3bfa9c5b2dfef17
+    compatibility:
+      - image: localhost:5000/sonic-vs-gnmi:202505-v1@sha256:d1043aed28c98071c997a46d7e9e47823abacb06c31c068183541f8b5b5529e8
+        oc_version: openconfig@f3443414
+        native_version: sonic_yang@cfc766e1
+      - image: local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+        oc_version: openconfig@f3443414
+        native_version: sonic_yang@cfc766e1
+    notes: >
+      The provider validates the target SONiC image against these commit pins before
+      generating SDC intent. A mismatch sets SchemaMismatch and blocks downstream.
+  
+  notes:
+    redistribution: >
+      SONiC images must be acquired by the operator under upstream terms and are
+      not redistributed here. All other artifacts are pinned by immutable digest
+      or tag-resolved commit SHA.
+  ```
+- `.wiggum/features/004-srv6-service-requests/PROGRESS.md` — exists, 3770 bytes, mtime 2026-10-11T21:58:39
+  ```
+  # Progress — feature 004 (SRv6 Service Requests), Phase 1: Setup
+  
+  ## done
+  - PHASE 1 COMPLETE — `gates/GATE1-EVIDENCE.md` published (atomic tmp+mv), 2026-10-11.
+  - T001 `scripts/proof.sh` record mode: `scripts/proof.sh [--destructive] <name> -- <command...>`
+    writes the exact command to `<name>.cmd` and combined output + `[exit code: N]` line to
+    `<name>.out` under `.wiggum/features/004-srv6-service-requests/gates/proofs/`, creating the
+    directory. Verified live: `bash scripts/proof.sh selftest -- true` wrote both files
+    (`selftest.cmd` = `true`, `selftest.out` = `[exit code: 0]`). Proof slices:
+    `gates/proofs/p1-scripts-proof-sh.txt`, `p1-selftest-cmd.txt`, `p1-selftest-out.txt`.
+  - T632 `replay <prefix>` in the same file: re-runs `<prefix>*.cmd` in record order
+    (`.record-order` index; a re-record takes its latest position), renders output the same way,
+    prints `differ: <name>` lines and exits 1 on any difference; destructive proofs (marker file
+    `<name>.destructive`, recorded via `--destructive`) are skipped without `--all`. Verified live:
+    `bash scripts/proof.sh replay selftest` → "1 proof(s) checked, no difference". Also verified:
+    difference detection exits 1, `--all` includes destructive proofs, empty match exits 2.
+  - T002 `docs/SRV6_SERVICE_RECIPE.md` skeleton: sections 1–5 (underlay and locators,
+    `ip-vrf`/`vpn`, `ip-vrf`/`evpn`, `mac-vrf`/`evpn`, steering), each starting with an
+    "Approaches to try" list filled before the first attempt (candidates grounded in
+    `roadmap/srv6-enablement-research.md`, marked to confirm/refute — no device command invented),
+    each with an empty verdict table (item | verdict | proofs | note). Slice:
+    `gates/proofs/p1-doc-recipe-symbols.txt`.
+  - T003 `docs/SRV6_ACCEPTANCE_004.md` skeleton: 18 rows SC-001..SC-018 with empty Proofs cells
+    plus verdict column, "How this record follows" rules (suffix discipline, SC-015, q17-*), and an
+    empty "Review records" section. Slice: `gates/proofs/p1-doc-acceptance-symbols.txt`.
+  - Automated test `tests/unit/proof_sh_test.sh` (new): 20 checks over record/replay behaviour in an
+    isolated `PROOF_DIR` — both-files-written, exact-command round-trip (FR-039), combined output +
+    exit-code capture, quoting round-trip, no-difference replay, differ naming + exit 1, destructive
+    skip/`--all`, record order incl. re-record, no-match exit 2, invalid-name refusals. All 20 pass.
+    Slice: `gates/proofs/p1-tests-proof-sh-test.txt`.
+  
+  ## verified
+  - `bash scripts/proof.sh selftest -- true` → both files written (gate command, rc 0).
+  - `bash scripts/proof.sh replay selftest` → "no difference" (gate command, rc 0).
+  - `bash tests/unit/proof_sh_test.sh` → 20 passed, 0 failed.
+  - `go test ./...` (go 1.24, repo root) — running/passed; see gate run. No Go code changed in this
+    phase (shell + docs only).
+  
+  ## blocked
+  - none.
+  
+  ## next
+  - Phase 2 (Foundational): stop the false claims — interim SRv6 refusal, capability scoping,
+    gate skip reporting, sample-wait fix.
+  
+  ## notes for the next pass
+  - Pre-existing workdir changes NOT made by this phase (left untouched per the hard rule):
+    git shows `.gitignore` modified, `vendor/sonic-buildimage` modified, and untracked
+    `.mixture-of-loops/`, `tmp_research/`, `versions.lock.yaml.bak`. If a reverse source guard
+    reports them, that predates this phase.
+  - `scripts/proof.sh` supports `PROOF_DIR` env override (used only by the unit test); default is
+    the feature 004 gates path, exactly as the tasks specify. `--destructive` goes before `<name>`;
+    `replay` skips destructive proofs unless `--all`. Record order lives in `proofs/.record-order`.
+  - Proof-slice files in `gates/proofs/` are named `p1-*.txt` (never `*.cmd`), so `replay <prefix>`
+    cannot mistake them for recordable proofs.
+  ```
+
+## CITED BUT NOT AUTO-GROUNDED — verified PRESENT by direct stat
+The critic's path extractor did not include these in the snapshot above, but each DOES exist on disk (confirmed by a direct read-only stat). Their absence from the snapshot is a TOOLING limitation, NOT evidence that the file is missing. Do NOT reject a criterion solely because one of these is 'not in the snapshot':
+- `proofs/.record-order` — verified on disk (stat)
+
+## Deterministic probe results (harness-computed, not LLM)
+The harness ran fixed read-only checks. Trust these over prose for the gitignore / no-secrets criteria:
+
+### gitignore probe (deterministic)
+- `.env` — IGNORED: PASS (git check-ignore)
+
+════════════════════════ DESIGN CONTEXT (read-only background — NOT acceptance criteria) ════════════════════════
+The following are the feature's design documents. Use them ONLY to understand what
+the criteria mean and whether the evidence is consistent with the intended design.
+They are NOT a checklist: do not reject for anything that is not an explicit
+acceptance criterion in the SPEC section above. Context can inform a rejection of a
+real criterion; it can never become a new one.
+## Context: constitution (read-only background, NOT a gate) — /root/agentic-netops/.specify/memory/constitution.md
+<!--
+SYNC IMPACT REPORT
+==================
+Version change: 1.1.0 → 1.2.0
+Rationale: MINOR, as directed by the owner. One rule is added (no gate, proof or
+approval may need a second person or manual intervention) and Principle VI gains
+the unattended-spike rule. Two existing rules are relaxed to fit it: the
+operator review of agent-behaviour changes becomes a written, non-blocking
+record, and the feasibility spike is no longer time-boxed. A strict reading of
+the versioning policy would call a relaxed rule MAJOR; the owner chose MINOR
+because no principle is removed or renamed.
+Context: single-owner development environment.
+
+Modified principles (titles unchanged):
+  - VI. Verification and Test Discipline
+      feasibility spike: "time-boxed" removed; unattended run and scripted
+      replay on a freshly brought-up lab added.
+
+Modified sections:
+  - Development Workflow and Quality Gates
+      agent-behaviour gate: "reviewed by an operator" replaced by a written
+        record of the texts before and after and the live proofs; lab testing
+        before merge kept.
+      new gate: no second person and no manual intervention; the two human
+        confirmations of Principle II are product behaviour and unchanged.
+  - Governance, Compliance review: reviewers replaced by a check of every
+      change, automated where a gate exists.
+
+Added sections: none
+Removed sections: none
+
+Templates requiring updates:
+  ✅ .specify/memory/constitution.md       (this file)
+  ✅ .specify/templates/plan-template.md   (cites v1.2.0; VI-f without the time
+     box and with the replay; new gates W-c and W-d)
+  ✅ .specify/templates/spec-template.md   (cites v1.2.0; CR-021 added)
+  ✅ .specify/templates/tasks-template.md  (cites v1.2.0; spike rule reworded;
+     unattended-delivery rule added)
+… (context truncated at line boundary) …
+
+## Context: spec (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/spec.md
+# Feature Specification: SRv6 Service Requests End to End
+
+**Feature Branch**: `004-srv6-service-requests`
+
+**Created**: 2026-10-11
+
+**Status**: Draft
+
+**Input**: User description: "roadmap/srv6-speckit-specify-prompt.md" (SRv6 service requests end to end, feature 004). Evidence base: `roadmap/srv6-enablement-research.md` (2026-10-11), which carries the code citations, the 21 blocking points, the work list and the owner decisions. This specification states behaviour and outcomes and cites that document for evidence.
+
+## Context
+
+An operator who asks for a service carried over SRv6 does not get one.
+
+- Through chat, "SRv6 L3VPN ..." and "EVPN over SRv6 ..." are provisioned as
+  VXLAN services (`ip-vrf` and `mac-vrf`). The word SRv6 is dropped and nothing
+  tells the operator. Other SRv6 phrasings are refused.
+- An `SRv6Service` resource applied directly is accepted by the cluster and then
+  stays not-Ready forever. Nothing is programmed, verified or cleaned up. Lab
+  bring-up hides the failure, and the demo tutorial describes an outcome that
+  does not occur.
+- No device recipe for an SRv6 VPN service has been proven on the pinned SONiC
+  image.
+- The controllers' write path cannot reach the nodes of the SONiC VM lab, so on
+  that lab nothing can be provisioned, the four existing constructs included.
+- The SONiC VM lab boots every switch with the same identity and no underlay.
+- The capability gate records two SRv6 checks as passed while skipping them, and
+  the capability flag that should gate SRv6 is a constant.
+
+Feature 001 required SRv6 services (US5, FR-026 to FR-030, SC-013 to SC-015).
+Its 2026-09-19 reconciliation recorded them as never held and called for a
+dedicated specification (candidate C2). This is that specification. The SONiC VM
+… (context truncated at line boundary) …
+
+## Context: plan (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/plan.md
+# Implementation Plan: SRv6 Service Requests End to End
+
+**Branch**: `004-srv6-service-requests` (git branch at planning time: `feat/sonic-vm-conformance`
+at `0720c4e2`) | **Date**: 2026-10-11 | **Spec**: [spec.md](./spec.md)
+
+**Input**: Feature specification from `specs/004-srv6-service-requests/spec.md`, the planning
+guidance in `roadmap/srv6-plan-prompt.md`, and the instruction to shape the plan so that
+`/speckit-tasks` can split the work into the smallest possible tasks.
+
+**Phase 0 research**: [research.md](./research.md) | **Phase 1 design**:
+[data-model.md](./data-model.md), [contracts/](./contracts/), [quickstart.md](./quickstart.md)
+
+Cross-feature identifiers: `001:FR-0xx`, `002:FR-0xx`, `003:FR-0xx`; this feature's are bare.
+Research decisions are cited as D1 to D34.
+
+## Summary
+
+An operator who asks for a service over SRv6 gets one, on the sonic-vm lab, through any of three
+entry points, or gets a refusal that names SRv6. Ready means the devices show the service and
+client traffic passes.
+
+The technical approach, in dependency order:
+
+1. **Prove the device recipe directly on the devices** (Phase 0), outside the controllers,
+   unattended (FR-003a). No SRv6 VPN service has been signalled or
+   forwarded on this image, and no spike record exists. The spike's verdicts fix the supported
+   set; everything recipe-dependent sits in two sections that the spike fills
+   ([data-model.md](./data-model.md) §8, [contracts/fabricplan-srv6.md](./contracts/fabricplan-srv6.md) §3).
+2. **Stop the false claims now** (Phase 1): refuse SRv6 phrasings instead of provisioning VXLAN,
+   scope and derive the capability, make the gate report skips, stop swallowing the sample wait.
+3. **Make sonic-vm a lab the controllers can write to** (Phases 2 to 5): per-node identity,
+… (context truncated at line boundary) …
+
+## Context: contract:capability-record (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/contracts/capability-record.md
+# Contract: capability record
+
+ConfigMap `fabric-compat-pins`, namespace `agentic-netops-system`, regenerated by
+`scripts/provision.sh` on every bring-up.
+
+## 1. Keys
+
+| Key | Example | Source | Change in this feature |
+| --- | --- | --- | --- |
+| `sonic-image` | `local/sonic-vm@sha256:5f3b...` | active profile's entry in `versions.lock.yaml` | follows the profile (was a sonic-vs-only regex) |
+| `cap-sai-srv6` | `"true"` / `"false"` | §2 | derived (was the constant `"true"`) |
+| `srv6-supported` | `ip-vrf/vpn,steering` | `lab/profiles/<profile>/srv6-supported.yaml` | new |
+| `lab-profile` | `sonic-vm` | `AGENTIC_NETOPS_PROFILE` | new, informational |
+| `srv6-probe-attachments` | `leaf01/wan1,leaf02/wan1` | the keys of the executor's `FABRIC_PROBE_MAP` | new; the attachments a first-activation data-path check can be run from (spec KL-009) |
+| `openconfig-commit`, `sonic-native-commit`, `mapping-version`, `kubenet-commit`, `kuid-commit`, `sdc-release`, `topology-label-contract`, `telemetry-label-contract` | | `versions.lock.yaml` | unchanged |
+
+`pkg/compat/pins.go` maps `cap-sai-srv6` to the label `agentic-netops.dev/cap.sai.srv6` today; it
+gains `srv6-supported` as `agentic-netops.dev/cap.srv6.supported`.
+
+## 2. Derivation of `cap-sai-srv6`
+
+`"true"` if and only if all of:
+
+1. the gate report for this bring-up has `result: pass`. The report is the file
+   `scripts/lib/qualify.sh` writes, `qualify.report.json`, at the path that script defines
+   (today under `.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs/`).
+   `scripts/lib/capability.sh` takes that path from `qualify.sh` and never repeats it as a
+   literal, so the two cannot drift;
+2. in that report the checks `SRv6-Underlay`, `End`, `End.DT46`, `H.Encaps.Red`, `SID-list` and
+   `Decapsulation` have status `pass`, none `skip`;
+… (context truncated at line boundary) …
+
+## Context: contract:executor-transport (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/contracts/executor-transport.md
+# Contract: fabric-executor transport per node kind
+
+The fabric-executor stays the only southbound and stays a host service. Its HTTP API
+(`/v1/node/apply`, `/v1/node/verify`, `/v1/nodes`, `/healthz`) does not change shape. What changes
+is how a command reaches the node.
+
+## 1. Interface
+
+```go
+type transport interface {
+    // run executes argv on the node and returns stdout, stderr and an error
+    // that is nil only for exit code 0.
+    run(ctx context.Context, argv []string, stdin []byte) (stdout, stderr string, err error)
+    kind() string // "docker" | "ssh"
+}
+```
+
+Today every command goes through `(*server).exec` (`cmd/fabric-executor/main.go:663`). That
+function becomes the `docker` implementation, unchanged in behaviour. The server resolves a
+transport per node and no caller knows which one it got.
+
+## 2. Selection
+
+| Env | Shape | Meaning |
+| --- | --- | --- |
+| `FABRIC_NODE_MAP` | `{"leaf01":"clab-...-leaf01", ...}` | unchanged: logical node to container |
+| `FABRIC_NODE_TRANSPORT` | `{"leaf01":{"kind":"ssh","addr":"172.31.0.21","user":"admin"}, ...}` | optional; a node absent here uses `docker` |
+| `FABRIC_SSH_KEY` | path | private key, mode 0600; required if any node is `ssh` |
+| `FABRIC_SSH_KNOWN_HOSTS` | path | per-lab host keys; required if any node is `ssh` |
+| `FABRIC_PROBE_MAP` | `{"leaf01/wan1":"clab-...-srv6-client01", ...}` | attachment to probe container (§4) |
+
+`scripts/provision.sh` builds `FABRIC_NODE_TRANSPORT` from each node container's `clab-node-kind`
+label. The executor refuses to start if a node is `ssh` and the key or known-hosts file is missing
+or has wider permissions than 0600.
+
+## 3. The `ssh` transport
+
+- Runs the host's `ssh` client: key authentication, `BatchMode=yes`,
+  `StrictHostKeyChecking=yes` against `FABRIC_SSH_KNOWN_HOSTS`, one multiplexed connection per
+… (context truncated at line boundary) …
+
+## Context: contract:fabricplan-srv6 (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/contracts/fabricplan-srv6.md
+# Contract: fabricplan operations and checks for SRv6
+
+`pkg/fabricplan` renders an `SRv6Service` into per-node `Ops`, `Checks` and `Rollback`, in the
+vocabulary the fabric-executor already speaks (`pkg/fabricplan/plan.go:53-95`). No new op class
+is added. One new check type is added (§2).
+
+## 1. Entry point
+
+```go
+func ForSRv6Service(svc *v1alpha1.SRv6Service, alloc Allocations, opts Options) (*Plan, error)
+```
+
+- Pure: no I/O, deterministic output for identical input. `plan_test.go` asserts byte-identical
+  JSON across runs.
+- `alloc` carries every identifier; the renderer generates none.
+- `opts` carries the site port map, node kinds and each node's bootstrap-owned locator.
+- One `NodePlan` per attachment node. A steered service may also need state on the ingress leaf
+  only; it never renders ops for a spine.
+- The renderer never emits an op that creates, changes or removes a locator. A unit test fails if
+  any op touches the locator table or the FRR locator block.
+
+## 2. New check type
+
+| Type | Fields | Passes when |
+| --- | --- | --- |
+| `probe-ping` | `probeFrom`, `probeTo`, `addr`, `size`, `count` | the probe host for `probeFrom` reaches `addr` with `count` echoes of `size` bytes, don't-fragment set |
+
+Executed by the executor in the client container registered for the attachment
+([executor-transport.md](./executor-transport.md) §4). It is used once, at first activation, and
+is not part of the periodic per-node checks.
+
+Existing check types (`redis-hget`, `redis-exists`, `redis-hget-contains`, `vtysh-contains`,
+`ip-master`, `ip-addr`, shell `command` + `expect`) cover the per-node state. Whether a further
+type is needed is decided by §3.
+
+## 3. Recipe-dependent content (filled by Phase 0)
+
+**Status: empty.** Phase 0 fills this section from [data-model.md](../data-model.md) §8.3 to §8.6.
+… (context truncated at line boundary) …
+
+## Context: contract:intent-srv6 (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/contracts/intent-srv6.md
+# Contract: intent JSON for SRv6 variants
+
+The wire shape shared by Go (`pkg/migration` `ServiceInput`) and Python
+(`agents/common/schemas/normalized_intent.py` `NormalizedServiceIntent`). Both sides validate it;
+a parity test feeds the same fixtures to both.
+
+## 1. Added fields
+
+| Field | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `transport` | `"vxlan"` \| `"srv6"` | `"vxlan"` | which underlay carries the service |
+| `signalling` | `"vpn"` \| `"evpn"` | by construct | only with `transport: srv6` |
+| `preferredSpine` | string | none | only with `transport: srv6` |
+
+`type` keeps its four values. No fifth construct is added.
+
+## 2. Example
+
+```json
+{
+  "serviceId": "acme-routed",
+  "type": "ip-vrf",
+  "transport": "srv6",
+  "signalling": "vpn",
+  "tenant": "acme",
+  "endpoints": [
+    {"node": "leaf01", "attachment": "wan1", "prefixes": ["2001:db8:3::30/127"]},
+    {"node": "leaf02", "attachment": "wan1", "prefixes": ["2001:db8:4::40/127"]}
+  ],
+  "preferredSpine": "spine01"
+}
+```
+
+## 3. Validation (identical causes on both sides)
+
+| # | Condition | Cause text |
+| --- | --- | --- |
+| V1 | `transport` not `vxlan` or `srv6` | `transport: unsupported '<x>' (transports: vxlan, srv6)` |
+| V2 | `transport: srv6` with `type` `vlan` or `acl` | `transport: srv6 applies to ip-vrf and mac-vrf only` |
+| V3 | `transport: srv6` with `l2vni`, `l3vni` or `rdRt` set | `srv6: identifiers are allocated by the fabric, not supplied` |
+| V4 | `type: mac-vrf`, `transport: srv6`, `signalling: vpn` | `signalling: mac-vrf over srv6 uses evpn` |
+| V5 | `signalling` or `preferredSpine` set with `transport: vxlan` | `<field>: only valid with transport srv6` |
+| V6 | `transport: srv6` and not exactly two endpoints on distinct nodes | `endpoints: an srv6 service joins exactly two attachments on distinct nodes` |
+… (context truncated at line boundary) …
+
+## Context: contract:operator-phrasings (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/contracts/operator-phrasings.md
+# Contract: operator phrasings accepted, clarified and refused
+
+What the tier does with a request that names SRv6. Every row is a corpus case under
+`agents/tests/corpus/phrasings/`. The vocabulary, the guard
+(`agents/tests/unit/test_vocabulary_guard.py`) and the refusal texts change in the same change
+(FR-018).
+
+"Supported" below means a member of the supported set ([data-model.md](../data-model.md) §3).
+
+## 1. Recognition
+
+A request is an SRv6 request when it matches, case-insensitively, any of: `srv6`,
+`segment routing v6`, `segment routing over ipv6`, `segment-routing v6`,
+`segment-routing over ipv6`. A bare "segment routing" does not name SRv6 and is left to the
+existing patterns, so a refusal never says a request named SRv6 when it did not. Recognition runs before
+`_detect_service_type` and before the `l3vpn`, `evpn` and `vrf` patterns
+(`agents/provisioning/mapper/agent.py:67-82`). The SRv6 qualifier decides the transport; a legacy
+service name beside it is never enough to select a VXLAN construct.
+
+| Request names | Interpretation |
+| --- | --- |
+| `ip-vrf over srv6`, `SRv6 ip-vrf`, `SRv6 L3VPN` (migration alias), `routed service over srv6` | `ip-vrf`, transport `srv6`, signalling `vpn` |
+| `ip-vrf over srv6 with evpn signalling`, `routed EVPN over SRv6` | `ip-vrf`, transport `srv6`, signalling `evpn` |
+| `mac-vrf over srv6`, `bridged EVPN over SRv6`, `extend vlan N over srv6` | `mac-vrf`, transport `srv6`, signalling `evpn` |
+| `EVPN over SRv6` with no construct and no "routed"/"bridged" | clarification C2 |
+| `SRv6 service` with no construct | clarification C1 |
+
+How the tier restates the request to the operator (the only forms shown on operator surfaces):
+`ip-vrf over srv6`, `ip-vrf over srv6 with evpn signalling`, `mac-vrf over srv6` (spec FR-013).
+… (context truncated at line boundary) …
+
+## Context: contract:srv6service-crd (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/contracts/srv6service-crd.md
+# Contract: `SRv6Service` CRD
+
+`agentic-netops.io/v1alpha1`, kind `SRv6Service`, namespaced, short name `srv6svc`, status
+subresource. Generated from the markers in `api/v1alpha1/srv6service_types.go` by
+`make manifests`; the YAML under `config/crd/bases/` is never edited by hand.
+
+Entities and state: [data-model.md](../data-model.md) §1, §2, §6.
+
+## 1. Example
+
+```yaml
+apiVersion: agentic-netops.io/v1alpha1
+kind: SRv6Service
+metadata:
+  name: acme-routed
+  namespace: agentic-netops-intent
+spec:
+  tenant: acme
+  construct: ip-vrf
+  signalling: vpn
+  attachments:
+    - node: leaf01
+      port: wan1
+      gateway: ["2001:db8:3::30/127"]
+    - node: leaf02
+      port: wan1
+      gateway: ["2001:db8:4::40/127"]
+  path:
+    preferredSpine: spine01
+```
+
+No locator, SID, VRF or route target appears. The controller allocates them and reports them in
+`status.allocations`.
+
+## 2. Admission rules (CEL, one envtest case each)
+
+| # | Rule | Message |
+| --- | --- | --- |
+| A1 | `tenant` matches the RFC 1123 label pattern | `tenant must be a DNS label` |
+| A2 | `construct` is `ip-vrf` or `mac-vrf` | `construct must be ip-vrf or mac-vrf` |
+| A3 | `signalling` is `vpn` or `evpn` when set | `signalling must be vpn or evpn` |
+| A4 | not (`construct == 'mac-vrf'` and `signalling == 'vpn'`) | `mac-vrf over srv6 uses evpn signalling` |
+| A5 | `size(attachments) == 2` | `exactly two attachments are required` |
+| A6 | `attachments[0].node != attachments[1].node` | `attachments must be on distinct nodes` |
+| A7 | every `gateway` entry is a prefix | `gateway must be an IP prefix` |
+| A8 | `vlan` set if and only if `construct == 'mac-vrf'` | `vlan is required for mac-vrf and not allowed for ip-vrf` |
+| A9 | `gateway` present on both attachments when `construct == 'ip-vrf'` | `ip-vrf attachments need a gateway prefix` |
+… (context truncated at line boundary) …
+
+## Context: data-model (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/data-model.md
+# Data Model: SRv6 Service Requests End to End (004)
+
+**Spec**: [spec.md](./spec.md) | **Research**: [research.md](./research.md)
+
+Everything that depends on the device recipe is in §8 and nowhere else. Until Phase 0 fills §8,
+the other sections describe shape and rules, not device state.
+
+## 1. `SRv6Service` (spec)
+
+API group `agentic-netops.io/v1alpha1`, namespaced. Full schema and validation rules:
+[contracts/srv6service-crd.md](./contracts/srv6service-crd.md).
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `spec.tenant` | string, RFC 1123 label | yes | never defaulted |
+| `spec.construct` | `ip-vrf` \| `mac-vrf` | yes | research D13 |
+| `spec.signalling` | `vpn` \| `evpn` | no | default `vpn` for `ip-vrf`, `evpn` for `mac-vrf`; `mac-vrf` + `vpn` is invalid |
+| `spec.attachments[]` | list of `{node, port, gateway[]?}` | yes, exactly 2 | distinct nodes; `gateway` holds the leaf-side prefixes for an `ip-vrf` |
+| `spec.vlan` | integer | `mac-vrf` only | the tag carried on the attachment ports. Operator intent, as in 003; the controller reserves this value in KUID before any device write (§4, spec FR-020a) |
+| `spec.path.preferredSpine` | string | no | research D14 |
+| `spec.path.alternateSpine` | string | no | accepted only to be validated |
+
+Removed from today's type (`api/v1alpha1/srv6service_types.go:49-70`): `locatorPrefix`, `vrf`,
+`servicePrefix`, `client`, `server`, `path.primary`, `path.alternate`, `transitWaypoints`,
+`topologyRef`, `underlay`. A resource that sets `locatorPrefix`, `vrf`, or any SID field is
+refused at admission with "identifiers are allocated, not typed" (FR-020).
+
+**Validation that needs the site** (node exists, port exists, spine is a spine, port not held by
+another service) cannot be expressed in CEL. The controller performs it first and sets a terminal
+… (context truncated at line boundary) …
+
+## Context: research (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/research.md
+# Research: SRv6 Service Requests End to End (004)
+
+**Date**: 2026-10-11 | **Spec**: [spec.md](./spec.md) | **Plan**: [plan.md](./plan.md)
+
+Evidence base: `roadmap/srv6-enablement-research.md` (cited as "the research file"), its
+addendum and its owner-decisions table. The research file cites `file:line` at commit
+`0720c4e2`; the tree is still at `0720c4e2`, and every location this plan relies on was re-read
+on 2026-10-11. Lab and cluster were read, never written.
+
+Markers used below:
+
+- **verified**: read from the code, the cluster or a switch on 2026-10-11.
+- **inferred**: follows from something verified, not observed directly.
+- **general knowledge**: stated from knowledge of SONiC, FRR or Linux, not checked on this image.
+  Nothing marked this way is a design input until Phase 0 confirms it.
+
+## 1. Settled decisions (owner, 2026-10-11)
+
+These are inputs. They are recorded once and not reopened.
+
+### D1. Service types
+
+- **Decision**: L3VPN over SRv6 and EVPN over SRv6; EVPN covers routed (Type-5) and bridged
+  (MAC-VRF). Bridged may be deferred, in which case requests for it are refused by name.
+- **Rationale**: owner decision 1 and "1 (detail)"; spec settled decisions 1 and 2.
+- **Alternatives considered**: the 001 US5 shape (explicit primary/alternate SID path between two
+  clients), which is what today's CRD encodes. Not chosen.
+
+### D2. Acceptance target and bar
+
+- **Decision**: the sonic-vm profile; client-to-client traffic between `srv6-client01` and
+  `srv6-client02` is required. Control-plane state alone is not acceptance.
+- **Rationale**: owner decision 2. The guest kernel has seg6 and the ASIC is `vs`, so the kernel is
+  the dataplane (research file, addendum).
+- **Alternatives considered**: control-plane-verified state as "provisioned". Rejected by the
+  owner.
+
+### D3. Resource shape
+… (context truncated at line boundary) …
+
+## Context: quickstart (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/quickstart.md
+# Quickstart: validating SRv6 Service Requests End to End (004)
+
+One scenario per acceptance criterion. Each names the command that produces its proof.
+
+**Rules for every proof**
+
+- A proof is a capture taken on the live lab through `scripts/proof.sh <name> -- <command>`,
+  which stores the exact command in `<name>.cmd` and its output and exit code in `<name>.out`
+  under `.wiggum/features/004-srv6-service-requests/gates/proofs/`. Re-running `<name>.cmd` must
+  regenerate `<name>.out` (FR-039, SC-015).
+- A scenario marked **cannot be shown yet** has no runnable proof command today. It says what is
+  missing instead of describing an expected result.
+- `scripts/proof.sh` is the first thing Phase 0 builds; until then no scenario here is runnable.
+- Proof names: `tasks.md` is the naming source. The names below are patterns; a scenario run once
+  per variant carries the variant (`q5-ip-vrf-vpn-apply`), and a proof taken again later carries a
+  suffix (`-default`, `-us4`, `-final`) so that it never overwrites the capture an earlier gate
+  rested on.
+- `.wiggum/` is not tracked. A proof is a local artefact; what makes it evidence is that its
+  `.cmd` regenerates its `.out` on the live lab. The tracked index
+  `docs/SRV6_ACCEPTANCE_004.md` cites proofs by name.
+- Packets: IPv6 probes use a payload of 8900 bytes with don't-fragment set, below the ~9120-byte
+  effective payload under MTU 9216 with an SRv6 header; plus one default-size probe. The exact
+  size is confirmed in Phase 0 ([data-model.md](./data-model.md) §8.7).
+- Commands that run on a switch go through `node_run` from
+  `tests/integration/lib/node_exec.sh`, so they work on both profiles.
+
+Contracts: [srv6service-crd](./contracts/srv6service-crd.md),
+[intent-srv6](./contracts/intent-srv6.md), [fabricplan-srv6](./contracts/fabricplan-srv6.md),
+… (context truncated at line boundary) …
+
+## Context: checklist:requirements (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/checklists/requirements.md
+# Specification Quality Checklist: SRv6 Service Requests End to End
+
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-10-11
+**Feature**: [spec.md](../spec.md)
+
+## Content Quality
+
+- [x] No implementation details (languages, frameworks, APIs)
+- [x] Focused on user value and business needs
+- [x] Written for non-technical stakeholders
+- [x] All mandatory sections completed
+
+## Requirement Completeness
+
+- [x] No [NEEDS CLARIFICATION] markers remain
+- [x] Requirements are testable and unambiguous
+- [x] Success criteria are measurable
+- [x] Success criteria are technology-agnostic (no implementation details)
+- [x] All acceptance scenarios are defined
+- [x] Edge cases are identified
+- [x] Scope is clearly bounded
+- [x] Dependencies and assumptions identified
+
+## Feature Readiness
+
+- [x] All functional requirements have clear acceptance criteria
+- [x] User scenarios cover primary flows
+- [x] Feature meets measurable outcomes defined in Success Criteria
+- [x] No implementation details leak into specification
+
+## Notes
+
+- Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`
+- Validation run 2026-10-11, iteration 1.
+- **Open markers (3, the maximum, placed where the feature prompt directed):**
+  - FR-013: operator vocabulary for SRv6 services (working default: an "over srv6"
+    qualifier on `ip-vrf` and `mac-vrf`).
+  - FR-026: how a preferred path is expressed by the operator and on the resource, and
+    the loss bound for failover and return. SC-007 depends on this bound.
+  - FR-031: whether the tier may read the site capability record for the early refusal.
+- **Implementation detail, judged acceptable:** the spec names the `SRv6Service` resource
+… (context truncated at line boundary) …
+════════════════════════ END ════════════════════════
+Remember: end with the single line `VERDICT 3ea7ba0bc794f1fd: APPROVED` or
+`VERDICT 3ea7ba0bc794f1fd: REJECTED` and nothing after it.
+
+═══════════ REPLY ═══════════
+Evaluation of each acceptance criterion:
+
+- T001 scripts/proof.sh record mode
+  - Evidence required: Running scripts/proof.sh selftest -- true must write both selftest.cmd and selftest.out under .wiggum/features/004-srv6-service-requests/gates/proofs/, with the exact command and the combined output plus exit code.
+  - Grounding check:
+    - scripts/proof.sh exists and implements record mode that writes <name>.cmd and <name>.out to .wiggum/.../gates/proofs/ (see file lines 59–102 and 48–57).
+    - .wiggum/.../gates/proofs/selftest.cmd exists and contains exactly “true”.
+    - .wiggum/.../gates/proofs/selftest.out exists and contains exactly “[exit code: 0]”.
+  - Verdict: Met. The exact files with the expected contents are present on disk at the specified path, proving the done-criterion.
+
+- T632 scripts/proof.sh replay <prefix>
+  - Evidence required: replay must re-run every stored <prefix>*.cmd in recorded order, compare to .out, print names that differ, exit non-zero if any differ, skip destructive unless --all. Done when scripts/proof.sh replay selftest reports no difference.
+  - Grounding check:
+    - scripts/proof.sh contains cmd_replay and ordered_names implementing order via .record-order, comparison via render_out piped to cmp, differ reporting, and destructive skip unless --all (lines 104–183).
+    - .wiggum/.../gates/proofs/.record-order exists and includes “selftest” (and others).
+    - Given selftest.cmd = “true” and selftest.out = “[exit code: 0]”, replay selftest will re-run “true”, regenerate “[exit code: 0]”, match via cmp, print ok selftest and the “no difference” summary, exiting 0. This satisfies the “reports no difference” done condition.
+  - Verdict: Met. The code and on-disk proofs substantiate the behavior, and the stored selftest proof is consistent with a no-difference replay.
+
+- T002 [P] docs/SRV6_SERVICE_RECIPE.md skeleton
+  - Evidence required: A skeleton file with one section each for: underlay and locators; ip-vrf/vpn; ip-vrf/evpn; mac-vrf/evpn; steering. Each section starts with an “Approaches to try” list (to be filled before first attempt) and ends with an empty verdict table with columns item, verdict, proofs, note.
+  - Grounding check:
+    - docs/SRV6_SERVICE_RECIPE.md exists and includes the five required sections with headings matching the required topics.
+    - Each section contains the phrase “Approaches to try (written before the first attempt):” and a list of candidates.
+    - Each section contains an empty verdict table with the required columns (header “| item | verdict | proofs | note |” and an empty row).
+  - Verdict: Met. The file content matches the skeleton requirements exactly.
+
+- T003 [P] docs/SRV6_ACCEPTANCE_004.md skeleton
+  - Evidence required: Skeleton with one row per SC-001 to SC-018 with empty proof-name cells, and an empty “Review records” section.
+  - Grounding check:
+    - docs/SRV6_ACCEPTANCE_004.md exists and includes a table listing SC-001 through SC-018; the “Proofs” cells are empty and a “Verdict” column is present.
+    - The file contains a “## Review records” section noted as empty.
+  - Verdict: Met. The file meets the skeleton shape precisely.
+
+All specified tasks are satisfied by independently observable on-disk state. No acceptance criterion is unmet or unclear, and no claim relies solely on ungrounded assertions.
+
+VERDICT 3ea7ba0bc794f1fd: APPROVED
+

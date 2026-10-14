@@ -1,0 +1,29 @@
+# T023/T024/T025/T033/T034/T035 — provision.sh: 2026-10-11T19:14:36Z
+$ bash -n scripts/provision.sh
+syntax ok
+
+$ T023 pin assertion block (excerpt)
+89:  pinned_svm=$(awk '
+96:  if [[ ! "$pinned_svm" =~ ^local/sonic-vm@sha256:[0-9a-f]{64}$ ]]; then
+97:    echo "[provision] versions.lock.yaml sonic_vm must pin one line local/sonic-vm@sha256:<digest>; got: ${pinned_svm:-<missing>}" >&2
+100:  pinned_svm_digest=${pinned_svm##*@}
+106:  if [[ "$live_svm_id" != "$pinned_svm_digest" ]]; then
+107:    echo "[provision] local/sonic-vm:202505 image ID ${live_svm_id} != pinned ${pinned_svm_digest} (versions.lock.yaml sonic_vm); refusing to bring up the sonic-vm lab against an unpinned image" >&2
+110:  echo "[provision] sonic-vm image pin verified: local/sonic-vm:202505 == ${pinned_svm}"
+111:  echo "[provision] WARN: known exception to the one-form image rule: lab/topology.sonic-vm.clab.yml names the image by TAG (local/sonic-vm:202505) because containerlab cannot resolve a local image by digest without a registry (proof p1-image-by-digest); asserted this bring-up against ${pinned_svm}" >&2
+
+$ T034: no readiness wait ends in "|| true"
+none found (T034 satisfied)
+
+$ T035 gate message
+393:      echo "[provision] sonic-vs failed the capability gate; per versions.lock.yaml sonic_vs runs the core gNMI gate and full EVPN/SRv6 conformance runs on sonic_vm (use --profile sonic-vm)" >&2
+
+$ T033 derivation block
+410:  capability_kv=$(capability::derive)
+416:  echo "[provision] capability derived from gate report: cap-sai-srv6=${capability_cap} srv6-supported=${capability_supported}"
+
+$ T024/T025 ConfigMap keys (heredoc excerpt)
+scripts/provision.sh:276:     # T024 (FR-009): the sonic-image pin comes from the ACTIVE PROFILE's lock
+scripts/provision.sh:307:         "sonic-image": sonic_image,
+scripts/provision.sh:321:         "cap-sai-srv6": "false",
+scripts/provision.sh:325:         "lab-profile": profile,

@@ -1,0 +1,27 @@
+===== COUNTERS_DB SRv6 tables / COUNTERS_SRV6_NAME_MAP (redis dbs 2/4/6) =====
+-- clab-agentic-netops-fabric-leaf01 --
+db=2:
+
+db=4:
+SRV6_MY_LOCATORS|loc-leaf01
+LOGGER|SAI_API_SRV6
+
+db=6:
+
+-- clab-agentic-netops-fabric-leaf02 --
+db=2:
+
+db=4:
+LOGGER|SAI_API_SRV6
+SRV6_MY_LOCATORS|loc-leaf02
+
+db=6:
+
+===== kernel seg6 counters (nstat Seg6*), leaf01 =====
+NO-SEG6-NSTAT-ENTRIES
+===== kernel seg6 counters (nstat Seg6*), leaf02 =====
+NO-SEG6-NSTAT-ENTRIES
+===== dataplane substitute evidence: client ping (3/3 = path exercised) =====
+3 packets transmitted, 3 received, 0% packet loss, time 2003ms
+
+[exit code: 0]

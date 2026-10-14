@@ -1,0 +1,11 @@
+===== spine01: fabric-link v4 addresses =====
+Ethernet0        UNKNOWN        10.1.0.0/31 
+Ethernet4        UNKNOWN        10.1.0.2/31 
+===== spine01: BGP v4 sessions =====
+Neighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc
+10.1.0.1        4      65101        C C C C C UPTIME            4        4 N/A
+10.1.0.3        4      65102        C C C C C UPTIME            4        4 N/A
+===== spine01: session state invariant =====
+v4 ESTABLISHED=3 OTHER=0
+
+[exit code: 0]

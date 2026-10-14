@@ -1,0 +1,8 @@
+differ: spike-steering-path
+differ: spike-steering-failover-launcher
+ok spike-steering-failover-guest-if
+ok spike-steering-failover-bgp
+ok spike-steering-return
+replay spike-steering: 2 of 5 proof(s) differ
+
+[exit code: 1]

@@ -1,0 +1,11 @@
+# docs/SRV6_SERVICE_RECIPE.md — §6 exit-gate review (T124)
+     1	## 6. Exit-gate review (phase 3, T124)
+     2	
+     3	| variant (port-vrf × overlay) | verdict | refused-by-name behaviour | proofs |
+     4	| --- | --- | --- | --- |
+     5	| `ip-vrf` / `vpn` | **proven** — end-to-end client traffic, replay-stable proofs, clean rollback | n/a | §2 table |
+     6	| `ip-vrf` / `evpn` | **not achievable** (zebra→bgpd L3VNI ZAPI breakage; no vpnv4/vpnv6 AFs in this bgpd) | requests refused by name (`srv6-supported.yaml`) | §3 table |
+     7	| `mac-vrf` / `evpn` | **not achievable** (owner decision 1 separately permits deferral; L2VNI signalling works, bridged service not deliverable) | requests refused by name | §4 table |
+     8	| steering | **proven** with an explicit SLO miss recorded (SC-007 unmet: ≤10 lost 1 Hz probes) | n/a | §5 table |
+     9	
+    10	Honest-negative register (all measured, none hidden):

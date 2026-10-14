@@ -1,0 +1,15 @@
+APPLIED
+--- hostname (redis DEVICE_METADATA) ---
+leaf02
+--- asn / router-id / lo-prefix knob ---
+65102
+10.0.0.22
+true
+--- loopback addresses in the kernel ---
+Loopback0        UNKNOWN        10.0.0.22/32 2001:db8:ff::22/128 fe80::fa:1ff:fe60:2c02/64 
+--- bgpd identity (live FRR) ---
+hostname leaf02
+ bgp router-id 10.0.0.22
+ bgp log-neighbor-changes
+
+[exit code: 0]

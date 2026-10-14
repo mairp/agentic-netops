@@ -1,0 +1,6 @@
+--- leaf02: BGP_NEIGHBOR rows after factory removal (own config only) ---
+--- leaf02: INTERFACE rows after factory removal (own config only) ---
+--- leaf02: rows that are NOT one of this node's declared ports ---
+none - only Ethernet0/Ethernet4 remain
+
+[exit code: 0]

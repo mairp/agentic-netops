@@ -1,0 +1,517 @@
+[preflight] basic host checks passed
+make: Entering directory '/root/agentic-netops'
+[verify-pins] validating versions.lock.yaml
+[verify-pins] intent_tier: 5 images all pinned by immutable digest
+[verify-pins] versions.lock.yaml pins and compatibility are consistent
+[validate-crds] server-side validating CRDs and examples
+[validate-crds] server-side dry-run: Kubenet CRDs (1 files)
+customresourcedefinition.apiextensions.k8s.io/networkconfigs.network.kubenet.dev unchanged (server dry run)
+customresourcedefinition.apiextensions.k8s.io/networkdevices.network.kubenet.dev unchanged (server dry run)
+customresourcedefinition.apiextensions.k8s.io/topologies.network.kubenet.dev unchanged (server dry run)
+customresourcedefinition.apiextensions.k8s.io/networks.network.kubenet.dev unchanged (server dry run)
+[validate-crds] server-side dry-run: KUID CRDs (1 files)
+customresourcedefinition.apiextensions.k8s.io/ipindices.id.kuid.dev unchanged (server dry run)
+customresourcedefinition.apiextensions.k8s.io/asnindices.id.kuid.dev unchanged (server dry run)
+customresourcedefinition.apiextensions.k8s.io/vniindices.id.kuid.dev unchanged (server dry run)
+customresourcedefinition.apiextensions.k8s.io/claims.id.kuid.dev unchanged (server dry run)
+[validate-crds] server-side dry-run: SDC CRDs (1 files)
+customresourcedefinition.apiextensions.k8s.io/schemas.sdc.sdcio.dev unchanged (server dry run)
+customresourcedefinition.apiextensions.k8s.io/configs.sdc.sdcio.dev unchanged (server dry run)
+customresourcedefinition.apiextensions.k8s.io/targets.sdc.sdcio.dev unchanged (server dry run)
+customresourcedefinition.apiextensions.k8s.io/discoveryrules.sdc.sdcio.dev unchanged (server dry run)
+[validate-crds] server-side dry-run: Kubenet examples (1 files)
+topology.network.kubenet.dev/agentic-netops-topology unchanged (server dry run)
+[validate-crds] OK
+[verify-register] checking renderer paths against register
+=== RUN   TestRendererPathsCoveredByRegister
+--- PASS: TestRendererPathsCoveredByRegister (0.00s)
+PASS
+ok  	github.com/mairp/agentic-netops/tests/unit	(cached)
+[verify-intent-pins] validating intent_tier: image digests in versions.lock.yaml
+[verify-pins] intent_tier: 5 images all pinned by immutable digest
+[verify-pins] versions.lock.yaml pins and compatibility are consistent
+[verify-compat] pins, intent_tier digests, CRD, and register validations passed
+make: Leaving directory '/root/agentic-netops'
+[kind] cluster 'agentic-netops' already exists (idempotent)
+[kind] agentic-netops-control-plane already attached to agentic-netops-mgmt (idempotent)
+[kind] agentic-netops-worker already attached to agentic-netops-mgmt (idempotent)
+[provision] sonic-vm image pin verified: local/sonic-vm:202505 == local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+[provision] WARN: known exception to the one-form image rule: lab/topology.sonic-vm.clab.yml names the image by TAG (local/sonic-vm:202505) because containerlab cannot resolve a local image by digest without a registry (proof p1-image-by-digest); asserted this bring-up against local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+[clab] ensuring external Docker network agentic-netops-mgmt exists (subnet-correct)
+[clab] deploying /root/agentic-netops/lab/topology.sonic-vm.clab.yml
+16:29:40 INFO Containerlab started version=0.79.0
+16:29:40 INFO Parsing & checking topology file=topology.sonic-vm.clab.yml
+16:29:40 INFO Destroying lab name=agentic-netops-fabric
+16:29:40 INFO Removed container name=clab-agentic-netops-fabric-client01
+16:29:40 INFO Removed container name=clab-agentic-netops-fabric-srv6-client02
+16:29:40 INFO Removed container name=clab-agentic-netops-fabric-srv6-client01
+16:29:40 INFO Removed container name=clab-agentic-netops-fabric-client02
+16:29:40 INFO Removed container name=clab-agentic-netops-fabric-spine01
+16:29:40 INFO Removed container name=clab-agentic-netops-fabric-leaf02
+16:29:40 INFO Removed container name=clab-agentic-netops-fabric-leaf01
+16:29:40 INFO Removed container name=clab-agentic-netops-fabric-spine02
+16:29:40 INFO Removing host entries path=/etc/hosts
+16:29:40 INFO Removing SSH config path=/etc/ssh/ssh_config.d/clab-agentic-netops-fabric.conf
+16:29:40 INFO Removing directory path=/root/agentic-netops/lab/clab-agentic-netops-fabric
+16:29:40 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
+
+16:29:40 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
+
+16:29:40 INFO Creating lab directory path=/root/agentic-netops/lab/clab-agentic-netops-fabric
+16:29:41 INFO Creating container name=srv6-client02
+16:29:41 INFO Creating container name=leaf01
+16:29:41 INFO Creating container name=spine01
+16:29:41 INFO Creating container name=srv6-client01
+16:29:41 INFO Creating container name=spine02
+16:29:41 INFO Creating container name=leaf02
+16:29:41 INFO Creating container name=client01
+16:29:41 INFO Creating container name=client02
+16:29:41 INFO Created link: spine01:eth1 ▪┄┄▪ leaf01:eth1
+16:29:41 INFO Created link: leaf01:eth3 ▪┄┄▪ client01:eth1
+16:29:41 INFO Waiting for healthy status. This may take a while node=spine01
+16:29:41 INFO Created link: leaf01:eth4 ▪┄┄▪ srv6-client01:eth1
+16:29:41 INFO Waiting for healthy status. This may take a while node=leaf01
+16:29:42 INFO Created link: spine02:eth1 ▪┄┄▪ leaf01:eth2
+16:29:42 INFO Created link: spine01:eth2 ▪┄┄▪ leaf02:eth1
+16:29:42 INFO Waiting for healthy status. This may take a while node=spine02
+16:29:42 INFO Created link: spine02:eth2 ▪┄┄▪ leaf02:eth2
+16:29:42 INFO Created link: leaf02:eth3 ▪┄┄▪ client02:eth1
+16:29:42 INFO Created link: leaf02:eth4 ▪┄┄▪ srv6-client02:eth1
+16:29:42 INFO Waiting for healthy status. This may take a while node=leaf02
+16:30:44 INFO Deployed SSH public key(s) count=8 node=spine01
+16:30:45 INFO Deployed SSH public key(s) count=8 node=leaf01
+16:30:48 INFO Deployed SSH public key(s) count=8 node=spine02
+16:30:50 INFO Deployed SSH public key(s) count=8 node=leaf02
+16:30:50 INFO Executed command node=client01 command="ip link set dev eth1 up" stdout=""
+16:30:50 INFO Executed command node=client01 command="ip addr add 192.0.2.11/24 dev eth1" stdout=""
+16:30:50 INFO Executed command node=srv6-client01 command="ip link set dev eth1 up" stdout=""
+16:30:50 INFO Executed command node=client02 command="ip link set dev eth1 up" stdout=""
+16:30:50 INFO Executed command node=client01 command="ip -6 addr add 2001:db8:9::11/64 dev eth1" stdout=""
+16:30:50 INFO Executed command node=client02 command="ip addr add 192.0.2.21/24 dev eth1" stdout=""
+16:30:50 INFO Executed command node=srv6-client01 command="ip addr add 192.0.2.31/31 dev eth1" stdout=""
+16:30:50 INFO Executed command node=client02 command="ip -6 addr add 2001:db8:9::21/64 dev eth1" stdout=""
+16:30:50 INFO Executed command node=srv6-client01 command="ip -6 addr add 2001:db8:3::31/127 dev eth1" stdout=""
+16:30:50 INFO Executed command node=srv6-client02 command="ip link set dev eth1 up" stdout=""
+16:30:50 INFO Executed command node=srv6-client02 command="ip addr add 192.0.2.41/31 dev eth1" stdout=""
+16:30:50 INFO Executed command node=srv6-client02 command="ip -6 addr add 2001:db8:4::41/127 dev eth1" stdout=""
+16:30:50 INFO Adding host entries path=/etc/hosts
+16:30:50 INFO Adding SSH config for nodes path=/etc/ssh/ssh_config.d/clab-agentic-netops-fabric.conf
+16:30:51 INFO containerlab version
+  🎉=
+  │ A newer containerlab version (0.81.0) is available!
+  │ Release notes: https://containerlab.dev/rn/0.81/
+  │ Run 'clab version upgrade' or see https://containerlab.dev/install/ for other installation options.
+╭──────────────────────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────┬───────────┬────────────────╮
+│                   Name                   │                                                Kind/Image                                                │   State   │ IPv4/6 Address │
+├──────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────┼───────────┼────────────────┤
+│ clab-agentic-netops-fabric-client01      │ linux                                                                                                    │ running   │ 172.31.0.101   │
+│                                          │ localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f  │           │ N/A            │
+├──────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────┼───────────┼────────────────┤
+│ clab-agentic-netops-fabric-client02      │ linux                                                                                                    │ running   │ 172.31.0.102   │
+│                                          │ localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f  │           │ N/A            │
+├──────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────┼───────────┼────────────────┤
+│ clab-agentic-netops-fabric-leaf01        │ sonic-vm                                                                                                 │ running   │ 172.31.0.21    │
+│                                          │ local/sonic-vm:202505                                                                                    │ (healthy) │ N/A            │
+├──────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────┼───────────┼────────────────┤
+│ clab-agentic-netops-fabric-leaf02        │ sonic-vm                                                                                                 │ running   │ 172.31.0.22    │
+│                                          │ local/sonic-vm:202505                                                                                    │ (healthy) │ N/A            │
+├──────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────┼───────────┼────────────────┤
+│ clab-agentic-netops-fabric-spine01       │ sonic-vm                                                                                                 │ running   │ 172.31.0.11    │
+│                                          │ local/sonic-vm:202505                                                                                    │ (healthy) │ N/A            │
+├──────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────┼───────────┼────────────────┤
+│ clab-agentic-netops-fabric-spine02       │ sonic-vm                                                                                                 │ running   │ 172.31.0.12    │
+│                                          │ local/sonic-vm:202505                                                                                    │ (healthy) │ N/A            │
+├──────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────┼───────────┼────────────────┤
+│ clab-agentic-netops-fabric-srv6-client01 │ linux                                                                                                    │ running   │ 172.31.0.111   │
+│                                          │ localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f │           │ N/A            │
+├──────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────┼───────────┼────────────────┤
+│ clab-agentic-netops-fabric-srv6-client02 │ linux                                                                                                    │ running   │ 172.31.0.112   │
+│                                          │ localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f │           │ N/A            │
+╰──────────────────────────────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────┴───────────┴────────────────╯
+16:30:53 INFO Parsing & checking topology file=topology.sonic-vm.clab.yml
+{
+  "agentic-netops-fabric": [
+    {
+      "lab_name": "agentic-netops-fabric",
+      "labPath": "lab/topology.sonic-vm.clab.yml",
+      "absLabPath": "/root/agentic-netops/lab/topology.sonic-vm.clab.yml",
+      "name": "clab-agentic-netops-fabric-client01",
+      "container_id": "7913ccd65a16",
+      "image": "localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f",
+      "kind": "linux",
+      "state": "running",
+      "status": "Up About a minute",
+      "ipv4_address": "172.31.0.101/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "agentic-netops-fabric",
+      "labPath": "lab/topology.sonic-vm.clab.yml",
+      "absLabPath": "/root/agentic-netops/lab/topology.sonic-vm.clab.yml",
+      "name": "clab-agentic-netops-fabric-client02",
+      "container_id": "881aa82bfc7a",
+      "image": "localhost:5000/linux-net:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f",
+      "kind": "linux",
+      "state": "running",
+      "status": "Up About a minute",
+      "ipv4_address": "172.31.0.102/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "agentic-netops-fabric",
+      "labPath": "lab/topology.sonic-vm.clab.yml",
+      "absLabPath": "/root/agentic-netops/lab/topology.sonic-vm.clab.yml",
+      "name": "clab-agentic-netops-fabric-leaf01",
+      "container_id": "1e604e5ce346",
+      "image": "local/sonic-vm:202505",
+      "kind": "sonic-vm",
+      "state": "running",
+      "status": "healthy",
+      "ipv4_address": "172.31.0.21/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "agentic-netops-fabric",
+      "labPath": "lab/topology.sonic-vm.clab.yml",
+      "absLabPath": "/root/agentic-netops/lab/topology.sonic-vm.clab.yml",
+      "name": "clab-agentic-netops-fabric-leaf02",
+      "container_id": "76924dae1475",
+      "image": "local/sonic-vm:202505",
+      "kind": "sonic-vm",
+      "state": "running",
+      "status": "healthy",
+      "ipv4_address": "172.31.0.22/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "agentic-netops-fabric",
+      "labPath": "lab/topology.sonic-vm.clab.yml",
+      "absLabPath": "/root/agentic-netops/lab/topology.sonic-vm.clab.yml",
+      "name": "clab-agentic-netops-fabric-spine01",
+      "container_id": "591003749e1f",
+      "image": "local/sonic-vm:202505",
+      "kind": "sonic-vm",
+      "state": "running",
+      "status": "healthy",
+      "ipv4_address": "172.31.0.11/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "agentic-netops-fabric",
+      "labPath": "lab/topology.sonic-vm.clab.yml",
+      "absLabPath": "/root/agentic-netops/lab/topology.sonic-vm.clab.yml",
+      "name": "clab-agentic-netops-fabric-spine02",
+      "container_id": "98e7edda7185",
+      "image": "local/sonic-vm:202505",
+      "kind": "sonic-vm",
+      "state": "running",
+      "status": "healthy",
+      "ipv4_address": "172.31.0.12/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "agentic-netops-fabric",
+      "labPath": "lab/topology.sonic-vm.clab.yml",
+      "absLabPath": "/root/agentic-netops/lab/topology.sonic-vm.clab.yml",
+      "name": "clab-agentic-netops-fabric-srv6-client01",
+      "container_id": "59b5fb459be8",
+      "image": "localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f",
+      "kind": "linux",
+      "state": "running",
+      "status": "Up About a minute",
+      "ipv4_address": "172.31.0.111/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    },
+    {
+      "lab_name": "agentic-netops-fabric",
+      "labPath": "lab/topology.sonic-vm.clab.yml",
+      "absLabPath": "/root/agentic-netops/lab/topology.sonic-vm.clab.yml",
+      "name": "clab-agentic-netops-fabric-srv6-client02",
+      "container_id": "96f388333f22",
+      "image": "localhost:5000/linux-srv6:202605@sha256:c1df8a372168f5b7d3c2c50265fa99d5eb5b6deacdbb31b327a52376a74c6d7f",
+      "kind": "linux",
+      "state": "running",
+      "status": "Up About a minute",
+      "ipv4_address": "172.31.0.112/16",
+      "ipv6_address": "N/A",
+      "owner": "root"
+    }
+  ]
+}
+namespace/agentic-netops-system configured
+serviceaccount/agentic-netops-controller unchanged
+role.rbac.authorization.k8s.io/agentic-netops-controller unchanged
+rolebinding.rbac.authorization.k8s.io/agentic-netops-controller unchanged
+networkpolicy.networking.k8s.io/deny-all-by-default unchanged
+networkpolicy.networking.k8s.io/allow-apiserver-egress unchanged
+networkpolicy.networking.k8s.io/allow-fabric-gnmi-egress unchanged
+networkpolicy.networking.k8s.io/allow-fabric-executor-egress unchanged
+secret/gnmi-lab-ca configured
+serviceaccount/agentic-netops-srv6-controller unchanged
+serviceaccount/agentic-netops-sonic-provider unchanged
+serviceaccount/agentic-netops-sonic-provider unchanged
+serviceaccount/agentic-netops-srv6-controller unchanged
+clusterrole.rbac.authorization.k8s.io/agentic-netops-sonic-provider unchanged
+clusterrole.rbac.authorization.k8s.io/agentic-netops-srv6-controller unchanged
+clusterrolebinding.rbac.authorization.k8s.io/agentic-netops-sonic-provider unchanged
+clusterrolebinding.rbac.authorization.k8s.io/agentic-netops-srv6-controller unchanged
+clusterrole.rbac.authorization.k8s.io/agentic-netops-srv6-controller-crd unchanged
+clusterrolebinding.rbac.authorization.k8s.io/agentic-netops-srv6-controller-crd unchanged
+Image: "kindest/node@sha256:28b7cbb993dfe093c76641a0c95807637213c9109b761f1d422c2400e22b8e87" with ID "sha256:589df0c5189ba5ceb4e8b7290cfe63ee86affd24b10696aa3f46effc73041f91" not yet present on node "agentic-netops-control-plane", loading...
+job.batch/agentic-netops-secret-generator unchanged
+job.batch/agentic-netops-secret-generator condition met
+[rbac] base namespaces/RBAC/network policies, controller RBAC, and lab Secrets applied
+[kubenet-install] WARN: pinned upstream CRD URLs unreachable; applying repo-pinned CRD bundles (deploy/kubenet/crds, deploy/kuid/crds)
+customresourcedefinition.apiextensions.k8s.io/networkconfigs.network.kubenet.dev unchanged
+customresourcedefinition.apiextensions.k8s.io/networkdevices.network.kubenet.dev unchanged
+customresourcedefinition.apiextensions.k8s.io/topologies.network.kubenet.dev unchanged
+customresourcedefinition.apiextensions.k8s.io/networks.network.kubenet.dev unchanged
+customresourcedefinition.apiextensions.k8s.io/ipindices.id.kuid.dev unchanged
+customresourcedefinition.apiextensions.k8s.io/asnindices.id.kuid.dev unchanged
+customresourcedefinition.apiextensions.k8s.io/vniindices.id.kuid.dev unchanged
+customresourcedefinition.apiextensions.k8s.io/claims.id.kuid.dev unchanged
+namespace/kubenet-system unchanged
+deployment.apps/kubenet-controller unchanged
+serviceaccount/kubenet-controller unchanged
+namespace/kuid-system unchanged
+deployment.apps/kuid-controller unchanged
+serviceaccount/kuid-controller unchanged
+customresourcedefinition.apiextensions.k8s.io/networkconfigs.network.kubenet.dev condition met
+customresourcedefinition.apiextensions.k8s.io/networks.network.kubenet.dev condition met
+customresourcedefinition.apiextensions.k8s.io/networkdevices.network.kubenet.dev condition met
+customresourcedefinition.apiextensions.k8s.io/topologies.network.kubenet.dev condition met
+customresourcedefinition.apiextensions.k8s.io/ipindices.id.kuid.dev condition met
+customresourcedefinition.apiextensions.k8s.io/asnindices.id.kuid.dev condition met
+customresourcedefinition.apiextensions.k8s.io/vniindices.id.kuid.dev condition met
+customresourcedefinition.apiextensions.k8s.io/claims.id.kuid.dev condition met
+[kubenet-install] CRDs applied; controller pods not Ready within window (kubenet=false kuid=false); continuing best-effort
+[kubenet-install] installing kuid-server (aggregated allocation API)
+namespace/kuid-system unchanged
+deployment.apps/kuid-server unchanged
+clusterrole.rbac.authorization.k8s.io/kuid-server-clusterrole unchanged
+clusterrolebinding.rbac.authorization.k8s.io/config:system:auth-delegator unchanged
+clusterrolebinding.rbac.authorization.k8s.io/kuid-server-clusterrolebinding unchanged
+role.rbac.authorization.k8s.io/kuid-server-apiserver-role unchanged
+rolebinding.rbac.authorization.k8s.io/kuid-server-clusterrolebinding unchanged
+rolebinding.rbac.authorization.k8s.io/kuid-server-auth-reader unchanged
+configmap/kuid-config unchanged
+persistentvolumeclaim/pvc-config-store unchanged
+secret/kuid-server unchanged
+service/kuid-server-metrics unchanged
+service/kuid-server unchanged
+serviceaccount/kuid-server unchanged
+deployment "kuid-server" successfully rolled out
+apiservice.apiregistration.k8s.io/v1alpha1.as.be.kuid.dev unchanged
+apiservice.apiregistration.k8s.io/v1alpha1.extcomm.be.kuid.dev unchanged
+apiservice.apiregistration.k8s.io/v1alpha1.genid.be.kuid.dev unchanged
+apiservice.apiregistration.k8s.io/v1alpha1.infra.kuid.dev unchanged
+apiservice.apiregistration.k8s.io/v1alpha1.ipam.be.kuid.dev unchanged
+apiservice.apiregistration.k8s.io/v1alpha1.vlan.be.kuid.dev unchanged
+deployment.apps/kuid-server restarted
+Waiting for deployment "kuid-server" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "kuid-server" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "kuid-server" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "kuid-server" rollout to finish: 0 of 1 updated replicas are available...
+deployment "kuid-server" successfully rolled out
+[kubenet-install] WARN: pinned kuid-server rejects GENID/EXTCOMM indices; ensuring VLAN index and using allocator Lease fallback for VNI/RT pools
+vlanindex.vlan.be.kuid.dev/fabric-vlan unchanged
+[sdc-install] WARN: pinned upstream CRD URLs unreachable; applying repo-pinned CRD bundle (deploy/sdc/crds)
+customresourcedefinition.apiextensions.k8s.io/schemas.sdc.sdcio.dev unchanged
+customresourcedefinition.apiextensions.k8s.io/configs.sdc.sdcio.dev unchanged
+customresourcedefinition.apiextensions.k8s.io/targets.sdc.sdcio.dev unchanged
+customresourcedefinition.apiextensions.k8s.io/discoveryrules.sdc.sdcio.dev unchanged
+namespace/sdc-system unchanged
+deployment.apps/sdc-schema unchanged
+deployment.apps/sdc-config unchanged
+deployment.apps/sdc-data unchanged
+deployment.apps/sdc-cache unchanged
+persistentvolumeclaim/sdc-data unchanged
+persistentvolumeclaim/sdc-cache unchanged
+customresourcedefinition.apiextensions.k8s.io/schemas.sdc.sdcio.dev condition met
+customresourcedefinition.apiextensions.k8s.io/configs.sdc.sdcio.dev condition met
+customresourcedefinition.apiextensions.k8s.io/targets.sdc.sdcio.dev condition met
+[sdc-install] CRDs applied; 0/4 SDC component pods Ready within window; continuing best-effort
+[provision] preloading pinned observability images into Kind
+[provision] WARN: pinned image not in local cache: ghcr.io/openconfig/gnmic@sha256:fd59f5f1c7a98e14ff5b14f85329e5e0a4d49ef1d5b0dddfd910b6caef03b9fb
+[provision] preloaded otel/opentelemetry-collector-contrib@sha256:e07e325e303e86f4a87a617491e921b579a92da6d404007394757ac910bf9587
+[provision] WARN: pinned image not in local cache: prom/prometheus@sha256:f20d3127bf2876f4a1df76246fca576b41ddf1125ed1c546fbd8b16ea55117e6
+[provision] preloaded grafana/grafana@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+[provision] WARN: pinned image not in local cache: grafana/flow-plugin@sha256:5c9d6b4d6b899be4a3f3c728b3acb0a8f8c3e6a46c9f5b07d705e8ca3c1a2c44
+[provision] WARN: pinned image not in local cache: ghcr.io/agentic-netops/topology-generator@sha256:9a0b2b0d57a4c2b2b5c78a7d34c8a0c1f9a3b7d6e2c4e5f6a7b8c9d0e1f2a3b4
+[obs] applying OTel Collector, gNMIc, Prometheus, Grafana
+namespace/agentic-netops-system configured
+serviceaccount/otel-collector unchanged
+clusterrole.rbac.authorization.k8s.io/otel-collector unchanged
+clusterrolebinding.rbac.authorization.k8s.io/otel-collector unchanged
+configmap/otel-collector-config unchanged
+deployment.apps/otel-collector unchanged
+service/otel-collector unchanged
+namespace/agentic-netops-system unchanged
+serviceaccount/gnmic unchanged
+configmap/gnmic-config unchanged
+deployment.apps/gnmic unchanged
+service/gnmic unchanged
+namespace/monitoring unchanged
+persistentvolumeclaim/prometheus unchanged
+configmap/prometheus-config unchanged
+configmap/prometheus-rules unchanged
+deployment.apps/prometheus unchanged
+service/prometheus unchanged
+configmap/agentic-netops-topology unchanged
+error: resource mapping not found for name: "agentic-netops-alerts" namespace: "monitoring" from "/root/agentic-netops/deploy/observability/rules/agentic-netops.rules.yaml": no matches for kind "PrometheusRule" in version "monitoring.coreos.com/v1"
+ensure CRDs are installed first
+serviceaccount/grafana-secret-generator unchanged
+role.rbac.authorization.k8s.io/grafana-secret-writer unchanged
+rolebinding.rbac.authorization.k8s.io/grafana-secret-writer-binding unchanged
+job.batch/grafana-admin-secret-generator unchanged
+job.batch/grafana-admin-secret-generator condition met
+namespace/monitoring unchanged
+persistentvolumeclaim/grafana unchanged
+configmap/grafana-provisioning unchanged
+configmap/grafana-dashboards unchanged
+deployment.apps/grafana configured
+service/grafana unchanged
+deployment "otel-collector" successfully rolled out
+deployment "gnmic" successfully rolled out
+deployment "prometheus" successfully rolled out
+deployment "grafana" successfully rolled out
+[provision] building controller binaries (pinned vendored Go source)
+sha256:fd895ea32f1b6d461face9a9005dabd493bee5e5509c28578821878e6af292d3
+sha256:6161841eec8d471062706994e4380bb4820e636bc5e57d6cfb260d0bd3461c48
+sha256:7cbe450a954c68e435d143d38db62b175159dc75272ca633888606e4cd74b5b7
+sha256:7794dfb86bc41382cd69e77fe8852925c1b7c813f86b61830878a1b4d5b9cbdf
+[provision] loading images into Kind
+Image: "agentic-netops-sonic-provider:dev" with ID "sha256:7cbe450a954c68e435d143d38db62b175159dc75272ca633888606e4cd74b5b7" not yet present on node "agentic-netops-control-plane", loading...
+Image: "agentic-netops-sonic-provider:dev" with ID "sha256:7cbe450a954c68e435d143d38db62b175159dc75272ca633888606e4cd74b5b7" not yet present on node "agentic-netops-worker", loading...
+Image: "agentic-netops-srv6-controller:dev" with ID "sha256:7794dfb86bc41382cd69e77fe8852925c1b7c813f86b61830878a1b4d5b9cbdf" not yet present on node "agentic-netops-control-plane", loading...
+Image: "agentic-netops-srv6-controller:dev" with ID "sha256:7794dfb86bc41382cd69e77fe8852925c1b7c813f86b61830878a1b4d5b9cbdf" not yet present on node "agentic-netops-worker", loading...
+[provision] deploying controllers
+deployment.apps/agentic-netops-sonic-provider configured
+service/agentic-netops-sonic-provider unchanged
+deployment.apps/agentic-netops-srv6-controller configured
+service/agentic-netops-srv6-controller unchanged
+deployment.apps/agentic-netops-sonic-provider image updated
+deployment.apps/agentic-netops-srv6-controller image updated
+[provision] waiting for controller pods ready (timeout=180s)
+deployment "agentic-netops-sonic-provider" successfully rolled out
+deployment "agentic-netops-srv6-controller" successfully rolled out
+[provision] fabric-executor already healthy on :8084 (node map unchanged)
+[provision] fabric-executor healthy; provider reaches it at http://172.30.0.1:8084
+[provision] generating fabric-compat-pins ConfigMap from versions.lock.yaml
+[provision] applying SRv6Service CRD and Kubenet default/tenant networks
+customresourcedefinition.apiextensions.k8s.io/srv6services.agentic-netops.io unchanged
+[assert-crds] OK: Agentic NetOps-owned CRDs = srv6services.agentic-netops.io and no duplicate/conflicting fabric/device-config CRDs detected
+topology.network.kubenet.dev/agentic-netops-topology unchanged
+networkconfig.network.kubenet.dev/agentic-netops-default unchanged
+ipindex.id.kuid.dev/underlay-v6 unchanged
+asnindex.id.kuid.dev/fabric-asn unchanged
+vniindex.id.kuid.dev/evpn-vni unchanged
+claim.id.kuid.dev/underlay-v6-claim unchanged
+claim.id.kuid.dev/fabric-asn-claim unchanged
+claim.id.kuid.dev/evpn-vni-claim unchanged
+ipindex.id.kuid.dev/srv6-locator-v6 unchanged
+claim.id.kuid.dev/srv6-locator-claim unchanged
+ipindex.id.kuid.dev/srv6-sids-v6 unchanged
+claim.id.kuid.dev/srv6-sid-claim unchanged
+vniindex.id.kuid.dev/srv6-service-ids unchanged
+claim.id.kuid.dev/srv6-service-id-claim unchanged
+network.network.kubenet.dev/default-fabric unchanged
+network.network.kubenet.dev/tenant-a-l2-bridged unchanged
+network.network.kubenet.dev/tenant-a-l3-routed unchanged
+network.network.kubenet.dev/tenant-b-irb unchanged
+schema.sdc.sdcio.dev/sonic-oc unchanged
+config.sdc.sdcio.dev/sonic-conn-profile unchanged
+config.sdc.sdcio.dev/sonic-sync-profile unchanged
+discoveryrule.sdc.sdcio.dev/sonic-management unchanged
+[provision] skipping intent tier (pass --with-intent-tier to install it)
+[clab] bootstrap: spine01
+[vm-bootstrap] waiting for guest SSH on 172.31.0.11:22 ...
+[vm-bootstrap] guest SSH is up
+[install-gnmi-certs] installed certs to /etc/sonic/telemetry
+Running command: /usr/local/bin/sonic-cfggen -j /tmp/gnmi_config_db.json --write-to-db
+Running command: /usr/local/bin/sonic-cfggen -d --print-data > /etc/sonic/config_db.json
+[vm-bootstrap] created/updated gNMI user 9f979397 in guest
+[vm-bootstrap] gNMI port 8080 is listening in guest
+[vm-bootstrap] completed
+[clab] bootstrap: spine01 done
+[clab] bootstrap: spine02
+[vm-bootstrap] waiting for guest SSH on 172.31.0.12:22 ...
+[vm-bootstrap] guest SSH is up
+[install-gnmi-certs] installed certs to /etc/sonic/telemetry
+Running command: /usr/local/bin/sonic-cfggen -j /tmp/gnmi_config_db.json --write-to-db
+Running command: /usr/local/bin/sonic-cfggen -d --print-data > /etc/sonic/config_db.json
+[vm-bootstrap] created/updated gNMI user 9f979397 in guest
+[vm-bootstrap] gNMI port 8080 is listening in guest
+[vm-bootstrap] completed
+[clab] bootstrap: spine02 done
+[clab] bootstrap: leaf01
+[vm-bootstrap] waiting for guest SSH on 172.31.0.21:22 ...
+[vm-bootstrap] guest SSH is up
+[install-gnmi-certs] installed certs to /etc/sonic/telemetry
+Running command: /usr/local/bin/sonic-cfggen -j /tmp/gnmi_config_db.json --write-to-db
+Running command: /usr/local/bin/sonic-cfggen -d --print-data > /etc/sonic/config_db.json
+[vm-bootstrap] created/updated gNMI user 9f979397 in guest
+[vm-bootstrap] gNMI port 8080 is listening in guest
+[vm-bootstrap] completed
+[clab] bootstrap: leaf01 done
+[clab] bootstrap: leaf02
+[vm-bootstrap] waiting for guest SSH on 172.31.0.22:22 ...
+[vm-bootstrap] guest SSH is up
+[install-gnmi-certs] installed certs to /etc/sonic/telemetry
+Running command: /usr/local/bin/sonic-cfggen -j /tmp/gnmi_config_db.json --write-to-db
+Running command: /usr/local/bin/sonic-cfggen -d --print-data > /etc/sonic/config_db.json
+[vm-bootstrap] created/updated gNMI user 9f979397 in guest
+[vm-bootstrap] gNMI port 8080 is listening in guest
+[vm-bootstrap] completed
+[clab] bootstrap: leaf02 done
+[qualify] Running Capabilities
+[gnmi-suite] 172.31.0.21:8080: capabilities content asserted (sonic-db, openconfig-system, gNMI version)
+[gnmi-suite] 172.31.0.22:8080: capabilities content asserted (sonic-db, openconfig-system, gNMI version)
+[qualify] Running Get
+[gnmi-suite] 172.31.0.21:8080: Get content asserted (DEVICE_METADATA.localhost present)
+[gnmi-suite] 172.31.0.22:8080: Get content asserted (DEVICE_METADATA.localhost present)
+[qualify] Running Set
+[gnmi-suite] 172.31.0.21:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1791895199)
+[gnmi-suite] 172.31.0.22:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1791895199)
+[qualify] Running Subscribe
+[gnmi-suite] 172.31.0.21:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[gnmi-suite] 172.31.0.22:8080: subscribe content asserted (DEVICE_METADATA delivered)
+[qualify] Running sonic-srv6
+[gnmi-suite] 172.31.0.21:8080: sonic-srv6 locator read-back asserted (prefix fc00:0:71::)
+[gnmi-suite] 172.31.0.22:8080: sonic-srv6 locator read-back asserted (prefix fc00:0:71::)
+[qualify] Running persistence pre-set (Set)
+[qualify] Running Set
+[gnmi-suite] 172.31.0.21:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1791895283)
+[gnmi-suite] 172.31.0.22:8080: write→read-back→delete witness asserted (action uN, key gate-loc-1791895283)
+[persist] writing SRv6 witness (persist-loc-1791895313) via GCU on all targets
+[persist] pre-restart read-back over gNMI
+[persist] restarting SONiC containers
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "bash": executable file not found in $PATH: unknown
+[persist] waiting for gNMI to come back
+[persist] post-restart read-back over gNMI
+[persist] 172.31.0.21:8080 persistence verified
+[persist] 172.31.0.22:8080 persistence verified
+[persist] cleaning up witness
+[persist] persistence verified
+[qualify] Running EVPN-Type2
+[evpn-srv6-suite] FAIL: EVPN-VM: leaf01 cannot reach spine over eth1
+[qualify] FAILED: EVPN/SRv6 capability 'EVPN-Type2' failed; gating remaining tests
+[provision] capability gate failed for profile sonic-vm

@@ -1,0 +1,15 @@
+APPLIED
+--- CONFIG_DB read-back ---
+NULL
+Vrf1
+INTERFACE|Ethernet12|192.168.2.1/24
+INTERFACE|Ethernet12
+--- kernel VRF device and membership ---
+Vrf1             UP             MAC <NOARP,MASTER,UP,LOWER_UP> 
+Ethernet12       UNKNOWN        192.168.2.1/24 fe80::LL/64 
+3
+--- client attachment and in-VRF reachability ---
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+
+[exit code: 0]

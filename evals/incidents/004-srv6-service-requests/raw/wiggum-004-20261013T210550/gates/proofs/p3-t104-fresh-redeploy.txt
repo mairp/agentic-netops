@@ -1,0 +1,19 @@
+# T104 — fresh redeploy via ./scripts/provision.sh --profile sonic-vm (pass 10 launch, pass 11 result)
+# attempt 1: rc=1 (documented in PROGRESS.md pass 10; capability-gate EVPN-Type2 witness miss)
+# attempt 2 (plain retry): rc=0
+---- provision2.log tail ----
+[yang-path] checking sonic-srv6 (sonic-db:/CONFIG_DB/SRV6_MY_LOCATORS) on 172.31.0.22:8080
+[yang-path-suite] 172.31.0.22:8080: sonic-srv6 absent (NotFound) — accepted for empty-by-design table
+[yang-path-suite] sonic-srv6 asserted on all targets
+[qualify] OK
+configmap/agentic-netops-topology unchanged
+[provision] complete: pins verified, CRDs validated/asserted, Kind ensured/attached, lab deployed, apps installed, seed applied, capability gate executed.
+---- lab containers after the redeploy (docker ps, fabric only) ----
+clab-agentic-netops-fabric-client01	Up 58 minutes
+clab-agentic-netops-fabric-client02	Up 58 minutes
+clab-agentic-netops-fabric-leaf01	Up 58 minutes (healthy)
+clab-agentic-netops-fabric-leaf02	Up 58 minutes (healthy)
+clab-agentic-netops-fabric-spine01	Up 58 minutes (healthy)
+clab-agentic-netops-fabric-spine02	Up 58 minutes (healthy)
+clab-agentic-netops-fabric-srv6-client01	Up 58 minutes
+clab-agentic-netops-fabric-srv6-client02	Up 58 minutes

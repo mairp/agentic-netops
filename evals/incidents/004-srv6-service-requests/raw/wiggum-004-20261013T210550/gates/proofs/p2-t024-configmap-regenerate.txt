@@ -1,0 +1,65 @@
+# T024 — bring the LIVE fabric-compat-pins ConfigMap to the active-profile (sonic-vm) state.
+# Generation block = scripts/provision.sh lines 261-329 verbatim (sed-extracted),
+# capability patch = scripts/provision.sh lines 406-417 verbatim, run with
+# AGENTIC_NETOPS_PROFILE=sonic-vm (the profile whose lab is live on this host).
+
+== BEFORE: live ConfigMap data (kubectl -o json, .data only) ==
+{
+ "cap-sai-srv6": "false",
+ "kubenet-commit": "bae1c487",
+ "kuid-commit": "7528e815",
+ "mapping-version": "v0.1.0",
+ "openconfig-commit": "f3443414",
+ "sdc-release": "v0.79.0",
+ "sonic-image": "localhost:5000/sonic-vs-gnmi:202505-v1@sha256:d1043aed28c98071c997a46d7e9e47823abacb06c31c068183541f8b5b5529e8",
+ "sonic-native-commit": "cfc766e1",
+ "srv6-supported": "false",
+ "telemetry-label-contract": "v0.1.0",
+ "topology-label-contract": "v0.1.0"
+}
+
+== RUN generation block (provision.sh 261-329) with AGENTIC_NETOPS_PROFILE=sonic-vm ==
+[provision] generating fabric-compat-pins ConfigMap from versions.lock.yaml
+
+== RUN capability patch block (provision.sh 406-417) ==
+
+== AFTER: live ConfigMap data (kubectl -o json, .data only) ==
+{
+ "cap-sai-srv6": "false",
+ "kubenet-commit": "bae1c487",
+ "kuid-commit": "7528e815",
+ "lab-profile": "sonic-vm",
+ "mapping-version": "v0.1.0",
+ "openconfig-commit": "f3443414",
+ "sdc-release": "v0.79.0",
+ "sonic-image": "local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2",
+ "sonic-native-commit": "cfc766e1",
+ "srv6-supported": "false",
+ "telemetry-label-contract": "v0.1.0",
+ "topology-label-contract": "v0.1.0"
+}
+
+== ADDENDUM: the 406-417 block itself was skipped by its own -x guard
+== (scripts/lib/capability.sh is mode 600 on this host — a pre-existing
+== quirk left untouched per the footprint rule). The SAME patch command
+== (lines 410-415) was executed directly with capability::derive output:
+
+capability::derive -> cap-sai-srv6=false
+srv6-supported=false
+configmap/fabric-compat-pins patched (no change)
+
+== FINAL: live ConfigMap data after the capability patch ==
+{
+ "cap-sai-srv6": "false",
+ "kubenet-commit": "bae1c487",
+ "kuid-commit": "7528e815",
+ "lab-profile": "sonic-vm",
+ "mapping-version": "v0.1.0",
+ "openconfig-commit": "f3443414",
+ "sdc-release": "v0.79.0",
+ "sonic-image": "local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2",
+ "sonic-native-commit": "cfc766e1",
+ "srv6-supported": "false",
+ "telemetry-label-contract": "v0.1.0",
+ "topology-label-contract": "v0.1.0"
+}

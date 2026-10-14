@@ -1,0 +1,50 @@
+########## leaf01 ##########
+===== EVPN session fabric (l2vpn evpn summary json) =====
+peer 10.1.0.0 state Established pfxRcd 0
+peer 10.1.0.4 state Established pfxRcd 0
+peer fcbb:bbbb:4::1 state Established pfxRcd 0
+===== L2VPN EVPN table =====
+No prefixes displayed, 0 exist
+===== bgpd VNI view (Type-5 generation precondition) =====
+Advertise Gateway Macip: Disabled
+Advertise SVI Macip: Disabled
+Advertise All VNI flag: Enabled
+BUM flooding: Head-end replication
+VXLAN flooding: Enabled
+Number of L2 VNIs: 0
+Number of L3 VNIs: 0
+Flags: * - Kernel
+===== zebra VNI view (L3VNI tenant binding) =====
+VNI        Type VxLAN IF              # MACs   # ARPs   # Remote VTEPs  Tenant VRF                           
+1001       L3   vxlan-1001            0        0        n/a             Vrf1                                 
+===== per-VRF export knobs (running config) =====
+router bgp 65101 vrf Vrf1
+ !
+ address-family ipv4 unicast
+  network 192.168.1.0/24
+  sid vpn export auto
+  rd vpn export 65101:100
+  rt vpn both 65101:100
+  export vpn
+  import vpn
+ exit-address-family
+exit
+===== EVPN AF knobs (running config, l2vpn evpn sections only) =====
+ address-family l2vpn evpn
+  neighbor 10.1.0.0 activate
+  neighbor 10.1.0.4 activate
+  neighbor fcbb:bbbb:4::1 activate
+  advertise-all-vni
+  advertise ipv4 unicast
+  advertise ipv6 unicast
+ exit-address-family
+===== L3VNI kernel device (id/local/flags only; MAC is random) =====
+<BROADCAST,MULTICAST,UP,LOWER_UP>
+vxlan id 1001
+local 10.0.0.21
+===== Vrf1 own client network in the VRF AF (connected, deterministic) =====
+ *>  192.168.1.0/24   0.0.0.0                  0         32768 i
+===== knob side effect: client subnets leaked into the DEFAULT table =====
+LEAKED-SUBNETS-IN-DEFAULT
+
+[exit code: 0]

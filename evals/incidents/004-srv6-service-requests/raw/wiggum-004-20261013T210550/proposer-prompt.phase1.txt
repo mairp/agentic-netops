@@ -1,0 +1,648 @@
+You are the PROPOSER in an automated spec-driven loop. Do the work for
+ONE phase, then write its evidence and STOP.
+
+## Working directory
+You are operating in: /root/agentic-netops
+Maintain your progress notes in .wiggum/features/004-srv6-service-requests/PROGRESS.md (done / verified /
+blocked / next). Read it FIRST each pass; never redo verified work. Keep the
+workdir ROOT clean — all your bookkeeping goes under .wiggum/features/004-srv6-service-requests/, not here
+(gate evidence/feedback files live in .wiggum/features/004-srv6-service-requests/gates/).
+
+## Your task: Phase 1 — Setup (Shared Infrastructure)
+Implement everything the phase requires so that EVERY acceptance criterion
+below is genuinely satisfied. A separate automated critic will verify your
+evidence against these criteria and will reject unsupported claims.
+
+## When (and only when) the phase is truly done
+Write your evidence to .wiggum/features/004-srv6-service-requests/gates/GATE1-EVIDENCE.md (path relative to the
+workdir; the .wiggum/features/004-srv6-service-requests/gates/ folder already exists). Write it ATOMICALLY: write
+.wiggum/features/004-srv6-service-requests/gates/GATE1-EVIDENCE.md.tmp first, then `mv` it onto
+.wiggum/features/004-srv6-service-requests/gates/GATE1-EVIDENCE.md (mv within the same folder is atomic, so the
+gate never sees a half file).
+The evidence must, for EACH checkbox task below, state concretely how it is
+completed and cite the exact files/paths it produced or changed. Do NOT write
+the evidence file until every task is actually done — its mere existence ends
+this phase.
+
+## Hard rule — never repair what you did not write
+Never delete, rewrite, restore or recreate files outside the paths this phase
+works on to make a check pass: no `rm -rf`, no reconstructing bytes or hashes,
+not even when a hint or feedback suggests it. If a gate (e.g. the reverse source
+guard) reports changes to files you did not touch, something else in this
+workdir changed them: leave them alone, say so in PROGRESS.md, and stop.
+
+## Evidence contract — READ THIS or your evidence will be rejected despite correct code
+A separate automated CRITIC judges ONLY (a) this evidence file and (b) a
+read-only grounding snapshot of the files you CITE. It cannot browse the repo.
+So for EVERY acceptance criterion that names a file and/or a symbol:
+  1. Cite THAT exact file path in your evidence (a workdir-relative path with a
+     slash, e.g. `packages/sdk/src/resilience.ts`, not a bare method name).
+  2. Stage a LINE-NUMBERED proof slice of that file showing the exact symbols
+     the criterion names, under .wiggum/features/004-srv6-service-requests/gates/proofs/ (e.g.
+     `sed -n '52,78p' packages/sdk/src/resilience.ts` piped through `nl -ba`,
+     or `grep -n`), and cite the proof file. Quote the symbol, not just its
+     surrounding function — the critic greps your cited file for that symbol.
+How the critic's snapshot works (write evidence it can actually ground):
+  - Files your criteria NAME are shown with ANCHORED excerpts: ±15 line-numbered
+    lines around each named symbol. So naming the symbol in the criterion (and
+    ensuring it appears verbatim in the cited file) is what makes it verifiable —
+    a mid-file implementation IS reachable this way; a vague citation is not.
+  - There is a per-snapshot byte budget. A snapshot line 'content excerpt
+    omitted — grounding byte budget reached' means the file was VERIFIED PRESENT;
+    it is NOT a missing file. Criterion-named files are never omitted, so cite
+    the precise path the criterion is about rather than dozens of tangential ones.
+  - Cite files by real relative paths. Do NOT cite RPC method names (`jobs.run`,
+    `events.subscribe@v1`) as if they were files — they are not, and the critic
+    ignores them.
+
+## Tasks to complete (each `- [ ]` is a required deliverable)
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: the proof recorder and the two record documents everything else writes into.
+
+- [ ] T001 Create `scripts/proof.sh`: `scripts/proof.sh <name> -- <command>` writes the exact command to `<name>.cmd` and its combined output plus exit code to `<name>.out` under `.wiggum/features/004-srv6-service-requests/gates/proofs/`, creating the directory. Done when `scripts/proof.sh selftest -- true` writes both files (plan 0-01)
+- [ ] T632 In `scripts/proof.sh`, add `replay <prefix>`: re-run every stored `<prefix>*.cmd` in the order it was recorded, compare each output with its `.out`, print the names that differ and exit non-zero if any does; destructive proofs are skipped unless `--all` is given. Done when `scripts/proof.sh replay selftest` reports no difference (plan 0-01)
+- [ ] T002 [P] Create `docs/SRV6_SERVICE_RECIPE.md` as a skeleton: one empty section each for underlay and locators, `ip-vrf`/`vpn`, `ip-vrf`/`evpn`, `mac-vrf`/`evpn`, steering, each starting with an "Approaches to try" list filled before the first attempt, and an empty verdict table with columns item, verdict, proofs, note (plan 0-02)
+- [ ] T003 [P] Create `docs/SRV6_ACCEPTANCE_004.md` as a skeleton: one row per SC-001 to SC-018 with empty proof-name cells, and an empty "Review records" section (plan 12-25, skeleton only)
+
+---
+
+## Context: constitution (read-only background, NOT a gate) — /root/agentic-netops/.specify/memory/constitution.md
+<!--
+SYNC IMPACT REPORT
+==================
+Version change: 1.1.0 → 1.2.0
+Rationale: MINOR, as directed by the owner. One rule is added (no gate, proof or
+approval may need a second person or manual intervention) and Principle VI gains
+the unattended-spike rule. Two existing rules are relaxed to fit it: the
+operator review of agent-behaviour changes becomes a written, non-blocking
+record, and the feasibility spike is no longer time-boxed. A strict reading of
+the versioning policy would call a relaxed rule MAJOR; the owner chose MINOR
+because no principle is removed or renamed.
+Context: single-owner development environment.
+
+Modified principles (titles unchanged):
+  - VI. Verification and Test Discipline
+      feasibility spike: "time-boxed" removed; unattended run and scripted
+      replay on a freshly brought-up lab added.
+
+Modified sections:
+  - Development Workflow and Quality Gates
+      agent-behaviour gate: "reviewed by an operator" replaced by a written
+        record of the texts before and after and the live proofs; lab testing
+        before merge kept.
+      new gate: no second person and no manual intervention; the two human
+        confirmations of Principle II are product behaviour and unchanged.
+  - Governance, Compliance review: reviewers replaced by a check of every
+      change, automated where a gate exists.
+
+Added sections: none
+Removed sections: none
+
+Templates requiring updates:
+  ✅ .specify/memory/constitution.md       (this file)
+  ✅ .specify/templates/plan-template.md   (cites v1.2.0; VI-f without the time
+     box and with the replay; new gates W-c and W-d)
+  ✅ .specify/templates/spec-template.md   (cites v1.2.0; CR-021 added)
+  ✅ .specify/templates/tasks-template.md  (cites v1.2.0; spike rule reworded;
+     unattended-delivery rule added)
+… (context truncated at line boundary) …
+
+## Context: spec (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/spec.md
+# Feature Specification: SRv6 Service Requests End to End
+
+**Feature Branch**: `004-srv6-service-requests`
+
+**Created**: 2026-10-11
+
+**Status**: Draft
+
+**Input**: User description: "roadmap/srv6-speckit-specify-prompt.md" (SRv6 service requests end to end, feature 004). Evidence base: `roadmap/srv6-enablement-research.md` (2026-10-11), which carries the code citations, the 21 blocking points, the work list and the owner decisions. This specification states behaviour and outcomes and cites that document for evidence.
+
+## Context
+
+An operator who asks for a service carried over SRv6 does not get one.
+
+- Through chat, "SRv6 L3VPN ..." and "EVPN over SRv6 ..." are provisioned as
+  VXLAN services (`ip-vrf` and `mac-vrf`). The word SRv6 is dropped and nothing
+  tells the operator. Other SRv6 phrasings are refused.
+- An `SRv6Service` resource applied directly is accepted by the cluster and then
+  stays not-Ready forever. Nothing is programmed, verified or cleaned up. Lab
+  bring-up hides the failure, and the demo tutorial describes an outcome that
+  does not occur.
+- No device recipe for an SRv6 VPN service has been proven on the pinned SONiC
+  image.
+- The controllers' write path cannot reach the nodes of the SONiC VM lab, so on
+  that lab nothing can be provisioned, the four existing constructs included.
+- The SONiC VM lab boots every switch with the same identity and no underlay.
+- The capability gate records two SRv6 checks as passed while skipping them, and
+  the capability flag that should gate SRv6 is a constant.
+
+Feature 001 required SRv6 services (US5, FR-026 to FR-030, SC-013 to SC-015).
+Its 2026-09-19 reconciliation recorded them as never held and called for a
+dedicated specification (candidate C2). This is that specification. The SONiC VM
+… (context truncated at line boundary) …
+
+## Context: plan (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/plan.md
+# Implementation Plan: SRv6 Service Requests End to End
+
+**Branch**: `004-srv6-service-requests` (git branch at planning time: `feat/sonic-vm-conformance`
+at `0720c4e2`) | **Date**: 2026-10-11 | **Spec**: [spec.md](./spec.md)
+
+**Input**: Feature specification from `specs/004-srv6-service-requests/spec.md`, the planning
+guidance in `roadmap/srv6-plan-prompt.md`, and the instruction to shape the plan so that
+`/speckit-tasks` can split the work into the smallest possible tasks.
+
+**Phase 0 research**: [research.md](./research.md) | **Phase 1 design**:
+[data-model.md](./data-model.md), [contracts/](./contracts/), [quickstart.md](./quickstart.md)
+
+Cross-feature identifiers: `001:FR-0xx`, `002:FR-0xx`, `003:FR-0xx`; this feature's are bare.
+Research decisions are cited as D1 to D34.
+
+## Summary
+
+An operator who asks for a service over SRv6 gets one, on the sonic-vm lab, through any of three
+entry points, or gets a refusal that names SRv6. Ready means the devices show the service and
+client traffic passes.
+
+The technical approach, in dependency order:
+
+1. **Prove the device recipe directly on the devices** (Phase 0), outside the controllers,
+   unattended (FR-003a). No SRv6 VPN service has been signalled or
+   forwarded on this image, and no spike record exists. The spike's verdicts fix the supported
+   set; everything recipe-dependent sits in two sections that the spike fills
+   ([data-model.md](./data-model.md) §8, [contracts/fabricplan-srv6.md](./contracts/fabricplan-srv6.md) §3).
+2. **Stop the false claims now** (Phase 1): refuse SRv6 phrasings instead of provisioning VXLAN,
+   scope and derive the capability, make the gate report skips, stop swallowing the sample wait.
+3. **Make sonic-vm a lab the controllers can write to** (Phases 2 to 5): per-node identity,
+… (context truncated at line boundary) …
+
+## Context: contract:capability-record (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/contracts/capability-record.md
+# Contract: capability record
+
+ConfigMap `fabric-compat-pins`, namespace `agentic-netops-system`, regenerated by
+`scripts/provision.sh` on every bring-up.
+
+## 1. Keys
+
+| Key | Example | Source | Change in this feature |
+| --- | --- | --- | --- |
+| `sonic-image` | `local/sonic-vm@sha256:5f3b...` | active profile's entry in `versions.lock.yaml` | follows the profile (was a sonic-vs-only regex) |
+| `cap-sai-srv6` | `"true"` / `"false"` | §2 | derived (was the constant `"true"`) |
+| `srv6-supported` | `ip-vrf/vpn,steering` | `lab/profiles/<profile>/srv6-supported.yaml` | new |
+| `lab-profile` | `sonic-vm` | `AGENTIC_NETOPS_PROFILE` | new, informational |
+| `srv6-probe-attachments` | `leaf01/wan1,leaf02/wan1` | the keys of the executor's `FABRIC_PROBE_MAP` | new; the attachments a first-activation data-path check can be run from (spec KL-009) |
+| `openconfig-commit`, `sonic-native-commit`, `mapping-version`, `kubenet-commit`, `kuid-commit`, `sdc-release`, `topology-label-contract`, `telemetry-label-contract` | | `versions.lock.yaml` | unchanged |
+
+`pkg/compat/pins.go` maps `cap-sai-srv6` to the label `agentic-netops.dev/cap.sai.srv6` today; it
+gains `srv6-supported` as `agentic-netops.dev/cap.srv6.supported`.
+
+## 2. Derivation of `cap-sai-srv6`
+
+`"true"` if and only if all of:
+
+1. the gate report for this bring-up has `result: pass`. The report is the file
+   `scripts/lib/qualify.sh` writes, `qualify.report.json`, at the path that script defines
+   (today under `.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs/`).
+   `scripts/lib/capability.sh` takes that path from `qualify.sh` and never repeats it as a
+   literal, so the two cannot drift;
+2. in that report the checks `SRv6-Underlay`, `End`, `End.DT46`, `H.Encaps.Red`, `SID-list` and
+   `Decapsulation` have status `pass`, none `skip`;
+… (context truncated at line boundary) …
+
+## Context: contract:executor-transport (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/contracts/executor-transport.md
+# Contract: fabric-executor transport per node kind
+
+The fabric-executor stays the only southbound and stays a host service. Its HTTP API
+(`/v1/node/apply`, `/v1/node/verify`, `/v1/nodes`, `/healthz`) does not change shape. What changes
+is how a command reaches the node.
+
+## 1. Interface
+
+```go
+type transport interface {
+    // run executes argv on the node and returns stdout, stderr and an error
+    // that is nil only for exit code 0.
+    run(ctx context.Context, argv []string, stdin []byte) (stdout, stderr string, err error)
+    kind() string // "docker" | "ssh"
+}
+```
+
+Today every command goes through `(*server).exec` (`cmd/fabric-executor/main.go:663`). That
+function becomes the `docker` implementation, unchanged in behaviour. The server resolves a
+transport per node and no caller knows which one it got.
+
+## 2. Selection
+
+| Env | Shape | Meaning |
+| --- | --- | --- |
+| `FABRIC_NODE_MAP` | `{"leaf01":"clab-...-leaf01", ...}` | unchanged: logical node to container |
+| `FABRIC_NODE_TRANSPORT` | `{"leaf01":{"kind":"ssh","addr":"172.31.0.21","user":"admin"}, ...}` | optional; a node absent here uses `docker` |
+| `FABRIC_SSH_KEY` | path | private key, mode 0600; required if any node is `ssh` |
+| `FABRIC_SSH_KNOWN_HOSTS` | path | per-lab host keys; required if any node is `ssh` |
+| `FABRIC_PROBE_MAP` | `{"leaf01/wan1":"clab-...-srv6-client01", ...}` | attachment to probe container (§4) |
+
+`scripts/provision.sh` builds `FABRIC_NODE_TRANSPORT` from each node container's `clab-node-kind`
+label. The executor refuses to start if a node is `ssh` and the key or known-hosts file is missing
+or has wider permissions than 0600.
+
+## 3. The `ssh` transport
+
+- Runs the host's `ssh` client: key authentication, `BatchMode=yes`,
+  `StrictHostKeyChecking=yes` against `FABRIC_SSH_KNOWN_HOSTS`, one multiplexed connection per
+… (context truncated at line boundary) …
+
+## Context: contract:fabricplan-srv6 (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/contracts/fabricplan-srv6.md
+# Contract: fabricplan operations and checks for SRv6
+
+`pkg/fabricplan` renders an `SRv6Service` into per-node `Ops`, `Checks` and `Rollback`, in the
+vocabulary the fabric-executor already speaks (`pkg/fabricplan/plan.go:53-95`). No new op class
+is added. One new check type is added (§2).
+
+## 1. Entry point
+
+```go
+func ForSRv6Service(svc *v1alpha1.SRv6Service, alloc Allocations, opts Options) (*Plan, error)
+```
+
+- Pure: no I/O, deterministic output for identical input. `plan_test.go` asserts byte-identical
+  JSON across runs.
+- `alloc` carries every identifier; the renderer generates none.
+- `opts` carries the site port map, node kinds and each node's bootstrap-owned locator.
+- One `NodePlan` per attachment node. A steered service may also need state on the ingress leaf
+  only; it never renders ops for a spine.
+- The renderer never emits an op that creates, changes or removes a locator. A unit test fails if
+  any op touches the locator table or the FRR locator block.
+
+## 2. New check type
+
+| Type | Fields | Passes when |
+| --- | --- | --- |
+| `probe-ping` | `probeFrom`, `probeTo`, `addr`, `size`, `count` | the probe host for `probeFrom` reaches `addr` with `count` echoes of `size` bytes, don't-fragment set |
+
+Executed by the executor in the client container registered for the attachment
+([executor-transport.md](./executor-transport.md) §4). It is used once, at first activation, and
+is not part of the periodic per-node checks.
+
+Existing check types (`redis-hget`, `redis-exists`, `redis-hget-contains`, `vtysh-contains`,
+`ip-master`, `ip-addr`, shell `command` + `expect`) cover the per-node state. Whether a further
+type is needed is decided by §3.
+
+## 3. Recipe-dependent content (filled by Phase 0)
+
+**Status: empty.** Phase 0 fills this section from [data-model.md](../data-model.md) §8.3 to §8.6.
+… (context truncated at line boundary) …
+
+## Context: contract:intent-srv6 (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/contracts/intent-srv6.md
+# Contract: intent JSON for SRv6 variants
+
+The wire shape shared by Go (`pkg/migration` `ServiceInput`) and Python
+(`agents/common/schemas/normalized_intent.py` `NormalizedServiceIntent`). Both sides validate it;
+a parity test feeds the same fixtures to both.
+
+## 1. Added fields
+
+| Field | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `transport` | `"vxlan"` \| `"srv6"` | `"vxlan"` | which underlay carries the service |
+| `signalling` | `"vpn"` \| `"evpn"` | by construct | only with `transport: srv6` |
+| `preferredSpine` | string | none | only with `transport: srv6` |
+
+`type` keeps its four values. No fifth construct is added.
+
+## 2. Example
+
+```json
+{
+  "serviceId": "acme-routed",
+  "type": "ip-vrf",
+  "transport": "srv6",
+  "signalling": "vpn",
+  "tenant": "acme",
+  "endpoints": [
+    {"node": "leaf01", "attachment": "wan1", "prefixes": ["2001:db8:3::30/127"]},
+    {"node": "leaf02", "attachment": "wan1", "prefixes": ["2001:db8:4::40/127"]}
+  ],
+  "preferredSpine": "spine01"
+}
+```
+
+## 3. Validation (identical causes on both sides)
+
+| # | Condition | Cause text |
+| --- | --- | --- |
+| V1 | `transport` not `vxlan` or `srv6` | `transport: unsupported '<x>' (transports: vxlan, srv6)` |
+| V2 | `transport: srv6` with `type` `vlan` or `acl` | `transport: srv6 applies to ip-vrf and mac-vrf only` |
+| V3 | `transport: srv6` with `l2vni`, `l3vni` or `rdRt` set | `srv6: identifiers are allocated by the fabric, not supplied` |
+| V4 | `type: mac-vrf`, `transport: srv6`, `signalling: vpn` | `signalling: mac-vrf over srv6 uses evpn` |
+| V5 | `signalling` or `preferredSpine` set with `transport: vxlan` | `<field>: only valid with transport srv6` |
+| V6 | `transport: srv6` and not exactly two endpoints on distinct nodes | `endpoints: an srv6 service joins exactly two attachments on distinct nodes` |
+… (context truncated at line boundary) …
+
+## Context: contract:operator-phrasings (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/contracts/operator-phrasings.md
+# Contract: operator phrasings accepted, clarified and refused
+
+What the tier does with a request that names SRv6. Every row is a corpus case under
+`agents/tests/corpus/phrasings/`. The vocabulary, the guard
+(`agents/tests/unit/test_vocabulary_guard.py`) and the refusal texts change in the same change
+(FR-018).
+
+"Supported" below means a member of the supported set ([data-model.md](../data-model.md) §3).
+
+## 1. Recognition
+
+A request is an SRv6 request when it matches, case-insensitively, any of: `srv6`,
+`segment routing v6`, `segment routing over ipv6`, `segment-routing v6`,
+`segment-routing over ipv6`. A bare "segment routing" does not name SRv6 and is left to the
+existing patterns, so a refusal never says a request named SRv6 when it did not. Recognition runs before
+`_detect_service_type` and before the `l3vpn`, `evpn` and `vrf` patterns
+(`agents/provisioning/mapper/agent.py:67-82`). The SRv6 qualifier decides the transport; a legacy
+service name beside it is never enough to select a VXLAN construct.
+
+| Request names | Interpretation |
+| --- | --- |
+| `ip-vrf over srv6`, `SRv6 ip-vrf`, `SRv6 L3VPN` (migration alias), `routed service over srv6` | `ip-vrf`, transport `srv6`, signalling `vpn` |
+| `ip-vrf over srv6 with evpn signalling`, `routed EVPN over SRv6` | `ip-vrf`, transport `srv6`, signalling `evpn` |
+| `mac-vrf over srv6`, `bridged EVPN over SRv6`, `extend vlan N over srv6` | `mac-vrf`, transport `srv6`, signalling `evpn` |
+| `EVPN over SRv6` with no construct and no "routed"/"bridged" | clarification C2 |
+| `SRv6 service` with no construct | clarification C1 |
+
+How the tier restates the request to the operator (the only forms shown on operator surfaces):
+`ip-vrf over srv6`, `ip-vrf over srv6 with evpn signalling`, `mac-vrf over srv6` (spec FR-013).
+… (context truncated at line boundary) …
+
+## Context: contract:srv6service-crd (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/contracts/srv6service-crd.md
+# Contract: `SRv6Service` CRD
+
+`agentic-netops.io/v1alpha1`, kind `SRv6Service`, namespaced, short name `srv6svc`, status
+subresource. Generated from the markers in `api/v1alpha1/srv6service_types.go` by
+`make manifests`; the YAML under `config/crd/bases/` is never edited by hand.
+
+Entities and state: [data-model.md](../data-model.md) §1, §2, §6.
+
+## 1. Example
+
+```yaml
+apiVersion: agentic-netops.io/v1alpha1
+kind: SRv6Service
+metadata:
+  name: acme-routed
+  namespace: agentic-netops-intent
+spec:
+  tenant: acme
+  construct: ip-vrf
+  signalling: vpn
+  attachments:
+    - node: leaf01
+      port: wan1
+      gateway: ["2001:db8:3::30/127"]
+    - node: leaf02
+      port: wan1
+      gateway: ["2001:db8:4::40/127"]
+  path:
+    preferredSpine: spine01
+```
+
+No locator, SID, VRF or route target appears. The controller allocates them and reports them in
+`status.allocations`.
+
+## 2. Admission rules (CEL, one envtest case each)
+
+| # | Rule | Message |
+| --- | --- | --- |
+| A1 | `tenant` matches the RFC 1123 label pattern | `tenant must be a DNS label` |
+| A2 | `construct` is `ip-vrf` or `mac-vrf` | `construct must be ip-vrf or mac-vrf` |
+| A3 | `signalling` is `vpn` or `evpn` when set | `signalling must be vpn or evpn` |
+| A4 | not (`construct == 'mac-vrf'` and `signalling == 'vpn'`) | `mac-vrf over srv6 uses evpn signalling` |
+| A5 | `size(attachments) == 2` | `exactly two attachments are required` |
+| A6 | `attachments[0].node != attachments[1].node` | `attachments must be on distinct nodes` |
+| A7 | every `gateway` entry is a prefix | `gateway must be an IP prefix` |
+| A8 | `vlan` set if and only if `construct == 'mac-vrf'` | `vlan is required for mac-vrf and not allowed for ip-vrf` |
+| A9 | `gateway` present on both attachments when `construct == 'ip-vrf'` | `ip-vrf attachments need a gateway prefix` |
+… (context truncated at line boundary) …
+
+## Context: data-model (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/data-model.md
+# Data Model: SRv6 Service Requests End to End (004)
+
+**Spec**: [spec.md](./spec.md) | **Research**: [research.md](./research.md)
+
+Everything that depends on the device recipe is in §8 and nowhere else. Until Phase 0 fills §8,
+the other sections describe shape and rules, not device state.
+
+## 1. `SRv6Service` (spec)
+
+API group `agentic-netops.io/v1alpha1`, namespaced. Full schema and validation rules:
+[contracts/srv6service-crd.md](./contracts/srv6service-crd.md).
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `spec.tenant` | string, RFC 1123 label | yes | never defaulted |
+| `spec.construct` | `ip-vrf` \| `mac-vrf` | yes | research D13 |
+| `spec.signalling` | `vpn` \| `evpn` | no | default `vpn` for `ip-vrf`, `evpn` for `mac-vrf`; `mac-vrf` + `vpn` is invalid |
+| `spec.attachments[]` | list of `{node, port, gateway[]?}` | yes, exactly 2 | distinct nodes; `gateway` holds the leaf-side prefixes for an `ip-vrf` |
+| `spec.vlan` | integer | `mac-vrf` only | the tag carried on the attachment ports. Operator intent, as in 003; the controller reserves this value in KUID before any device write (§4, spec FR-020a) |
+| `spec.path.preferredSpine` | string | no | research D14 |
+| `spec.path.alternateSpine` | string | no | accepted only to be validated |
+
+Removed from today's type (`api/v1alpha1/srv6service_types.go:49-70`): `locatorPrefix`, `vrf`,
+`servicePrefix`, `client`, `server`, `path.primary`, `path.alternate`, `transitWaypoints`,
+`topologyRef`, `underlay`. A resource that sets `locatorPrefix`, `vrf`, or any SID field is
+refused at admission with "identifiers are allocated, not typed" (FR-020).
+
+**Validation that needs the site** (node exists, port exists, spine is a spine, port not held by
+another service) cannot be expressed in CEL. The controller performs it first and sets a terminal
+… (context truncated at line boundary) …
+
+## Context: research (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/research.md
+# Research: SRv6 Service Requests End to End (004)
+
+**Date**: 2026-10-11 | **Spec**: [spec.md](./spec.md) | **Plan**: [plan.md](./plan.md)
+
+Evidence base: `roadmap/srv6-enablement-research.md` (cited as "the research file"), its
+addendum and its owner-decisions table. The research file cites `file:line` at commit
+`0720c4e2`; the tree is still at `0720c4e2`, and every location this plan relies on was re-read
+on 2026-10-11. Lab and cluster were read, never written.
+
+Markers used below:
+
+- **verified**: read from the code, the cluster or a switch on 2026-10-11.
+- **inferred**: follows from something verified, not observed directly.
+- **general knowledge**: stated from knowledge of SONiC, FRR or Linux, not checked on this image.
+  Nothing marked this way is a design input until Phase 0 confirms it.
+
+## 1. Settled decisions (owner, 2026-10-11)
+
+These are inputs. They are recorded once and not reopened.
+
+### D1. Service types
+
+- **Decision**: L3VPN over SRv6 and EVPN over SRv6; EVPN covers routed (Type-5) and bridged
+  (MAC-VRF). Bridged may be deferred, in which case requests for it are refused by name.
+- **Rationale**: owner decision 1 and "1 (detail)"; spec settled decisions 1 and 2.
+- **Alternatives considered**: the 001 US5 shape (explicit primary/alternate SID path between two
+  clients), which is what today's CRD encodes. Not chosen.
+
+### D2. Acceptance target and bar
+
+- **Decision**: the sonic-vm profile; client-to-client traffic between `srv6-client01` and
+  `srv6-client02` is required. Control-plane state alone is not acceptance.
+- **Rationale**: owner decision 2. The guest kernel has seg6 and the ASIC is `vs`, so the kernel is
+  the dataplane (research file, addendum).
+- **Alternatives considered**: control-plane-verified state as "provisioned". Rejected by the
+  owner.
+
+### D3. Resource shape
+… (context truncated at line boundary) …
+
+## Context: quickstart (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/quickstart.md
+# Quickstart: validating SRv6 Service Requests End to End (004)
+
+One scenario per acceptance criterion. Each names the command that produces its proof.
+
+**Rules for every proof**
+
+- A proof is a capture taken on the live lab through `scripts/proof.sh <name> -- <command>`,
+  which stores the exact command in `<name>.cmd` and its output and exit code in `<name>.out`
+  under `.wiggum/features/004-srv6-service-requests/gates/proofs/`. Re-running `<name>.cmd` must
+  regenerate `<name>.out` (FR-039, SC-015).
+- A scenario marked **cannot be shown yet** has no runnable proof command today. It says what is
+  missing instead of describing an expected result.
+- `scripts/proof.sh` is the first thing Phase 0 builds; until then no scenario here is runnable.
+- Proof names: `tasks.md` is the naming source. The names below are patterns; a scenario run once
+  per variant carries the variant (`q5-ip-vrf-vpn-apply`), and a proof taken again later carries a
+  suffix (`-default`, `-us4`, `-final`) so that it never overwrites the capture an earlier gate
+  rested on.
+- `.wiggum/` is not tracked. A proof is a local artefact; what makes it evidence is that its
+  `.cmd` regenerates its `.out` on the live lab. The tracked index
+  `docs/SRV6_ACCEPTANCE_004.md` cites proofs by name.
+- Packets: IPv6 probes use a payload of 8900 bytes with don't-fragment set, below the ~9120-byte
+  effective payload under MTU 9216 with an SRv6 header; plus one default-size probe. The exact
+  size is confirmed in Phase 0 ([data-model.md](./data-model.md) §8.7).
+- Commands that run on a switch go through `node_run` from
+  `tests/integration/lib/node_exec.sh`, so they work on both profiles.
+
+Contracts: [srv6service-crd](./contracts/srv6service-crd.md),
+[intent-srv6](./contracts/intent-srv6.md), [fabricplan-srv6](./contracts/fabricplan-srv6.md),
+… (context truncated at line boundary) …
+
+## Context: checklist:requirements (read-only background, NOT a gate) — /root/agentic-netops/specs/004-srv6-service-requests/checklists/requirements.md
+# Specification Quality Checklist: SRv6 Service Requests End to End
+
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-10-11
+**Feature**: [spec.md](../spec.md)
+
+## Content Quality
+
+- [x] No implementation details (languages, frameworks, APIs)
+- [x] Focused on user value and business needs
+- [x] Written for non-technical stakeholders
+- [x] All mandatory sections completed
+
+## Requirement Completeness
+
+- [x] No [NEEDS CLARIFICATION] markers remain
+- [x] Requirements are testable and unambiguous
+- [x] Success criteria are measurable
+- [x] Success criteria are technology-agnostic (no implementation details)
+- [x] All acceptance scenarios are defined
+- [x] Edge cases are identified
+- [x] Scope is clearly bounded
+- [x] Dependencies and assumptions identified
+
+## Feature Readiness
+
+- [x] All functional requirements have clear acceptance criteria
+- [x] User scenarios cover primary flows
+- [x] Feature meets measurable outcomes defined in Success Criteria
+- [x] No implementation details leak into specification
+
+## Notes
+
+- Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`
+- Validation run 2026-10-11, iteration 1.
+- **Open markers (3, the maximum, placed where the feature prompt directed):**
+  - FR-013: operator vocabulary for SRv6 services (working default: an "over srv6"
+    qualifier on `ip-vrf` and `mac-vrf`).
+  - FR-026: how a preferred path is expressed by the operator and on the resource, and
+    the loss bound for failover and return. SC-007 depends on this bound.
+  - FR-031: whether the tier may read the site capability record for the early refusal.
+- **Implementation detail, judged acceptable:** the spec names the `SRv6Service` resource
+… (context truncated at line boundary) …
+
+## Verification obligations
+Canonical verification plan: verification-99fa5bc902894115a62b
+Verification plan hash: 35f650e23fbc093ca22d36262ab456180830e49192663133df82d48db2e9762c
+Source semantic hash: 9b670c75c09d5b8fb2377a9d8ad7b8d367c3e848aaa63bfdafaabee550069cf2
+
+### VO-b5104e61f0db5bc4174b — T001 Create `scripts/proof.sh`: `scripts/proof.sh <name> -- <command>` writes the exact command to `<name>.cmd` and its combined output plus exit code to `<name>.out` under `.wiggum/features/004-srv6-service-requests/gates/proofs/`, creating the directory. Done when `scripts/proof.sh selftest -- true` writes both files (plan 0-01)
+- Level: integration
+- Kind: effect-witness
+- Action: Setup (Shared Infrastructure)
+- Oracle: T001 Create `scripts/proof.sh`: `scripts/proof.sh <name> -- <command>` writes the exact command to `<name>.cmd` and its combined output plus exit code to `<name>.out` under `.wiggum/features/004-srv6-service-requests/gates/proofs/`, creating the directory. Done when `scripts/proof.sh selftest -- true` writes both files (plan 0-01)
+- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
+- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
+- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
+
+### VO-bfb6c1df2e6a25a56291 — T632 In `scripts/proof.sh`, add `replay <prefix>`: re-run every stored `<prefix>*.cmd` in the order it was recorded, compare each output with its `.out`, print the names that differ and exit non-zero if any does; destructive proofs are skipped unless `--all` is given. Done when `scripts/proof.sh replay selftest` reports no difference (plan 0-01)
+- Level: contract
+- Kind: positive
+- Action: Setup (Shared Infrastructure)
+- Oracle: T632 In `scripts/proof.sh`, add `replay <prefix>`: re-run every stored `<prefix>*.cmd` in the order it was recorded, compare each output with its `.out`, print the names that differ and exit non-zero if any does; destructive proofs are skipped unless `--all` is given. Done when `scripts/proof.sh replay selftest` reports no difference (plan 0-01)
+- Witness: Observe independently that this criterion is true: T632 In `scripts/proof.sh`, add `replay <prefix>`: re-run every stored `<prefix>*.cmd` in the order it was recorded, compare each output with its `.out`, print the names that differ and exit non-zero if any does; destructive proofs are skipped unless `--all` is given. Done when `scripts/proof.sh replay selftest` reports no difference (plan 0-01)
+
+### VO-9aacc570be3d37cd52f4 — T002 [P] Create `docs/SRV6_SERVICE_RECIPE.md` as a skeleton: one empty section each for underlay and locators, `ip-vrf`/`vpn`, `ip-vrf`/`evpn`, `mac-vrf`/`evpn`, steering, each starting with an "Approaches to try" list filled before the first attempt, and an empty verdict table with columns item, verdict, proofs, note (plan 0-02)
+- Level: integration
+- Kind: effect-witness
+- Action: Setup (Shared Infrastructure)
+- Oracle: T002 [P] Create `docs/SRV6_SERVICE_RECIPE.md` as a skeleton: one empty section each for underlay and locators, `ip-vrf`/`vpn`, `ip-vrf`/`evpn`, `mac-vrf`/`evpn`, steering, each starting with an "Approaches to try" list filled before the first attempt, and an empty verdict table with columns item, verdict, proofs, note (plan 0-02)
+- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
+- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
+- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
+
+### VO-7293c2cd5e2d3d866026 — T003 [P] Create `docs/SRV6_ACCEPTANCE_004.md` as a skeleton: one row per SC-001 to SC-018 with empty proof-name cells, and an empty "Review records" section (plan 12-25, skeleton only)
+- Level: integration
+- Kind: effect-witness
+- Action: Setup (Shared Infrastructure)
+- Oracle: T003 [P] Create `docs/SRV6_ACCEPTANCE_004.md` as a skeleton: one row per SC-001 to SC-018 with empty proof-name cells, and an empty "Review records" section (plan 12-25, skeleton only)
+- Witness: Observe the resulting state through an independent read path; the mutation response is not proof.
+- Witness: Record a durable identity, lifecycle state, or content hash that could not exist before the action.
+- Negative case: Reject a successful-looking response when no independently readable durable effect exists.
+
+### Commands this phase's gate will execute
+These run with shell=False before the critic sees anything. They are the only thing that can clear the gate — restating the evidence cannot.
+- `/usr/lib/go-1.24/bin/go test ./...` (cwd /root/agentic-netops, timeout 1800s)
+- `/usr/bin/bash scripts/proof.sh selftest -- true` (cwd /root/agentic-netops, timeout 60s)
+- `/usr/bin/bash scripts/proof.sh replay selftest` (cwd /root/agentic-netops, timeout 120s)
+
+Create or update automated tests for these obligations. Generated TODO/skip scaffolds are starting points only and are never passing evidence.
+The phase evidence must map every obligation above to independently observable evidence.
+
+## If this phase depends on a job that cannot finish inside one pass: YIELD
+Do NOT sleep, poll, tail, or `until ... done` your way through a long job.
+Waiting inside a pass costs a full context rebuild per pass and gets the pass
+killed at the ceiling — which also kills the job, because a job you start from
+your own Bash tool lives in the pass's process tree.
+Instead, END THE PASS and let specstride do the waiting with no model session open.
+Write this file ATOMICALLY (tmp then `mv`), then STOP without writing evidence:
+  /root/agentic-netops/.wiggum/features/004-srv6-service-requests/yield/phase1-attempt1-20261011-214658-898303.json
+```json
+{"contract": "specstride-pass-yield/v1",
+ "reason": "one line: what you are waiting on and why the evidence needs it",
+ "job": {"mode": "launch", "argv": ["/usr/bin/make", "live"], "cwd": "/root/agentic-netops"},
+ "resume_when": {"kind": "exit_code_file"},
+ "deadline_sec": 7200,
+ "on_resume": "exactly what the next pass should do with the result"}
+```
+- `job.mode`: "launch" (PREFERRED — specstride starts it in its own session, where no
+  pass kill can reach it) or "adopt" with `pid: N` if you already started it
+  under `setsid`. An adopt naming a pid in this pass's own session is REFUSED.
+- `resume_when.kind`: exit_code_file (defaults to the rc file specstride writes for a
+  job it launched) | pid (defaults to the job it launched) | file_exists |
+  file_stable (+ `stable_sec`) | grep (+ `path`, `pattern`).
+- `deadline_sec` is REQUIRED — the run holds this workdir for the whole wait.
+- `on_resume` is handed back to you verbatim next pass, with the job's exit code
+  and a bounded slice of its log. Say what you will do with them.
+A yield is not a failure: it does not count as an error, it is not a stall, and
+by default it does not even burn an iteration. Yielding on a 90-minute job is
+the CORRECT move; waiting for it inside the pass is the expensive one.

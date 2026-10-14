@@ -1,0 +1,4 @@
+{"kind": "job", "job": "20261013-120241-4145257:attempt1:yield1", "ts": 1791885166, "log": "/root/agentic-netops/.wiggum/features/004-srv6-service-requests/yield-jobs/phase3-attempt1-20261013-120241-4145257-yield1.log", "failures": 1}
+{"kind": "failure", "job": "20261013-120241-4145257:attempt1:yield1", "sig": "##### <n>:<n>:<n> canary failed (CANARY-FAIL vrf-apply leaf01:"}
+{"kind": "job", "job": "20261013-120241-4145257:attempt1:yield2", "ts": 1791887460, "log": "/tmp/g3/chain5.log", "failures": 1}
+{"kind": "failure", "job": "20261013-120241-4145257:attempt1:yield2", "sig": "##### <n>:<n>:<n> LAB-SICK: canary failed (CANARY-FAIL vrf-apply leaf01: APPLY-STUCK: kernel VRF state did not converge after <n> attempts (applied='APPLIED'))"}

@@ -1,0 +1,97 @@
+# T030/T600 — qualify.sh skip classification + totals + report path (line-numbered)
+13:SKIPPED=0
+14:PASSED=0
+27:    pass) PASSED=$((PASSED + 1)) ;;
+29:    skip) SKIPPED=$((SKIPPED + 1)) ;;
+42:    # T030 (contracts/capability-record.md §5): totals make skips first-class —
+44:    printf '],"totals":{"passed":%s,"failed":%s,"skipped":%s},"result":"%s"}\n' \
+96:    elif (( rc == 77 )); then
+97:      record_result "$t" "skip"
+111:  elif (( rc == 77 )); then
+112:    record_result "YANG-Paths" "skip"
+125:if [[ ${1:-} == "--print-report-path" ]]; then
+
+--- record_result + emit_report (lines 11-62):
+    11	ALL_STATUSES=()
+    12	FAILED=0
+    13	SKIPPED=0
+    14	PASSED=0
+    15	
+    16	run_test() {
+    17	  local name=$1
+    18	  echo "[qualify] Running $name" | tee -a "$REPORT_DIR/qualify.run.log"
+    19	  "${ROOT_DIR}/tests/integration/sonic_gnmi_suite.sh" --run "$name" 2>&1 | tee -a "$REPORT_DIR/qualify.$name.out.log"
+    20	}
+    21	
+    22	record_result() {
+    23	  local name=$1 status=$2
+    24	  ALL_TESTS+=("$name")
+    25	  ALL_STATUSES+=("$status")
+    26	  case "$status" in
+    27	    pass) PASSED=$((PASSED + 1)) ;;
+    28	    # T030: a skip is not a pass and not a fail — only failures gate.
+    29	    skip) SKIPPED=$((SKIPPED + 1)) ;;
+    30	    *) FAILED=1 ;;
+    31	  esac
+    32	}
+    33	
+    34	emit_report() {
+    35	  {
+    36	    echo '{"tests":['
+    37	    local sep=""; local i
+    38	    for ((i=0; i<${#ALL_TESTS[@]}; i++)); do
+    39	      printf '%s{"name":"%s","status":"%s"}' "$sep" "${ALL_TESTS[$i]}" "${ALL_STATUSES[$i]}"
+    40	      sep=",";
+    41	    done
+    42	    # T030 (contracts/capability-record.md §5): totals make skips first-class —
+    43	    # result is pass iff failed == 0 (skips never count as passed).
+    44	    printf '],"totals":{"passed":%s,"failed":%s,"skipped":%s},"result":"%s"}\n' \
+    45	      "$PASSED" "$FAILED" "$SKIPPED" \
+    46	      "$(if (( FAILED != 0 )); then echo fail; else echo pass; fi)"
+    47	  } > "$REPORT_DIR/qualify.report.json"
+    48	}
+    49	
+    50	bail() {
+    51	  local msg=$1
+    52	  emit_report
+    53	  echo "[qualify] FAILED: $msg" | tee -a "$REPORT_DIR/qualify.run.log"
+    54	  exit 1
+    55	}
+    56	
+    57	main() {
+    58	  local core_failed=0
+    59	  # Materialize lab credentials/TLS locally before any gNMI capability test (T076)
+    60	  # shellcheck source=lab_secrets.sh
+    61	  source "${ROOT_DIR}/scripts/lib/lab_secrets.sh"
+    62	  lab_secrets::ensure "kind-${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
+
+--- EVPN loop classification:
+    90	    set +e
+    91	    "${ROOT_DIR}/tests/integration/evpn_srv6_suite.sh" --run "$t" 2>&1 | tee -a "$REPORT_DIR/qualify.$t.out.log"
+    92	    rc=$?
+    93	    set -e
+    94	    if (( rc == 0 )); then
+    95	      record_result "$t" "pass"
+    96	    elif (( rc == 77 )); then
+    97	      record_result "$t" "skip"
+    98	    else
+    99	      record_result "$t" "fail"
+   100	      bail "EVPN/SRv6 capability '$t' failed; gating remaining tests"
+   101	    fi
+   102	  done
+   103	
+   104	  # Required OpenConfig/SONiC YANG path qualification
+   105	  set +e
+   106	  "${ROOT_DIR}/tests/integration/yang_paths_suite.sh" --run YANG-Paths 2>&1 | tee -a "$REPORT_DIR/qualify.YANG-Paths.out.log"
+   107	  rc=$?
+   108	  set -e
+
+--- T600 flag:
+   122	
+   123	# T600: report the path qualify writes its machine-readable report to, so
+   124	# downstream derivation (scripts/lib/capability.sh) never hardcodes a literal.
+   125	if [[ ${1:-} == "--print-report-path" ]]; then
+   126	  echo "${REPORT_DIR}/qualify.report.json"
+   127	  exit 0
+   128	fi
+   129	

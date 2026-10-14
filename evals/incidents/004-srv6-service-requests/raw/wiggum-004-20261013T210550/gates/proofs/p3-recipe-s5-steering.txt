@@ -1,0 +1,45 @@
+   252	## 5. Steering
+   253	
+   254	**Status: proven for an explicit pinned path; the SC-007 failover SLO
+   255	(≤2 lost probes within 5 s) is NOT met — failover is bounded at ≤10 lost
+   256	1 Hz probes, measured.** Steering exists as an explicit per-service pin on
+   257	the ingress leaf; nothing is ever emitted for a spine (contract §1).
+   258	
+   259	Approaches to try (written before the first attempt):
+   260	
+   261	- Two spines give two equal paths; preference expressed on the ingress leaf
+   262	  only (the renderer never emits ops for a spine —
+   263	  `specs/004-srv6-service-requests/contracts/fabricplan-srv6.md` §1), by
+   264	  either an explicit SID list through the preferred spine or a lower path
+   265	  preference/metric — which of the two the image supports is a spike question.
+   266	- Failover to the alternate spine and return on restoration, bounded by 5
+   267	  seconds with at most 2 consecutive losses after the switch (SC-007,
+   268	  FR-026a); measured with 1 Hz probes from the client attachments, as
+   269	  `tests/integration/srv6_failover_path_change.sh` does today.
+   270	- Detection via BFD or fast BGP timers if passive convergence misses the 5 s
+   271	  bound (timers are a data-model §8.8 baseline question).
+   272	- The read-back that shows the active path (data-model §8.6), recorded as the
+   273	  per-node check that backs any steering verdict.
+   274	
+   275	| item | verdict | proofs | note |
+   276	| --- | --- | --- | --- |
+   277	| explicit per-service path pin through a chosen spine | proven | `spike-steering-path` | kernel FIB on leaf01: `fcbb:bbbb:4:11:: from :: via 2001:db8:1::3 dev Ethernet0 proto 196 metric 20` (spine01 leg); SRH packets seen ONLY on the preferred leg's uplink, 0 on the alternate |
+   278	| steering read-back (the §8.6 check) | proven | `spike-steering-path`, `spike-steering-failover-bgp` | the kernel FIB line above IS the read-back; captured per node |
+   279	| failover on a failure action (link down / iface down / BGP shutdown) | proven with an honest SLO miss | `spike-steering-failover-launcher`, `spike-steering-failover-guest-if`, `spike-steering-failover-bgp` | the switch to the alternate spine happens and traffic resumes; LOSS-BOUNDED at `missed<=10, longest-run<=10` probes at 1 Hz — the SC-007 ≤2-loss/5 s bound is NOT met on the as-built lab (no BFD; passive detection only) |
+   280	| return on restoration | proven with the same SLO miss | `spike-steering-return` | preferred path returns in the FIB; LOSS-BOUNDED ≤10 at 1 Hz |
+   281	| BFD / fast-timer detection | not attempted | — | out of scope for the pinned-path mechanism; recorded as the reason the 5 s bound is unmet |
+   282	| steering removal leaves no residue | proven | `spike-steering-failover-bgp`, `spike-steering-return` | `LEFTOVER-PINS: 0`; as-built client traffic 0% loss both directions afterwards |
+   283	
+   284	### 5a. As-built steering recipe
+   285	
+   286	- Pin: `ip -6 route replace fcbb:bbbb:<peer>:11:: from :: via <spine-link-v6>
+   287	  dev Ethernet0 metric 20` on the ingress leaf — a per-service /64 host route
+   288	  through the preferred spine's link address (this is what the proofs record;
+   289	  it also carries the SRC pinning `from ::` that zebra needs to keep the nhg
+   290	  usable).
+   291	- Failover action = delete the pin and install the same route via the
+   292	  alternate spine's link address; return = the reverse. The service-level
+   293	  steering route (`vrf Vrf1 … encap seg6`) is untouched by steering.
+   294	- Read-back: `ip -6 route show | grep 'fcbb:bbbb:<peer>:11'` per node; the
+   295	  wire witness is the tcpdump leg check in `spike-steering-path`.
+   296	

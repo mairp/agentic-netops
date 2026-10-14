@@ -1,0 +1,17 @@
+# proof.sh selftest + replays (venv active, as recorded): 2026-10-11T19:24:16Z
+$ bash scripts/proof.sh selftest -- true
+proof recorded: selftest (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/selftest.out
+
+$ bash scripts/proof.sh replay selftest
+ok selftest
+replay selftest: 1 proof(s) checked, no difference (0 skipped)
+
+$ source agents/.venv/bin/activate && bash scripts/proof.sh replay q10
+ok q10-baseline
+ok q10-srv6
+ok q10-guard
+replay q10: 3 proof(s) checked, no difference (0 skipped)
+
+$ bash scripts/proof.sh replay p1-agents
+ok p1-agents
+replay p1-agents: 1 proof(s) checked, no difference (0 skipped)

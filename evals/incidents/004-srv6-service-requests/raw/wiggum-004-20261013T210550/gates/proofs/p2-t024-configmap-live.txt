@@ -1,0 +1,60 @@
+# T024 slice A — scripts/provision.sh: sonic-image comes from the ACTIVE profile lock entry
+## scripts/provision.sh lines 275-307 (image_of() entry slicer, profile selection, "sonic-image" key)
+   275	def image_of(entry_name):
+   276	    # T024 (FR-009): the sonic-image pin comes from the ACTIVE PROFILE's lock
+   277	    # entry (sonic_images.sonic_vm for --profile sonic-vm, sonic_vs otherwise)
+   278	    # — never from a sonic-vs-only literal. The entry body is the slice up to
+   279	    # the next 2-space key or a column-0 comment, so comments inside the entry
+   280	    # and sibling entries cannot confuse it.
+   281	    m = re.search(rf"^  {entry_name}:[^\n]*\n(.*?)(?=^  \S|^#|\Z)", lock, re.M | re.S)
+   282	    if not m:
+   283	        return ""
+   284	    im = re.search(r"^    image:\s*(\S+)", m.group(1), re.M)
+   285	    return im.group(1) if im else ""
+   286	
+   287	profile = os.environ.get("AGENTIC_NETOPS_PROFILE", "sonic-vs")
+   288	sonic_image = image_of("sonic_vm" if profile == "sonic-vm" else "sonic_vs")
+   289	if not sonic_image:
+   290	    raise SystemExit(f"versions.lock.yaml sonic_images has no image for profile {profile}")
+   291	oc = grab(r"^\s*-\s*image:.*\n\s*oc_version:\s*openconfig@([0-9a-f]+)", "", re.M)
+   292	native = grab(r"^\s*-\s*image:.*\n\s*oc_version:.*\n\s*native_version:\s*sonic_yang@([0-9a-f]+)", "", re.M)
+   293	kubenet = grab(r"^kubenet:.*?^\s*commit:\s*([0-9a-f]+)", "", re.M | re.S)
+   294	kuid = grab(r"^kuid:.*?^\s*commit:\s*([0-9a-f]+)", "", re.M | re.S)
+   295	sdc = grab(r"^sdc:.*?^\s*version:\s*(\S+)", "", re.M | re.S)
+   296	
+   297	def shorten(sha, n=8):
+   298	    return sha[:n] if sha else ""
+   299	
+   300	cm = {"apiVersion": "v1", "kind": "ConfigMap",
+   301	    "metadata": {"name": "fabric-compat-pins", "namespace": "agentic-netops-system",
+   302	                 "labels": {"agentic-netops.owner": "agentic-netops"}},
+   303	    "data": {
+   304	        # ConfigMap keys cannot carry "/", so these are the short forms; the
+   305	        # pins loader (pkg/compat/pins.go) maps them to the agentic-netops.dev/*
+   306	        # annotation names.
+   307	        "sonic-image": sonic_image,
+
+# T024 slice B — recorded LIVE proof p2-configmap-sonic-image
+## gates/proofs/p2-configmap-sonic-image.cmd (exact recorded command)
+     1	bash scripts/proofs/run-p2-configmap-pin.sh
+## gates/proofs/p2-configmap-sonic-image.out (recorded output)
+     1	configmap.data["sonic-image"]: local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+     2	configmap.data["lab-profile"]: sonic-vm
+     3	versions.lock.yaml sonic_vm.image: local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+     4	docker local/sonic-vm:202505 image ID: sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+     5	MATCH: ConfigMap sonic-image == sonic-vm lock pin == local/sonic-vm:202505 image ID
+     6	
+     7	[exit code: 0]
+
+# T024 slice C — versions.lock.yaml active-profile lock entry (sonic_vm)
+## versions.lock.yaml lines 95-104
+    95	      from /root/sonic-images/docker-sonic-vs-202505.gz. Kept pinned for provenance
+    96	      and rebuilds. It is ASan-free but not qualified alone because upstream's VS
+    97	      artifact ships no gNMI telemetry server.
+    98	  sonic_vm:
+    99	    # T020 (FR-009): one image form — image@sha256:<digest> on one line; the
+   100	    # digest read from `docker image inspect local/sonic-vm:202505` (.Id).
+   101	    image: local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+   102	    notes: Conformance profile; build via vrnetlab; requires KVM; digest is operator-built
+   103	
+   104	# ---------------------------------------------------------------------------

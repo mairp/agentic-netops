@@ -1,0 +1,145 @@
+# data-model.md §8 (T111-T118)
+     1	## 8. Recipe-dependent detail (filled by Phase 0)
+     2	
+     3	**Status: measured on the pinned sonic-vm lab (image 202505, ASIC `vs`).
+     4	Every claim cites recorded proofs under
+     5	`.wiggum/features/004-srv6-service-requests/gates/proofs/`.**
+     6	
+     7	### 8.1 Per-service claim profile
+     8	
+     9	For the one proven variant (`ip-vrf`/`vpn`), a service needs exactly:
+    10	
+    11	| Identifier | Pool (range measured on the lab) | Written as |
+    12	| --- | --- | --- |
+    13	| VRF name | `Vrf<service-id>` — the lab used `Vrf1` (`spike-vrf-apply-leaf01`) | CONFIG_DB `/VRF/Vrf1` (GCU) |
+    14	| Service SID function per node | host part of the node locator's function space — `fcbb:bbbb:<node>:<function>::` with function `11` measured (`spike-vpn-readback-leaf01`) | kernel route only (as-built) or the `SRV6_MY_SIDS` row key (`spike-sid-write`) |
+    15	| Route target / RD | none — no signalling AF exists on this image (§8.3), so nothing needs an RT | — |
+    16	| Client addressing | per service /24 per attachment — `192.168.1.0/24` leaf01, `192.168.2.0/24` leaf02 measured | CONFIG_DB `INTERFACE|Ethernet12|...` + client container |
+    17	
+    18	The route-target/RD candidate from the pre-spike list is confirmed MOOT: this
+    19	bgpd build has no `address-family vpnv4/vpnv6 unicast`
+    20	(`spike-vpn-readback-leaf01`, line `% Unknown command`), so a service claims
+    21	no RT. VRF table ids are device-allocated (`Vrf1`→1001, `Vrf2`→1002 measured
+    22	in `spike-kernel-seg6`); never hardcode them — read `ip -6 route` back.
+    23	
+    24	### 8.2 Locator block and format
+    25	
+    26	- Block `fcbb:bbbb::/32`; per-node `fcbb:bbbb:<node>::/48` with node ids
+    27	  1–4 (spine01/02, leaf01/02); the service function space is
+    28	  `fcbb:bbbb:<node>:11::/64` — function `11` measured end to end
+    29	  (`spike-vpn-ping`, `spike-vpn-capture`).
+    30	- Format: the block is uSID-shaped but the dataplane is CLASSIC — the proofs
+    31	  exercise plain `End.DT46` (SRH with one segment, `spike-vpn-capture`:
+    32	  `RT6 (len=2, type=4, segleft=0 … [0]fcbb:bbbb:4:11::)`), not micro-SIDs.
+    33	- Locator ownership: bootstrap-only (FR-006). Locator rows
+    34	  (`SRV6_MY_LOCATORS|loc-<node>`, prefix /48) + FRR
+    35	  `segment-routing srv6 locator` + /48 origination (`proto 196` kernel static
+    36	  + BGP `network`) — proofs `spike-locator-*`.
+    37	- Reachability: 12/12 ordered node pairs ping the test address
+    38	  (`spike-locator-reach`).
+    39	
+    40	### 8.3 Device state per variant
+    41	
+    42	`ip-vrf`/`vpn` (the only proven variant), per leaf — write class in
+    43	parentheses:
+    44	
+    45	| Item | State | Write class | Proof |
+    46	| --- | --- | --- | --- |
+    47	| Customer VRF | CONFIG_DB `/VRF/Vrf1`; kernel `Vrf1` device (table 1001) | GCU (field-level adds) | `spike-vpn-state-leaf01` |
+    48	| Attachment | CONFIG_DB `INTERFACE\|Ethernet12` `vrf_name=Vrf1` + access prefix 192.168.1.1/24; kernel member port | GCU (field-level adds onto the EXISTING /INTERFACE table — whole-table replace wipes fabric links) | `spike-vrf-apply-leaf01` |
+    49	| seg6 knobs | `net.ipv6.conf.{all,default,Ethernet0,Ethernet4,Loopback0}.seg6_enabled=1`, `net.vrf.strict_mode=1` | shell (`/proc/sys`; no sysctl binary) | `spike-kernel-seg6`, `spike-kernel-strict-mode` |
+    50	| Locator /48 origination | kernel `fcbb:bbbb:<n>::/48 dev Loopback0 proto 196 metric 20` + BGP network | vtysh (`ipv6 route`, `network`) | `spike-locator-leaf01` |
+    51	| Service decap | kernel `fcbb:bbbb:<n>:11::/64 encap seg6local action End.DT46 vrftable 1001 dev Vrf1 metric 1024` | shell (`ip -6 route replace`) — as-built | `spike-vpn-readback-leaf01` |
+    52	| Ingress steering | kernel `192.168.<peer>.0/24 vrf Vrf1 encap seg6 mode encap segs 1 [ fcbb:bbbb:<peer>:11:: ] dev Ethernet0 scope link` | shell — as-built | `spike-vpn-readback-leaf02` |
+    53	| Locator /48 pin (fabric) | kernel `fcbb:bbbb:<peer>::/48 via <spine link v6> dev Ethernet0 metric 5` — REQUIRED: zebra refuses the encap nhg without it | shell + vtysh | `spike-steering-path` |
+    54	| Alternative decap write class | CONFIG_DB `SRV6_MY_SIDS` row `loc-<n>\|fcbb:bbbb:<n>:11::/64` (`action=uDT46`, `decap_vrf=Vrf1`) — ACCEPTED, leafref-enforced, then reverted; not used as-built | GCU | `spike-sid-write` |
+    55	
+    56	NOT achievable (measured): vpnv4/vpnv6 signalling (no AFs in this bgpd —
+    57	`spike-vpn-readback-leaf01`), EVPN L3VNI handoff zebra→bgpd
+    58	(`spike-evpn3-state-leaf01`), bridged EVPN forwarding (`spike-evpn2-ping`).
+    59	
+    60	### 8.4 Read-backs per variant
+    61	
+    62	Per node (all recorded in `spike-vpn-readback-leaf01/leaf02`, normalized for
+    63	replay):
+    64	
+    65	- VRF: `ip -br link show Vrf1` (device up) +
+    66	  `redis-cli -n 4 keys 'VRF\|Vrf*'` (CONFIG_DB row).
+    67	- Attachment: `ip -br addr show Ethernet12` (member + /24) +
+    68	  `redis-cli -n 4 keys 'INTERFACE\|Ethernet12*'`.
+    69	- Decap: `ip -6 route show \| grep seg6local` — the `End.DT46 vrftable 1001`
+    70	  line per node.
+    71	- Steering: `ip route show vrf Vrf1 \| grep encap` — the peer /24 encap line.
+    72	- Locator: `show segment-routing srv6 locator` (FRR) +
+    73	  `redis-cli -n 4 --scan --pattern 'SRV6_MY_LOCATORS*'`.
+    74	- Steering active path: `ip -6 route show \| grep 'fcbb:bbbb:<peer>:11'` —
+    75	  the pinned /64 via the chosen spine (§8.6).
+    76	- Wire witness: tcpdump on the fabric uplink shows IPv6 + Routing header with
+    77	  dst = the peer service SID (`spike-vpn-capture`).
+    78	
+    79	### 8.5 Rollback per variant
+    80	
+    81	`ip-vrf`/`vpn` (`spike-vpn-rollback`), in order, per leaf:
+    82	
+    83	1. Kernel routes first, loop-del until gone (steering route in Vrf1, decap
+    84	   /64; the as-built decap and any zebra static are separate routes for the
+    85	   same prefix — one `del` removes exactly one).
+    86	2. Any `SRV6_MY_SIDS` row BEFORE `/VRF` (its `decap_vrf` leafref makes `/VRF`
+    87	   undeletable otherwise — measured `ValueError`).
+    88	3. `/INTERFACE` and `/VRF` whole-table removes, each in its OWN process (GCU
+    89	   wedge semantics: a remove shared with other ops raises).
+    90	4. Restore the fabric `/INTERFACE` rows (addresses + peer mapping).
+    91	5. Flush the client ports.
+    92	6. Read-back asserting zero residue: no `VRF\|Vrf*` / `INTERFACE\|Ethernet12*` /
+    93	   `SRV6_MY_SIDS*` rows, `seg6local routes: 0`, locator untouched. The kernel
+    94	   `Vrf1` device itself lingers (image behaviour; re-provision clears it).
+    95	
+    96	### 8.6 Steering
+    97	
+    98	- Mechanism: explicit per-service kernel pin on the ingress leaf only —
+    99	  `ip -6 route replace fcbb:bbbb:<peer>:11:: from :: via <spine-link-v6>
+   100	  dev Ethernet0 metric 20`. "Preferred" = the pin's via address; "alternate"
+   101	  = the other spine's link address. The renderer never emits ops for a spine
+   102	  (contract §1).
+   103	- Read-back of the active path: the `ip -6 route show` line above per node
+   104	  (`spike-steering-path`); wire witness = SRH packets on the preferred leg's
+   105	  uplink only (launcher `eth1` nonzero, `eth2` zero).
+   106	- Measured failover (1 Hz client probes): failure actions launcher-link-down
+   107	  (`spike-steering-failover-launcher`), guest-if-down
+   108	  (`spike-steering-failover-guest-if`), BGP shutdown
+   109	  (`spike-steering-failover-bgp`), return on restore
+   110	  (`spike-steering-return`) — every run `LOSS-BOUNDED: yes
+   111	  (missed<=10, longest-run<=10)`.
+   112	- **SLO honesty**: SC-007 (≤2 consecutive losses within 5 s) is NOT met —
+   113	  passive convergence loses up to 10 1 Hz probes. No BFD/fast timers were
+   114	  exercised; that is the recorded reason the bound is unmet, not a hidden
+   115	  failure.
+   116	
+   117	### 8.7 Client-side requirements
+   118	
+   119	- `srv6-client01` on leaf01 `Ethernet12` (192.168.1.2/24), `srv6-client02` on
+   120	  leaf02 (192.168.2.2/24); default route via the VRF attachment
+   121	  (`spike-vpn-clients`).
+   122	- The client containers are busybox: addressing goes through
+   123	  `client_run`/`docker exec` (`node_run`'s bash path does not apply —
+   124	  spike-env.sh comment), and no kernel state is asserted on them.
+   125	- Packet sizes: 8900-byte payload with DF passes BOTH directions under the
+   126	  fabric MTU 9216 — the SRv6 overhead budget the spec must respect
+   127	  (`spike-vpn-ping` last line: `probe size confirmed`). Default-size pings
+   128	  pass trivially.
+   129	
+   130	### 8.8 Baseline prerequisites
+   131	
+   132	Bootstrap-owned (identity → underlay → kernel → locator, all idempotent and
+   133	re-assertable — `ensure-fabric.sh` probes them in ~3.5 s when healthy):
+   134	
+   135	| Prerequisite | Value measured | Proof |
+   136	| --- | --- | --- |
+   137	| `vrf` module | auto-loads on first VRF device; no modules-load entry needed | `spike-kernel-vrf-module` |
+   138	| `seg6_enabled` | 0 on the factory image; set to 1 on all/default/Ethernet0/Ethernet4/Loopback0 | `spike-kernel-seg6` |
+   139	| `net.vrf.strict_mode` | set to 1 (file exists only once the vrf module is loaded); `/proc/sys` is the write path | `spike-kernel-strict-mode` |
+   140	| Underlay BGP | IPv4+IPv6 unicast, 2 sessions/family per leaf, 3 per spine | `spike-underlay-v4`, `spike-underlay-v6` |
+   141	| Locators | one per node, `fcbb:bbbb:<n>::/48`, FRR table Up, 12/12 reachability | `spike-locator-*`, `spike-locator-reach` |
+   142	| Persistence caveat | `config reload -y` keeps CONFIG_DB locator, loses kernel service state AND the FRR locator binding — rebuild via `vpn-setup.sh` alone fails (Vrf1 gone); the bootstrap must re-run first | `spike-persistence` |
+   143	| Timers/BFD | none exercised; the 5 s steering bound is unmet without them (§8.6) | `spike-steering-failover-*` |
+   144	| Port mapping | guest EthernetN ↔ launcher iface recorded per node for captures and failure actions | `spike-portmap-*` |

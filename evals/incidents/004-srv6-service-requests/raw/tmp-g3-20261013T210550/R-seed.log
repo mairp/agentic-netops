@@ -1,0 +1,47 @@
+===== stage 1: kernel cleanup + verified table removals (all nodes) =====
+--- spine01
+--- spine02
+--- leaf01
+--- leaf02
+===== stage 2: service rollback (Vrf1, client attach) =====
+===== stage 3: re-add seed rows (per node, verified) =====
+--- spine01
+--- spine02
+--- leaf01
+--- leaf02
+===== stage 4: bgp restart (re-render from restored CONFIG_DB) =====
+--- spine01
+--- spine02
+--- leaf01
+--- leaf02
+===== stage 5: seed convergence wait (v4 + v6 session counts) =====
+seed BGP converged (v4: leaf01=2 leaf02=1 spine01=1 spine02=2; v6: leaf01=1 leaf02=1 spine01=0 spine02=2)
+===== stage 6: read-back (sanity only; the proof is replay spike-baseline) =====
+--- spine01: BGP_NEIGHBOR keys
+BGP_NEIGHBOR|10.1.0.1
+--- spine01: locator rows (expect none)
+
+--- spine02: BGP_NEIGHBOR keys
+BGP_NEIGHBOR|10.0.0.11
+BGP_NEIGHBOR|10.1.0.5
+BGP_NEIGHBOR|10.1.0.7
+BGP_NEIGHBOR|2001:db8:2::2
+BGP_NEIGHBOR|2001:db8:2::4
+BGP_NEIGHBOR|2001:db8:ff::11
+--- spine02: locator rows (expect none)
+
+--- leaf01: BGP_NEIGHBOR keys
+BGP_NEIGHBOR|10.1.0.0
+BGP_NEIGHBOR|10.1.0.4
+BGP_NEIGHBOR|2001:db8:1::3
+BGP_NEIGHBOR|2001:db8:2::3
+--- leaf01: locator rows (expect none)
+
+--- leaf02: BGP_NEIGHBOR keys
+BGP_NEIGHBOR|10.1.0.2
+BGP_NEIGHBOR|10.1.0.6
+BGP_NEIGHBOR|2001:db8:1::5
+BGP_NEIGHBOR|2001:db8:2::5
+--- leaf02: locator rows (expect none)
+
+seed-restore done

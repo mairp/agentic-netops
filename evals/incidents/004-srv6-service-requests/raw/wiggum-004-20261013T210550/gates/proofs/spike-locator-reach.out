@@ -1,0 +1,16 @@
+===== 12 ordered pairs: ping <src> -> <dst> locator test address =====
+spine01 -> spine02 (fcbb:bbbb:2::1): PASS
+spine01 -> leaf01 (fcbb:bbbb:3::1): PASS
+spine01 -> leaf02 (fcbb:bbbb:4::1): PASS
+spine02 -> spine01 (fcbb:bbbb:1::1): PASS
+spine02 -> leaf01 (fcbb:bbbb:3::1): PASS
+spine02 -> leaf02 (fcbb:bbbb:4::1): PASS
+leaf01 -> spine01 (fcbb:bbbb:1::1): PASS
+leaf01 -> spine02 (fcbb:bbbb:2::1): PASS
+leaf01 -> leaf02 (fcbb:bbbb:4::1): PASS
+leaf02 -> spine01 (fcbb:bbbb:1::1): PASS
+leaf02 -> spine02 (fcbb:bbbb:2::1): PASS
+leaf02 -> leaf01 (fcbb:bbbb:3::1): PASS
+===== locator reachability: 12 of 12 ordered pairs =====
+
+[exit code: 0]

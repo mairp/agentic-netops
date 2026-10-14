@@ -1,0 +1,3 @@
+PREFLIGHT-FAILED: client01 -> client02 does not pass; steering capture refused
+
+[exit code: 1]

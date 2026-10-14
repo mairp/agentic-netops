@@ -1,0 +1,89 @@
+# T005 slice — scripts/proofs/run-p2-t005-guard.sh: the recorded baseline-snapshot generation guard
+## recorded proof: gates/proofs/p2-t005-guard.cmd == "scripts/proofs/run-p2-t005-guard.sh"; gates/proofs/p2-t005-guard.out ends "RESULT: byte-IDENTICAL" + "[exit code: 0]"; scripts/proof.sh replay p2-t005-guard -> "1 proof(s) checked, no difference"
+## scripts/proofs/run-p2-t005-guard.sh lines 1-86
+     1	#!/usr/bin/env bash
+     2	# Proof p2-t005-guard (T005, plan 1-01): the baseline-snapshot generation
+     3	# guard, demonstrated end to end and recorded as a durable artifact.
+     4	#
+     5	# T005 requires agents/tests/corpus/phrasings/baseline_snapshot.json to be
+     6	# generated with UPDATE_BASELINE=1 ONLY after
+     7	# `git diff --quiet -- agents/provisioning/mapper` confirms the mapper is
+     8	# unmodified. In the LIVE worktree the mapper now carries the T008 SRv6
+     9	# recognition (a deliberate, later phase-2 change), so the guard's clean-diff
+    10	# precondition is reconstructed — not faked — in a THROWAWAY checkout of the
+    11	# phase-1 approved tree (git archive 89b497c7) plus the live untracked
+    12	# test/corpus files: exactly the tree state at the T005 moment (T004 test
+    13	# written first, mapper untouched). In order, this proof shows:
+    14	#   1. the live worktree's mapper diff is reported honestly (dirty: T008),
+    15	#      which is why the regeneration below must NOT run in the live tree;
+    16	#   2. in the throwaway tree, `git diff --quiet -- agents/provisioning/mapper`
+    17	#      is CLEAN (exit 0) — the guard's precondition, checked immediately
+    18	#      before the regeneration;
+    19	#   3. the LIVE snapshot replays green against that unmodified mapper with NO
+    20	#      flag (the criterion's "Done when"), before anything is regenerated;
+    21	#   4. UPDATE_BASELINE=1 regenerates the snapshot in the throwaway tree, and
+    22	#      the regenerated file is sha256-BYTE-IDENTICAL to the live snapshot —
+    23	#      so the shipped snapshot is exactly the unmodified-mapper capture.
+    24	# The live tree is never written: all regeneration happens under a throwaway
+    25	# directory that this script removes on exit. Output is deterministic (fixed
+    26	# throwaway path, fixed git commit dates) so proof.sh replay can verify it.
+    27	set -euo pipefail
+    28	REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+    29	SNAP_REL="agents/tests/corpus/phrasings/baseline_snapshot.json"
+    30	SNAP_LIVE="$REPO_ROOT/$SNAP_REL"
+    31	PYTEST="$REPO_ROOT/agents/.venv/bin/pytest"
+    32	PY="$REPO_ROOT/agents/.venv/bin/python"
+    33	BASE_COMMIT="89b497c7"
+    34	[[ -x "$PYTEST" ]] || { echo "run-p2-t005-guard.sh: missing $PYTEST" >&2; exit 3; }
+    35	[[ -f "$SNAP_LIVE" ]] || { echo "run-p2-t005-guard.sh: missing $SNAP_REL" >&2; exit 3; }
+    36	TMP="${TMPDIR:-/tmp}/t005-guard"
+    37	
+    38	echo "== 1. live worktree mapper state (reported honestly) =="
+    39	if git -C "$REPO_ROOT" diff --quiet -- agents/provisioning/mapper; then
+    40	    echo "live: git diff --quiet -- agents/provisioning/mapper -> clean (exit 0)"
+    41	else
+    42	    echo "live: git diff --quiet -- agents/provisioning/mapper -> MODIFIED (exit 1)"
+    43	    echo "      (T008 SRv6 recognition is a deliberate phase-2 mapper change, so the"
+    44	    echo "       guard's clean-diff precondition is reconstructed below, in a"
+    45	    echo "       throwaway checkout of the phase-1 approved tree — never in place)"
+    46	fi
+    47	
+    48	rm -rf "$TMP"
+    49	mkdir -p "$TMP"
+    50	trap 'rm -rf "$TMP"' EXIT
+    51	echo "== 2. throwaway checkout: git archive $BASE_COMMIT + live test/corpus files =="
+    52	git -C "$REPO_ROOT" archive "$BASE_COMMIT" agents | tar -x -C "$TMP"
+    53	git -C "$TMP" init -q -b proof
+    54	git -C "$TMP" add -A
+    55	GIT_AUTHOR_DATE="2026-10-12T00:00:00+00:00" GIT_COMMITTER_DATE="2026-10-12T00:00:00+00:00" \
+    56	    git -C "$TMP" -c user.name=t005-guard -c user.email=t005-guard@proof.local \
+    57	        -c commit.gpgsign=false -c core.hooksPath=/dev/null \
+    58	        commit -q -m "phase-1 approved tree ($BASE_COMMIT) — T005 guard baseline"
+    59	echo "throwaway HEAD: $(git -C "$TMP" log --format='%h %s')"
+    60	cp -R "$REPO_ROOT/agents/tests/corpus/phrasings/." "$TMP/agents/tests/corpus/phrasings/"
+    61	cp "$REPO_ROOT/agents/tests/unit/test_phrasings_baseline.py" "$TMP/agents/tests/unit/"
+    62	echo "cases in the live snapshot: $("$PY" -c "import json,sys;print(len(json.load(open(sys.argv[1]))['cases']))" "$SNAP_LIVE")"
+    63	
+    64	echo "== 3. guard precondition, checked immediately before regeneration =="
+    65	if git -C "$TMP" diff --quiet -- agents/provisioning/mapper; then
+    66	    echo "git diff --quiet -- agents/provisioning/mapper -> clean (exit 0): mapper is the phase-1 approved mapper"
+    67	else
+    68	    echo "GUARD FAILED: agents/provisioning/mapper modified against $BASE_COMMIT"
+    69	    exit 1
+    70	fi
+    71	
+    72	echo "== 4. Done-when first: the LIVE snapshot replays green against the unmodified mapper (no flag) =="
+    73	(cd "$TMP/agents" && "$PYTEST" tests/unit/test_phrasings_baseline.py)
+    74	
+    75	echo "== 5. regenerate with UPDATE_BASELINE=1 (only now that the diff is proven clean) =="
+    76	(cd "$TMP/agents" && UPDATE_BASELINE=1 "$PYTEST" tests/unit/test_phrasings_baseline.py)
+    77	
+    78	echo "== 6. regenerated snapshot vs live snapshot =="
+    79	echo "regenerated sha256: $(sha256sum "$TMP/$SNAP_REL" | cut -d' ' -f1)"
+    80	echo "live        sha256: $(sha256sum "$SNAP_LIVE" | cut -d' ' -f1)"
+    81	if cmp -s "$TMP/$SNAP_REL" "$SNAP_LIVE"; then
+    82	    echo "RESULT: byte-IDENTICAL — baseline_snapshot.json is exactly what the unmodified mapper regenerates with UPDATE_BASELINE=1"
+    83	else
+    84	    echo "RESULT: DIFFERS — the live snapshot is not the unmodified-mapper capture"
+    85	    exit 1
+    86	fi

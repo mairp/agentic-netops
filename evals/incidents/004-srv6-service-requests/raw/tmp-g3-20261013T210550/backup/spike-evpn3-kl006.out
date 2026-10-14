@@ -1,0 +1,18 @@
+===== IPv6 AF export knobs under vrf Vrf1 (leaf01) =====
+% Unknown command: network fcbb:bbbb:3:11::/64
+-- knobs that stuck (running config, Vrf1 IPv6 AF) --
+ address-family ipv6 unicast
+  sid vpn export auto
+  rd vpn export 65101:100
+  rt vpn both 65101:100
+ exit-address-family
+===== EVPN table after the IPv6 Type-5 attempt =====
+No prefixes displayed, 0 exist
+===== Vrf1 IPv6 AF table (is the synthetic network even there) =====
+No BGP prefixes displayed, 0 exist
+===== remove the IPv6 AF knobs again =====
+-- AF6 block after removal (empty means the AF closed; knobs gone) --
+VRF1-AF6-KNOBS-CLEAN
+===== KL-006 verdict probe complete: the limitation is upstream-moot here =====
+
+[exit code: 0]

@@ -1,0 +1,17 @@
+22:47:43 INFO Removing directory path=/root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/clab-digest-proof/clab-digest-proof
+22:47:43 INFO Creating docker network name=clab IPv4 subnet=192.168.241.0/24 IPv6 subnet=3fff:192:168:241::/64 MTU=0
+22:47:43 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
+
+22:47:43 WARN iptables check error: exit status 1. Output: ip6tables: No chain/target/match by that name.
+
+22:47:43 INFO Pulling image image=docker.io/local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+22:47:45 ERRO Failed to pull image image=docker.io/local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2 err="Error response from daemon: pull access denied for local/sonic-vm, repository does not exist or may require 'docker login': denied: requested access to the resource is denied"
+          
+   ERROR  
+          
+  Error response from daemon: pull access denied for local/sonic-vm, repository does not exist or may require 'docker 
+  login': denied: requested access to the resource is denied.                                                         
+
+deploy-exit: 1
+
+[exit code: 1]

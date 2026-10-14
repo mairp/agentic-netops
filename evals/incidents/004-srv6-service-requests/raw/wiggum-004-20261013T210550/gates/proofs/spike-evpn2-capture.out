@@ -1,0 +1,9 @@
+===== witnesses before the window =====
+Number of L2 VNIs: 1
+100        L2   vxlan-100             0        0        1               default                              
+1001       L3   vxlan-1001            0        0        n/a             Vrf1                                 
+===== fabric window: VXLAN overlay traffic during the client probe =====
+-- VXLAN packets in the window (expect 0) --
+0
+
+[exit code: 0]

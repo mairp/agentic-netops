@@ -1,0 +1,21 @@
+# T022 — throwaway single-node containerlab lab answering ONE question:
+# does containerlab resolve a LOCAL image referenced by digest
+# (`name@sha256:<digest>`) without a registry? The digest is the operator-
+# built local/sonic-vm image ID pinned in versions.lock.yaml (sonic_vm).
+# The lab name is deliberately distinct from the fabric lab so this can never
+# collide with clab-agentic-netops-fabric. Deployed and destroyed by the
+# recorded command of proof p1-image-by-digest.
+name: digest-proof
+# Isolated mgmt addressing: the default clab pool (172.20.20.0/24) and the
+# fabric lab network (172.31.0.0/16) both collide with other docker networks
+# on this host, so this throwaway lab brings its own (top-level `mgmt`).
+mgmt:
+  ipv4-subnet: 192.168.241.0/24
+  ipv6-subnet: 3fff:192:168:241::/64
+topology:
+  nodes:
+    svm:
+      kind: sonic-vm
+      image: local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+      labels:
+        role: digest-resolution-proof

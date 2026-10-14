@@ -1,0 +1,82 @@
+##### 14:42:20 START H-conv: converge
+##### 14:42:27 RC H-conv=0
+##### 14:42:27 START H-canary: canary
+##### 14:46:47 RC H-canary=1
+##### 14:46:47 canary failed (CANARY-FAIL vrf-apply leaf01: APPLY-STUCK: kernel VRF state did not converge after 3 attempts (applied='APPLIED')) — known orchagent wedge; provision-recovery attempt 1
+##### 14:46:47 START H-recover1: recover
+##### 15:19:37 RC H-recover1=0
+##### 15:19:37 PHASE H done: lab healthy (converge + fixed canary; recovery used if canary failed once)
+##### 15:19:37 START A-seed: bash scripts/spike/seed-restore.sh
+##### 15:24:38 RC A-seed=0
+##### 15:24:38 START A-b-spine01: scripts/proof.sh spike-baseline-spine01 -- scripts/spike/baseline-capture.sh spine01
+##### 15:24:43 RC A-b-spine01=0
+##### 15:24:43 START A-b-spine02: scripts/proof.sh spike-baseline-spine02 -- scripts/spike/baseline-capture.sh spine02
+##### 15:24:47 RC A-b-spine02=0
+##### 15:24:47 START A-b-leaf01: scripts/proof.sh spike-baseline-leaf01 -- scripts/spike/baseline-capture.sh leaf01
+##### 15:24:51 RC A-b-leaf01=0
+##### 15:24:51 START A-b-leaf02: scripts/proof.sh spike-baseline-leaf02 -- scripts/spike/baseline-capture.sh leaf02
+##### 15:24:56 RC A-b-leaf02=0
+##### 15:24:56 START A-dry: scripts/proof.sh replay spike-baseline
+##### 15:25:13 RC A-dry=0
+##### 15:25:13 PHASE A done (seed=0 dry=0)
+##### 15:25:13 START B-conv: converge
+##### 15:31:43 RC B-conv=0
+##### 15:31:43 PHASE B done
+##### 15:31:43 START spike-rerun-vpn: scripts/proof.sh spike-rerun-vpn -- scripts/proof.sh replay spike-vpn
+##### 16:25:20 RC spike-rerun-vpn=1
+##### 16:25:20 RECEIPT spike-rerun-vpn verdict=differ
+##### 16:25:20 vpn receipt differs — fallback path
+##### 16:25:20 START FG-spike-vpn-canary: canary
+##### 16:29:36 RC FG-spike-vpn-canary=1
+##### 16:29:36 fallback spike-vpn: canary failed — one provision-recovery
+##### 16:29:36 START FG-spike-vpn-recover: recover
+##### 16:56:32 RC FG-spike-vpn-recover=0
+##### 16:57:14 START RV1: scripts/proof.sh spike-vpn-state-leaf01 -- scripts/spike/vrf-apply.sh leaf01
+##### 16:57:34 RC RV1=0
+##### 16:57:34 START RV2: scripts/proof.sh spike-vpn-state-leaf02 -- scripts/spike/vrf-apply.sh leaf02
+##### 16:57:52 RC RV2=0
+##### 16:57:53 START RV3: scripts/proof.sh spike-vpn-ping -- scripts/spike/vpn-ping.sh
+##### 16:58:31 RC RV3=0
+##### 16:58:31 START RV4: scripts/proof.sh spike-vpn-capture -- scripts/spike/vpn-capture.sh
+##### 16:58:59 RC RV4=0
+##### 16:58:59 START RV5: scripts/proof.sh spike-vpn-readback-leaf01 -- bash scripts/spike/vpn-readback.sh leaf01
+##### 16:59:16 RC RV5=0
+##### 16:59:16 START RV6: scripts/proof.sh spike-vpn-readback-leaf02 -- bash scripts/spike/vpn-readback.sh leaf02
+##### 16:59:33 RC RV6=0
+##### 16:59:33 START RV7: scripts/proof.sh spike-vpn-clients -- bash scripts/spike/vpn-clients.sh
+##### 17:05:59 RC RV7=0
+##### 17:05:59 START RV8: scripts/proof.sh spike-vpn-rollback -- bash scripts/spike/vpn-rollback.sh
+##### 17:06:43 RC RV8=0
+##### 17:06:43 START spike-rerun-vpn: scripts/proof.sh spike-rerun-vpn -- scripts/proof.sh replay spike-vpn
+##### 17:59:42 RC spike-rerun-vpn=1
+##### 17:59:42 RECEIPT spike-rerun-vpn verdict=differ
+##### 17:59:42 PHASE C done
+##### 17:59:42 START D-1: scripts/proof.sh spike-steering-path -- bash scripts/spike/steering-path.sh
+##### 18:08:22 RC D-1=1
+##### 18:08:22 D-1 rc!=0 — converge + one bounded retry
+##### 18:08:22 START D-1-conv: converge
+##### 18:08:29 RC D-1-conv=0
+##### 18:08:29 START D-1-r2: scripts/proof.sh spike-steering-path -- bash scripts/spike/steering-path.sh
+##### 18:17:14 RC D-1-r2=1
+##### 18:17:14 START D-2: scripts/proof.sh spike-steering-failover-launcher -- bash scripts/spike/steering-failover.sh launcher
+##### 18:26:00 RC D-2=1
+##### 18:26:00 D-2 rc!=0 — converge + one bounded retry
+##### 18:26:00 START D-2-conv: converge
+##### 18:26:07 RC D-2-conv=0
+##### 18:26:07 START D-2-r2: scripts/proof.sh spike-steering-failover-launcher -- bash scripts/spike/steering-failover.sh launcher
+##### 18:34:54 RC D-2-r2=1
+##### 18:34:54 START D-3: scripts/proof.sh spike-steering-failover-guest-if -- bash scripts/spike/steering-failover.sh guest
+##### 18:43:40 RC D-3=1
+##### 18:43:40 D-3 rc!=0 — converge + one bounded retry
+##### 18:43:40 START D-3-conv: converge
+##### 18:43:47 RC D-3-conv=0
+##### 18:43:47 START D-3-r2: scripts/proof.sh spike-steering-failover-guest-if -- bash scripts/spike/steering-failover.sh guest
+##### 18:52:33 RC D-3-r2=1
+##### 18:52:33 START D-4: scripts/proof.sh spike-steering-failover-bgp -- bash scripts/spike/steering-failover.sh bgp
+##### 19:01:14 RC D-4=1
+##### 19:01:14 D-4 rc!=0 — converge + one bounded retry
+##### 19:01:14 START D-4-conv: converge
+##### 19:01:22 RC D-4-conv=0
+##### 19:01:22 START D-4-r2: scripts/proof.sh spike-steering-failover-bgp -- bash scripts/spike/steering-failover.sh bgp
+##### 19:09:58 RC D-4-r2=1
+##### 19:09:58 START D-5: scripts/proof.sh spike-steering-return -- bash scripts/spike/steering-failover.sh return

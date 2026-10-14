@@ -1,0 +1,51 @@
+# T017 — pkg/compat/compat.go kind scoping (line-numbered slices)
+$ grep -n "ObjectKind\|KindSRv6Service\|KindNetwork\|requiresSRv6" pkg/compat/compat.go
+27:type ObjectKind string
+30:	KindNetwork       ObjectKind = "Network"
+31:	KindNetworkDevice ObjectKind = "NetworkDevice"
+32:	KindSRv6Service   ObjectKind = "SRv6Service"
+37:func Validate(set Set, kind ObjectKind, discovered map[string]bool) error {
+56:func requiresSRv6(kind ObjectKind) bool { return kind == KindSRv6Service }
+
+--- requiresSRv6 + Validate signature region:
+    37	func Validate(set Set, kind ObjectKind, discovered map[string]bool) error {
+    38		// Minimal scaffold: ensure non-empty pins and per-kind capability gates.
+    39		if set.SonicImage == "" || set.OpenConfigCommit == "" || set.SonicNativeCommit == "" || set.MappingVersion == "" {
+    40			return &ValidationError{Reason: "SchemaMismatch", Message: "incomplete compatibility set"}
+    41		}
+    42		if discovered != nil {
+    43			// SAI SRv6 capability gate (placeholder key), scoped to the object
+    44			// kind that actually delivers an SRv6 service (T017).
+    45			if requiresSRv6(kind) && !discovered["sai.srv6"] {
+    46				return &ValidationError{Reason: "CapabilityMissing", Message: "SRv6 not supported by target"}
+    47			}
+    48		}
+    49		return nil
+    50	}
+    51	
+
+--- requiresSRv6 body:
+    54	// reports cap-sai-srv6=false, and the VXLAN constructs (Network, NetworkDevice)
+    55	// must keep provisioning there.
+    56	func requiresSRv6(kind ObjectKind) bool { return kind == KindSRv6Service }
+
+# T018/T019 — call sites pass the kind
+$ grep -n "compat.FullValidate\|compat.Kind" controllers/sonicprovider/network_controller.go controllers/sonicprovider/controller.go controllers/srv6service/controller.go
+controllers/sonicprovider/network_controller.go:168:	if err := compat.FullValidate(set, pins.Labels, compat.KindNetwork, discovered); err != nil {
+controllers/sonicprovider/controller.go:152:	if err := compat.FullValidate(set, pins.Labels, compat.KindNetworkDevice, discovered); err != nil {
+controllers/srv6service/controller.go:77:	if err := compat.FullValidate(set, pins.Labels, compat.KindSRv6Service, discovered); err != nil {
+
+--- network_controller.go T018 region:
+   158		// T018: the Network kind — the SRv6 capability is NOT required here
+   159		// (FR-007): a lab that honestly reports cap-sai-srv6=false still
+   160		// provisions VXLAN services.
+   161		pinReader := compat.PinReader(r.Client)
+   162		if r.APIReader != nil {
+   163			pinReader = r.APIReader
+   164		}
+   165		pins := compat.ResolveSitePins(ctx, pinReader, net.Annotations, net.Labels)
+   166		set := compat.FromAnnotations(pins.Annotations)
+   167		discovered := map[string]bool{"sai.srv6": pins.Labels["agentic-netops.dev/cap.sai.srv6"] == "true"}
+   168		if err := compat.FullValidate(set, pins.Labels, compat.KindNetwork, discovered); err != nil {
+   169			r.setConditions(ctx, &net, false, compat.ReasonFor(err), err.Error()+" ("+pins.Provenance()+")", false)
+   170			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil

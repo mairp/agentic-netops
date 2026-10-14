@@ -1,0 +1,58 @@
+# contracts/fabricplan-srv6.md §3 (T119-T122)
+     1	## 3. Recipe-dependent content (filled by Phase 0)
+     2	
+     3	**Status: measured on the pinned sonic-vm lab.** Only `ip-vrf`/`vpn` and
+     4	`steering` have a recipe (evidence: `docs/SRV6_SERVICE_RECIPE.md` §2/§5, data-model §8.3–§8.6).
+     5	The tables below are per leaf, with allocation placeholders (`<vrf>`, `<svc>`,
+     6	`<node>`, `<peer>`, `<spine-link-v6>`); every Check command is recorded in the
+     7	cited proof. Op classes follow the §3 vocabulary.
+     8	
+     9	### 3.1 `ip-vrf` / `vpn` — per-leaf items
+    10	
+    11	| Item | Op class | Op | Check | Rollback |
+    12	| --- | --- | --- | --- | --- |
+    13	| Customer VRF row | GCU | add `/VRF/<vrf>` (whole-table only on a node with no VRFs; else field-level) | `redis-exists` `VRF\|<vrf>` in db 4 (`spike-vpn-state-leaf01`) | own-process GCU remove `/VRF` |
+    14	| Attachment port | GCU | field add `INTERFACE\|Ethernet12` `vrf_name=<vrf>`; field add access prefix `192.168.<svc>.1/24` (JSON-pointer `~1`) | `ip-addr` Ethernet12 + `ip-master` (`spike-vrf-apply-leaf01`) | own-process GCU remove `/INTERFACE` then re-add fabric rows |
+    15	| Kernel VRF device | Redis | derived by the image from the `/VRF` row | `ip -br link show <vrf>` up | (device lingers; re-provision clears) |
+    16	| Service decap | Shell | `ip -6 route replace fcbb:bbbb:<node>:<fn>::/64 encap seg6local action End.DT46 vrftable <table> dev <vrf>` | `ip -6 route show \| grep seg6local` has the line (`spike-vpn-readback-leaf01`) | loop `ip -6 route del` until gone |
+    17	| Ingress steering | Shell | `ip route replace 192.168.<peer>.0/24 vrf <vrf> encap seg6 mode encap segs 1 [ fcbb:bbbb:<peer>:<fn>:: ] dev Ethernet0` | `ip route show vrf <vrf> \| grep encap` (`spike-vpn-readback-leaf02`) | `ip route del vrf <vrf> <prefix>` |
+    18	| Locator /48 fabric pin | Shell | `ip -6 route replace fcbb:bbbb:<peer>::/48 via <spine-link-v6> dev Ethernet0 metric 5` — REQUIRED for the encap nhg | `ip -6 route show \| grep 'metric 5'` (`spike-steering-path`) | `ip -6 route del` (bootstrap-owned in steady state; the service pin per §3.2 replaces it) |
+    19	| Client addressing | Shell | client container `eth1` /24 + default via the attachment | `client_run ip -br addr show eth1` (`spike-vpn-clients`) | flush the port |
+    20	| Alternative decap row (NOT rendered as-built) | GCU | `SRV6_MY_SIDS` row key `loc-<node>\|fcbb:bbbb:<node>:<fn>::/64`, fields `action=uDT46`, `decap_vrf=<vrf>` — YANG-valid but its programming effect is not reproducible in bounded polls; remove BEFORE any `/VRF` rollback (leafref) | `spike-sid-write` read-backs | own-process GCU remove `/SRV6_MY_SIDS` |
+    21	
+    22	### 3.2 steering — per-leaf items (ingress leaf only)
+    23	
+    24	| Item | Op class | Op | Check | Rollback |
+    25	| --- | --- | --- | --- | --- |
+    26	| Preferred-path pin | Shell | `ip -6 route replace fcbb:bbbb:<peer>:<fn>:: from :: via <spine-link-v6> dev Ethernet0 metric 20` | `ip -6 route show \| grep 'fcbb:bbbb:<peer>:<fn>::'` shows the via address (`spike-steering-path`) | `ip -6 route del` — `LEFTOVER-PINS: 0` asserted in the proofs |
+    27	| Alternate-path switch (failure action) | Shell | delete the pin; re-add via the alternate spine's link address | same check; wire witness = SRH packets on the alternate leg (`spike-steering-failover-launcher/guest-if/bgp`) | restore the preferred pin (`spike-steering-return`) |
+    28	
+    29	Honest SLO note carried into any steering claim: failover/return are
+    30	`LOSS-BOUNDED (missed<=10, longest-run<=10)` at 1 Hz — SC-007's ≤2-loss/5 s
+    31	bound is NOT met; there is no BFD on the as-built lab.
+    32	
+    33	### 3.3 No-recipe variants
+    34	
+    35	`ip-vrf`/`evpn` and `mac-vrf`/`evpn` have NO table here: both verdicts are
+    36	`not-achievable` (`lab/profiles/sonic-vm/srv6-supported.yaml`; owner decision 1
+    37	separately permits deferring bridged EVPN — the refusal handling is the
+    38	same),
+    39	so the renderer has nothing to emit and `ForSRv6Service` refuses by name
+    40	(§4). Measured blockers: zebra→bgpd L3VNI ZAPI handoff broken
+    41	(`spike-evpn3-state-leaf01`), no vpnv4/vpnv6 AFs
+    42	(`spike-vpn-readback-leaf01`), bridged EVPN does not forward
+    43	(`spike-evpn2-ping`).
+    44	
+    45	Rules that hold whatever the recipe is:
+    46	
+    47	- An item goes through GCU only if the pinned image's YANG accepts it whole-config; anything else
+    48	  is a raw write. A YANG-invalid GCU row blocks every later GCU write
+    49	  (`pkg/fabricplan/plan.go:13-16`). The gate already found that leftover SRv6 rows can wedge GCU
+    50	  (`tests/integration/evpn_srv6_suite.sh:75-83`), so each SRv6 row's class is decided by trial in
+    51	  Phase 0, not assumed.
+    52	- Every op is idempotent, and every item has a check and a rollback. `plan_test.go` asserts that
+    53	  the three lists cover the same items.
+    54	- Rollback removes only state the service owns and is safe to re-run.
+    55	- Checks read device state, never the plan's own intent.
+    56	
+    57	## 4. Variants and refusal

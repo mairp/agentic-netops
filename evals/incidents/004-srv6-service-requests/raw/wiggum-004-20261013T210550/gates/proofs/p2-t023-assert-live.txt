@@ -1,0 +1,15 @@
+# T023 slice C — the pre-deploy pin assertion EXERCISED live (both branches)
+## gates/proofs/p2-pin-assert-live.cmd (exact recorded command: runs provision.sh lines 88-112
+## against a tampered THROWAWAY copy of versions.lock.yaml, then against the real lock)
+     1	bash -c $'D=$(mktemp -d) || exit 2\nsed -n "88,112p" scripts/provision.sh > "$D/assert.sh" || exit 2\nsed "s/5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2/0000000000000000000000000000000000000000000000000000000000000000/" versions.lock.yaml > "$D/versions.lock.yaml" || exit 2\necho "== mismatch case (tampered THROWAWAY copy of versions.lock.yaml; real file untouched) =="\nREPO_ROOT="$D" AGENTIC_NETOPS_PROFILE=sonic-vm bash "$D/assert.sh"; m=$?\necho "mismatch-exit: $m (expected 1: bring-up refused)"\ncp versions.lock.yaml "$D/versions.lock.yaml"\necho "== match case (real versions.lock.yaml) =="\nREPO_ROOT="$D" AGENTIC_NETOPS_PROFILE=sonic-vm bash "$D/assert.sh"; p=$?\necho "match-exit: $p (expected 0: pin verified)"\nrm -rf "$D"\n[ "$m" -eq 1 ] && [ "$p" -eq 0 ] && echo "ASSERTION-VERIFIED: pre-deploy pin assertion fails the bring-up on mismatch, passes on the pinned digest" || { echo "ASSERTION-FAILED" >&2; exit 1; }'
+## gates/proofs/p2-pin-assert-live.out (recorded output)
+     1	== mismatch case (tampered THROWAWAY copy of versions.lock.yaml; real file untouched) ==
+     2	[provision] local/sonic-vm:202505 image ID sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2 != pinned sha256:0000000000000000000000000000000000000000000000000000000000000000 (versions.lock.yaml sonic_vm); refusing to bring up the sonic-vm lab against an unpinned image
+     3	mismatch-exit: 1 (expected 1: bring-up refused)
+     4	== match case (real versions.lock.yaml) ==
+     5	[provision] sonic-vm image pin verified: local/sonic-vm:202505 == local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+     6	[provision] WARN: known exception to the one-form image rule: lab/topology.sonic-vm.clab.yml names the image by TAG (local/sonic-vm:202505) because containerlab cannot resolve a local image by digest without a registry (proof p1-image-by-digest); asserted this bring-up against local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+     7	match-exit: 0 (expected 0: pin verified)
+     8	ASSERTION-VERIFIED: pre-deploy pin assertion fails the bring-up on mismatch, passes on the pinned digest
+     9	
+    10	[exit code: 0]

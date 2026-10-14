@@ -1,0 +1,20 @@
+##### 14:05:11 START H-conv: converge
+##### 14:05:19 RC H-conv=0
+##### 14:05:19 START H-canary: canary
+##### 14:05:51 RC H-canary=0
+##### 14:05:51 PHASE H done: lab healthy (converge + fixed canary; no re-provision)
+##### 14:05:51 START A-seed: bash scripts/spike/seed-restore.sh
+##### 14:07:59 RC A-seed=1
+##### 14:07:59 WARN A-seed rc=1 — continuing, receipt will judge
+##### 14:07:59 START A-b-spine01: scripts/proof.sh spike-baseline-spine01 -- scripts/spike/baseline-capture.sh spine01
+##### 14:08:04 RC A-b-spine01=0
+##### 14:08:04 START A-b-spine02: scripts/proof.sh spike-baseline-spine02 -- scripts/spike/baseline-capture.sh spine02
+##### 14:08:08 RC A-b-spine02=0
+##### 14:08:08 START A-b-leaf01: scripts/proof.sh spike-baseline-leaf01 -- scripts/spike/baseline-capture.sh leaf01
+##### 14:08:14 RC A-b-leaf01=0
+##### 14:08:14 START A-b-leaf02: scripts/proof.sh spike-baseline-leaf02 -- scripts/spike/baseline-capture.sh leaf02
+##### 14:08:18 RC A-b-leaf02=0
+##### 14:08:18 START A-dry: scripts/proof.sh replay spike-baseline
+##### 14:08:36 RC A-dry=0
+##### 14:08:36 PHASE A done (seed=1 dry=0)
+##### 14:08:36 START B-conv: converge

@@ -1,0 +1,34 @@
+===== leaf01: kernel IPv6 forwarding (asserted 1; sonic-vs measured 0 at boot) =====
+1
+===== leaf01: GCU apply (factory cleanup + identity + underlay) =====
+APPLIED leaf01 asn=65101 lo4=10.0.0.21 lo6=2001:db8:ff::21 ifaces=6 nbrs=4
+===== leaf01: bgpcfgd re-render (bgp container restart for /128 knob) =====
+===== leaf01: wait for bgpd neighbors (want 4) =====
+===== leaf01: DEVICE_METADATA read-back (hostname bgp_asn bgp_router_id switch_type) =====
+leaf01
+65101
+10.0.0.21
+npu
+===== leaf01: CONFIG_DB row read-back =====
+-- INTERFACE --
+INTERFACE|Ethernet0
+INTERFACE|Ethernet0|10.1.0.1/31
+INTERFACE|Ethernet0|2001:db8:1::2/127
+INTERFACE|Ethernet4
+INTERFACE|Ethernet4|10.1.0.5/31
+INTERFACE|Ethernet4|2001:db8:2::2/127
+-- LOOPBACK_INTERFACE --
+LOOPBACK_INTERFACE|Loopback0
+LOOPBACK_INTERFACE|Loopback0|10.0.0.21/32
+LOOPBACK_INTERFACE|Loopback0|2001:db8:ff::21/128
+-- BGP_NEIGHBOR --
+BGP_NEIGHBOR|10.1.0.0
+BGP_NEIGHBOR|10.1.0.4
+BGP_NEIGHBOR|2001:db8:1::3
+BGP_NEIGHBOR|2001:db8:2::3
+===== leaf01: kernel address read-back =====
+Ethernet0        UNKNOWN        10.1.0.1/31 2001:db8:1::2/127 fe80::20bc:dcff:fee7:dd3c/64 
+Ethernet4        UNKNOWN        10.1.0.5/31 2001:db8:2::2/127 fe80::20bc:dcff:fee7:dd3c/64 
+Loopback0        UNKNOWN        10.0.0.21/32 2001:db8:ff::21/128 fe80::d087:e2ff:fe62:1001/64 
+
+[exit code: 0]

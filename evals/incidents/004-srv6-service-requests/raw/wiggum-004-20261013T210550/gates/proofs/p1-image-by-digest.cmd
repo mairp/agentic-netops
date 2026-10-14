@@ -1,0 +1,1 @@
+bash -c T=.wiggum/features/004-srv6-service-requests/gates/proofs/clab-digest-proof/clab.yml\;\ containerlab\ deploy\ -t\ \"\$T\"\ --reconfigure\ 2\>\&1\ \|\ tail\ -14\;\ rc=\$\{PIPESTATUS\[0\]\}\;\ containerlab\ destroy\ -t\ \"\$T\"\ --cleanup\ \>/dev/null\ 2\>\&1\;\ echo\ \"deploy-exit:\ \$rc\"\;\ exit\ \"\$rc\"

@@ -1,0 +1,70 @@
+# T027/T028/T029 — evpn_srv6_suite.sh probe + selftest + exit 77 (line-numbered)
+$ grep -n "seg6_probe\|seg6-probe-selftest\|exit 77\|SEG6_KERNEL_OK" tests/integration/evpn_srv6_suite.sh
+217:seg6_probe_dev() {
+224:seg6_probe_out() {
+226:  dev=$(seg6_probe_dev "$node")
+234:seg6_probe_selftest() {
+238:  [[ -n "$node" ]] || die "seg6-probe-selftest: cannot resolve containerlab node for ${tgts[0]%%:*}"
+239:  dev=$(seg6_probe_dev "$node")
+240:  out=$(seg6_probe_out "$node")
+251:  dev=$(seg6_probe_dev "$(node_for_ip "${tgts[0]%%:*}")")
+266:      probe_out=$(seg6_probe_out "$node")
+272:        exit 77
+275:      exit 77
+490:    seg6-probe-selftest) seg6_probe_selftest ;;
+
+--- probe + selftest region:
+   209	# `dev Loopback0` programs and shows `encap seg6 ... dev Loopback0`.
+   210	# The fallback to `lo` keeps the sonic-vs profile (no Loopback0 in some
+   211	# container builds) working: there the host kernel honors seg6 on any device.
+   212	SEG6_PROBE_PREFIX="2001:db8:7fff:ffff::/64"
+   213	# T028: the probe (and every witness install) binds Loopback0 — the real
+   214	# interface every SONiC node carries — falling back to `lo` only when the
+   215	# node has no Loopback0 (some sonic-vs container builds). Overridable via
+   216	# SEG6_PROBE_DEV for targeted debugging.
+   217	seg6_probe_dev() {
+   218	  if [[ -n "${SEG6_PROBE_DEV:-}" ]]; then
+   219	    printf '%s\n' "$SEG6_PROBE_DEV"
+   220	  else
+   221	    node_run "$1" "ip -6 link show Loopback0 >/dev/null 2>&1 && echo Loopback0 || echo lo" 2>/dev/null | tail -n1
+   222	  fi
+   223	}
+   224	seg6_probe_out() {
+   225	  local node=$1 dev
+   226	  dev=$(seg6_probe_dev "$node")
+   227	  node_run "$node" "sudo ip -6 route replace ${SEG6_PROBE_PREFIX} encap seg6 mode encap segs fc00::1 dev ${dev} && sudo ip -6 route show ${SEG6_PROBE_PREFIX}; rc=\$?; sudo ip -6 route del ${SEG6_PROBE_PREFIX} >/dev/null 2>&1 || true; exit \$rc" 2>/dev/null || true
+   228	}
+   229	
+   230	# T027 — probe selftest: install a seg6 route with the suite's own probe and
+   231	# assert the installed route is VISIBLE with its encap. This is the guard that
+   232	# keeps seg6_witness honest: a probe that installs-but-drops (the sonic-vm
+   233	# `dev lo` behavior before T028) must fail HERE, not silently skip witnesses.
+   234	seg6_probe_selftest() {
+   235	  local node out dev
+   236	  IFS=',' read -ra tgts <<<"$TARGETS"
+   237	  node=$(node_for_ip "${tgts[0]%%:*}")
+   238	  [[ -n "$node" ]] || die "seg6-probe-selftest: cannot resolve containerlab node for ${tgts[0]%%:*}"
+   239	  dev=$(seg6_probe_dev "$node")
+
+--- witness exit-77 region:
+   249	  IFS=',' read -ra tgts <<<"$TARGETS"
+   250	  local dev
+   251	  dev=$(seg6_probe_dev "$(node_for_ip "${tgts[0]%%:*}")")
+   252	  for t in "${tgts[@]}"; do
+   253	    local node probe out
+   254	    node=$(node_for_ip "${t%%:*}")
+   255	    [[ -n "$node" ]] || die "$label: cannot resolve containerlab node for $t"
+   256	    # Kernel seg6 lwtunnel is required for this witness. The sonic-vs image
+   257	    # runs on the container host kernel (supports seg6); the sonic-vm guest
+   258	    # runs the SONiC Debian kernel where LWTUNNEL/seg6 is disabled — "ip
+   259	    # route ... encap seg6" is silently accepted but the encap is dropped.
+   260	    # Probe once; when the node kernel cannot host the witness the check
+   261	    # exits SKIP (77) so the gate counts it as skipped, never passed (T029) —
+   262	    # the gNMI CONFIG_DB SRv6 witnesses still cover SRv6 control-plane state
+   263	    # on both profiles.
+   264	    if [[ -z "${SEG6_KERNEL_OK:-}" ]]; then
+   265	      local probe_out
+   266	      probe_out=$(seg6_probe_out "$node")
+   267	      if grep -q 'encap seg6' <<<"$probe_out"; then
+   268	        SEG6_KERNEL_OK=1
+   269	      else

@@ -1,0 +1,8 @@
+ok spike-evpn2-state-leaf01
+ok spike-evpn2-state-leaf02
+differ: spike-evpn2-ping
+ok spike-evpn2-capture
+differ: spike-evpn2-rollback
+replay spike-evpn2: 2 of 5 proof(s) differ
+
+[exit code: 1]

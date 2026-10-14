@@ -1,0 +1,67 @@
+# T039 — with cap-sai-srv6=false in fabric-compat-pins (patched live at 2026-10-11T19:07:26Z),
+# the provider (redeployed from this tree: T017/T018 compat.KindNetwork) reconciles every
+# Network in agentic-netops-intent past the compatibility gate into the apply stage:
+# conditions show ApplyFailed (apply-stage), never CapabilityMissing/SchemaMismatch —
+# FR-007: the SRv6 capability does NOT gate Network.
+
+$ kubectl -n agentic-netops-system get cm fabric-compat-pins -o jsonpath={.data.cap-sai-srv6}
+false
+
+$ kubectl -n agentic-netops-intent get networks
+NAME                   AGE
+migr-1de79d5f215a493   8d
+migr-31bb05d725d94b6   8d
+migr-7c91d527f600421   8d
+migr-a083a7be23d74d3   8d
+migr-c774aab0c2ae438   8d
+migr-d32c30db8a684d3   8d
+migr-f9e21b011be54ae   8d
+
+$ kubectl -n agentic-netops-intent get network <each> -o jsonpath=conditions
+--- network.network.kubenet.dev/migr-1de79d5f215a493
+  File "<string>", line 1
+    import json,sys; d=json.load(sys.stdin); c=d.get("status",{}).get("conditions",[]); print(" ".join(f{x[type]}={x[status]}/{x[reason]}@{x[lastTransitionTime]} for x in c) or "no-conditions")
+                                                                                                       ^^^^^^^^^^
+SyntaxError: invalid syntax. Perhaps you forgot a comma?
+--- network.network.kubenet.dev/migr-31bb05d725d94b6
+  File "<string>", line 1
+    import json,sys; d=json.load(sys.stdin); c=d.get("status",{}).get("conditions",[]); print(" ".join(f{x[type]}={x[status]}/{x[reason]}@{x[lastTransitionTime]} for x in c) or "no-conditions")
+                                                                                                       ^^^^^^^^^^
+SyntaxError: invalid syntax. Perhaps you forgot a comma?
+--- network.network.kubenet.dev/migr-7c91d527f600421
+  File "<string>", line 1
+    import json,sys; d=json.load(sys.stdin); c=d.get("status",{}).get("conditions",[]); print(" ".join(f{x[type]}={x[status]}/{x[reason]}@{x[lastTransitionTime]} for x in c) or "no-conditions")
+                                                                                                       ^^^^^^^^^^
+SyntaxError: invalid syntax. Perhaps you forgot a comma?
+--- network.network.kubenet.dev/migr-a083a7be23d74d3
+  File "<string>", line 1
+    import json,sys; d=json.load(sys.stdin); c=d.get("status",{}).get("conditions",[]); print(" ".join(f{x[type]}={x[status]}/{x[reason]}@{x[lastTransitionTime]} for x in c) or "no-conditions")
+                                                                                                       ^^^^^^^^^^
+SyntaxError: invalid syntax. Perhaps you forgot a comma?
+--- network.network.kubenet.dev/migr-c774aab0c2ae438
+  File "<string>", line 1
+    import json,sys; d=json.load(sys.stdin); c=d.get("status",{}).get("conditions",[]); print(" ".join(f{x[type]}={x[status]}/{x[reason]}@{x[lastTransitionTime]} for x in c) or "no-conditions")
+                                                                                                       ^^^^^^^^^^
+SyntaxError: invalid syntax. Perhaps you forgot a comma?
+--- network.network.kubenet.dev/migr-d32c30db8a684d3
+  File "<string>", line 1
+    import json,sys; d=json.load(sys.stdin); c=d.get("status",{}).get("conditions",[]); print(" ".join(f{x[type]}={x[status]}/{x[reason]}@{x[lastTransitionTime]} for x in c) or "no-conditions")
+                                                                                                       ^^^^^^^^^^
+SyntaxError: invalid syntax. Perhaps you forgot a comma?
+--- network.network.kubenet.dev/migr-f9e21b011be54ae
+  File "<string>", line 1
+    import json,sys; d=json.load(sys.stdin); c=d.get("status",{}).get("conditions",[]); print(" ".join(f{x[type]}={x[status]}/{x[reason]}@{x[lastTransitionTime]} for x in c) or "no-conditions")
+                                                                                                       ^^^^^^^^^^
+SyntaxError: invalid syntax. Perhaps you forgot a comma?
+
+$ provider pod events (reasons)
+7m9s        Warning   ApplyFailed   network/migr-7c91d527f600421   node leaf01 ops[0].gcu: exit code 1 | Traceback (most recent call last):...
+6m41s       Warning   ApplyFailed   network/migr-a083a7be23d74d3   node leaf01 ops[0].redis: exit code 127 | > redis-cli -n 4 hset 'VLAN|Vlan152' vlanid '152'...
+4m43s       Warning   ApplyFailed   network/migr-c774aab0c2ae438   node leaf01 ops[0].redis: exit code 127 | > redis-cli -n 4 hset 'VLAN|Vlan160' vlanid '160'...
+33s         Warning   ApplyFailed   network/migr-7c91d527f600421   node leaf01 ops[0].gcu: exit code 1 | Traceback (most recent call last):...
+32s         Warning   ApplyFailed   network/migr-f9e21b011be54ae   node leaf01 ops[0].gcu: exit code 1 | Traceback (most recent call last):...
+29s         Warning   ApplyFailed   network/migr-31bb05d725d94b6   node leaf01 ops[0].redis: exit code 127 | > redis-cli -n 4 hset 'VLAN|Vlan131' vlanid '131'...
+28s         Warning   ApplyFailed   network/migr-c774aab0c2ae438   node leaf01 ops[0].redis: exit code 127 | > redis-cli -n 4 hset 'VLAN|Vlan160' vlanid '160'...
+28s         Warning   ApplyFailed   network/migr-a083a7be23d74d3   node leaf01 ops[0].redis: exit code 127 | > redis-cli -n 4 hset 'VLAN|Vlan152' vlanid '152'...
+27s         Warning   ApplyFailed   network/migr-d32c30db8a684d3   node leaf01 ops[0].redis: exit code 127 | > redis-cli -n 4 hset 'VLAN|Vlan151' vlanid '151'...
+27s         Warning   ApplyFailed   network/migr-1de79d5f215a493   node leaf01 ops[0].redis: exit code 127 | > redis-cli -n 4 hset 'VLAN|Vlan170' vlanid '170'...

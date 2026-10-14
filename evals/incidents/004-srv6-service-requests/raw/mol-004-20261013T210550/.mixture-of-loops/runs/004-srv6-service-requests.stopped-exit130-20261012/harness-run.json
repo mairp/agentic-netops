@@ -1,0 +1,55 @@
+{
+  "argv": [
+    "/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/run-004-srv6-service-requests.sh",
+    "--no-color"
+  ],
+  "bundle": "/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/.mixture-of-loops/generated/004-srv6-service-requests/bfc5361a1ce7299cc9ac",
+  "cmdline_markers": [
+    "/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/run-004-srv6-service-requests.sh",
+    "bfc5361a1ce7299cc9ac"
+  ],
+  "contract": "/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/.mixture-of-loops/generated/004-srv6-service-requests/bfc5361a1ce7299cc9ac/launch-contract.json",
+  "contract_digest": "fe05f794b628d938db87f5237810050e4100bb7669e5e161c63d8812dafad6c5",
+  "cwd": "/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests",
+  "first_launched_at": 1791740817.8739157,
+  "flags": {
+    "implement": false,
+    "smoke": false
+  },
+  "launch_log": "/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/.mixture-of-loops/runs/004-srv6-service-requests/harness-launch.log",
+  "launched_at": 1791740817.8739157,
+  "launcher": "/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/run-004-srv6-service-requests.sh",
+  "launcher_log": "/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/.mixture-of-loops/runs/004-srv6-service-requests/launcher.log",
+  "launcher_log_offset": 0,
+  "mode": "auto",
+  "pgid": 898228,
+  "pid": 898228,
+  "pipeline": "004-srv6-service-requests",
+  "relaunch_budget": {
+    "deadline": 1822845717.8739157,
+    "declared_pipeline_seconds": 10368300.0,
+    "max_relaunches": 2,
+    "remaining": 2,
+    "source": "default",
+    "wall_clock_seconds": 31104900.0
+  },
+  "relaunches": [],
+  "report_log": "/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/.mixture-of-loops/runs/004-srv6-service-requests/harness-report.log",
+  "run_dir": "/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/.mixture-of-loops/runs/004-srv6-service-requests",
+  "schema": "mixture-of-loops/harness-run/1",
+  "stage_count": 1,
+  "state_path": "/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/.mixture-of-loops/runs/004-srv6-service-requests/state.json",
+  "supervision": {
+    "interval": 600,
+    "signature": [
+      "running",
+      "running",
+      "run-004-srv6-service-requests",
+      1,
+      null,
+      "",
+      null
+    ],
+    "unchanged": 20
+  }
+}

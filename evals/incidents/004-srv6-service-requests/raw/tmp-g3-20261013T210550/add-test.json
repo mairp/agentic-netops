@@ -1,0 +1,1 @@
+[{"op":"add","path":"/BGP_NEIGHBOR","value":{"10.1.0.1":{"asn":"65000","holdtime":"180","keepalive":"60","local_addr":"10.1.0.2","nhopself":"0","rrclient":"0"}}}]

@@ -1,0 +1,20 @@
+# p2-restage-replay.txt — proof.sh replay determinism for the restaged proofs (T012-T015)
+# Recorded 2026-10-11T19:56:27Z. Each section is the verbatim stdout+stderr of
+# 'bash scripts/proof.sh replay <prefix>' re-run at slice time; exit code in brackets.
+
+=== bash scripts/proof.sh replay q10 ===
+ok q10-baseline
+ok q10-srv6
+ok q10-guard
+replay q10: 3 proof(s) checked, no difference (0 skipped)
+[exit code: 0]
+
+=== bash scripts/proof.sh replay p1-agents ===
+ok p1-agents
+replay p1-agents: 1 proof(s) checked, no difference (0 skipped)
+[exit code: 0]
+
+=== bash scripts/proof.sh replay selftest (the command the phase gate itself executes) ===
+ok selftest
+replay selftest: 1 proof(s) checked, no difference (0 skipped)
+[exit code: 0]

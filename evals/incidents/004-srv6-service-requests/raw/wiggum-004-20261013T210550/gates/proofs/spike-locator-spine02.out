@@ -1,0 +1,10 @@
+===== spine02: locator fcbb:bbbb:2::/64 via GCU (CONFIG_DB class) =====
+APPLIED
+--- redis read-back ---
+fcbb:bbbb:2::
+--- FRR locator table ---
+Name                 ID      Prefix                   Status
+-------------------- ------- ------------------------ -------
+loc-spine02                1 fcbb:bbbb:2::/48         Up
+
+[exit code: 0]

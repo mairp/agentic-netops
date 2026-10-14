@@ -1,0 +1,16 @@
+# T027/T028/T029 live proof (sonic-vm lab, 2026-10-11T18:56:11Z)
+# T027 red (probe dev lo, installs-but-drops):
+[evpn-srv6-suite] FAIL: seg6 probe selftest: the probe's route is not visible with its encap on lo (probe output: 2001:db8:7fff:ffff::/64 dev lo metric 1024 pref medium)
+exit: 1
+# T029 skip path (SEG6_PROBE_DEV=lo forced -> exit 77):
+[evpn-srv6-suite] 172.31.0.21:8080: kernel seg6 lwtunnel unavailable — H.Encaps.Red exits SKIP (77); control-plane SRv6 state is still asserted via gNMI
+exit: 77
+# T028 green (Loopback0): witnesses pass on sonic-vm:
+[evpn-srv6-suite] 172.31.0.21:8080: H.Encaps.Red asserted (seg6 encap.red programmed and read back)
+[evpn-srv6-suite] 172.31.0.22:8080: H.Encaps.Red asserted (seg6 encap.red programmed and read back)
+exit: 0
+[evpn-srv6-suite] 172.31.0.21:8080: SID-list asserted (seg6 encap programmed and read back)
+[evpn-srv6-suite] 172.31.0.22:8080: SID-list asserted (seg6 encap programmed and read back)
+exit: 0
+[evpn-srv6-suite] seg6 probe selftest: route installed on Loopback0 and visible with encap (2001:db8:7fff:ffff::/64  encap seg6 mode encap segs 1 [ fc00::1 ] dev Loopback0 metric 1024 pref medium)
+exit: 0

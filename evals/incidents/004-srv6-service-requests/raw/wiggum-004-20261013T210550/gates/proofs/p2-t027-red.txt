@@ -1,0 +1,2 @@
+[evpn-srv6-suite] FAIL: seg6 probe selftest: the probe's route is not visible with its encap on lo (probe output: 2001:db8:7fff:ffff::/64 dev lo metric 1024 pref medium)
+exit: 1

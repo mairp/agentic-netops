@@ -1,0 +1,12 @@
+PROV=1
+Q1-conv=0
+Q1-canary=1
+A-seed=1
+A-dry=0
+B-conv=
+spike-rerun-vpn=missing
+spike-rerun-steering=missing
+spike-rerun-evpn3=missing
+spike-rerun-evpn2=missing
+spike-rerun-baseline=missing
+FINAL: LAB-SICK: canary still failing after recovery: ##### 13:52:42 RC CANN=1

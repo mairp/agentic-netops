@@ -1,0 +1,3 @@
+APPLY-STUCK: kernel VRF state did not converge after 3 attempts (applied='APPLIED')
+RC1=1
+APPLY-STUCK: kernel VRF state did not converge after 3 attempts (applied='APPLIED')

@@ -1,0 +1,72 @@
+##### 05:23:06 START P-provision: ./scripts/provision.sh --profile sonic-vm
+##### 05:37:52 RC P-provision=1
+##### 05:37:52 PHASE P done: lab_up=8 provision.rc=1; settling 90s
+##### 05:39:22 START Q-converge: eval bash -c ". scripts/spike/spike-env.sh; . scripts/spike/ensure-fabric.sh; ensure_fabric; for n in leaf01 leaf02 spine01 spine02; do echo \"\$n: \$( _ensure_fabric_probe \"\$n\" | tail -1)\"; done"
+##### 05:49:12 RC Q-converge=0
+##### 05:49:12 START Q-canary: bash -c bash scripts/spike/vrf-apply.sh leaf01 >/dev/null 2>&1 && bash scripts/spike/vrf-apply.sh leaf02 >/dev/null 2>&1
+##### 05:49:45 RC Q-canary=0
+##### 05:49:45 PHASE Q done: converge + canary OK
+##### 05:49:45 START A-seed: bash scripts/spike/seed-restore.sh
+##### 05:51:28 RC A-seed=1
+##### 05:51:28 START A-b-spine01: scripts/proof.sh spike-baseline-spine01 -- scripts/spike/baseline-capture.sh spine01
+##### 05:51:32 RC A-b-spine01=0
+##### 05:51:32 START A-b-spine02: scripts/proof.sh spike-baseline-spine02 -- scripts/spike/baseline-capture.sh spine02
+##### 05:51:36 RC A-b-spine02=0
+##### 05:51:36 START A-b-leaf01: scripts/proof.sh spike-baseline-leaf01 -- scripts/spike/baseline-capture.sh leaf01
+##### 05:51:40 RC A-b-leaf01=0
+##### 05:51:40 START A-b-leaf02: scripts/proof.sh spike-baseline-leaf02 -- scripts/spike/baseline-capture.sh leaf02
+##### 05:51:45 RC A-b-leaf02=0
+##### 05:51:45 START A-dry: scripts/proof.sh replay spike-baseline
+##### 05:52:00 RC A-dry=0
+##### 05:52:00 PHASE A done (dry=0)
+##### 05:52:00 START B-converge: eval bash -c ". scripts/spike/spike-env.sh; . scripts/spike/ensure-fabric.sh; ensure_fabric; for n in leaf01 leaf02 spine01 spine02; do echo \"\$n: \$( _ensure_fabric_probe \"\$n\" | tail -1)\"; done"
+##### 05:57:57 RC B-converge=0
+##### 05:57:57 PHASE B done
+##### 05:57:57 START C-1: scripts/proof.sh spike-vpn-state-leaf01 -- scripts/spike/vrf-apply.sh leaf01
+##### 05:58:13 RC C-1=0
+##### 05:58:13 START C-2: scripts/proof.sh spike-vpn-state-leaf02 -- scripts/spike/vrf-apply.sh leaf02
+##### 05:58:28 RC C-2=0
+##### 05:58:28 START C-3: scripts/proof.sh spike-vpn-ping -- scripts/spike/vpn-ping.sh
+##### 05:59:05 RC C-3=0
+##### 05:59:05 START C-4: scripts/proof.sh spike-vpn-capture -- scripts/spike/vpn-capture.sh
+##### 05:59:33 RC C-4=0
+##### 05:59:33 START C-5: scripts/proof.sh spike-vpn-readback-leaf01 -- bash scripts/spike/vpn-readback.sh leaf01
+##### 05:59:49 RC C-5=0
+##### 05:59:49 START C-6: scripts/proof.sh spike-vpn-readback-leaf02 -- bash scripts/spike/vpn-readback.sh leaf02
+##### 06:00:04 RC C-6=0
+##### 06:00:04 START C-7: scripts/proof.sh spike-vpn-clients -- bash scripts/spike/vpn-clients.sh
+##### 06:00:21 RC C-7=0
+##### 06:00:21 START C-8: scripts/proof.sh spike-vpn-rollback -- bash scripts/spike/vpn-rollback.sh
+##### 06:00:56 RC C-8=0
+##### 06:00:56 START spike-rerun-vpn: scripts/proof.sh spike-rerun-vpn -- scripts/proof.sh replay spike-vpn
+##### 06:58:53 RC spike-rerun-vpn=1
+##### 06:58:53 RECEIPT spike-rerun-vpn verdict=differ
+##### 06:58:53 PHASE C done
+##### 06:58:53 START D-1: scripts/proof.sh spike-steering-path -- bash scripts/spike/steering-path.sh
+##### 07:12:39 RC D-1=1
+##### 07:12:39 START D-2: scripts/proof.sh spike-steering-failover-launcher -- bash scripts/spike/steering-failover.sh launcher
+##### 07:21:35 RC D-2=1
+##### 07:21:35 START D-3: scripts/proof.sh spike-steering-failover-guest-if -- bash scripts/spike/steering-failover.sh guest
+##### 07:30:59 RC D-3=1
+##### 07:30:59 START D-4: scripts/proof.sh spike-steering-failover-bgp -- bash scripts/spike/steering-failover.sh bgp
+##### 07:40:43 RC D-4=1
+##### 07:40:43 START D-5: scripts/proof.sh spike-steering-return -- bash scripts/spike/steering-failover.sh return
+##### 07:50:45 RC D-5=1
+##### 07:50:45 START spike-rerun-steering: scripts/proof.sh spike-rerun-steering -- scripts/proof.sh replay spike-steering
+##### 08:39:03 RC spike-rerun-steering=0
+##### 08:39:03 RECEIPT spike-rerun-steering verdict=clean
+##### 08:39:03 PHASE D done
+##### 08:39:03 START spike-rerun-evpn3: scripts/proof.sh spike-rerun-evpn3 -- scripts/proof.sh replay spike-evpn3
+##### 09:43:30 RC spike-rerun-evpn3=1
+##### 09:43:30 RECEIPT spike-rerun-evpn3 verdict=differ
+##### 09:43:30 START spike-rerun-evpn2: scripts/proof.sh spike-rerun-evpn2 -- scripts/proof.sh replay spike-evpn2
+##### 10:40:05 RC spike-rerun-evpn2=1
+##### 10:40:05 RECEIPT spike-rerun-evpn2 verdict=differ
+##### 10:40:05 PHASE E/F done
+##### 10:40:05 START G-seed: bash scripts/spike/seed-restore.sh
+##### 10:42:15 RC G-seed=1
+##### 10:42:15 START spike-rerun-baseline: scripts/proof.sh spike-rerun-baseline -- scripts/proof.sh replay spike-baseline
+##### 10:42:33 RC spike-rerun-baseline=1
+##### 10:42:33 RECEIPT spike-rerun-baseline verdict=differ
+##### 10:42:33 PHASE G done
+##### 10:42:33 CHAIN2 DONE — summary in /tmp/g3/chain2.summary

@@ -1,0 +1,219 @@
+{
+ "bundle": "/root/agentic-netops/evals/incidents/004-srv6-service-requests/raw",
+ "scanned_at": "2026-10-13T21:33:25.933580+04:00",
+ "anomalies": [
+  {
+   "check": "D",
+   "severity": "major",
+   "what": "TEMPORAL: member spike-baseline-spine02.out is newer than receipt spike-rerun-baseline.out \u2014 receipt cannot be valid for current records",
+   "artifacts": [
+    "wiggum-004-20261013T210550/gates/proofs/spike-baseline-spine02.out",
+    "wiggum-004-20261013T210550/gates/proofs/spike-rerun-baseline.out"
+   ],
+   "note": ""
+  },
+  {
+   "check": "D",
+   "severity": "major",
+   "what": "TEMPORAL: member spike-evpn3-ping.out is newer than receipt spike-rerun-evpn3.out \u2014 receipt cannot be valid for current records",
+   "artifacts": [
+    "wiggum-004-20261013T210550/gates/proofs/spike-evpn3-ping.out",
+    "wiggum-004-20261013T210550/gates/proofs/spike-rerun-evpn3.out"
+   ],
+   "note": ""
+  },
+  {
+   "check": "D",
+   "severity": "major",
+   "what": "TEMPORAL: member spike-evpn3-rollback.out is newer than receipt spike-rerun-evpn3.out \u2014 receipt cannot be valid for current records",
+   "artifacts": [
+    "wiggum-004-20261013T210550/gates/proofs/spike-evpn3-rollback.out",
+    "wiggum-004-20261013T210550/gates/proofs/spike-rerun-evpn3.out"
+   ],
+   "note": ""
+  },
+  {
+   "check": "D",
+   "severity": "major",
+   "what": "TEMPORAL: member spike-evpn3-state-leaf01.out is newer than receipt spike-rerun-evpn3.out \u2014 receipt cannot be valid for current records",
+   "artifacts": [
+    "wiggum-004-20261013T210550/gates/proofs/spike-evpn3-state-leaf01.out",
+    "wiggum-004-20261013T210550/gates/proofs/spike-rerun-evpn3.out"
+   ],
+   "note": ""
+  },
+  {
+   "check": "G",
+   "severity": "major",
+   "what": "PROVENANCE-GAP: 44 spike scripts in working tree, 0 tracked in git",
+   "artifacts": [
+    "scripts/spike/ (git ls-files)"
+   ],
+   "note": ""
+  },
+  {
+   "check": "I",
+   "severity": "major",
+   "what": "GARBAGE-LOOP: 2 evidence files with byte-identical failure text (same failure re-recorded without remediation)",
+   "artifacts": [
+    "tmp-g3-20261013T210550/H-canary.log",
+    "tmp-g3-20261013T210550/FG-spike-vpn-canary.log"
+   ],
+   "note": ""
+  },
+  {
+   "check": "F",
+   "severity": "minor",
+   "what": "STALE-PID: chain2.pid=1024502 never referenced in chain2 logs/summary (possible setsid-wrapper pid)",
+   "artifacts": [
+    "tmp-g3-20261013T210550/chain2.pid"
+   ],
+   "note": ""
+  },
+  {
+   "check": "F",
+   "severity": "minor",
+   "what": "STALE-PID: chain4.pid=935362 never referenced in chain4 logs/summary (possible setsid-wrapper pid)",
+   "artifacts": [
+    "tmp-g3-20261013T210550/chain4.pid"
+   ],
+   "note": ""
+  },
+  {
+   "check": "B",
+   "severity": "info",
+   "what": "RECORDED-FAILURE: p1-image-by-digest.out exits 1 (nonzero-exit); group receipt: no-receipt",
+   "artifacts": [
+    "wiggum-004-20261013T210550/gates/proofs/p1-image-by-digest.out"
+   ],
+   "note": ""
+  },
+  {
+   "check": "B",
+   "severity": "info",
+   "what": "RECORDED-FAILURE: spike-rerun-baseline.out exits 1 (nonzero-exit); group receipt: no-receipt",
+   "artifacts": [
+    "wiggum-004-20261013T210550/gates/proofs/spike-rerun-baseline.out"
+   ],
+   "note": ""
+  },
+  {
+   "check": "B",
+   "severity": "info",
+   "what": "RECORDED-FAILURE: spike-rerun-evpn2.out exits 1 (nonzero-exit); group receipt: no-receipt",
+   "artifacts": [
+    "wiggum-004-20261013T210550/gates/proofs/spike-rerun-evpn2.out"
+   ],
+   "note": ""
+  },
+  {
+   "check": "B",
+   "severity": "info",
+   "what": "RECORDED-FAILURE: spike-rerun-evpn3.out exits 1 (nonzero-exit); group receipt: no-receipt",
+   "artifacts": [
+    "wiggum-004-20261013T210550/gates/proofs/spike-rerun-evpn3.out"
+   ],
+   "note": ""
+  },
+  {
+   "check": "B",
+   "severity": "info",
+   "what": "RECORDED-FAILURE: spike-rerun-steering.out exits 1 (nonzero-exit); group receipt: no-receipt",
+   "artifacts": [
+    "wiggum-004-20261013T210550/gates/proofs/spike-rerun-steering.out"
+   ],
+   "note": ""
+  },
+  {
+   "check": "B",
+   "severity": "info",
+   "what": "RECORDED-FAILURE: spike-steering-failover-launcher.out exits 1 (PREFLIGHT-FAILED); group receipt: receipt-differs",
+   "artifacts": [
+    "wiggum-004-20261013T210550/gates/proofs/spike-steering-failover-launcher.out"
+   ],
+   "note": ""
+  },
+  {
+   "check": "B",
+   "severity": "info",
+   "what": "RECORDED-FAILURE: spike-steering-path.out exits 1 (PREFLIGHT-FAILED); group receipt: receipt-differs",
+   "artifacts": [
+    "wiggum-004-20261013T210550/gates/proofs/spike-steering-path.out"
+   ],
+   "note": ""
+  },
+  {
+   "check": "C",
+   "severity": "info",
+   "what": "NEEDS-TRIAGE: CANN.rc = 1 with no same-family successful retry/recover step (may be recovered under a foreign name \u2014 judge against the chain log)",
+   "artifacts": [
+    "tmp-g3-20261013T210550/CANN.rc"
+   ],
+   "note": ""
+  },
+  {
+   "check": "C",
+   "severity": "info",
+   "what": "NEEDS-TRIAGE: G-seed.rc = 1 with no same-family successful retry/recover step (may be recovered under a foreign name \u2014 judge against the chain log)",
+   "artifacts": [
+    "tmp-g3-20261013T210550/G-seed.rc"
+   ],
+   "note": ""
+  },
+  {
+   "check": "C",
+   "severity": "info",
+   "what": "NEEDS-TRIAGE: P-provision.rc = 1 with no same-family successful retry/recover step (may be recovered under a foreign name \u2014 judge against the chain log)",
+   "artifacts": [
+    "tmp-g3-20261013T210550/P-provision.rc"
+   ],
+   "note": ""
+  },
+  {
+   "check": "C",
+   "severity": "info",
+   "what": "NEEDS-TRIAGE: PROV.rc = 1 with no same-family successful retry/recover step (may be recovered under a foreign name \u2014 judge against the chain log)",
+   "artifacts": [
+    "tmp-g3-20261013T210550/PROV.rc"
+   ],
+   "note": ""
+  },
+  {
+   "check": "C",
+   "severity": "info",
+   "what": "NEEDS-TRIAGE: converge5.rc = 1 with no same-family successful retry/recover step (may be recovered under a foreign name \u2014 judge against the chain log)",
+   "artifacts": [
+    "tmp-g3-20261013T210550/converge5.rc"
+   ],
+   "note": ""
+  },
+  {
+   "check": "C",
+   "severity": "info",
+   "what": "NEEDS-TRIAGE: receipts3.rc = 3 with no same-family successful retry/recover step (may be recovered under a foreign name \u2014 judge against the chain log)",
+   "artifacts": [
+    "tmp-g3-20261013T210550/receipts3.rc"
+   ],
+   "note": ""
+  },
+  {
+   "check": "H",
+   "severity": "info",
+   "what": "NEEDS-TRIAGE: chain2.done completed 2793s past the yield's deadline \u2014 verify whether the owning run was still alive at expiry (a halted run's orphaned job overrunning is not a harness bug)",
+   "artifacts": [
+    "wiggum-004-20261013T210550/yield/phase3-attempt1-20261012-052705-3104859.json",
+    "tmp-g3-20261013T210550/chain2.done"
+   ],
+   "note": ""
+  }
+ ],
+ "counts": {
+  "D": 4,
+  "G": 1,
+  "I": 1,
+  "F": 2,
+  "B": 7,
+  "C": 6,
+  "H": 1
+ }
+}

@@ -1,0 +1,1 @@
+[{"op":"remove","path":"/SRV6_MY_LOCATORS"},{"op":"remove","path":"/VRF"},{"op":"remove","path":"/BGP_NEIGHBOR"},{"op":"remove","path":"/INTERFACE"},{"op":"remove","path":"/LOOPBACK_INTERFACE"}]

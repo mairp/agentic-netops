@@ -1,0 +1,10 @@
+===== spine01: fabric-link v6 addresses =====
+===== spine01: BGP v6 sessions =====
+Neighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc
+2001:db8:1::2   4      65101        C C C C C UPTIME            4        4 N/A
+2001:db8:1::4   4      65102        C C C C C UPTIME            4        4 N/A
+2001:db8:ff::12 4      65000        C C C C C UPTIME            3        4 FRRouting/10.3
+===== spine01: session state invariant =====
+v6 ESTABLISHED=3 OTHER=0
+
+[exit code: 0]

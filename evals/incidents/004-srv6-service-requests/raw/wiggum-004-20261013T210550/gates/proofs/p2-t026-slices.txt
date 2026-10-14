@@ -1,0 +1,74 @@
+# T026 — pkg/compat/pins.go derived keys + tests (line-numbered)
+$ grep -n "srv6-supported\|lab-profile" pkg/compat/pins.go
+53:	// T026 (contracts/capability-record.md §2/§5): srv6-supported is the
+56:	// label routing. lab-profile is informational provenance: which lab
+58:	"srv6-supported": "agentic-netops.dev/cap.srv6.supported",
+59:	"lab-profile":    "agentic-netops.dev/lab-profile",
+
+--- pins.go T026 map region:
+    52		"cap-sai-srv6":             "agentic-netops.dev/cap.sai.srv6",
+    53		// T026 (contracts/capability-record.md §2/§5): srv6-supported is the
+    54		// derived transport-support assertion (profile declares an SRv6-capable
+    55		// variant proven by the gate) — a sibling of cap.* so it rides the same
+    56		// label routing. lab-profile is informational provenance: which lab
+    57		// profile this generation served.
+    58		"srv6-supported": "agentic-netops.dev/cap.srv6.supported",
+    59		"lab-profile":    "agentic-netops.dev/lab-profile",
+    60	}
+
+--- tests/unit/compat_pins_test.go (T026) full:
+     1	package unit
+     2	
+     3	import (
+     4		"context"
+     5		"testing"
+     6	
+     7		corev1 "k8s.io/api/core/v1"
+     8		"k8s.io/apimachinery/pkg/types"
+     9		"sigs.k8s.io/controller-runtime/pkg/client"
+    10	
+    11		"github.com/mairp/agentic-netops/pkg/compat"
+    12	)
+    13	
+    14	// T026 — the pins loader knows the derived capability keys provision writes
+    15	// (contracts/capability-record.md §2/§5): `srv6-supported` feeds the label
+    16	// `agentic-netops.dev/cap.srv6.supported` (sibling of cap.sai.srv6), and
+    17	// `lab-profile` is read as informational provenance.
+    18	func TestCompat_AnnotationForDerivedCapabilityKeys(t *testing.T) {
+    19		name, ok := compat.AnnotationFor("srv6-supported")
+    20		if !ok || name != "agentic-netops.dev/cap.srv6.supported" {
+    21			t.Fatalf("srv6-supported must map to agentic-netops.dev/cap.srv6.supported, got %q (ok=%v)", name, ok)
+    22		}
+    23		name, ok = compat.AnnotationFor("lab-profile")
+    24		if !ok || name != "agentic-netops.dev/lab-profile" {
+    25			t.Fatalf("lab-profile must map to agentic-netops.dev/lab-profile, got %q (ok=%v)", name, ok)
+    26		}
+    27	}
+    28	
+    29	type fakePinReader struct {
+    30		cm *corev1.ConfigMap
+    31	}
+    32	
+    33	func (f fakePinReader) Get(_ context.Context, _ types.NamespacedName, obj client.Object, _ ...client.GetOption) error {
+    34		if f.cm == nil {
+    35			return client.IgnoreNotFound(nil)
+    36		}
+    37		*(obj.(*corev1.ConfigMap)) = *f.cm
+    38		return nil
+    39	}
+    40	
+    41	func TestCompat_ResolveSitePinsRoutesDerivedKeys(t *testing.T) {
+    42		cm := &corev1.ConfigMap{
+    43			Data: map[string]string{
+    44				"srv6-supported": "false",
+    45				"lab-profile":    "sonic-vm",
+    46			},
+    47		}
+    48		pins := compat.ResolveSitePins(context.Background(), fakePinReader{cm: cm}, nil, nil)
+    49		if got := pins.Labels["agentic-netops.dev/cap.srv6.supported"]; got != "false" {
+    50			t.Fatalf("srv6-supported must land in SitePins.Labels as cap.srv6.supported, got %q", got)
+    51		}
+    52		if got := pins.Annotations["agentic-netops.dev/lab-profile"]; got != "sonic-vm" {
+    53			t.Fatalf("lab-profile must land in SitePins.Annotations, got %q", got)
+    54		}
+    55	}

@@ -1,0 +1,17 @@
+########## leaf01 ##########
+===== EVPN session fabric (l2vpn evpn summary json) =====
+summary-json-unreadable
+===== L2VPN EVPN table =====
+===== bgpd VNI view (Type-5 generation precondition) =====
+===== zebra VNI view (L3VNI tenant binding) =====
+===== per-VRF export knobs (running config) =====
+===== EVPN AF knobs (running config, l2vpn evpn sections only) =====
+===== L3VNI kernel device (id/local/flags only; MAC is random) =====
+<BROADCAST,MULTICAST,UP,LOWER_UP>
+vxlan id 1001
+local 10.0.0.21
+===== Vrf1 own client network in the VRF AF (connected, deterministic) =====
+===== knob side effect: client subnets leaked into the DEFAULT table =====
+DEFAULT-TABLE-CLEAN
+
+[exit code: 0]

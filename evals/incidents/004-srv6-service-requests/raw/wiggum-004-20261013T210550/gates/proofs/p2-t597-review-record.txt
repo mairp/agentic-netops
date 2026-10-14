@@ -1,0 +1,46 @@
+# T597 slice — docs/SRV6_ACCEPTANCE_004.md review record of the interim refusal R1 and the classifier change
+## section: "## Review records" -> "### R1 — interim SRv6 refusal and classifier routing (T597, phase 2, 2026-10-11)", file lines 46-86 (EOF)
+## command: nl -ba docs/SRV6_ACCEPTANCE_004.md | sed -n '44,86p'
+    44	| SC-018 | While an SRv6 service carries traffic, every panel of the SRv6 dashboard shows data, and disabling a steered service's preferred path raises the existing alert. | | |
+    45	
+    46	## Review records
+    47	
+    48	### R1 — interim SRv6 refusal and classifier routing (T597, phase 2, 2026-10-11)
+    49	
+    50	What changed and why (FR-003, FR-003a, FR-015; contracts/operator-phrasings.md §3): before this
+    51	feature's own service type exists, a request naming SRv6 must not be answered with a generic
+    52	unsupported text, a clarification, or — worst — a silent fold into a VXLAN service. The mapper now
+    53	recognizes SRv6 (case-insensitive: `srv6`, `segment routing v6`, `segment routing over ipv6`) and
+    54	flags it as the unsupported property `srv6Transport`; the supervisor's mapper node renders the
+    55	official interim refusal R1 for it; the classifier routes a request naming SRv6 to the provisioning
+    56	path so R1 — not a diversion — is what the operator sees.
+    57	
+    58	Texts before / after:
+    59	
+    60	- Classifier (prompts/system.py, decision order) — BEFORE: a request naming SRv6 with a known
+    61	  construct (e.g. "ip-vrf over SRv6") classified PROVISIONABLE only by construct-word accident, and
+    62	  a bare "SRv6 service" fell through to INFORMATIONAL ("here is what I can do" — no refusal). AFTER:
+    63	  decision-order rule 2 — any request naming SRv6 is PROVISIONABLE, so the provisioning path's
+    64	  official R1 refusal is what the operator sees.
+    65	- Mapper — BEFORE: `srv6Transport` unknown; "ip-vrf over SRv6" mapped to `ip-vrf`; "SRv6 + a legacy
+    66	  service alias" folded through the alias to `ip-vrf` (a VXLAN-equivalent claim for an SRv6
+    67	  request). AFTER:
+    68	  the request is terminal with `unsupported_properties=["srv6Transport"]` and empty
+    69	  `missing_fields`; nothing is mapped, allocated, or claimed.
+    70	- Operator-facing refusal — BEFORE: generic `I can't do that. unsupported properties: … (no
+    71	  equivalent in the fabric). …` (or no refusal at all). AFTER (R1, composed by the supervisor
+    72	  template): `I can't do that. SRv6 services are not available yet. This request names SRv6, so it
+    73	  is not provisioned as a VXLAN service. This tier never opens a device session, issues a device
+    74	  command, or writes device configuration. Every change to the fabric flows only through declarative
+    75	  service intent submitted to the cluster API, which the control plane reconciles. Try instead:
+    76	  nothing was provisioned and nothing was claimed — SRv6 has no supported service type on this tier
+    77	  yet. If you want a VXLAN service today, ask for it explicitly as its own request — e.g. 'extend
+    78	  vlan 100 as a mac-vrf across <siteA> <portA> and <siteB> <portB> for tenant <tenant>' — and I will
+    79	  map that request through the same two confirmations. (correlation id: <id>)`
+    80	
+    81	Proofs this record rests on: `gates/proofs/q10-srv6.out` (the five-case interim SRv6 corpus —
+    82	mapper-level unsupported result and graph-level R1 refusal for each), `gates/proofs/q10-baseline.out`
+    83	(existing corpus replay identical to the snapshot — nothing else moved), `gates/proofs/q10-guard.out`
+    84	(vocabulary guard, no entry relaxed), `gates/proofs/p1-agents.out` (whole agents suite green after
+    85	the change). The refusal text itself is pinned in `agents/tests/unit/test_phrasings_srv6.py` and
+    86	`agents/tests/unit/test_refusal_paths.py` (`TestSRv6InterimRefusal`).

@@ -1,0 +1,10 @@
+===== leaf01: locator fcbb:bbbb:3::/64 via GCU (CONFIG_DB class) =====
+APPLIED
+--- redis read-back ---
+fcbb:bbbb:3::
+--- FRR locator table ---
+Name                 ID      Prefix                   Status
+-------------------- ------- ------------------------ -------
+loc-leaf01                 1 fcbb:bbbb:3::/48         Up
+
+[exit code: 0]

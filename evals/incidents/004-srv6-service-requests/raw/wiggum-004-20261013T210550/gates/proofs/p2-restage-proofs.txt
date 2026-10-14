@@ -1,0 +1,141 @@
+# p2-restage-proofs.txt — fresh proof records and the matching declarations (T012-T015)
+# Recorded 2026-10-11T19:56:20Z via: bash scripts/proof.sh <name> -- scripts/proofs/run-<name>.sh
+# All four records exited 0. Full captured output lives in gates/proofs/<name>.out;
+# these excerpts are line-numbered views of the same files.
+
+=== gates/proofs/q10-baseline.out (first 12 lines) ===
+     1	============================= test session starts ==============================
+     2	platform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+     3	rootdir: /root/agentic-netops/agents
+     4	configfile: pyproject.toml
+     5	plugins: langsmith-0.8.5, anyio-4.14.2, asyncio-1.4.0, vcr-1.0.2, cov-7.1.0
+     6	asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+     7	collected 1 item
+     8	
+     9	tests/unit/test_phrasings_baseline.py .                                  [100%]
+    10	
+    11	============================== 1 passed in ELAPSED ===============================
+    12	
+=== gates/proofs/q10-baseline.out (last 6 lines) ===
+     8	
+     9	tests/unit/test_phrasings_baseline.py .                                  [100%]
+    10	
+    11	============================== 1 passed in ELAPSED ===============================
+    12	
+    13	[exit code: 0]
+
+=== gates/proofs/q10-srv6.out (first 12 lines) ===
+     1	============================= test session starts ==============================
+     2	platform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+     3	rootdir: /root/agentic-netops/agents
+     4	configfile: pyproject.toml
+     5	plugins: langsmith-0.8.5, anyio-4.14.2, asyncio-1.4.0, vcr-1.0.2, cov-7.1.0
+     6	asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+     7	collected 1 item
+     8	
+     9	tests/unit/test_phrasings_srv6.py .                                      [100%]
+    10	
+    11	============================== 1 passed in ELAPSED ===============================
+    12	
+=== gates/proofs/q10-srv6.out (last 6 lines) ===
+     8	
+     9	tests/unit/test_phrasings_srv6.py .                                      [100%]
+    10	
+    11	============================== 1 passed in ELAPSED ===============================
+    12	
+    13	[exit code: 0]
+
+=== gates/proofs/q10-guard.out (first 12 lines) ===
+     1	============================= test session starts ==============================
+     2	platform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+     3	rootdir: /root/agentic-netops/agents
+     4	configfile: pyproject.toml
+     5	plugins: langsmith-0.8.5, anyio-4.14.2, asyncio-1.4.0, vcr-1.0.2, cov-7.1.0
+     6	asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+     7	collected 1 item
+     8	
+     9	tests/unit/test_vocabulary_guard.py .                                    [100%]
+    10	
+    11	============================== 1 passed in ELAPSED ===============================
+    12	
+=== gates/proofs/q10-guard.out (last 6 lines) ===
+     8	
+     9	tests/unit/test_vocabulary_guard.py .                                    [100%]
+    10	
+    11	============================== 1 passed in ELAPSED ===============================
+    12	
+    13	[exit code: 0]
+
+=== gates/proofs/p1-agents.out (first 12 lines) ===
+     1	============================= test session starts ==============================
+     2	platform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+     3	rootdir: /root/agentic-netops/agents
+     4	configfile: pyproject.toml
+     5	testpaths: tests
+     6	plugins: langsmith-0.8.5, anyio-4.14.2, asyncio-1.4.0, vcr-1.0.2, cov-7.1.0
+     7	asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+     8	collected 313 items / 5 deselected / 308 selected
+     9	
+    10	tests/e2e/test_decline.py ...                                            [  0%]
+    11	tests/e2e/test_golden_equivalence.py ......                              [  2%]
+    12	tests/e2e/test_operator_journey.py ..                                    [  3%]
+=== gates/proofs/p1-agents.out (last 6 lines) ===
+   305	  File "/root/agentic-netops/agents/.venv/lib/python3.13/site-packages/opentelemetry/sdk/metrics/_internal/export/__init__.py", line 554, in _receive_metrics
+   306	    _logger.exception("Exception while exporting metrics")
+   307	Message: 'Exception while exporting metrics'
+   308	Arguments: ()
+   309	
+   310	[exit code: 0]
+
+=== declared gate argv (the four phase-2 entries in the caller's contract) ===
+# file: .mixture-of-loops/004-srv6-service-requests/verification-commands.json
+31:      "id": "p2-phrasings-baseline-pytest",
+32-      "phase": 2,
+33-      "executable": "bash",
+34-      "args": [
+35-        "scripts/proofs/run-q10-baseline.sh"
+36-    ],
+37-      "cwd": "/root/agentic-netops",
+38-      "timeoutSec": 600
+39-    },
+40-    {
+
+41:      "id": "p2-phrasings-srv6-pytest",
+42-      "phase": 2,
+43-      "executable": "bash",
+44-      "args": [
+45-        "scripts/proofs/run-q10-srv6.sh"
+46-    ],
+47-      "cwd": "/root/agentic-netops",
+48-      "timeoutSec": 600
+49-    },
+50-    {
+
+51:      "id": "p2-vocabulary-guard-pytest",
+52-      "phase": 2,
+53-      "executable": "bash",
+54-      "args": [
+55-        "scripts/proofs/run-q10-guard.sh"
+56-    ],
+57-      "cwd": "/root/agentic-netops",
+58-      "timeoutSec": 600
+59-    },
+60-    {
+
+61:      "id": "p2-agents-pytest-full",
+62-      "phase": 2,
+63-      "executable": "bash",
+64-      "args": [
+65-        "scripts/proofs/run-p1-agents.sh"
+66-    ],
+67-      "cwd": "/root/agentic-netops",
+68-      "timeoutSec": 1800
+69-    },
+70-    {
+
+=== criteria declarations (tasks.md) ===
+# file: specs/004-srv6-service-requests/tasks.md
+93:- [ ] T012 LIVE: proof `q10-baseline` -- `scripts/proofs/run-q10-baseline.sh`, which runs "cd agents && pytest tests/unit/test_phrasings_baseline.py" (plan 1-08)
+94:- [ ] T013 LIVE: proof `q10-srv6` -- `scripts/proofs/run-q10-srv6.sh`, which runs "cd agents && pytest tests/unit/test_phrasings_srv6.py", against the interim corpus (plan 1-08)
+95:- [ ] T014 LIVE: proof `q10-guard` -- `scripts/proofs/run-q10-guard.sh`, which runs "cd agents && pytest tests/unit/test_vocabulary_guard.py"; no guard entry relaxed (plan 1-08)
+96:- [ ] T015 LIVE: proof `p1-agents` -- `scripts/proofs/run-p1-agents.sh`, which runs "cd agents && pytest" (plain pytest, whole suite) green. For a change confined to the mapper, the corpus replay plus this suite is the full existing suite for every construct; say so in the PR. The live per-construct run through the tier follows in plan 9-33 (plan 1-08)

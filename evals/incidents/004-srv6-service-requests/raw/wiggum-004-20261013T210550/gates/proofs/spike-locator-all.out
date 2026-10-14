@@ -1,0 +1,30 @@
+===== spine01: locator fcbb:bbbb:1::/64 via GCU =====
+APPLIED
+fcbb:bbbb:1::
+Name                 ID      Prefix                   Status
+-------------------- ------- ------------------------ -------
+loc-spine01                1 fcbb:bbbb:1::/48         Up
+
+===== spine02: locator fcbb:bbbb:2::/64 via GCU =====
+APPLIED
+fcbb:bbbb:2::
+Name                 ID      Prefix                   Status
+-------------------- ------- ------------------------ -------
+loc-spine02                1 fcbb:bbbb:2::/48         Up
+
+===== leaf01: locator fcbb:bbbb:3::/64 via GCU =====
+APPLIED
+fcbb:bbbb:3::
+Name                 ID      Prefix                   Status
+-------------------- ------- ------------------------ -------
+loc-leaf01                 1 fcbb:bbbb:3::/48         Up
+
+===== leaf02: locator fcbb:bbbb:4::/64 via GCU =====
+APPLIED
+fcbb:bbbb:4::
+Name                 ID      Prefix                   Status
+-------------------- ------- ------------------------ -------
+loc-leaf02                 1 fcbb:bbbb:4::/48         Up
+
+
+[exit code: 0]

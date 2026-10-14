@@ -1,0 +1,33 @@
+===== EVPN AF down on the fabric sessions =====
+===== drop the leaf-leaf locator EVPN session =====
+===== drop the per-VRF and default-VRF export knobs =====
+===== remove the L3VNI devices =====
+Device "vxlan-1001" does not exist.
+Device "vxlan-1001" does not exist.
+===== assert: EVPN AF carries no neighbours, no VNI, no routes =====
+% No BGP neighbors found in VRF default
+No prefixes displayed, 0 exist
+% No BGP neighbors found in VRF default
+===== assert: Vrf1 back to the §2 as-built state =====
+192.168.2.0/24  encap seg6 mode encap segs 1 [ fcbb:bbbb:4:11:: ] dev Ethernet0 scope link 
+fcbb:bbbb:3:11::/64  encap seg6local action End.DT46 vrftable 1001 dev Vrf1 metric 1024 pref medium
+192.168.1.0/24  encap seg6 mode encap segs 1 [ fcbb:bbbb:3:11:: ] dev Ethernet0 scope link 
+fcbb:bbbb:4:11::/64  encap seg6local action End.DT46 vrftable 1001 dev Vrf1 metric 1024 pref medium
+===== assert: client traffic passes again (8900-byte DF, both directions) =====
+3 packets transmitted, 3 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+3 packets transmitted, 3 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+===== assert: client subnets OUT of the default tables (isolation restored) =====
+-- leaf01: DEFAULT-TABLE-CLEAN
+-- leaf02: DEFAULT-TABLE-CLEAN
+-- spine01: CLEAN (expect CLEAN)
+===== assert: node locators untouched (FR-006) =====
+  locators
+   locator loc-leaf01
+    prefix fcbb:bbbb:3::/48 block-len 32 node-len 16 func-bits 16
+  locators
+   locator loc-leaf02
+    prefix fcbb:bbbb:4::/48 block-len 32 node-len 16 func-bits 16
+
+[exit code: 0]

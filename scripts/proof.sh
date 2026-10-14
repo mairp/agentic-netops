@@ -170,6 +170,9 @@ cmd_replay() {
             echo "ok $name"
         else
             echo "differ: $name"
+            # diagnostic copy for the human; deliberately OUTSIDE the proofs
+            # dir so it can never be mistaken for a stored artifact
+            cp "$cap_tmp" "/tmp/proof-got-$name.txt" 2>/dev/null || true
             differ=$((differ + 1))
         fi
         compared=$((compared + 1))
