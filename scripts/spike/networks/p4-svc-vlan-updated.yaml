@@ -1,0 +1,17 @@
+# T193 update: the same service, vlan moved 3600 -> 3605.
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: p4-svc-vlan
+  namespace: agentic-netops-intent
+spec:
+  vlans:
+    - name: p4-svc-vlan
+      vlan: 3605
+  attachments:
+    - node: leaf01
+      attachment: eth3
+      vlan: 3605
+    - node: leaf02
+      attachment: eth3
+      vlan: 3605

@@ -1,0 +1,26 @@
+# p4-acl-trial input (T213): the acl construct — a filter bound to the ports
+# the service attaches on. ACL-only attachments (no vrf, no vlan) are valid
+# when the Network declares accessLists.
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: p4-trial-acl
+  namespace: agentic-netops-system
+spec:
+  accessLists:
+    - name: p4-trial-acl
+      stage: ingress
+      type: l3
+      defaultAction: forward
+      rules:
+        - name: rule1
+          priority: 9990
+          action: forward
+          protocol: tcp
+          sourcePrefix: "10.0.0.0/8"
+          destinationPort: "5201"
+  attachments:
+    - node: leaf01
+      attachment: eth3
+    - node: leaf02
+      attachment: eth3

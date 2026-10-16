@@ -55,6 +55,11 @@ def loop_state(now):
     state = json.loads(read(f"{RUN}/state.json", "{}") or "{}")
     orch = sh("pgrep -of 'specstride/[o]rchestrator.sh .*--feature %s'" % FEATURE)
     sup = sh("pgrep -of '[r]untime.py --contract .*%s'" % FEATURE)
+    # Owner relaunch outside the MoL supervisor (14 Oct): the wrapper script
+    # stands in for the supervisor and its exit line for the digest.
+    direct = read(f"{REPO}/.mixture-of-loops/{FEATURE}/owner-resume-20261014.log").rpartition("[OWNER-RESUME] ")
+    if direct[1]:
+        sup = sup or sh("pgrep -of 'observations/%s/[d]irect-resume.sh'" % FEATURE)
     phases = re.findall(r"^===== PHASE (\d+) ", log, re.M)
     out = {
         "supervisor_alive": alive(sup), "orchestrator_alive": alive(orch),
@@ -69,7 +74,8 @@ def loop_state(now):
         "pass_headers": len(re.findall(r"^----- proposer pass ", log, re.M)),
         "progress_passes": len(re.findall(r"^## Pass ", read(f"{F}/PROGRESS.md"), re.M)),
         "halt": (re.findall(r"^(?:>>>|# HALT|# DONE).*$", log, re.M) or [None])[-1],
-        "digest": (re.findall(r"^\[DIGEST\].*$", read(f"{RUN}/launcher.log").rpartition("\n[RUN] ")[2], re.M) or [None])[-1],
+        "digest": ((re.findall(r"^\[OWNER-RESUME-EXIT\].*$", direct[2], re.M) or [None])[-1] if direct[1] else
+                   (re.findall(r"^\[DIGEST\].*$", read(f"{RUN}/launcher.log").rpartition("\n[RUN] ")[2], re.M) or [None])[-1]),
         "last_event": events[-1]["event"] if events else None,
         "last_event_age": int(now - float(events[-1]["ts"])) if events else None,
         "ledger_failures": sum(1 for l in read(f"{F}/failure-ledger.jsonl").splitlines() if '"failure"' in l),
@@ -80,7 +86,8 @@ def loop_state(now):
     out["proposer_session"] = alive(dsh)
     out["proposer_tool_running"] = bool(dsh and sh(f"pgrep -P {dsh} bash"))
     yields = [e for e in events if e["event"] == "pass_yield"]
-    resumes = [e for e in events if e["event"] == "yield_resume"]
+    # a wait ends with yield_resume, or with yield_ended_early (job died / unhealthy)
+    resumes = [e for e in events if e["event"] in ("yield_resume", "yield_ended_early")]
     out["yields_this_run"] = len(yields)
     waiting = len(yields) > len(resumes)
     out["waiting_on_yield"] = waiting
@@ -91,10 +98,21 @@ def loop_state(now):
             y = json.loads(read(yf))
         except ValueError:
             y = {}
-        pid = (y.get("job") or {}).get("pid")
-        left = int(float(yields[-1]["ts"]) + int(y.get("deadline_sec", 0)) - now)
+        starts = [e for e in events if e["event"] == "yield_job_start"]
+        pid = (y.get("job") or {}).get("pid") or (starts[-1].get("pid") if starts else None)
+        # the proposer rewrites the yield file atomically, but a read can still land on
+        # an old or half-written copy; no deadline_sec means "unknown", not "expired"
+        left = (int(float(yields[-1]["ts"]) + int(y["deadline_sec"]) - now)
+                if y.get("deadline_sec") else None)
+        # the job exits a moment before its rc file lands; a dead job whose rc file
+        # exists (written after this yield started) is "done", not "dead"
+        rw = y.get("resume_when") or {}
+        rcs = [rw["path"]] if rw.get("path") else glob.glob(
+            f"{F}/yield-jobs/phase{out['phase']}-attempt*-{out['run_id']}-yield*.rc")
+        rc_done = any(os.path.exists(r) and os.path.getmtime(r) >= float(yields[-1]["ts"]) - 5
+                      for r in rcs)
         out["yield"] = {"index": len(yields), "max": YIELD_MAX_PER_ATTEMPT,
-                        "kind": (y.get("resume_when") or {}).get("kind"),
+                        "kind": rw.get("kind"), "rc_done": rc_done,
                         "job_pid": pid, "job_alive": alive(pid), "deadline_left_sec": left}
     return out
 
@@ -143,9 +161,34 @@ echo "bgpest $(vtysh -c 'show bgp summary json' 2>/dev/null | tr -d ' \n' | grep
 '''
 
 
-def node_state(ip):
-    raw = sh("sshpass -p admin ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
-             f"-o ConnectTimeout=8 -o LogLevel=ERROR admin@{ip} {shlex.quote(GUEST)} </dev/null", timeout=40)
+# sonic-vs: SONiC runs directly in the clab container (no qemu guest, no systemd units);
+# map the supervisord programs onto the same four "units" the sonic-vm guests report.
+VS_GUEST = r'''
+st=$(supervisorctl status 2>/dev/null)
+u() { echo "$st" | awk -v p="$2" '$1==p{print $2}' | grep -q RUNNING && echo "unit $1 active 0" || echo "unit $1 inactive 0"; }
+u database redis-server; u swss orchagent; u syncd syncd; u bgp bgpd
+echo "sup $(echo "$st" | grep -wE 'orchagent|vrfmgrd|intfmgrd|portsyncd|zebra|bgpd' | grep -vc RUNNING)"
+echo "cfgvrf $(redis-cli -n 4 --scan --pattern 'VRF|*' | wc -l)"
+echo "applvrf $(redis-cli -n 0 --scan --pattern 'VRF_TABLE*' | wc -l)"
+echo "kvrf $(ip -br link show type vrf | wc -l)"
+echo "refspam 0"
+echo "bgpest $(vtysh -c 'show bgp summary json' 2>/dev/null | tr -d ' \n' | grep -o '"state":"Established"' | wc -l)"
+'''
+BGP_EXPECT_VS = {"leaf01": 2, "leaf02": 2, "spine01": 2, "spine02": 2}  # peers per family (no spine-spine)
+
+
+def lab_profile():
+    img = sh("timeout 15 docker inspect -f '{{.Config.Image}}' clab-agentic-netops-fabric-leaf01 2>/dev/null")
+    return "sonic-vs" if "sonic-vs" in img else "sonic-vm"
+
+
+def node_state(ip, name=None, profile="sonic-vm"):
+    if profile == "sonic-vs":
+        raw = sh(f"timeout 30 docker exec clab-agentic-netops-fabric-{name} sh -c {shlex.quote(VS_GUEST)} </dev/null",
+                 timeout=40)
+    else:
+        raw = sh("sshpass -p admin ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+                 f"-o ConnectTimeout=8 -o LogLevel=ERROR admin@{ip} {shlex.quote(GUEST)} </dev/null", timeout=40)
     if not raw or raw == "TIMEOUT":
         return {"reachable": False}
     n = {"reachable": True, "units": {}, "restarts": {}}
@@ -163,7 +206,9 @@ def node_state(ip):
 
 def infra_state():
     dpid = sh("pgrep -o dockerd")
+    profile = lab_profile()
     out = {
+        "profile": profile,
         "load1": float(read("/proc/loadavg").split()[0]),
         "mem_avail_gb": int(re.search(r"MemAvailable:\s+(\d+)", read("/proc/meminfo")).group(1)) // 1048576,
         "dockerd_fds": len(os.listdir(f"/proc/{dpid}/fd")) if dpid else None,
@@ -172,7 +217,7 @@ def infra_state():
         "kind_nodes_ready": sh("timeout 15 kubectl get nodes --no-headers 2>/dev/null | grep -cw Ready"),
         "kind_bad_pods": sh("timeout 15 kubectl get pods -n agentic-netops-system -n agentic-netops-agents "
                             "--no-headers 2>/dev/null | grep -vcE 'Running|Completed'"),
-        "nodes": {name: node_state(ip) for name, ip in NODES.items()},
+        "nodes": {name: node_state(ip, name, profile) for name, ip in NODES.items()},
     }
     return out
 
@@ -188,6 +233,8 @@ def fabric_state(infra):
 def alarms(loop, chain, infra):
     a = []
     seed = infra["fabric_state"] == "seed"
+    vs = infra.get("profile") == "sonic-vs"
+    expect = BGP_EXPECT_VS if vs else BGP_EXPECT
     for name, n in infra["nodes"].items():
         if not n.get("reachable"):
             a.append(f"infra:{name}:unreachable"); continue
@@ -198,13 +245,13 @@ def alarms(loop, chain, infra):
             a.append(f"infra:{name}:swss-daemon-down")
         if n["wedged"]:
             a.append(f"infra:{name}:vrf-wedge")
-        if not seed and n["units"].get("bgp") == "active" and n.get("bgpest", 0) < 2 * BGP_EXPECT[name]:
-            a.append(f"infra:{name}:bgp-sessions={n.get('bgpest', 0)}/{2 * BGP_EXPECT[name]}")
+        if not seed and n["units"].get("bgp") == "active" and n.get("bgpest", 0) < 2 * expect[name]:
+            a.append(f"infra:{name}:bgp-sessions={n.get('bgpest', 0)}/{2 * expect[name]}")
     if infra["docker_ps"] in ("TIMEOUT", ""):
         a.append("infra:host:docker-cli-hang")
     elif infra["docker_ps"] != "8":
         a.append(f"infra:host:clab-containers={infra['docker_ps']}")
-    if infra["qemu"] != 4:
+    if infra["qemu"] != (0 if vs else 4):
         a.append(f"infra:host:qemu={infra['qemu']}")
     if (infra["dockerd_fds"] or 0) > 400000:
         a.append("infra:host:dockerd-fd-ceiling")
@@ -212,9 +259,9 @@ def alarms(loop, chain, infra):
     if y:
         if y["index"] >= y["max"]:
             a.append("loop:last-yield-of-attempt")
-        if y["deadline_left_sec"] < DEADLINE_WARN_SEC:
+        if y["deadline_left_sec"] is not None and y["deadline_left_sec"] < DEADLINE_WARN_SEC:
             a.append("loop:yield-deadline-near")
-        if y["kind"] != "pid" and y["job_pid"] and not y["job_alive"]:
+        if y["kind"] != "pid" and y["job_pid"] and not y["job_alive"] and not y.get("rc_done"):
             a.append("loop:yield-job-dead-predicate-unsatisfied")
     if chain.get("alive") and chain.get("last_mark_age", 0) > STEP_STALL_SEC:
         a.append("chain:step-stall")
@@ -241,6 +288,14 @@ def main():
                       loop["pass_headers"], loop["yields_this_run"], loop["waiting_on_yield"],
                       loop["halt"], loop["digest"], chain.get("name"), chain.get("alive"),
                       chain.get("done"), chain.get("verdicts"), al], sort_keys=True)
+    if "--health" in sys.argv[1:]:
+        # specstride --health-cmd: exit 0 healthy, else one line per infra fault.
+        bad = [a for a in al if a.startswith("infra:")]
+        for a in bad:
+            print(a)
+        if bad:
+            print("fabric_state=%s (seed = factory-partial sessions expected)" % infra["fabric_state"])
+        return 1 if bad else 0
     print(json.dumps({"ts": int(now), "time": time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(now)),
                       "alarms": al, "loop": loop, "chain": chain, "infra": infra,
                       "restarts": restarts, "key": key}))

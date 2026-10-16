@@ -1,0 +1,22 @@
+# T199 update: same service, L2VNI 13511 -> 13512 (and RTs follow).
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: p4-svc-macvrf
+  namespace: agentic-netops-intent
+spec:
+  bridgeDomains:
+    - name: p4-svc-macvrf
+      vlan: 3601
+      l2vni: 13512
+      evpn:
+        routeTargets:
+          import: ["65000:13512"]
+          export: ["65000:13512"]
+  attachments:
+    - node: leaf01
+      attachment: eth3
+      vlan: 3601
+    - node: leaf02
+      attachment: eth3
+      vlan: 3601

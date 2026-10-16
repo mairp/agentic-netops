@@ -15,6 +15,15 @@ IDLE_PASS = 1500        # proposer mid-pass with no event this long
 QUIET_MAX = int(os.environ.get("QUIET_MAX", 10800))
 
 
+def provisioning():
+    """A provision.sh run (a yield job or one the proposer runs inside its pass)
+    takes the lab down on purpose. Anchored on the command line so it cannot
+    match this watcher or an agent whose prompt mentions provision.sh."""
+    r = subprocess.run(["pgrep", "-f", r"^bash (\./|/root/agentic-netops/)scripts/provision\.sh"],
+                       capture_output=True)
+    return r.returncode == 0
+
+
 def sample():
     out = subprocess.run([sys.executable, f"{HERE}/probe.py"], capture_output=True, text=True, timeout=300).stdout
     d = json.loads(out)
@@ -50,9 +59,9 @@ def main():
         for k in ("gates_approved", "evidence", "feedback", "verdict_files"):
             if l[k] != pl[k]:
                 why.append(f"gate: {k} {pl[k]} -> {l[k]}")
-        if l["pass_headers"] > pl["pass_headers"]:
-            why.append(f"new pass ({l['pass_headers']}); OWNER-REPORT count {prev['owner_reports']} -> {d['owner_reports']}")
-        elif d["owner_reports"] > prev["owner_reports"]:
+        # A new pass alone is not a wake reason from phase 4 on: gate changes,
+        # yields, chains and lab faults already cover what the owner must decide.
+        if d["owner_reports"] > prev["owner_reports"]:
             why.append("new OWNER-REPORT in PROGRESS.md")
         if l["yields_this_run"] > pl["yields_this_run"]:
             why.append(f"yield armed #{l['yields_this_run']}/4: {l.get('yield')}")
@@ -76,7 +85,12 @@ def main():
         else:
             cross_n = 0
         prev_hard = set(hard) if c.get("alive") else set()
-        if infra and not c.get("alive"):
+        # A yield job (e.g. a full re-provision) is a chain step the harness owns:
+        # the lab is expected to be down while it runs; judge it when it ends.
+        y = l.get("yield") or {}
+        if (l.get("waiting_on_yield") and y.get("job_alive")) or provisioning():
+            infra_since = None
+        elif infra and not c.get("alive"):
             infra_since = infra_since or now
             if now - infra_since > INFRA_GRACE:
                 why.append(f"lab still sick after {int(now - infra_since)}s with no chain: {infra}")

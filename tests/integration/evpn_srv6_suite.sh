@@ -68,7 +68,7 @@ node_for_ip() {
 
 gcu_apply() {
   local c=$1 patch=$2
-  printf '%s' "$patch" | node_run_i "$c" 'cat > /tmp/.gate_patch.json && sudo config apply-patch -f CONFIGDB -p /tmp/.gate_patch.json 2>/dev/null >/dev/null'
+  printf '%s' "$patch" | node_run_i "$c" "cat > /tmp/.gate_patch.json && $(node_sudo "$c") config apply-patch -f CONFIGDB -p /tmp/.gate_patch.json 2>/dev/null >/dev/null"
   return $?
 }
 
@@ -79,7 +79,7 @@ gcu_apply() {
 # itself still goes through GCU apply/remove patches.
 srv6_force_clean() {
   local c=$1
-  node_run "$c" 'redis-cli -n 4 --scan --pattern "SRV6_MY_LOCATORS*" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern "SRV6_MY_SIDS*" | xargs -r redis-cli -n 4 del >/dev/null; sudo config save -y >/dev/null 2>&1'
+  node_run "$c" "redis-cli -n 4 --scan --pattern \"SRV6_MY_LOCATORS*\" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern \"SRV6_MY_SIDS*\" | xargs -r redis-cli -n 4 del >/dev/null; $(node_sudo "$c") config save -y >/dev/null 2>&1"
 }
 
 
@@ -395,23 +395,63 @@ evpn_wait_established() {
 # the kernel martian-drops packets carrying it as source.
 evpn_session_up_vm() {
   local na=$1 nb=$2 ns n
-  ns=$(docker ps --format '{{.Names}}' | grep "^${CLAB_PREFIX}" | grep spine | head -n1)
+  # Resolve the spine BY NAME: the addressing below is bound to the topology
+  # links (spine01:eth1 -> leaf01:eth1, spine01:eth2 -> leaf02:eth1,
+  # lab/topology.sonic-vm.clab.yml). `docker ps | grep spine | head` is
+  # creation-order dependent: on the 18:23 redeploy it returned spine02 first,
+  # so 10.2.0.2/30 landed on spine02:eth1 (cabled to leaf01:eth2) and
+  # 10.2.0.5/30 on spine02:eth2 (cabled to leaf02:eth2) — the leaves' eth1
+  # pings then had no ARP responder on their actual cables (measured 19:1x:
+  # leaf02 neigh 10.2.0.5 INCOMPLETE with 10.2.0.5 on spine02:eth2). Fall back
+  # to the first spine in sorted order only if spine01 does not exist.
+  if ! docker inspect "${CLAB_PREFIX}spine01" >/dev/null 2>&1; then
+    ns=$(docker ps --format '{{.Names}}' | grep "^${CLAB_PREFIX}" | grep spine | sort | head -n1)
+  else
+    ns="${CLAB_PREFIX}spine01"
+  fi
   [[ -n "$ns" ]] || die "EVPN-VM: cannot resolve spine node"
   node_run "$ns" "sudo ip addr replace 10.2.0.2/30 dev eth1 2>/dev/null || true; sudo ip addr replace 10.2.0.5/30 dev eth2 2>/dev/null || true; sudo ip link set eth1 up; sudo ip link set eth2 up" || true
-  node_run "$na" "sudo ip addr replace 10.2.0.1/30 dev eth1; sudo ip link set eth1 up" || true
-  node_run "$nb" "sudo ip addr replace 10.2.0.6/30 dev eth1; sudo ip link set eth1 up" || true
-  node_run "$na" 'ping -q -c1 -W2 10.2.0.2 >/dev/null' || die "EVPN-VM: leaf01 cannot reach spine over eth1"
-  node_run "$nb" 'ping -q -c1 -W2 10.2.0.5 >/dev/null' || die "EVPN-VM: leaf02 cannot reach spine over eth1"
+  # The gate's own persistence check reloads every guest seconds before this
+  # check runs; swss/syncd restarts leave the dataplane ports flapping and can
+  # swallow a bring-up write while the guest services return (measured
+  # 2026-10-14: leaf01 -> spine01 over eth1 died in that exact window, then
+  # passed unchanged on the settled lab). Bring-up is idempotent, so the
+  # kernel assertions below retry bring-up + ping inside the same bounded
+  # budget the rest of this flavour already uses (bgpd 30x2s, Established
+  # 20x4s). The assertions themselves are unchanged.
+  local attempt ok1=0 ok2=0 ok3=0
+  for attempt in $(seq 1 15); do
+    node_run "$ns" "sudo ip addr replace 10.2.0.2/30 dev eth1 2>/dev/null || true; sudo ip addr replace 10.2.0.5/30 dev eth2 2>/dev/null || true; sudo ip link set eth1 up; sudo ip link set eth2 up" || true
+    node_run "$na" "sudo ip addr replace 10.2.0.1/30 dev eth1; sudo ip link set eth1 up" || true
+    node_run "$nb" "sudo ip addr replace 10.2.0.6/30 dev eth1; sudo ip link set eth1 up" || true
+    if [[ $ok1 -eq 0 ]] && node_run "$na" 'ping -q -c1 -W2 10.2.0.2 >/dev/null'; then ok1=1; fi
+    if [[ $ok2 -eq 0 ]] && node_run "$nb" 'ping -q -c1 -W2 10.2.0.5 >/dev/null'; then ok2=1; fi
+    [[ $ok1 -eq 1 && $ok2 -eq 1 ]] && break
+    sleep 2
+  done
+  [[ $ok1 -eq 1 ]] || die "EVPN-VM: leaf01 cannot reach spine over eth1"
+  [[ $ok2 -eq 1 ]] || die "EVPN-VM: leaf02 cannot reach spine over eth1"
   # static routes so the leaves can reach each other's peering subnet via the spine
   node_run "$na" 'sudo ip route replace 10.2.0.4/30 via 10.2.0.2 dev eth1' || true
   node_run "$nb" 'sudo ip route replace 10.2.0.0/30 via 10.2.0.5 dev eth1' || true
-  node_run "$nb" 'ping -q -c1 -W3 10.2.0.1 >/dev/null' || die "EVPN-VM: leaf02 cannot route to leaf01 via spine"
+  for attempt in $(seq 1 5); do
+    if node_run "$nb" 'ping -q -c1 -W3 10.2.0.1 >/dev/null'; then ok3=1; break; fi
+    node_run "$na" 'sudo ip route replace 10.2.0.4/30 via 10.2.0.2 dev eth1' || true
+    node_run "$nb" 'sudo ip route replace 10.2.0.0/30 via 10.2.0.5 dev eth1' || true
+    sleep 3
+  done
+  [[ $ok3 -eq 1 ]] || die "EVPN-VM: leaf02 cannot route to leaf01 via spine"
   for n in "$na" "$nb"; do
     node_run "$n" 'sudo systemctl start bgp >/dev/null 2>&1' || true
   done
-  # The image boots bgpd with AS 65100 and router-id 10.1.0.1 (Loopback0) on EVERY
-  # node — peering must reuse the running AS (iBGP) and set distinct router-ids or
-  # the OPEN clash fails with Bad BGP Identifier.
+  # The image boots bgpd with router-id 10.1.0.1 (Loopback0) on EVERY node —
+  # peering must set distinct router-ids or the OPEN clash fails with Bad BGP
+  # Identifier. AS 65100 was the FACTORY default; the as-built bootstrap
+  # re-identifies the leaves (leaf01=65101, leaf02=65102 from fabric.yaml),
+  # and `router bgp 65100` is then refused ("BGP instance is already running;
+  # AS is 65101", measured 2026-10-14 19:2x). Read each leaf's RUNNING AS and
+  # peer with the other leaf's real AS — the assertion is unchanged: the
+  # session must negotiate L2VPN EVPN and reach Established.
   # wait for the bgpd to exist inside each guest's bgp container
   local i up=0
   for i in $(seq 1 30); do
@@ -423,9 +463,26 @@ evpn_session_up_vm() {
     sleep 2
   done
   [[ $up -eq 1 ]] || die "EVPN-VM: bgpd did not come up on $na/$nb"
-  node_run "$na" "sudo vtysh -c 'configure terminal' -c 'router bgp 65100' -c 'bgp router-id 10.2.0.1' -c 'neighbor 10.2.0.6 remote-as 65100' -c 'address-family l2vpn evpn' -c 'neighbor 10.2.0.6 activate'" >/dev/null 2>&1 \
+  local as_a as_b
+  as_a=$(node_run "$na" 'vtysh -c "show running-config" 2>/dev/null | grep -m1 "^router bgp " | awk "{print \$3}"' | tr -d '\r[:space:]')
+  as_b=$(node_run "$nb" 'vtysh -c "show running-config" 2>/dev/null | grep -m1 "^router bgp " | awk "{print \$3}"' | tr -d '\r[:space:]')
+  [[ "$as_a" =~ ^[0-9]+$ ]] || as_a=65100
+  [[ "$as_b" =~ ^[0-9]+$ ]] || as_b=65100
+  # With distinct leaf ASNs (as-built) the peering is eBGP, and the peering
+  # TCP is L3-forwarded by the spine — a 2-hop path. eBGP defaults to TTL 1
+  # and a connected-check, so the SYN dies on the spine ("From 10.2.0.2 Time
+  # to live exceeded", measured 2026-10-14 19:3x) and the session sticks in
+  # Active. ebgp-multihop 2 is the standard remedy; it is only valid for eBGP
+  # peers, so apply it only when the ASNs differ (factory iBGP case keeps the
+  # plain form).
+  local mh_a="" mh_b=""
+  if [[ "$as_a" != "$as_b" ]]; then
+    mh_a=" -c 'neighbor 10.2.0.6 ebgp-multihop 2'"
+    mh_b=" -c 'neighbor 10.2.0.1 ebgp-multihop 2'"
+  fi
+  node_run "$na" "sudo vtysh -c 'configure terminal' -c 'router bgp $as_a' -c 'bgp router-id 10.2.0.1' -c 'neighbor 10.2.0.6 remote-as $as_b'$mh_a -c 'address-family l2vpn evpn' -c 'neighbor 10.2.0.6 activate'" >/dev/null 2>&1 \
     || die "EVPN-VM: bgpd on $na rejected EVPN AF configuration"
-  node_run "$nb" "sudo vtysh -c 'configure terminal' -c 'router bgp 65100' -c 'bgp router-id 10.2.0.6' -c 'neighbor 10.2.0.1 remote-as 65100' -c 'address-family l2vpn evpn' -c 'neighbor 10.2.0.1 activate'" >/dev/null 2>&1 \
+  node_run "$nb" "sudo vtysh -c 'configure terminal' -c 'router bgp $as_b' -c 'bgp router-id 10.2.0.6' -c 'neighbor 10.2.0.1 remote-as $as_a'$mh_b -c 'address-family l2vpn evpn' -c 'neighbor 10.2.0.1 activate'" >/dev/null 2>&1 \
     || die "EVPN-VM: bgpd on $nb rejected EVPN AF configuration"
   for i in $(seq 1 20); do
     if node_run "$na" 'vtysh -c "show bgp l2vpn evpn summary json"' 2>/dev/null | grep -q '"state":"Established"'; then

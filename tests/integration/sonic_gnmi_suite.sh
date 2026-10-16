@@ -73,7 +73,7 @@ node_for_ip() {
 # gcu_apply <container> <patch-json> — apply a JSON patch to CONFIG_DB through GCU
 gcu_apply() {
   local c=$1 patch=$2
-  printf '%s' "$patch" | node_run_i "$c" 'cat > /tmp/.gate_patch.json && sudo config apply-patch -f CONFIGDB -p /tmp/.gate_patch.json 2>/dev/null >/dev/null'
+  printf '%s' "$patch" | node_run_i "$c" "cat > /tmp/.gate_patch.json && $(node_sudo "$c") config apply-patch -f CONFIGDB -p /tmp/.gate_patch.json 2>/dev/null >/dev/null"
   return $?
 }
 
@@ -84,7 +84,7 @@ gcu_apply() {
 # itself still goes through GCU apply/remove patches.
 srv6_force_clean() {
   local c=$1
-  node_run "$c" 'redis-cli -n 4 --scan --pattern "SRV6_MY_LOCATORS*" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern "SRV6_MY_SIDS*" | xargs -r redis-cli -n 4 del >/dev/null; sudo config save -y >/dev/null 2>&1'
+  node_run "$c" "redis-cli -n 4 --scan --pattern \"SRV6_MY_LOCATORS*\" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern \"SRV6_MY_SIDS*\" | xargs -r redis-cli -n 4 del >/dev/null; $(node_sudo "$c") config save -y >/dev/null 2>&1"
 }
 
 
@@ -214,7 +214,9 @@ main() {
   shift || true
   # self-clean any written witness if the test aborts mid-way
   IFS=',' read -ra _tgts <<<"$TARGETS"
-  trap 'for _t in ${_tgts[*]}; do _n=$(node_for_ip "${_t%%:*}" 2>/dev/null); [[ -n "$_n" ]] && srv6_force_clean "$_n"; done' EXIT
+  # trailing `true` keeps a failed cleanup from overriding the check's exit
+  # status (under set -e the EXIT trap's status becomes the script's status)
+  trap 'for _t in ${_tgts[*]}; do _n=$(node_for_ip "${_t%%:*}" 2>/dev/null); [[ -n "$_n" ]] && srv6_force_clean "$_n"; done; true' EXIT
   case "$test" in
     Capabilities) capabilities ;;
     Get) get_metadata ;;

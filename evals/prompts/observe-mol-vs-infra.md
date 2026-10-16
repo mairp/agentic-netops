@@ -258,3 +258,43 @@ how the run ended, the timeline of infrastructure faults against loop activity
 improvement would have saved. Say plainly which claims are verified and which
 are inferred. Then stop the stand-in unit if it is running
 (`systemctl stop mol004-owner-standin.service`).
+
+## Addendum (2026-10-14 05:45): the run is no longer under the MoL supervisor
+
+Phase 3 is approved. The orchestrator now runs as transient unit `mol004-direct-resume.service`
+(wrapper `evals/observations/004-srv6-service-requests/direct-resume.sh`, output in
+`.mixture-of-loops/004-srv6-service-requests/owner-resume-20261014.log`). There is no `[DIGEST]` line any
+more: the run is done when `.wiggum/run.log` shows `# DONE — all 11 phase(s) approved`, and the wrapper then
+writes `[OWNER-RESUME-EXIT] … rc=0`. `probe.py` already reports the wrapper as the supervisor and that exit
+line as the digest. Stop it only with `specstride stop -w /root/agentic-netops`; never `systemctl stop` the
+unit. Do not relaunch through `supervise.py`: its gate refuses with stale-sources.
+
+## Addendum (2026-10-14 17:45): relaunching after a resumable halt is ALLOWED for the stand-in
+
+The run halted at 15:51 on `proposer_yield_budget` (exit 4) and stayed down 1 h 48 min because this
+prompt reserved relaunching for the primary owner. That reservation is lifted for these halts only:
+`[OWNER-RESUME-EXIT] … rc=4` (yield budget / deadline) or `rc=6` (clean stop), when no orchestrator is
+alive (`pgrep -f 'specstride/[o]rchestrator.sh'` prints nothing) and no job you would collide with runs.
+Relaunch exactly the same run, nothing else, with this one command:
+
+```
+S=/tmp/claude-0/-root-agentic-netops/aa6ffc80-fd88-4015-a953-e951c1de337f/scratchpad
+M=/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests
+O=/root/agentic-netops/evals/observations/004-srv6-service-requests
+systemctl reset-failed mol004-direct-resume 2>/dev/null
+systemd-run --unit mol004-direct-resume --collect -p KillMode=process \
+  -p StandardOutput=append:$M/owner-resume-20261014.log -p StandardError=append:$M/owner-resume-20261014.log \
+  $O/direct-resume.sh $S/orch.environ $S/orch.cmdline
+```
+
+Then confirm `health   : auto` and a new `run_id` in that log, and record the relaunch in PROGRESS.md
+(OWNER entry) and OBSERVATIONS.md. Any other exit code (a crash, rc=1/2/3/5, a critic halt) is still the
+primary owner's: record it and wait.
+
+### Addendum 2026-10-15 04:47 — relaunch unit name
+After the 04:44 rc=4 halt the owner relaunched as `mol004-direct-resume2`; after the 09:06 plan-fix stop, as **`mol004-direct-resume3.service`** (current).
+The old unit `mol004-direct-resume` cannot be reused: with `KillMode=process`, the lab's fabric executor
+(`/var/local/agentic-netops/agentic-netops-fabric-executor`, started by an in-pass provision) stays in
+its cgroup, so the unit stays loaded. **Do not kill that process.** For any later relaunch use the same
+command with a fresh unit name (`mol004-direct-resume4`, `5`, …); check
+`systemctl list-units 'mol004-direct-resume*'` first.

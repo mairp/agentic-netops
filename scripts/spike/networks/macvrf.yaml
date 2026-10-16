@@ -1,0 +1,24 @@
+# p4-macvrf-trial input (T195): the mac-vrf construct — a VLAN extended over
+# the fabric by an L2VNI with EVPN route targets. Ports are the sonic-vm
+# guest's client access ports (eth3 -> Ethernet8).
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: p4-trial-macvrf
+  namespace: agentic-netops-system
+spec:
+  bridgeDomains:
+    - name: p4-trial-macvrf
+      vlan: 3501
+      l2vni: 13501
+      evpn:
+        routeTargets:
+          import: ["65000:13501"]
+          export: ["65000:13501"]
+  attachments:
+    - node: leaf01
+      attachment: eth3
+      vlan: 3501
+    - node: leaf02
+      attachment: eth3
+      vlan: 3501

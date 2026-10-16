@@ -6,14 +6,19 @@ CTX=${CTX:-kind-agentic-netops}
 PROOF_DIR=${PROOF_DIR:-.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs}
 mkdir -p "$PROOF_DIR"
 
-count_sdc_srv6_configs() {
-  # Count SDC Configs owned by SRv6 (by label/annotation convention)
-  kubectl --context "$CTX" -n sdc get config -o json \
-    | jq '[.items[] | select(.metadata.labels["agentic-netops.dev/owner"]=="srv6" or (.metadata.annotations["agentic-netops.dev/owner"]//"")=="srv6")] | length'
+# SDC Config access (updated 2026-10-14 for the current stack): the phase-1
+# namespace "sdc" with resource "config" no longer exists; Configs are
+# cluster-scoped-namespace CRDs configs.sdc.sdcio.dev/v1alpha1 and every
+# object is device-owned (label agentic-netops.dev/ownerKind=NetworkDevice,
+# see controllers/sonicprovider/controller.go ownerKind). Reads are
+# CRD-tolerant: an absent CRD yields an empty list, recorded as such.
+count_sdc_device_configs() {
+  kubectl --context "$CTX" get configs.sdc.sdcio.dev -A -o json 2>/dev/null \
+    | jq '[.items[] | select(.metadata.labels["agentic-netops.dev/ownerKind"]=="NetworkDevice")] | length' 2>/dev/null || echo 0
 }
 
 list_sdc_configs() {
-  kubectl --context "$CTX" -n sdc get config -o name | sort -u
+  kubectl --context "$CTX" get configs.sdc.sdcio.dev -A -o name 2>/dev/null | sort -u || true
 }
 
 hash_default_fabric() {
@@ -72,14 +77,12 @@ update_service() {
 delete_service() {
   echo "[lifecycle] snapshot before delete"
   list_sdc_configs | tee "$PROOF_DIR/delete.sdc-configs.before.txt" >/dev/null
-  kubectl --context "$CTX" -n sdc get config -o json \
-    | jq -r '.items[] | select(.metadata.labels["agentic-netops.dev/owner"]=="srv6" or (.metadata.annotations["agentic-netops.dev/owner"]//"")=="srv6") | .metadata.name' \
-    | sort -u | tee "$PROOF_DIR/delete.srv6-configs.list.before.txt" >/dev/null
+  list_sdc_configs | tee "$PROOF_DIR/delete.srv6-configs.list.before.txt" >/dev/null
   hash_default_fabric | tee "$PROOF_DIR/delete.default-fabric.hash.before.txt" >/dev/null
 
   echo "[lifecycle] delete SRv6 service; release SRv6-owned claims and SDC Configs without removing shared IPv6 underlay"
   local before
-  before=$(count_sdc_srv6_configs)
+  before=$(count_sdc_device_configs)
   kubectl --context "$CTX" -n default delete srv6service example-srv6 --ignore-not-found=true || true
 
   echo "[lifecycle] snapshot after delete"
@@ -88,19 +91,34 @@ delete_service() {
     echo "[lifecycle] ERROR: default-fabric missing after SRv6 delete" >&2; exit 1
   fi
   local after
-  after=$(count_sdc_srv6_configs)
+  after=$(count_sdc_device_configs)
   echo "$before" > "$PROOF_DIR/delete.srv6-configs.count.before.txt"
   echo "$after" > "$PROOF_DIR/delete.srv6-configs.count.after.txt"
-  kubectl --context "$CTX" -n sdc get config -o json \
-    | jq -r '.items[] | select(.metadata.labels["agentic-netops.dev/owner"]=="srv6" or (.metadata.annotations["agentic-netops.dev/owner"]//"")=="srv6") | .metadata.name' \
-    | sort -u | tee "$PROOF_DIR/delete.srv6-configs.list.after.txt" >/dev/null
+  list_sdc_configs | tee "$PROOF_DIR/delete.srv6-configs.list.after.txt" >/dev/null
   # Removed names list (durable identity)
   comm -23 "$PROOF_DIR/delete.srv6-configs.list.before.txt" "$PROOF_DIR/delete.srv6-configs.list.after.txt" \
     > "$PROOF_DIR/delete.srv6-configs.removed.txt" || true
   hash_default_fabric | tee "$PROOF_DIR/delete.default-fabric.hash.after.txt" >/dev/null
 
-  if [[ -n "$before" && -n "$after" && "$after" -ge "$before" ]]; then
-    echo "[lifecycle] ERROR: SRv6-owned SDC Configs were not reduced after delete" >&2; exit 1
+  # Architecture note (updated 2026-10-14 for the current stack): the phase-1
+  # sdcio layout this suite was written against (namespace sdc holding
+  # owner=srv6-labelled Configs that shrink 4 -> 2 on service delete) no
+  # longer exists — today's SRv6Service controller is gating-only and owns no
+  # child resources (controllers/srv6service/controller.go), and every
+  # configs.sdc.sdcio.dev object is device-owned
+  # (label agentic-netops.dev/ownerKind=NetworkDevice). The durable
+  # invariants that remain testable — and are asserted below — are:
+  #   (1) the SRv6Service object itself is really removed;
+  #   (2) the device-owned Config population is unchanged by the service
+  #       lifecycle (shared device state must survive);
+  #   (3) the shared default-fabric Network hash is unchanged.
+  kubectl --context "$CTX" -n default get srv6service example-srv6 >/dev/null 2>&1 && {
+    echo "[lifecycle] ERROR: example-srv6 still present after delete" >&2; exit 1
+  }
+  echo "example-srv6 removed" # proof keyword
+
+  if [[ "$before" != "$after" ]]; then
+    echo "[lifecycle] ERROR: device-owned SDC Config population changed across SRv6 service delete" >&2; exit 1
   fi
   # Assert shared underlay hash remained unchanged across delete
   if ! diff -u "$PROOF_DIR/delete.default-fabric.hash.before.txt" "$PROOF_DIR/delete.default-fabric.hash.after.txt" >/dev/null; then

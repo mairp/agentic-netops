@@ -1,0 +1,25 @@
+# T216-T218 tier service: the acl construct (CONFIG_DB table+rules, applied
+# view verified in ASIC_DB).
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: p4-svc-acl
+  namespace: agentic-netops-intent
+spec:
+  accessLists:
+    - name: p4-svc-acl
+      stage: ingress
+      type: l3
+      defaultAction: forward
+      rules:
+        - name: rule1
+          priority: 9991
+          action: forward
+          protocol: tcp
+          sourcePrefix: "10.0.0.0/8"
+          destinationPort: "5201"
+  attachments:
+    - node: leaf01
+      attachment: eth3
+    - node: leaf02
+      attachment: eth3

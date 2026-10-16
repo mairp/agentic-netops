@@ -1,0 +1,36 @@
+# p4-macvrf-gw-trial input (T207): the mac-vrf with gateway construct — the
+# bridge domain is the L2 half and its SVI is the tenant gateway inside the
+# router named by irb.vrf (symmetric IRB).
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: p4-trial-macvrf-gw
+  namespace: agentic-netops-system
+spec:
+  routers:
+    - name: p4-trial-gw-vrf
+      l3vni: 13519
+      rd: "65000:19"
+      routeTargets:
+        import: ["65000:19"]
+        export: ["65000:19"]
+      prefixes:
+        - "10.199.100.0/24"
+  bridgeDomains:
+    - name: p4-trial-macvrf-gw
+      vlan: 3502
+      l2vni: 13502
+      irb:
+        vrf: p4-trial-gw-vrf
+        gatewayIPv4: "10.199.100.1/24"
+      evpn:
+        routeTargets:
+          import: ["65000:13502"]
+          export: ["65000:13502"]
+  attachments:
+    - node: leaf01
+      attachment: eth3
+      vlan: 3502
+    - node: leaf02
+      attachment: eth3
+      vlan: 3502

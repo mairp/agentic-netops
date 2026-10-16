@@ -1,0 +1,19 @@
+# T192-T194 tier service: the vlan construct through the intent tier (fresh
+# numbers, distinct from the p4-trial-* renders; ports are the sonic-vm guest's
+# client access ports eth3 -> Ethernet8, never the fabric underlay eth1/eth2).
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: p4-svc-vlan
+  namespace: agentic-netops-intent
+spec:
+  vlans:
+    - name: p4-svc-vlan
+      vlan: 3600
+  attachments:
+    - node: leaf01
+      attachment: eth3
+      vlan: 3600
+    - node: leaf02
+      attachment: eth3
+      vlan: 3600

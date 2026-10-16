@@ -12,15 +12,22 @@ LIB_DIR="${SCRIPT_DIR}/lib"
 
 # Defaults (overridable by flags)
 AGENTIC_NETOPS_CLUSTER_NAME=${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}
-AGENTIC_NETOPS_PROFILE=${AGENTIC_NETOPS_PROFILE:-sonic-vs}
+# T247 (FR-007 flip): sonic-vm is the default profile — the SONiC VM lab carries
+# today's services (phase 004). sonic-vs stays available as the explicit fast
+# container profile: --profile sonic-vs (or AGENTIC_NETOPS_PROFILE=sonic-vs).
+AGENTIC_NETOPS_PROFILE=${AGENTIC_NETOPS_PROFILE:-sonic-vm}
 AGENTIC_NETOPS_TIMEOUT=${AGENTIC_NETOPS_TIMEOUT:-180s}
 
 usage() {
   cat <<EOF
-Usage: $0 [--profile sonic-vs|sonic-vm] [--cluster-name NAME] [--timeout DURATION] [--with-intent-tier]
+Usage: $0 [--profile sonic-vm|sonic-vs] [--cluster-name NAME] [--timeout DURATION] [--with-intent-tier]
 
 Flags:
-  --profile           SONiC lab profile (sonic-vs fast, sonic-vm conformance)
+  --profile           SONiC lab profile. Default: sonic-vm — four SONiC VM
+                      guests under containerlab (conformance; the profile the
+                      capability gate qualifies and the default bring-up uses).
+                      sonic-vs is the explicit fast container profile
+                      (no KVM; use it when the sonic-vm guest image is absent).
   --cluster-name      Kind cluster name (default: agentic-netops)
   --timeout           Rollout wait timeout (default: 180s)
   --with-intent-tier  Also install the AGNTCY intent tier (supervisor +
@@ -189,6 +196,19 @@ if command -v docker >/dev/null 2>&1 && command -v kind >/dev/null 2>&1 && comma
   kind load docker-image agentic-netops-srv6-controller:dev --name "${AGENTIC_NETOPS_CLUSTER_NAME}" || true
   echo "[provision] deploying controllers"
   kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system apply -f "${REPO_ROOT}/deploy/agentic-netops/manifests/provider.yaml"
+  # The provider's port map is profile data (T187): inject it from the active
+  # profile's port-map.json, replacing whatever the manifest carries, so the
+  # provider env always matches the profile.
+  PROVIDER_PORT_MAP_FILE="${REPO_ROOT}/lab/profiles/${AGENTIC_NETOPS_PROFILE}/port-map.json"
+  if [[ -f "$PROVIDER_PORT_MAP_FILE" ]] && command -v python3 >/dev/null 2>&1; then
+    PROVIDER_PORT_MAP=$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); d.pop("_comment", None); print(json.dumps(d, sort_keys=True, separators=(",", ":")))' "$PROVIDER_PORT_MAP_FILE")
+    kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system set env deploy/agentic-netops-sonic-provider "FABRIC_PORT_MAP=${PROVIDER_PORT_MAP}" >/dev/null
+  else
+    echo "[provision] WARN: ${PROVIDER_PORT_MAP_FILE} missing — provider port map not set from profile" >&2
+  fi
+  # The node kind is profile data too (T192): the provider renders plans for
+  # the guests it actually faces, per kind (p4-*-trial evidence).
+  kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system set env deploy/agentic-netops-sonic-provider "FABRIC_NODE_KIND=${AGENTIC_NETOPS_PROFILE}" >/dev/null
   kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system apply -f "${REPO_ROOT}/deploy/agentic-netops/manifests/srv6-controller.yaml"
   kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system set image deploy/agentic-netops-sonic-provider provider=agentic-netops-sonic-provider:dev || true
   kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system set image deploy/agentic-netops-srv6-controller srv6-controller=agentic-netops-srv6-controller:dev || true
@@ -221,8 +241,62 @@ if [[ -f /tmp/agentic-netops-fabric-executor-bin ]] && command -v docker >/dev/n
     EXECUTOR_CHANGED=0
   fi
   install -m 0755 /tmp/agentic-netops-fabric-executor-bin "$RUN_DIR/agentic-netops-fabric-executor"
-  if [[ "$EXECUTOR_CHANGED" -eq 0 ]] && curl -fsS --max-time 2 "http://127.0.0.1:8084/healthz" >/dev/null 2>&1; then
-    echo "[provision] fabric-executor already healthy on :8084 (node map unchanged)"
+  # Transport per node (contracts/executor-transport.md §2, T175). On the
+  # sonic-vm profile the fabric nodes are SONiC guests inside launcher
+  # containers: docker-exec lands in the launcher, not the guest, so every
+  # node uses the executor's ssh transport — keyed by the SAME pinned
+  # launcher mgmt addresses install-executor-key.sh wrote into
+  # secrets/known_hosts_executor (lab/topology.sonic-vm.clab.yml pins them).
+  # site-a/site-b are aliases of leaf01/leaf02 in FABRIC_NODE_MAP and get the
+  # same transport (a mapped node absent from the transport map silently
+  # falls back to docker). sonic-vs keeps the docker default: empty map.
+  FABRIC_NODE_TRANSPORT_JSON=""
+  FABRIC_SSH_KEY_PATH=""
+  FABRIC_SSH_KNOWN_HOSTS_PATH=""
+  if [[ "${AGENTIC_NETOPS_PROFILE}" == "sonic-vm" ]]; then
+    SECRETS_DIR="${REPO_ROOT}/secrets"
+    FABRIC_SSH_KEY_PATH="${SECRETS_DIR}/fabric-executor.key"
+    FABRIC_SSH_KNOWN_HOSTS_PATH="${SECRETS_DIR}/known_hosts_executor"
+    # The 0600 material is installed by install-executor-key.sh (T173), which runs
+    # from the lab bootstrap AFTER this executor step within one provision run — and
+    # a teardown removes the per-lab keys (T174), leaving a fresh run nothing to
+    # find: measured 2026-10-15, the chain's final sonic-vm provision exited here
+    # because the q3-teardown suite had run containerlab destroy beforehand.
+    # Materialize the transport here once (idempotent: skips generation when the
+    # keypair exists, rescans host keys, verifies BatchMode SSH per node), then
+    # keep the fail-closed 0600 enforcement below unchanged.
+    if [[ ! -f "$FABRIC_SSH_KEY_PATH" || ! -f "$FABRIC_SSH_KNOWN_HOSTS_PATH" ]]; then
+      EXEC_KEY_SH="${REPO_ROOT}/lab/profiles/sonic-vm/bootstrap/install-executor-key.sh"
+      if [[ ! -x "$EXEC_KEY_SH" ]]; then
+        echo "[provision] ERROR: $EXEC_KEY_SH missing or not executable; cannot materialize the executor SSH transport" >&2
+        exit 1
+      fi
+      echo "[provision] executor SSH material missing; running install-executor-key.sh (waits for guest SSH)"
+      "$EXEC_KEY_SH" || { echo "[provision] ERROR: install-executor-key.sh failed; the executor ssh transport cannot come up" >&2; exit 1; }
+    fi
+    for f in "$FABRIC_SSH_KEY_PATH" "$FABRIC_SSH_KNOWN_HOSTS_PATH"; do
+      if [[ ! -f "$f" || "$(stat -c %a "$f" 2>/dev/null)" != "600" ]]; then
+        echo "[provision] ERROR: $f missing or not 0600 — bring the lab up via containerlab.sh first (it runs install-executor-key.sh); the executor's ssh transport refuses wider permissions" >&2
+        exit 1
+      fi
+    done
+    declare -A EXEC_ADDR=( [spine01]=172.31.0.11 [spine02]=172.31.0.12 [leaf01]=172.31.0.21 [leaf02]=172.31.0.22 )
+    TRANSPORT_ROWS=()
+    for n in spine01 spine02 leaf01 leaf02; do
+      TRANSPORT_ROWS+=("\"$n\":{\"kind\":\"ssh\",\"addr\":\"${EXEC_ADDR[$n]}\",\"user\":\"admin\"}")
+    done
+    TRANSPORT_ROWS+=("\"site-a\":{\"kind\":\"ssh\",\"addr\":\"${EXEC_ADDR[leaf01]}\",\"user\":\"admin\"}")
+    TRANSPORT_ROWS+=("\"site-b\":{\"kind\":\"ssh\",\"addr\":\"${EXEC_ADDR[leaf02]}\",\"user\":\"admin\"}")
+    FABRIC_NODE_TRANSPORT_JSON="{$(IFS=,; echo "${TRANSPORT_ROWS[*]}")}"
+  fi
+  # The executor resolves its transport ONCE at start: a still-healthy process
+  # from a previous profile would keep the wrong transport. Restart whenever
+  # the transport configuration differs from the running one.
+  TRANSPORT_STAMP=$(printf '%s' "$FABRIC_NODE_TRANSPORT_JSON|$FABRIC_SSH_KEY_PATH|$FABRIC_SSH_KNOWN_HOSTS_PATH" | sha256sum | cut -d' ' -f1)
+  if [[ "$EXECUTOR_CHANGED" -eq 0 ]] && \
+     [[ "$(cat "$RUN_DIR/fabric-executor.transport" 2>/dev/null)" == "$TRANSPORT_STAMP" ]] && \
+     curl -fsS --max-time 2 "http://127.0.0.1:8084/healthz" >/dev/null 2>&1; then
+    echo "[provision] fabric-executor already healthy on :8084 (node map and transport unchanged)"
   else
     # A healthy process can still execute an older, unlinked inode after
     # `install` replaces the binary. Restart whenever bytes changed. Resolve
@@ -234,10 +308,18 @@ if [[ -f /tmp/agentic-netops-fabric-executor-bin ]] && command -v docker >/dev/n
     done
     [[ -z "$EXECUTOR_PIDS" ]] || sleep 1
     echo "[provision] starting fabric-executor host service on ${KIND_GW}:8084"
-    FABRIC_EXECUTOR_BIND=":8084" \
-    FABRIC_NODE_MAP='{"leaf01":"clab-agentic-netops-fabric-leaf01","leaf02":"clab-agentic-netops-fabric-leaf02","spine01":"clab-agentic-netops-fabric-spine01","spine02":"clab-agentic-netops-fabric-spine02","site-a":"clab-agentic-netops-fabric-leaf01","site-b":"clab-agentic-netops-fabric-leaf02"}' \
+    (
+      export FABRIC_EXECUTOR_BIND=":8084"
+      export FABRIC_NODE_MAP='{"leaf01":"clab-agentic-netops-fabric-leaf01","leaf02":"clab-agentic-netops-fabric-leaf02","spine01":"clab-agentic-netops-fabric-spine01","spine02":"clab-agentic-netops-fabric-spine02","site-a":"clab-agentic-netops-fabric-leaf01","site-b":"clab-agentic-netops-fabric-leaf02"}'
+      if [[ -n "$FABRIC_NODE_TRANSPORT_JSON" ]]; then
+        export FABRIC_NODE_TRANSPORT="$FABRIC_NODE_TRANSPORT_JSON"
+        export FABRIC_SSH_KEY="$FABRIC_SSH_KEY_PATH"
+        export FABRIC_SSH_KNOWN_HOSTS="$FABRIC_SSH_KNOWN_HOSTS_PATH"
+      fi
       setsid nohup "$RUN_DIR/agentic-netops-fabric-executor" >>"$RUN_DIR/fabric-executor.log" 2>&1 &
-    echo $! > "$RUN_DIR/fabric-executor.pid"
+      echo $! > "$RUN_DIR/fabric-executor.pid"
+    )
+    printf '%s\n' "$TRANSPORT_STAMP" > "$RUN_DIR/fabric-executor.transport"
     sleep 1
   fi
   if curl -fsS --max-time 2 "http://127.0.0.1:8084/healthz" >/dev/null 2>&1; then
@@ -396,6 +478,30 @@ if [[ -x "${LIB_DIR}/qualify.sh" ]]; then
   fi
 fi
 
+# T223/T224 (q3-fabric/q3-traffic) root-cause fix: the capability gate's
+# persistence witness (qualify.sh) reloads every guest AFTER the bootstrap
+# hook's own save+reload+re-assert, and the sonic-vm guest keeps the CONFIG_DB
+# rows but loses the live vtysh (advertise-all-vni, EVPN AF activation, vrf
+# VrfBlue binding) and kernel vtep/SVI/VRF joins on every reload. Without a
+# post-gate re-assert the provision completes with no adopted VNI — measured
+# 2026-10-15: the chain's q3-fabric saw `show evpn vni` empty on both leaves
+# minutes after the hook's own Pass-4 adoption gate had passed. The hook's
+# --reassert mode is the same idempotent Pass-3 re-assert plus the Pass-4
+# session/adoption gate, with NO second save/reload (no StartLimitBurst risk).
+# sonic-vs needs none of this: its bootstrap overlay rides bgpcfgd-rendered
+# durable FRR config and survives the same reload (p3-vs fabric_verify green).
+vm_hook="${REPO_ROOT}/lab/profiles/sonic-vm/bootstrap/configure-fabric-bgp.sh"
+# Gate on the ACTIVE profile, not on file existence: the hook hardcodes sonic-vm
+# expectations (IPv6 underlay session counts, SRv6 locator rows, kernel seg6) the
+# sonic-vs fabric cannot satisfy. Measured 2026-10-15: the chain's --profile
+# sonic-vs provision ran it on the vs lab and its Pass-4 gate failed with 30
+# failures (locator row missing after GCU + direct write, spine ipv6
+# ESTABLISHED < 3, VNI adoption 0) on a lab whose own bootstrap overlay was
+# healthy. sonic-vs needs none of this (see above).
+if [[ "${AGENTIC_NETOPS_PROFILE}" == "sonic-vm" && -x "$vm_hook" ]]; then
+  "$vm_hook" --reassert || { echo "[provision] post-qualify fabric re-assert failed" >&2; exit 1; }
+fi
+
 # T033 (contracts/capability-record.md §2): the ConfigMap was generated with
 # the honest default cap-sai-srv6: "false" BEFORE the gate (the Network
 # controller needs its pins before the gate runs). Now that the gate has
@@ -403,7 +509,12 @@ fi
 # qualify.sh --print-report-path) plus the profile's srv6-supported.yaml and
 # patch them in. A failed gate exits above and leaves "false"; the derivation
 # itself only yields "true" from a passing, non-skipped SRv6 check set.
-if command -v kubectl >/dev/null 2>&1 && [[ -x "${LIB_DIR}/capability.sh" ]]; then
+# The existence guard is -f, not -x: capability.sh is a sourced library (like
+# the other scripts/lib helpers), and the repo tracks it mode 644. A -x guard
+# on a 644 lib silently skipped this whole block (observed 2026-10-15: the
+# ConfigMap kept the honest default "false" with no srv6-supported key after a
+# fully green bring-up — T270 caught it).
+if command -v kubectl >/dev/null 2>&1 && [[ -f "${LIB_DIR}/capability.sh" ]]; then
   CTX="kind-${AGENTIC_NETOPS_CLUSTER_NAME}"
   # shellcheck source=./lib/capability.sh
   source "${LIB_DIR}/capability.sh"

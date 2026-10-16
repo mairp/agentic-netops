@@ -68,7 +68,8 @@ build-intent-translator:
 	@GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -mod=vendor -trimpath -ldflags "-s -w -buildid=" ./cmd/intent-translator
 
 # Lifecycle wrappers (do not reimplement phases): call scripts directly
-PROF ?= sonic-vs
+# T249: sonic-vm is the default profile, matching scripts/provision.sh.
+PROF ?= sonic-vm
 CLUSTER ?= agentic-netops
 TIMEOUT ?= 180s
 
@@ -128,7 +129,7 @@ test-envtest:
 # suites — Phase 8: run all test suites and capture logs under gates/proofs
 suites:
 	@echo "[suites] running Phase 8 suites"
-	@bash "$(REPO_ROOT)/scripts/ci/run_suites.sh"
+	@AGENTIC_NETOPS_PROFILE="$(PROF)" bash "$(REPO_ROOT)/scripts/ci/run_suites.sh"
 
 # test-all — include suites plus static/envtest
 test-all: test suites

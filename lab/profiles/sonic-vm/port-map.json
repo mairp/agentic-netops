@@ -1,0 +1,11 @@
+{
+  "_comment": "sonic-vm profile: logical attachment name -> interface inside the SONiC guest (SSH-into-guest vantage, guest kernel names). wan1 lands on the SRv6 client port, ethernetN on the client access port, ethN on the fabric links per the spike-portmap-* proofs. provision.sh injects this file's content as the provider's FABRIC_PORT_MAP; unknown names are rejected by the renderer, never guessed.",
+  "wan1": "Ethernet12",
+  "ethernet1": "Ethernet8",
+  "ethernet2": "Ethernet8",
+  "ethernet3": "Ethernet8",
+  "eth1": "Ethernet0",
+  "eth2": "Ethernet4",
+  "eth3": "Ethernet8",
+  "eth4": "Ethernet12"
+}

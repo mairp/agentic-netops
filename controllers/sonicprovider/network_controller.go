@@ -61,6 +61,14 @@ func PortMapFromEnv() fabricplan.PortMapper {
 	return m
 }
 
+// NodeKindFromEnv reads FABRIC_NODE_KIND: the deployed lab profile whose guests
+// the plans target ("sonic-vm" or "sonic-vs"). Empty means sonic-vs, matching
+// fabricplan's default, so an un-provisioned controller keeps rendering exactly
+// what it rendered before this knob existed.
+func NodeKindFromEnv() string {
+	return os.Getenv("FABRIC_NODE_KIND")
+}
+
 type NetworkReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
@@ -107,7 +115,7 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Deletion: roll back owned device state (best-effort), then release.
 	if !net.DeletionTimestamp.IsZero() {
 		log.Info("rolling back network on device")
-		plan, err := fabricplan.ForNetwork(&net, fabricplan.Options{Ports: PortMapFromEnv()})
+		plan, err := fabricplan.ForNetwork(&net, fabricplan.Options{Ports: PortMapFromEnv(), NodeKind: NodeKindFromEnv()})
 		if err == nil {
 			for _, nodeName := range sortedNodeNames(plan) {
 				np := plan.Nodes[nodeName]
@@ -170,7 +178,7 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	plan, err := fabricplan.ForNetwork(&net, fabricplan.Options{Ports: PortMapFromEnv()})
+	plan, err := fabricplan.ForNetwork(&net, fabricplan.Options{Ports: PortMapFromEnv(), NodeKind: NodeKindFromEnv()})
 	if err != nil {
 		// Rendering failures are intent-shape problems, not transients.
 		r.setConditions(ctx, &net, false, reasons.ReasonSchemaMismatch, err.Error(), false)

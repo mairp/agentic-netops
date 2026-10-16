@@ -9,12 +9,14 @@ LABEL_OWNER="agentic-netops"
 # Topology file depends on the active profile: the sonic-vm conformance profile
 # deploys full SONiC VMs (containerlab native sonic-vm kind) and must not reuse
 # the sonic-vs linux-kind topology. AGENTIC_NETOPS_PROFILE is exported by
-# scripts/provision.sh; anything else falls back to the fast-profile topology.
+# scripts/provision.sh, whose default is sonic-vm (T247); when the variable is
+# unset this helper falls back to the same default, so only an explicit
+# sonic-vs selects the fast-profile topology (T248).
 clab::topo_file() {
-  if [[ "${AGENTIC_NETOPS_PROFILE:-sonic-vs}" == "sonic-vm" ]]; then
-    echo "${ROOT_DIR}/lab/topology.sonic-vm.clab.yml"
-  else
+  if [[ "${AGENTIC_NETOPS_PROFILE:-sonic-vm}" == "sonic-vs" ]]; then
     echo "${ROOT_DIR}/lab/topology.clab.yml"
+  else
+    echo "${ROOT_DIR}/lab/topology.sonic-vm.clab.yml"
   fi
 }
 TOPO_FILE=$(clab::topo_file)
@@ -158,11 +160,47 @@ clab::bootstrap() {
     echo "[clab] bootstrap: ${node} done"
   done
 
+  # Executor transport key material (T173): the sonic-vm guests must accept
+  # the fabric executor's BatchMode SSH before the executor is (re)started
+  # with FABRIC_SSH_KEY/FABRIC_SSH_KNOWN_HOSTS by provision.sh. Once per
+  # bring-up, fail-closed — a node without the key cannot carry writes and the
+  # lab must not be reported ready.
+  if [[ "$profile" == "sonic-vm" ]]; then
+    if [[ ! -x "$bdir/install-executor-key.sh" ]]; then
+      echo "[clab] ERROR: $bdir/install-executor-key.sh missing or not executable" >&2
+      return 1
+    fi
+    echo "[clab] bootstrap: installing the executor SSH key material"
+    if ! "$bdir/install-executor-key.sh"; then
+      echo "[clab] ERROR: executor key installation failed; the fabric executor transport cannot come up" >&2
+      return 1
+    fi
+  fi
+
   # Fabric-wide routing. Deliberately outside the per-node loop and not guarded
   # by the .bootstrapped marker: BGP peers reference each other, so every node
   # must exist first, and the step is idempotent so re-running is safe. Without
   # it the nodes come up with bgpd stopped and no underlay at all, which is what
   # tests/integration/fabric_verify.sh (T043 [US3]) reports.
+  #
+  # sonic-vm (T138): the same responsibility is carried by the profile's
+  # configure-fabric.sh (identity -> underlay -> kernel -> locator ->
+  # advertisement -> persistence), run from the HOST over SSH into the guests;
+  # it does not exist for sonic-vs, whose configure-fabric-bgp.sh below runs
+  # inside the containers. Fail closed: a lab without the underlay reports
+  # success nowhere.
+  if [[ "$profile" == "sonic-vm" ]]; then
+    if [[ ! -x "$bdir/configure-fabric.sh" ]]; then
+      echo "[clab] ERROR: $bdir/configure-fabric.sh missing or not executable" >&2
+      return 1
+    fi
+    echo "[clab] bootstrap: sonic-vm fabric bootstrap (identity/underlay/kernel/locators/persistence)"
+    if ! "$bdir/configure-fabric.sh"; then
+      echo "[clab] ERROR: configure-fabric.sh failed; the sonic-vm lab has no underlay — see the FAIL lines above" >&2
+      return 1
+    fi
+  fi
+
   if [[ -x "$bdir/configure-fabric-bgp.sh" ]]; then
     echo "[clab] bootstrap: configuring underlay BGP + EVPN across the fabric"
     # This used to downgrade a hook failure to a WARN and continue, which made
@@ -209,6 +247,19 @@ clab::destroy() {
   # Check for generated lab credentials under repo secrets/
   if [[ -e "${ROOT_DIR}/secrets/gnmi.key" || -e "${ROOT_DIR}/secrets/gnmi.crt" || -e "${ROOT_DIR}/secrets/ca.crt" ]]; then
     echo "[clab] WARN: leftover lab-generated gNMI credentials under ${ROOT_DIR}/secrets" >&2
+    exit 1
+  fi
+  # T174: the executor transport material is per-lab (fresh guest host keys
+  # every bring-up), so destroy removes it and a leftover must be reported —
+  # stale host keys would make every executor SSH fail with a host-key
+  # mismatch named after the node.
+  local kf
+  for kf in fabric-executor.key fabric-executor.key.pub known_hosts_executor; do
+    rm -f "${ROOT_DIR}/secrets/${kf}"
+  done
+  if compgen -G "${ROOT_DIR}/secrets/fabric-executor.*" >/dev/null \
+    || [[ -e "${ROOT_DIR}/secrets/known_hosts_executor" ]]; then
+    echo "[clab] WARN: leftover executor SSH material under ${ROOT_DIR}/secrets" >&2
     exit 1
   fi
   echo "[clab] destroy complete"

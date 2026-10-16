@@ -35,6 +35,25 @@ Adjustments:
 - The fast profile uses containerlab-supported sonic-vs (pinned digest). The conformance profile uses a locally built sonic-vm image (pinned digest) created with vrnetlab.
 - All controller/observability images are pinned by immutable digest in deploy/**.yaml.
 
+## Fabric write path per node kind
+
+The fabric-executor is the only southbound write path (host service on the kind
+bridge gateway, port 8084). Every node it serves has exactly one transport, and
+`GET /v1/nodes` names each node with its kind — the output below is the
+authoritative statement of which write path applies where:
+
+| Node kind (`/v1/nodes`) | Profile | Write path | Privilege | Durable FRR file |
+| --- | --- | --- | --- | --- |
+| `docker` | sonic-vs | `docker exec` into the SONiC VS container over the host docker socket | root in the container | `/etc/frr/bgpd.conf` |
+| `ssh` | sonic-vm | SSH into the SONiC guest (per-lab key under `secrets/`, BatchMode, strict host key) | `sudo -n` | `/etc/sonic/frr/bgpd.conf` |
+
+- Reads (telemetry) never use the executor: gNMI via gNMIc is the only
+  device-metric collector, and it is read-only.
+- GCU patches travel as the applied command's stdin payload on both kinds.
+- Provisioning builds the executor's transport map from each node container's
+  `clab-node-kind` label (`scripts/provision.sh`); a node without an ssh entry
+  uses `docker`.
+
 ## EVPN/SRv6 mapping limitations
 
 - Supported EVPN constructs:

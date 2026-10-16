@@ -1,0 +1,23 @@
+# T205 update: same service, service prefix moved to 10.201.1.0/24.
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: p4-svc-ipvr
+  namespace: agentic-netops-intent
+spec:
+  routers:
+    - name: p4-svc-ipvr
+      l3vni: 13521
+      rd: "65000:21"
+      routeTargets:
+        import: ["65000:21"]
+        export: ["65000:21"]
+      prefixes:
+        - "10.201.1.0/24"
+  attachments:
+    - node: leaf01
+      attachment: wan1
+      vrf: p4-svc-ipvr
+    - node: leaf02
+      attachment: wan1
+      vrf: p4-svc-ipvr

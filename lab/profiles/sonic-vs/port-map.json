@@ -1,0 +1,11 @@
+{
+  "_comment": "sonic-vs profile: logical attachment name -> kernel port inside the sonic-vs container (docker exec vantage). Carried verbatim from the FABRIC_PORT_MAP literal that deploy/agentic-netops/manifests/provider.yaml held until T602; provision.sh injects this file's content as the provider's FABRIC_PORT_MAP.",
+  "wan1": "eth4",
+  "ethernet1": "eth3",
+  "ethernet2": "eth3",
+  "ethernet3": "eth3",
+  "eth1": "eth1",
+  "eth2": "eth2",
+  "eth3": "eth3",
+  "eth4": "eth4"
+}

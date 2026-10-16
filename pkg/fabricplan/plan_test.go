@@ -105,6 +105,104 @@ func TestType5RouteNeedleMasksHostBits(t *testing.T) {
 	}
 }
 
+// --- per-kind construct parity (spec 004 plan 4-05..4-19) ---------------------
+//
+// The p4-*-trial proofs apply each construct's rendered plan to the sonic-vm
+// lab through the fabric-executor and record every op that fails or behaves
+// differently. These per-kind cases pin exactly what those trials showed the
+// sonic-vm guest needs. The sonic-vs cases above are unchanged: sonic-vs
+// output stays byte-identical across this whole effort (FR-040).
+
+// vmPortMap is the sonic-vm profile's logical attachment -> guest port map
+// (lab/profiles/sonic-vm/port-map.json), the same map the p4-*-trial proofs
+// render with. eth3 is the guest's client access port (Ethernet8).
+var vmPortMap = PortMapper{
+	"wan1": "Ethernet12", "ethernet1": "Ethernet8", "ethernet2": "Ethernet4",
+	"eth1": "Ethernet0", "eth2": "Ethernet4", "eth3": "Ethernet8", "eth4": "Ethernet12",
+}
+
+func opsStrings(np *NodePlan) []string {
+	var out []string
+	for i, op := range np.Ops {
+		for _, r := range op.Redis {
+			out = append(out, fmt.Sprintf("ops[%d].redis: %s", i, r))
+		}
+		for _, s := range op.Shell {
+			out = append(out, fmt.Sprintf("ops[%d].shell: %s", i, s))
+		}
+		for _, g := range op.GCU {
+			out = append(out, fmt.Sprintf("ops[%d].gcu: %s", i, g))
+		}
+		for _, c := range op.FRRConf {
+			out = append(out, fmt.Sprintf("ops[%d].frrconf: %s", i, c))
+		}
+	}
+	return out
+}
+
+// The p4-vlan-trial proof (scripts/spike/networks/vlan.yaml on the sonic-vm
+// lab) showed ZERO diffs: the vlan construct's ops apply and verify
+// identically over the SSH transport, and the rollback cleans up. This case
+// pins that parity: for the vm kind the guest needs the same ops the trial
+// applied (VLAN row + Bridge membership on the guest port name), and the
+// sonic-vs rendering is byte-identical to what it always was.
+func TestVLANPlanPerKind_VMNeedsWhatTheTrialApplied(t *testing.T) {
+	net := &kubenet.Network{Spec: map[string]any{
+		"vlans":       []any{map[string]any{"name": "p4-trial-vlan", "vlan": float64(3500)}},
+		"attachments": []any{map[string]any{"node": "leaf01", "attachment": "eth3", "vlan": float64(3500)}},
+	}}
+	vm, err := ForNetwork(net, Options{Ports: vmPortMap, NodeKind: "sonic-vm"})
+	if err != nil {
+		t.Fatalf("sonic-vm ForNetwork: %v", err)
+	}
+	np := vm.Nodes["leaf01"]
+	if np == nil {
+		t.Fatal("leaf01 plan missing")
+	}
+	got := strings.Join(opsStrings(np), "\n")
+	// Exactly the ops p4-vlan-trial applied and verified on the guest.
+	want := []string{
+		"ops[0].redis: hset 'VLAN|Vlan3500' vlanid '3500'",
+		"ops[1].shell: ip link show Bridge >/dev/null 2>&1 || { ip link add Bridge type bridge; ip link set Bridge up; }",
+		"ops[1].shell: ip link show Ethernet8 | grep -q 'master Bridge' || { ip link set Ethernet8 nomaster 2>/dev/null || true; ip link set Ethernet8 master Bridge; }",
+		"ops[1].shell: bridge vlan del dev Ethernet8 vid 1 2>/dev/null || true",
+		"ops[1].shell: if bridge vlan show dev Ethernet8 2>/dev/null | grep -qw PVID; then bridge vlan add dev Ethernet8 vid 3500 2>/dev/null || true; else bridge vlan add dev Ethernet8 vid 3500 pvid untagged 2>/dev/null || true; fi",
+		"ops[1].shell: ip link set Ethernet8 up 2>/dev/null || true",
+	}
+	if got != strings.Join(want, "\n") {
+		t.Fatalf("sonic-vm vlan plan differs from the ops p4-vlan-trial applied:\n got:\n%s\nwant:\n%s", got, strings.Join(want, "\n"))
+	}
+	// And the checks the trial verified hold on the guest.
+	for _, wantCK := range []Check{
+		{Type: "redis-hget", RedisKey: "VLAN|Vlan3500", RedisField: "vlanid", Expect: "3500"},
+		{Type: "ip-master", Iface: "Ethernet8", Master: "Bridge"},
+		{Type: "bridge-vid", Iface: "Ethernet8", Vid: 3500},
+	} {
+		found := false
+		for _, ck := range np.Checks {
+			if ck.Type == wantCK.Type && ck.RedisKey == wantCK.RedisKey && ck.RedisField == wantCK.RedisField &&
+				ck.Expect == wantCK.Expect && ck.Iface == wantCK.Iface && ck.Master == wantCK.Master && ck.Vid == wantCK.Vid {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("sonic-vm vlan plan missing trial check %s (%#v)", wantCK.Type, wantCK)
+		}
+	}
+
+	// Parity: with the same logical attachment resolved to the same guest
+	// port, the vs and vm renderings are byte-identical — the vm kind needed
+	// no different ops for vlan, exactly what the trial recorded.
+	vs, err := ForNetwork(net, Options{Ports: PortMapper{"eth3": "Ethernet8"}, NodeKind: "sonic-vs"})
+	if err != nil {
+		t.Fatalf("sonic-vs ForNetwork: %v", err)
+	}
+	if gotVS := strings.Join(opsStrings(vs.Nodes["leaf01"]), "\n"); gotVS != got {
+		t.Fatalf("sonic-vs vlan output drifted from sonic-vm parity:\nvs:\n%s\nvm:\n%s", gotVS, got)
+	}
+}
+
 // --- VLAN (local) ------------------------------------------------------------
 
 func TestVLANPlanRendersLocalOnly_NoVXLANOrEVPN(t *testing.T) {
@@ -150,6 +248,181 @@ func TestVLANPlanRendersLocalOnly_NoVXLANOrEVPN(t *testing.T) {
 }
 
 // --- L2 ----------------------------------------------------------------------
+
+// The p4-macvrf-trial proof (scripts/spike/networks/macvrf.yaml on the
+// sonic-vm lab) found the guest with NO site overlay baseline: no
+// VXLAN_TUNNEL|vtep1 row, no EVPN_NVO|nvo1. vxlanmgrd therefore never built
+// vtep1-3501: the plan's wait loop exited 1 and every VTEP-dependent check
+// failed (ip-master/bridge-vid on vtep1-3501, link-vxlan-id, EVPN VNI). The
+// sonic-vs bootstrap configures that baseline (configure_overlay); the
+// sonic-vm profile does not, so a mac-vrf plan for the vm kind must ensure it
+// idempotently before its tunnel-map row. The vs rendering stays untouched.
+func TestMACVRFPlanPerKind_VMGuestNeedsItsVTEPBaseline(t *testing.T) {
+	net := l2NetworkVM(3501, 13501)
+	vm, err := ForNetwork(net, Options{Ports: vmPortMap, NodeKind: "sonic-vm"})
+	if err != nil {
+		t.Fatalf("sonic-vm ForNetwork: %v", err)
+	}
+	np := vm.Nodes["leaf01"]
+	if np == nil || len(np.Ops) == 0 {
+		t.Fatal("leaf01 plan missing")
+	}
+	// FIRST op: the vm-only VTEP baseline, idempotent, source from Loopback0
+	// (the same source the vs bootstrap writes), before any tunnel-map row.
+	first := np.Ops[0]
+	if len(first.Shell) != 1 || len(first.Redis) != 0 {
+		t.Fatalf("sonic-vm mac-vrf plan must start with the VTEP baseline shell op, got %#v", first)
+	}
+	base := first.Shell[0]
+	for _, needle := range []string{
+		"Loopback0", "VXLAN_TUNNEL|vtep1", "src_ip", "EVPN_NVO|nvo1", "source_vtep",
+	} {
+		if !strings.Contains(base, needle) {
+			t.Fatalf("sonic-vm VTEP baseline op missing %q:\n%s", needle, base)
+		}
+	}
+	// Then the long-standing overlay: redis rows, kernel shell, EVPN block.
+	overlayRows := strings.Join(np.Ops[1].Redis, "\n")
+	if len(np.Ops) < 4 || !strings.Contains(overlayRows, "VXLAN_TUNNEL_MAP|vtep1|map_13501_Vlan3501") ||
+		!strings.Contains(overlayRows, "VLAN|Vlan3501") {
+		t.Fatalf("sonic-vm mac-vrf plan lost its overlay rows after the baseline: %#v", np.Ops[1])
+	}
+	if !strings.Contains(allShell(np), "vni 13501") && !strings.Contains(allShell(np), "vtep1-3501") {
+		t.Fatalf("sonic-vm mac-vrf plan lost its vtep shell:\n%s", allShell(np))
+	}
+	// The EVPN op must speak the guest's dialect (p4-macvrf-trial-healed):
+	// this FRR build accepts per-VNI rd/route-target only once the default
+	// instance advertises all VNIs, and its durable FRR config lives at
+	// /etc/sonic/frr/bgpd.conf — /etc/frr/bgpd.conf does not exist there.
+	evpn := ""
+	for _, op := range np.Ops {
+		for _, s := range op.Shell {
+			if strings.Contains(s, "address-family l2vpn evpn") {
+				evpn += s + "\n"
+			}
+		}
+	}
+	if evpn == "" {
+		t.Fatal("sonic-vm mac-vrf plan has no EVPN op")
+	}
+	if !strings.Contains(evpn, "advertise-all-vni") {
+		t.Fatalf("sonic-vm EVPN op must enable advertise-all-vni before per-VNI rd/route-target:\n%s", evpn)
+	}
+	if !strings.Contains(evpn, "/etc/sonic/frr/bgpd.conf") {
+		t.Fatalf("sonic-vm EVPN op must append to /etc/sonic/frr/bgpd.conf:\n%s", evpn)
+	}
+	if strings.Contains(evpn, "/etc/frr/bgpd.conf") {
+		t.Fatalf("sonic-vm EVPN op still targets the vs conf path /etc/frr/bgpd.conf:\n%s", evpn)
+	}
+	// The baseline op is NOT rolled back: the managers/bootstrap own those rows.
+	for _, rb := range np.Rollback {
+		for _, s := range rb.Shell {
+			if strings.Contains(s, "VXLAN_TUNNEL|vtep1") {
+				t.Fatalf("rollback deletes the VTEP baseline the bootstrap owns: %q", s)
+			}
+		}
+	}
+
+	// sonic-vs: same intent, same port map — NO baseline op (byte-identical
+	// to the long-standing vs rendering, FR-040).
+	vs, err := ForNetwork(net, Options{Ports: vmPortMap, NodeKind: "sonic-vs"})
+	if err != nil {
+		t.Fatalf("sonic-vs ForNetwork: %v", err)
+	}
+	if len(vs.Nodes["leaf01"].Ops) == 0 {
+		t.Fatal("vs plan missing")
+	}
+	vsFirst := vs.Nodes["leaf01"].Ops[0]
+	if len(vsFirst.Redis) == 0 || len(vsFirst.Shell) != 0 {
+		t.Fatalf("sonic-vs mac-vrf rendering changed: first op must stay the redis overlay, got %#v", vsFirst)
+	}
+	if strings.Contains(allShell(vs.Nodes["leaf01"]), "Loopback0") {
+		t.Fatal("sonic-vs rendering gained the vm VTEP baseline; vs output must stay byte-identical")
+	}
+	// And the vs EVPN op keeps its own dialect: no advertise-all-vni, vs conf
+	// path.
+	vsEVPN := allShell(vs.Nodes["leaf01"])
+	if !strings.Contains(vsEVPN, "address-family l2vpn evpn") || !strings.Contains(vsEVPN, "/etc/frr/bgpd.conf") {
+		t.Fatalf("sonic-vs EVPN op changed:\n%s", vsEVPN)
+	}
+	if strings.Contains(vsEVPN, "advertise-all-vni") || strings.Contains(vsEVPN, "/etc/sonic/frr/bgpd.conf") {
+		t.Fatalf("sonic-vs EVPN op gained vm dialect; vs output must stay byte-identical:\n%s", vsEVPN)
+	}
+}
+
+// l2NetworkVM is l2Network with the sonic-vm guest's client access port key.
+func l2NetworkVM(vlan int64, l2vni int64) *kubenet.Network {
+	return &kubenet.Network{Spec: map[string]any{
+		"bridgeDomains": []any{map[string]any{
+			"name": "bd-vm1", "vlan": float64(vlan), "l2vni": float64(l2vni),
+			"evpn": map[string]any{"routeTargets": map[string]any{"export": []any{"65000:13501"}}},
+		}},
+		"attachments": []any{
+			map[string]any{"node": "leaf01", "attachment": "eth3", "vlan": float64(vlan)},
+			map[string]any{"node": "leaf02", "attachment": "eth3", "vlan": float64(vlan)},
+		},
+	}}
+}
+
+// The p4-ipvrf-trial proof (scripts/spike/networks/ipvrf.yaml) converged with
+// ZERO diffs — but it ran on a lab that already carried the VTEP baseline the
+// healed mac-vrf trial left behind (plans never roll back manager-owned rows).
+// On a fresh sonic-vm lab the L3VNI's VXLAN_TUNNEL_MAP row cannot build
+// vtep1-<l3vlan> without VXLAN_TUNNEL|vtep1 + EVPN_NVO|nvo1 — the same root
+// cause the mac-vrf trial proved. The vm ip-vrf plan must ensure the baseline
+// itself; the vs rendering stays byte-identical.
+func TestIPVRFPlanPerKind_VMGuestNeedsItsVTEPBaseline(t *testing.T) {
+	net := &kubenet.Network{Spec: map[string]any{
+		"routers": []any{map[string]any{
+			"name": "p4-trial-ipvrf", "l3vni": float64(13518), "rd": "65000:18",
+			"routeTargets": map[string]any{"import": []any{"65000:18"}, "export": []any{"65000:18"}},
+			"prefixes":     []any{"10.199.0.0/24"},
+		}},
+		"attachments": []any{
+			map[string]any{"node": "leaf01", "attachment": "wan1", "vrf": "p4-trial-ipvrf"},
+		},
+	}}
+	vm, err := ForNetwork(net, Options{Ports: vmPortMap, NodeKind: "sonic-vm"})
+	if err != nil {
+		t.Fatalf("sonic-vm ForNetwork: %v", err)
+	}
+	np := vm.Nodes["leaf01"]
+	if np == nil || len(np.Ops) == 0 {
+		t.Fatal("leaf01 plan missing")
+	}
+	first := np.Ops[0]
+	if len(first.Shell) != 1 || len(first.Redis) != 0 || len(first.GCU) != 0 {
+		t.Fatalf("sonic-vm ip-vrf plan must start with the VTEP baseline shell op, got %#v", first)
+	}
+	base := first.Shell[0]
+	for _, needle := range []string{"Loopback0", "VXLAN_TUNNEL|vtep1", "EVPN_NVO|nvo1"} {
+		if !strings.Contains(base, needle) {
+			t.Fatalf("sonic-vm ip-vrf VTEP baseline op missing %q:\n%s", needle, base)
+		}
+	}
+	// Then the long-standing flow: VRF row, L3VLAN row + tunnel map, kernel.
+	if len(np.Ops) < 4 || len(np.Ops[1].GCU) == 0 {
+		t.Fatalf("sonic-vm ip-vrf plan lost its VRF GCU row after the baseline: %#v", np.Ops[1])
+	}
+	allRows := allShell(np)
+	for _, op := range np.Ops {
+		allRows += strings.Join(op.Redis, "\n")
+	}
+	if !strings.Contains(allRows, "VXLAN_TUNNEL_MAP|vtep1|map_13518_") {
+		t.Fatalf("sonic-vm ip-vrf plan lost its L3VNI tunnel map row:\n%s", allRows)
+	}
+
+	// sonic-vs: first op stays the VRF GCU row — no baseline op.
+	vs, err := ForNetwork(net, Options{Ports: vmPortMap, NodeKind: "sonic-vs"})
+	if err != nil {
+		t.Fatalf("sonic-vs ForNetwork: %v", err)
+	}
+	vsFirst := vs.Nodes["leaf01"].Ops[0]
+	if len(vsFirst.GCU) == 0 || len(vsFirst.Shell) != 0 {
+		t.Fatalf("sonic-vs ip-vrf rendering changed: first op must stay the VRF GCU row, got %#v", vsFirst)
+	}
+}
+
 
 func l2Network(vlan int64, l2vni int64) *kubenet.Network {
 	return &kubenet.Network{Spec: map[string]any{
@@ -777,5 +1050,165 @@ func TestVTEPPlanBouncesAStuckTunnelMap(t *testing.T) {
 	// The bounce must be conditional: a healthy device must not be churned.
 	if !strings.Contains(shell, "ip link show vtep1-100 >/dev/null 2>&1 || {") {
 		t.Errorf("the bounce is unconditional; it must only run when the device is absent:\n%s", shell)
+	}
+}
+
+// TestPlanAcceptsNodeKind (T188): the renderer accepts the target node kind so
+// a plan can differ per kind (sonic-vs container vs sonic-vm guest). An empty
+// kind means sonic-vs; an unknown kind is refused rather than guessed.
+func TestPlanAcceptsNodeKind(t *testing.T) {
+	if _, err := ForNetwork(l2Network(108, 10004), Options{Ports: PortMapper{"ethernet1": "eth3"}, NodeKind: "sonic-vm"}); err != nil {
+		t.Fatalf("sonic-vm plan refused: %v", err)
+	}
+	if _, err := ForNetwork(l2Network(108, 10004), Options{Ports: PortMapper{"ethernet1": "eth3"}, NodeKind: ""}); err != nil {
+		t.Fatalf("empty kind (sonic-vs default) refused: %v", err)
+	}
+	_, err := ForNetwork(l2Network(108, 10004), Options{Ports: PortMapper{"ethernet1": "eth3"}, NodeKind: "junos"})
+	if err == nil {
+		t.Fatal("unknown node kind accepted; it must be refused")
+	}
+}
+
+// The p4-acl-trial proof (scripts/spike/networks/acl.yaml) converged on the
+// config side but found two sonic-vm deltas in the APPLIED view, plus one
+// timing delta:
+//  1. vm's orchagent renders the table's bind points as a count-prefixed LIST
+//     ("2:SAI_ACL_BIND_POINT_TYPE_PORT,SAI_ACL_BIND_POINT_TYPE_LAG"), so an
+//     exact match on "SAI_ACL_BIND_POINT_TYPE_PORT" can never hold;
+//  2. qualifier-less rules (the rendered default forward rule) never become
+//     SAI_OBJECT_TYPE_ACL_ENTRY objects on vm (sairedis.rec shows creates only
+//     for qualifier-carrying rules), so MinCount must not count them;
+//  3. ASIC materialization is asynchronous on vm — the trial's verify ran
+//     before the table/entry objects existed.
+// The vs rendering stays byte-identical (exact match, full MinCount, no wait).
+func TestACLPlanPerKind_VMAppliedViewToleratesListBindPointsAndSkipsQualifierlessEntries(t *testing.T) {
+	aclNet := func() *kubenet.Network {
+		return &kubenet.Network{
+			ObjectMeta: metav1.ObjectMeta{Name: "p4-trial-acl", Namespace: "agentic-netops-system"},
+			Spec: map[string]any{
+				"accessLists": []any{map[string]any{
+					"name": "p4-trial-acl", "stage": "ingress", "type": "l3", "defaultAction": "forward",
+					"rules": []any{map[string]any{
+						"name": "rule1", "priority": float64(9990), "action": "forward",
+						"protocol": "tcp", "sourcePrefix": "10.0.0.0/8", "destinationPort": "5201",
+					}},
+				}},
+				"attachments": []any{
+					map[string]any{"node": "leaf01", "attachment": "eth3"},
+					map[string]any{"node": "leaf02", "attachment": "eth3"},
+				},
+			},
+		}
+	}
+	keysMatch := func(np *NodePlan, key string) *Check {
+		for _, c := range np.Checks {
+			if c.Type == "redis-keys-match" && strings.Contains(c.RedisKey, key) {
+				cc := c
+				return &cc
+			}
+		}
+		return nil
+	}
+
+	vm, err := ForNetwork(aclNet(), Options{Ports: vmPortMap, NodeKind: "sonic-vm"})
+	if err != nil {
+		t.Fatalf("sonic-vm ForNetwork: %v", err)
+	}
+	np := vm.Nodes["leaf01"]
+	tableCheck := keysMatch(np, "ACL_TABLE")
+	if tableCheck == nil {
+		t.Fatal("sonic-vm acl plan lost its applied-table check")
+	}
+	if got := tableCheck.MatchFields["SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST"]; got != "~SAI_ACL_BIND_POINT_TYPE_PORT" {
+		t.Fatalf("sonic-vm applied-table bind point must use the contains form (vm renders a count-prefixed list), got %q", got)
+	}
+	entryCheck := keysMatch(np, "ACL_ENTRY")
+	if entryCheck == nil {
+		t.Fatal("sonic-vm acl plan lost its applied-entry check")
+	}
+	if entryCheck.MinCount != 1 {
+		t.Fatalf("sonic-vm applied-entry MinCount must count qualifier-carrying rules only (default forward never materializes), got %d", entryCheck.MinCount)
+	}
+	waitOK := false
+	for _, op := range np.Ops {
+		for _, sh := range op.Shell {
+			if strings.Contains(sh, "ASIC_STATE:SAI_OBJECT_TYPE_ACL_TABLE") && strings.Contains(sh, "sleep") {
+				waitOK = true
+			}
+		}
+	}
+	if !waitOK {
+		t.Fatal("sonic-vm acl plan needs a bounded wait for asynchronous ASIC materialization before the applied checks")
+	}
+
+	vs, err := ForNetwork(aclNet(), Options{Ports: PortMapper{"eth3": "eth3"}, NodeKind: "sonic-vs"})
+	if err != nil {
+		t.Fatalf("sonic-vs ForNetwork: %v", err)
+	}
+	vsTable := keysMatch(vs.Nodes["leaf01"], "ACL_TABLE")
+	if vsTable == nil || vsTable.MatchFields["SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST"] != "SAI_ACL_BIND_POINT_TYPE_PORT" {
+		t.Fatalf("sonic-vs applied-table rendering changed; vs must keep the exact bind-point match: %+v", vsTable)
+	}
+	vsEntry := keysMatch(vs.Nodes["leaf01"], "ACL_ENTRY")
+	if vsEntry == nil || vsEntry.MinCount != 2 {
+		t.Fatalf("sonic-vs applied-entry rendering changed; vs must keep MinCount over every rendered rule: %+v", vsEntry)
+	}
+	for _, op := range vs.Nodes["leaf01"].Ops {
+		for _, sh := range op.Shell {
+			if strings.Contains(sh, "ASIC_STATE") {
+				t.Fatalf("sonic-vs acl rendering gained a wait op; vs output must stay byte-identical:\n%s", sh)
+			}
+		}
+	}
+}
+
+// The p4-macvrf-gw-trial proof converged with ZERO diffs — but on a lab that
+// already carried the VTEP baseline the healed mac-vrf trial left behind (the
+// IRB plan never ensures it, and plans never roll back manager-owned rows). On
+// a fresh sonic-vm lab the L2VNI's map row cannot build vtep1-<vlan> without
+// VXLAN_TUNNEL|vtep1 + EVPN_NVO|nvo1. The vm IRB plan must ensure the baseline
+// itself; the vs rendering stays byte-identical.
+func TestMACVRFGWPlanPerKind_VMGuestNeedsItsVTEPBaseline(t *testing.T) {
+	irbNet := func() *kubenet.Network {
+		return &kubenet.Network{
+			ObjectMeta: metav1.ObjectMeta{Name: "p4-trial-gw", Namespace: "agentic-netops-system"},
+			Spec: map[string]any{
+				"bridgeDomains": []any{map[string]any{
+					"name": "bd-gw1", "vlan": float64(3502), "l2vni": float64(13502),
+					"irb": map[string]any{"vrf": "p4-trial-gw", "gatewayIPv4": "10.199.2.1/24"},
+					"evpn": map[string]any{"routeTargets": map[string]any{"export": []any{"65000:13502"}}},
+				}},
+				"routers": []any{map[string]any{
+					"name": "p4-trial-gw", "l3vni": float64(13519), "rd": "65000:19",
+					"routeTargets": map[string]any{"import": []any{"65000:19"}, "export": []any{"65000:19"}},
+				}},
+				"attachments": []any{
+					map[string]any{"node": "leaf01", "attachment": "eth3", "vlan": float64(3502)},
+					map[string]any{"node": "leaf02", "attachment": "eth3", "vlan": float64(3502)},
+				},
+			},
+		}
+	}
+	vm, err := ForNetwork(irbNet(), Options{Ports: vmPortMap, NodeKind: "sonic-vm"})
+	if err != nil {
+		t.Fatalf("sonic-vm ForNetwork: %v", err)
+	}
+	np := vm.Nodes["leaf01"]
+	if np == nil || len(np.Ops) == 0 {
+		t.Fatal("leaf01 plan missing")
+	}
+	first := np.Ops[0]
+	if len(first.Shell) != 1 || len(first.GCU) != 0 {
+		t.Fatalf("sonic-vm mac-vrf-gw plan must start with the VTEP baseline shell op, got %#v", first)
+	}
+	for _, needle := range []string{"Loopback0", "VXLAN_TUNNEL|vtep1", "EVPN_NVO|nvo1"} {
+		if !strings.Contains(first.Shell[0], needle) {
+			t.Fatalf("sonic-vm mac-vrf-gw VTEP baseline op missing %q:\n%s", needle, first.Shell[0])
+		}
+	}
+	if vs, err := ForNetwork(irbNet(), Options{Ports: PortMapper{"eth3": "eth3"}, NodeKind: "sonic-vs"}); err != nil {
+		t.Fatalf("sonic-vs ForNetwork: %v", err)
+	} else if vsFirst := vs.Nodes["leaf01"].Ops[0]; len(vsFirst.GCU) == 0 || len(vsFirst.Shell) != 0 {
+		t.Fatalf("sonic-vs mac-vrf-gw rendering changed; first op must stay the VRF GCU row, got %#v", vsFirst)
 	}
 }

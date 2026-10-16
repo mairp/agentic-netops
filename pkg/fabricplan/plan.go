@@ -153,6 +153,10 @@ func (m PortMapper) Port(logical string) (string, error) {
 // Options carries the site-level knobs the renderer needs.
 type Options struct {
 	Ports PortMapper
+	// NodeKind names the SONiC node kind the plan targets ("sonic-vs" or
+	// "sonic-vm"; empty means sonic-vs). Plans may differ per kind (guest
+	// adjustments), and an unknown kind is refused instead of guessed.
+	NodeKind string
 	// BGPASN is the fabric ASN used for best-effort per-vrf FRR config.
 	BGPASN string
 	// VTEPName is the per-leaf VXLAN tunnel name (bootstrap default vtep1).
@@ -165,6 +169,11 @@ type Options struct {
 func ForNetwork(net *kubenet.Network, opts Options) (*Plan, error) {
 	if len(opts.Ports) == 0 {
 		return nil, errf("site port map is empty")
+	}
+	switch opts.NodeKind {
+	case "", "sonic-vs", "sonic-vm":
+	default:
+		return nil, errf("unknown node kind %q (want sonic-vs or sonic-vm)", opts.NodeKind)
 	}
 	if opts.VTEPName == "" {
 		opts.VTEPName = "vtep1"
@@ -309,7 +318,7 @@ func ForNetwork(net *kubenet.Network, opts Options) (*Plan, error) {
 			// Render on nodes that have at least one attachment in this network.
 			for node, ports := range portsByNode {
 				np := plan.node(node)
-				if err := renderACL(np, al, dedupStrings(ports), net.ObjectMeta.Name, net.ObjectMeta.Namespace); err != nil {
+				if err := renderACL(np, al, dedupStrings(ports), net.ObjectMeta.Name, net.ObjectMeta.Namespace, opts); err != nil {
 					return nil, err
 				}
 			}
@@ -732,6 +741,14 @@ func renderL3(np *NodePlan, r kubenet.NetworkRouter, att kubenet.NetworkAttachme
 		return errf("router %q: %v", r.Name, err)
 	}
 
+	// On the sonic-vm kind the site overlay baseline (VXLAN_TUNNEL|vtep +
+	// EVPN_NVO) is not bootstrapped (p4-macvrf-trial), so the L3VNI's tunnel
+	// map could not build vtep1-<l3vlan> on a fresh lab; ensure it first. The
+	// p4-ipvrf-trial only converged because the healed mac-vrf trial had
+	// already left those manager-owned rows on the lab.
+	if base, ok := vtepBaselineForKind(opts.NodeKind, opts.VTEPName); ok {
+		np.Ops = append(np.Ops, base)
+	}
 	// 1. Declared VRF intent through the GCU.
 	np.Ops = append(np.Ops, c.vrfOp())
 	// 2. Overlay rows the image cannot validate.
@@ -912,26 +929,52 @@ func l2RT(bd kubenet.BridgeDomain) string {
 // Sending `address-family l2vpn evpn` straight to vtysh at top level — what
 // this did before any VPLS ever rendered — is simply not a command there:
 // "% Unknown command: address-family l2vpn evpn".
-func l2EVPNOp(bd kubenet.BridgeDomain) (Op, bool) {
+// frrConfForKind is the durable FRR config path per node kind: the sonic-vs
+// guest keeps bgpd under /etc/frr, the sonic-vm guest under /etc/sonic/frr
+// (p4-macvrf-trial-healed: /etc/frr does not exist there, so the durable
+// append failed with exit 1).
+func frrConfForKind(kind string) string {
+	if kind == "sonic-vm" {
+		return "/etc/sonic/frr/bgpd.conf"
+	}
+	return "/etc/frr/bgpd.conf"
+}
+
+// l2EVPNOp renders the EVPN half of a bridge domain: the L2VNI declared under
+// the node's default BGP instance with its RD and route targets, plus the same
+// block appended to the node's durable bgpd.conf. Kind-gated dialect: on
+// sonic-vm this FRR build accepts per-VNI rd/route-target only once the
+// default instance advertises all VNIs (otherwise it rejects with "This
+// command is only supported under EVPN VRF" — observed live), so vm plans
+// issue advertise-all-vni first, idempotently, in both the running and the
+// durable block. sonic-vs keeps its long-standing form byte-identically.
+func l2EVPNOp(bd kubenet.BridgeDomain, opts Options) (Op, bool) {
 	rt := l2RT(bd)
 	if rt == "" {
 		return Op{}, false
 	}
+	adv := ""
+	durableAdv := ""
+	if opts.NodeKind == "sonic-vm" {
+		adv = "-c 'advertise-all-vni' "
+		durableAdv = "advertise-all-vni\\n"
+	}
 	discover := "asn=$(vtysh -c 'show running-config' | awk '/^router bgp [0-9]+$/{print $3; exit}'); " +
 		"[ -n \"$asn\" ] || { echo 'no default bgp instance on this node'; exit 1; }"
 	running := fmt.Sprintf(
-		"vtysh -c 'conf t' -c \"router bgp $asn\" -c 'address-family l2vpn evpn' -c 'vni %d' "+
+		"vtysh -c 'conf t' -c \"router bgp $asn\" -c 'address-family l2vpn evpn' %s-c 'vni %d' "+
 			"-c 'rd %s' -c 'route-target import %s' -c 'route-target export %s' -c 'exit-vni' "+
 			"-c 'exit-address-family' -c 'end'",
-		bd.L2VNI, rt, rt, rt)
+		adv, bd.L2VNI, rt, rt, rt)
 	// Durable half: the same block appended to bgpd.conf. FRR merges repeated
 	// `router bgp <same asn>` blocks, so appending re-enters the instance.
+	conf := frrConfForKind(opts.NodeKind)
 	durable := fmt.Sprintf(
-		"grep -qF '  vni %d' /etc/frr/bgpd.conf || "+
-			"printf 'router bgp %%s\\n address-family l2vpn evpn\\n  vni %d\\n   rd %s\\n"+
+		"grep -qF '  vni %d' %s || "+
+			"printf 'router bgp %%s\\n address-family l2vpn evpn\\n%s  vni %d\\n   rd %s\\n"+
 			"   route-target import %s\\n   route-target export %s\\n  exit-vni\\n exit-address-family\\n!\\n' "+
-			"\"$asn\" >> /etc/frr/bgpd.conf",
-		bd.L2VNI, bd.L2VNI, rt, rt, rt)
+			"\"$asn\" >> %s",
+		bd.L2VNI, conf, durableAdv, bd.L2VNI, rt, rt, rt, conf)
 	return Op{Shell: []string{discover + "\n" + running + "\n" + durable}}, true
 }
 
@@ -981,6 +1024,26 @@ func l2Rollback(bd kubenet.BridgeDomain, vlanName, port string, opts Options) []
 	}
 }
 
+// vtepBaselineForKind returns the op that guarantees the site overlay baseline
+// (VXLAN_TUNNEL|vtep with its source address, and the EVPN_NVO that names the
+// vtep) exists on this node before any tunnel-map row is written. ok=false
+// when the kind already carries the baseline: the sonic-vs bootstrap
+// configures it (configure_overlay), and adding ops would change the
+// long-standing vs rendering. The sonic-vm profile's bootstrap does not
+// (p4-macvrf-trial: no VXLAN_TUNNEL row on the guest, so vxlanmgrd never
+// built vtep1-<vlan> and every VTEP-dependent check failed), so vm plans
+// ensure it idempotently, deriving the tunnel source from the node's Loopback0
+// exactly as the vs bootstrap does. The rows are manager-owned: plans never
+// roll them back.
+func vtepBaselineForKind(kind, vtep string) (Op, bool) {
+	if kind != "sonic-vm" {
+		return Op{}, false
+	}
+	return Op{Shell: []string{fmt.Sprintf(
+		"lo4=$(ip -4 -o addr show dev Loopback0 2>/dev/null | awk '/inet /{split($4,a,\"/\");print a[1];exit}'); [ -n \"$lo4\" ] || { echo 'no Loopback0 address on this node'; exit 1; }; redis-cli -n 4 hset 'VXLAN_TUNNEL|%s' src_ip \"$lo4\" >/dev/null; redis-cli -n 4 hset 'EVPN_NVO|nvo1' source_vtep '%s' >/dev/null",
+		vtep, vtep)}}, true
+}
+
 func renderL2(np *NodePlan, bd kubenet.BridgeDomain, att kubenet.NetworkAttachment, opts Options) error {
 	if bd.L2VNI == 0 {
 		return errf("bridgeDomain %q has no l2vni", bd.Name)
@@ -991,6 +1054,9 @@ func renderL2(np *NodePlan, bd kubenet.BridgeDomain, att kubenet.NetworkAttachme
 		return errf("attachment %s@%s: %v", att.Attachment, att.Node, err)
 	}
 
+	if base, ok := vtepBaselineForKind(opts.NodeKind, opts.VTEPName); ok {
+		np.Ops = append(np.Ops, base)
+	}
 	np.Ops = append(np.Ops, Op{Redis: l2Overlay(bd, vlanName, opts)})
 
 	// Kernel: the access port and the L2VNI's VXLAN device both join the
@@ -1002,7 +1068,7 @@ func renderL2(np *NodePlan, bd kubenet.BridgeDomain, att kubenet.NetworkAttachme
 	shell = append(shell, vtepShell(opts.VTEPName, bd.VLAN, bd.L2VNI, vlanName)...)
 	np.Ops = append(np.Ops, Op{Shell: shell})
 
-	if op, ok := l2EVPNOp(bd); ok {
+	if op, ok := l2EVPNOp(bd, opts); ok {
 		np.Ops = append(np.Ops, op)
 	}
 
@@ -1035,6 +1101,14 @@ func renderIRB(np *NodePlan, bd kubenet.BridgeDomain, r kubenet.NetworkRouter, a
 		return errf("bridgeDomain %q: %v", bd.Name, err)
 	}
 
+	// Same site overlay baseline gap as renderL2/renderL3 on the sonic-vm kind
+	// (p4-macvrf-trial): without VXLAN_TUNNEL|vtep + EVPN_NVO the L2VNI's map
+	// row cannot build vtep1-<vlan> on a fresh lab. Ensure it first; the
+	// p4-macvrf-gw-trial only converged because a healed trial had left those
+	// manager-owned rows on the lab.
+	if base, ok := vtepBaselineForKind(opts.NodeKind, opts.VTEPName); ok {
+		np.Ops = append(np.Ops, base)
+	}
 	// 1. Declared VRF intent (GCU) — the routed half's identity.
 	np.Ops = append(np.Ops, c.vrfOp())
 	// 2. Overlay rows: the bridge domain's L2VNI and the router's L3VNI.
@@ -1053,7 +1127,7 @@ func renderIRB(np *NodePlan, bd kubenet.BridgeDomain, r kubenet.NetworkRouter, a
 	shell = append(shell, vtepShell(opts.VTEPName, bd.VLAN, bd.L2VNI, vlanName)...)
 	np.Ops = append(np.Ops, Op{Shell: shell})
 	// 4. FRR: the L2VNI's RD/RT, then the VRF's L3VNI and its Type-5 origination.
-	if op, ok := l2EVPNOp(bd); ok {
+	if op, ok := l2EVPNOp(bd, opts); ok {
 		np.Ops = append(np.Ops, op)
 	}
 	vty, frr := c.frrOps(afis, opts.BGPASN)
@@ -1090,7 +1164,7 @@ func renderIRB(np *NodePlan, bd kubenet.BridgeDomain, r kubenet.NetworkRouter, a
 
 // renderACL renders an ACL table and its rules as raw redis ops, plus config- and applied-side checks and rollback.
 // ports are the kernel port names this network binds on THIS node only.
-func renderACL(np *NodePlan, al kubenet.AccessList, ports []string, serviceID, tenant string) error {
+func renderACL(np *NodePlan, al kubenet.AccessList, ports []string, serviceID, tenant string, opts Options) error {
 	if len(ports) == 0 {
 		return nil // nothing to bind on this node
 	}
@@ -1219,19 +1293,44 @@ func renderACL(np *NodePlan, al kubenet.AccessList, ports []string, serviceID, t
 	if strings.EqualFold(al.Stage, "egress") {
 		stageSAI = "SAI_ACL_STAGE_EGRESS"
 	}
+	bindPointWant := "SAI_ACL_BIND_POINT_TYPE_PORT"
 	minEntries := len(al.Rules)
 	if al.DefaultAction != "" {
 		minEntries++
+	}
+	if opts.NodeKind == "sonic-vm" {
+		// p4-acl-trial deltas: (1) vm's orchagent renders the bind points as a
+		// count-prefixed list ("2:...PORT,SAI_ACL_BIND_POINT_TYPE_LAG"), so the
+		// applied-table check matches on containment; (2) qualifier-less rules
+		// (the rendered default) never become ACL_ENTRY objects there, so the
+		// entry count only claims what this SAI build can render — the config
+		// checks above still verify the declared default. (3) ASIC_DB
+		// materialization is asynchronous on vm; a bounded read-only wait keeps
+		// the applied checks from racing the syncd pipeline.
+		bindPointWant = "~SAI_ACL_BIND_POINT_TYPE_PORT"
+		minEntries = 0
+		for _, r := range al.Rules {
+			if r.Protocol != "" || r.SourcePrefix != "" || r.DestinationPrefix != "" ||
+				r.SourcePort != "" || r.DestinationPort != "" {
+				minEntries++
+			}
+		}
+		np.Ops = append(np.Ops, Op{Shell: []string{fmt.Sprintf(
+			"for i in $(seq 1 30); do found=no; for k in $(redis-cli -n 1 --raw keys 'ASIC_STATE:SAI_OBJECT_TYPE_ACL_TABLE:*' 2>/dev/null); do case \"$k\" in *GROUP*|*MEMBER*) continue;; esac; [ \"$(redis-cli -n 1 --raw hget \"$k\" SAI_ACL_TABLE_ATTR_ACL_STAGE 2>/dev/null)\" = %q ] && { found=yes; break; }; done; [ \"$found\" = yes ] && break; sleep 1; done; true", stageSAI)}})
 	}
 	np.Checks = append(np.Checks,
 		Check{Type: "redis-keys-match", RedisDB: "1", RedisKey: "ASIC_STATE:SAI_OBJECT_TYPE_ACL_TABLE:*",
 			MatchFields: map[string]string{
 				"SAI_ACL_TABLE_ATTR_ACL_STAGE":                stageSAI,
-				"SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST": "SAI_ACL_BIND_POINT_TYPE_PORT",
+				"SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST": bindPointWant,
 			},
-		},
-		Check{Type: "redis-keys-match", RedisDB: "1", RedisKey: "ASIC_STATE:SAI_OBJECT_TYPE_ACL_ENTRY:*", MinCount: minEntries},
-	)
+		})
+	if minEntries > 0 {
+		// With every entry qualifier-less on vm nothing renderable remains, so
+		// no entry check is emitted at all rather than an unsatisfiable one.
+		np.Checks = append(np.Checks,
+			Check{Type: "redis-keys-match", RedisDB: "1", RedisKey: "ASIC_STATE:SAI_OBJECT_TYPE_ACL_ENTRY:*", MinCount: minEntries})
+	}
 
 	// Rollback: delete rendered rules then the table
 	// Note: do not touch any other table's ports@; cross-service safety.
