@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // Version constants for deterministic provenance.
@@ -17,6 +18,20 @@ const (
 	TranslatorName    = "agentic-netops-migration-translator"
 	TranslatorVersion = "v0.1.0"
 	MappingVersion    = "v0.1.0"
+)
+
+// Transport underlay vocabulary (srv6 intent contract §1). An empty transport
+// means vxlan; it is never rewritten on the struct (contract §5).
+const (
+	TransportVXLAN = "vxlan"
+	TransportSRv6  = "srv6"
+)
+
+// Signalling vocabulary for SRv6 services. The default is chosen by construct
+// at translation time: vpn for ip-vrf, evpn for mac-vrf.
+const (
+	SignallingVPN  = "vpn"
+	SignallingEVPN = "evpn"
 )
 
 // ServiceType names one of the fabric constructs an intent may ask for. The
@@ -43,6 +58,11 @@ type Endpoint struct {
 	Attachment string `json:"attachment"`     // human-readable peer/endpoint id
 	VLAN       int    `json:"vlan,omitempty"` // for L2 services
 	VRF        string `json:"vrf,omitempty"`  // for L3/IRB attachments
+	// Prefixes are the routed prefixes terminated at this attachment. They are
+	// an SRv6-transport field: over SRv6 the fabric allocates the identifiers,
+	// so the service's own prefixes ride on the attachments instead of the
+	// VXLAN-era addressFamilies block. Omitted everywhere else.
+	Prefixes []string `json:"prefixes,omitempty"`
 }
 
 // IRBGateway is the legacy spelling of AnycastGateway, kept so a feature-001
@@ -87,6 +107,21 @@ type ServiceInput struct {
 	// count and its limited-equivalence opt-in). It is never serialized, so the
 	// same service hashes identically in either vocabulary.
 	SourceType ServiceType `json:"-"`
+
+	// Transport names the underlay that carries the service: "vxlan" (the
+	// default, and the behavior of every field above) or "srv6". An omitted
+	// transport byte-for-byte preserves today's validation and output.
+	Transport string `json:"transport,omitempty"`
+
+	// Signalling selects the control plane for an SRv6 service: "vpn" or
+	// "evpn" (defaulted by construct at translation: vpn for ip-vrf, evpn for
+	// mac-vrf). It is only meaningful with transport srv6 (V5).
+	Signalling string `json:"signalling,omitempty"`
+
+	// PreferredSpine is the spine the SRv6 service's path should transit. Only
+	// meaningful with transport srv6 (V5) and validated against the site's
+	// spine inventory (V7).
+	PreferredSpine string `json:"preferredSpine,omitempty"`
 
 	// VPN properties
 	RDRT  *RdRt            `json:"rdRt,omitempty"`
@@ -192,6 +227,60 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 		causes = append(causes, "unsupported: rawCLI")
 	}
 
+	// SRv6 transport rules (srv6 intent contract §3, V1-V8). `transport`
+	// omitted behaves exactly as vxlan for every rule; the struct is never
+	// canonicalized, so an omitted transport leaves every existing cause list
+	// byte-identical.
+	srv6 := in.Transport == TransportSRv6
+	transport := in.Transport
+	if transport == "" {
+		transport = TransportVXLAN
+	}
+	hasTEPolicy := u.TEPolicy != nil
+	switch transport {
+	case TransportVXLAN:
+		// V5: the srv6-only fields are refused on the vxlan underlay — unless
+		// the request already carries a tePolicy claim (V8): that refusal
+		// stays a tePolicy refusal and names nothing else.
+		if in.Signalling != "" {
+			causes = append(causes, "signalling: only valid with transport srv6")
+		}
+		if in.PreferredSpine != "" && !hasTEPolicy {
+			causes = append(causes, "preferredSpine: only valid with transport srv6")
+		}
+	case TransportSRv6:
+		// V2: srv6 carries the routed and bridged services only.
+		if in.Type == ServiceVLAN || in.Type == ServiceACL {
+			causes = append(causes, "transport: srv6 applies to ip-vrf and mac-vrf only")
+		}
+		// V3: over srv6 the fabric allocates the identifiers.
+		if in.L2VNI != 0 || in.L3VNI != 0 || in.RDRT != nil {
+			causes = append(causes, "srv6: identifiers are allocated by the fabric, not supplied")
+		}
+		// V4: a bridged service over srv6 is signalled with EVPN.
+		if in.Type == ServiceMACVRF && in.Signalling == SignallingVPN {
+			causes = append(causes, "signalling: mac-vrf over srv6 uses evpn")
+		}
+		// V6: an srv6 service is a point-to-point join of two attachments on
+		// two different nodes.
+		if len(in.Endpoints) != 2 || in.Endpoints[0].Node == in.Endpoints[1].Node {
+			causes = append(causes, "endpoints: an srv6 service joins exactly two attachments on distinct nodes")
+		}
+		// V7: a preferred spine must be one of the site's spines. With no
+		// spine inventory configured, nothing is checked — the same
+		// philosophy as the node/attachment checks in site.go. And like V5,
+		// a tePolicy claim keeps the refusal a tePolicy refusal (V8).
+		if in.PreferredSpine != "" && !hasTEPolicy {
+			if inv := SiteInventoryFromEnv(); inv != nil && len(inv.Spines) > 0 && !knows(inv.Spines, in.PreferredSpine) {
+				causes = append(causes, fmt.Sprintf(
+					"preferredSpine: unknown '%s' (site has: %s)", in.PreferredSpine, strings.Join(inv.Spines, ", ")))
+			}
+		}
+	default:
+		// V1.
+		causes = append(causes, fmt.Sprintf("transport: unsupported '%s' (transports: vxlan, srv6)", transport))
+	}
+
 	// Endpoints basics
 	if len(in.Endpoints) == 0 {
 		causes = append(causes, "endpoints: at least one endpoint is required")
@@ -226,10 +315,13 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 		}
 
 	case ServiceMACVRF:
-		if in.L2VNI == 0 {
+		// Over srv6 the fabric allocates the identifiers (V3 refuses them when
+		// supplied), so the VXLAN-era requirements are lifted: an srv6
+		// mac-vrf with no l2vni/rdRt validates clean.
+		if in.L2VNI == 0 && !srv6 {
 			causes = append(causes, "l2vni: required for mac-vrf")
 		}
-		if in.RDRT == nil {
+		if in.RDRT == nil && !srv6 {
 			causes = append(causes, "rdRt: required for mac-vrf")
 		}
 		// A mac-vrf that terminates a gateway is useful on a single leaf; one
@@ -251,11 +343,14 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 		causes = append(causes, endpointVLANCauses(in.Endpoints, "mac-vrf")...)
 		if in.AnycastGateway != nil {
 			// Symmetric IRB: the bridge domain's SVI is the gateway and lives
-			// in the service's own ip-vrf, which needs its own L3VNI.
-			if in.L3VNI == 0 {
+			// in the service's own ip-vrf, which needs its own L3VNI. Over
+			// srv6 the fabric allocates that identifier, so it is not required.
+			if in.L3VNI == 0 && !srv6 {
 				causes = append(causes, "l3vni: required for a mac-vrf with an anycastGateway (the ip-vrf it routes into)")
 			}
-			causes = append(causes, l3vniRenderableCauses(in.L3VNI)...)
+			if !srv6 {
+				causes = append(causes, l3vniRenderableCauses(in.L3VNI)...)
+			}
 			// At least one address family, not both. Requiring both forced
 			// every gateway to carry an IPv6 address whether or not the
 			// operator asked for IPv6 — an unrequested address family on the
@@ -263,7 +358,7 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 			if in.AnycastGateway.GatewayV4 == "" && in.AnycastGateway.GatewayV6 == "" {
 				causes = append(causes, "anycastGateway: at least one of gatewayIPv4/gatewayIPv6 is required")
 			}
-		} else if in.L3VNI != 0 {
+		} else if in.L3VNI != 0 && !srv6 {
 			causes = append(causes, "l3vni: a mac-vrf carries an L3VNI only when it declares an anycastGateway")
 		}
 		// Feature-001 rules that belong to the VPWS alias, not to the
@@ -279,17 +374,22 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 			}
 		}
 	case ServiceIPVRF:
-		if in.L3VNI == 0 {
+		// Over srv6 the identifiers (V3) and the VXLAN-era prefix/vrf plumbing
+		// are lifted: the fabric allocates the identifiers and the service's
+		// prefixes ride on the attachments (Endpoint.Prefixes).
+		if in.L3VNI == 0 && !srv6 {
 			causes = append(causes, "l3vni: required for ip-vrf")
 		}
-		causes = append(causes, l3vniRenderableCauses(in.L3VNI)...)
-		if in.RDRT == nil {
+		if !srv6 {
+			causes = append(causes, l3vniRenderableCauses(in.L3VNI)...)
+		}
+		if in.RDRT == nil && !srv6 {
 			causes = append(causes, "rdRt: required for ip-vrf")
 		}
-		if in.AF == nil || (len(in.AF.IPv4Prefixes) == 0 && len(in.AF.IPv6Prefixes) == 0) {
+		if !srv6 && (in.AF == nil || (len(in.AF.IPv4Prefixes) == 0 && len(in.AF.IPv6Prefixes) == 0)) {
 			causes = append(causes, "addressFamilies: at least one prefix is required for ip-vrf")
 		}
-		if in.L2VNI != 0 {
+		if in.L2VNI != 0 && !srv6 {
 			causes = append(causes, "l2vni: an ip-vrf carries no bridge domain; ask for a mac-vrf with an anycastGateway to get both")
 		}
 		if in.AnycastGateway != nil {
@@ -299,7 +399,7 @@ func (in *ServiceInput) ValidateAllOrNothing(batchIndex int, dupServiceID bool) 
 			causes = append(causes, "endpoints: ip-vrf requires >=1 endpoint")
 		}
 		for i, ep := range in.Endpoints {
-			if ep.VRF == "" {
+			if ep.VRF == "" && !srv6 {
 				causes = append(causes, fmt.Sprintf("endpoints[%d].vrf: required for ip-vrf", i))
 			}
 		}

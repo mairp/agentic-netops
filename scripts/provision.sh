@@ -580,6 +580,22 @@ fi
 if command -v kubectl >/dev/null 2>&1 && [[ "${capability_cap:-false}" == "true" ]]; then
   CTX="kind-${AGENTIC_NETOPS_CLUSTER_NAME}"
   echo "[provision] cap-sai-srv6=true: applying the proven ip-vrf/vpn sample at bring-up"
+  # The bring-up sample can survive a previous bring-up, and it reconciles the
+  # moment the controller pod rolls — which happens EARLY (the rollout restart
+  # above precedes the gate), while the ConfigMap still holds the honest
+  # default cap-sai-srv6: "false". CapabilityMissing is terminal (no requeue),
+  # so when the gate later derives "true", a plain re-apply that reports
+  # "unchanged" produces no watch event and the reconciler never looks at the
+  # service again: the ConfigMap says "true" while the service stays Degraded
+  # (observed 2026-10-17: the T626 bring-up timed out on exactly that). Delete
+  # first, so the apply below is a fresh CREATE after the patch — a create
+  # event always wakes the reconciler. The refused service claimed nothing, so
+  # the finalizer path has nothing to roll back.
+  if kubectl --context "$CTX" -n agentic-netops-intent get srv6service/srv6-ip-vrf-vpn >/dev/null 2>&1; then
+    echo "[provision] deleting the previous bring-up sample (fresh create after the capability patch)"
+    kubectl --context "$CTX" -n agentic-netops-intent delete srv6service/srv6-ip-vrf-vpn --timeout=120s \
+      || { echo "[provision] previous sample delete failed; refusing to re-apply into the race" >&2; exit 1; }
+  fi
   kubectl --context "$CTX" -n agentic-netops-intent apply -f "${REPO_ROOT}/config/samples/srv6service-ip-vrf-vpn.yaml" \
     || { echo "[provision] sample SRv6 service apply failed" >&2; exit 1; }
   if ! kubectl --context "$CTX" -n agentic-netops-intent wait --for=condition=Ready=True --timeout=300s srv6service/srv6-ip-vrf-vpn; then

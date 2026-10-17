@@ -397,3 +397,162 @@ def test_audit_event_shapes():
             principal="p",
             at="2026-09-01T12:00:00Z",
         )
+
+
+# ---------------------------------------------------------------------------
+# US4 — SRv6 transport on the normalized intent (contracts/intent-srv6.md)
+# ---------------------------------------------------------------------------
+
+SRV6_IPVRF = {
+    "serviceId": "acme-routed",
+    "type": "ip-vrf",
+    "transport": "srv6",
+    "signalling": "vpn",
+    "tenant": "acme",
+    "endpoints": [
+        {"node": "leaf01", "attachment": "wan1", "prefixes": ["2001:db8:3::30/127"]},
+        {"node": "leaf02", "attachment": "wan1", "prefixes": ["2001:db8:4::40/127"]},
+    ],
+    "preferredSpine": "spine01",
+}
+
+
+def test_srv6_fields_default_to_vxlan_wire_names():
+    """§1: transport defaults to vxlan; signalling and preferredSpine default
+    to none. Omitted transport is exactly the pre-US4 model."""
+    data = load_fixture("supported_l3vpn.json")
+    obj = NormalizedServiceIntent.model_validate(_fold_legacy(data))
+    assert obj.transport == "vxlan"
+    assert obj.signalling is None
+    assert obj.preferredSpine is None
+    dumped = obj.model_dump()
+    assert dumped["transport"] == "vxlan"  # exact wire spelling
+    assert "preferredSpine" in dumped and dumped["preferredSpine"] is None
+
+
+def test_srv6_ip_vrf_without_vxlan_identifiers_validates_clean():
+    """§3 interplay: over srv6 the VXLAN identifier requirements are lifted —
+    no l3vni, no rdRt, no addressFamilies; prefixes ride on the attachments."""
+    obj = NormalizedServiceIntent.model_validate(SRV6_IPVRF)
+    assert obj.validate_all_or_nothing() is None
+
+
+def test_v1_unsupported_transport_cause():
+    obj = NormalizedServiceIntent.model_validate({**SRV6_IPVRF, "transport": "mpls"})
+    err = obj.validate_all_or_nothing()
+    assert err is not None
+    assert "transport: unsupported 'mpls' (transports: vxlan, srv6)" in err.causes
+
+
+def test_v2_srv6_vlan_construct_cause():
+    base = load_fixture("construct_vlan.json")
+    data = dict(base)
+    data["transport"] = "srv6"
+    obj = NormalizedServiceIntent.model_validate(data)
+    err = obj.validate_all_or_nothing()
+    assert err is not None
+    assert "transport: srv6 applies to ip-vrf and mac-vrf only" in err.causes
+
+
+def test_v3_srv6_supplied_identifier_cause():
+    obj = NormalizedServiceIntent.model_validate({**SRV6_IPVRF, "l3vni": 14001})
+    err = obj.validate_all_or_nothing()
+    assert err is not None
+    assert "srv6: identifiers are allocated by the fabric, not supplied" in err.causes
+
+
+def test_v4_macvrf_vpn_signalling_over_srv6_cause():
+    data = {**SRV6_IPVRF, "type": "mac-vrf", "signalling": "vpn"}
+    obj = NormalizedServiceIntent.model_validate(data)
+    err = obj.validate_all_or_nothing()
+    assert err is not None
+    assert "signalling: mac-vrf over srv6 uses evpn" in err.causes
+
+
+def test_v5_signalling_with_vxlan_transport_cause():
+    obj = NormalizedServiceIntent.model_validate(
+        {**SRV6_IPVRF, "transport": "vxlan", "l3vni": 14001, "rdRt": {"rd": "65000:100"}}
+    )
+    err = obj.validate_all_or_nothing()
+    assert err is not None
+    assert "signalling: only valid with transport srv6" in err.causes
+    assert "preferredSpine: only valid with transport srv6" in err.causes
+
+
+def test_v6_srv6_endpoints_cause():
+    data = {**SRV6_IPVRF, "endpoints": [SRV6_IPVRF["endpoints"][0]]}
+    obj = NormalizedServiceIntent.model_validate(data)
+    err = obj.validate_all_or_nothing()
+    assert err is not None
+    assert "endpoints: an srv6 service joins exactly two attachments on distinct nodes" in err.causes
+
+
+def test_v7_unknown_preferred_spine_cause(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("FABRIC_SPINE_NODES", "spine01,spine02")
+    obj = NormalizedServiceIntent.model_validate({**SRV6_IPVRF, "preferredSpine": "spine99"})
+    err = obj.validate_all_or_nothing()
+    assert err is not None
+    assert "preferredSpine: unknown 'spine99' (site has: spine01, spine02)" in err.causes
+
+
+def test_v7_validates_nothing_without_site_inventory(monkeypatch: pytest.MonkeyPatch):
+    """SiteInventory parity: FABRIC_SPINE_NODES unset => V7 never fires."""
+    monkeypatch.delenv("FABRIC_SPINE_NODES", raising=False)
+    obj = NormalizedServiceIntent.model_validate({**SRV6_IPVRF, "preferredSpine": "spine99"})
+    assert obj.validate_all_or_nothing() is None
+
+
+def test_v8_tepolicy_suppresses_preferred_spine_causes(monkeypatch: pytest.MonkeyPatch):
+    """V8: tePolicy present with preferredSpine => refused as tePolicy only;
+    no V5/V7 causes are added for preferredSpine."""
+    monkeypatch.setenv("FABRIC_SPINE_NODES", "spine01,spine02")
+    data = {
+        **SRV6_IPVRF,
+        "transport": "vxlan",
+        "l3vni": 14001,
+        "rdRt": {"rd": "65000:100"},
+        "unsupported": {"tePolicy": {"mode": "rsvp-te"}},
+    }
+    obj = NormalizedServiceIntent.model_validate(data)
+    err = obj.validate_all_or_nothing()
+    assert err is not None
+    assert "unsupported: tePolicy" in err.causes
+    assert not any("preferredSpine" in c for c in err.causes)
+
+
+def test_srv6_strict_parse_rejects_unknown_srv6_field():
+    """ParseStrictBatch parity: an srv6-ish unknown field is a parse error."""
+    data = {**SRV6_IPVRF, "srv6Locator": "fc00:0:1::/48"}
+    with pytest.raises(ValidationError) as excinfo:
+        NormalizedServiceIntent.model_validate(data)
+    assert "srv6Locator" in str(excinfo.value)
+
+
+def test_interpretation_srv6_fields():
+    """T464: the Interpretation carries transport/signalling/preferredSpine
+    under their wire names; they never make it incomplete."""
+    data = {
+        **VALID_INTERPRETATION,
+        "transport": "srv6",
+        "signalling": "evpn",
+        "preferredSpine": "spine01",
+    }
+    interp = Interpretation.model_validate(data)
+    assert interp.transport == "srv6"
+    assert interp.signalling == "evpn"
+    assert interp.preferred_spine == "spine01"
+    assert interp.is_complete
+    assert interp.model_dump(exclude_none=True)["preferred_spine"] == "spine01"
+
+
+def test_interpretation_transport_defaults_and_rejects_bad_value():
+    """None is the pre-US4 shape: the supervisor reads None as vxlan (Go
+    parity — ServiceInput.Transport has no default either), and the legacy
+    interpretation dumps stay byte-identical (SC-016)."""
+    interp = Interpretation.model_validate(VALID_INTERPRETATION)
+    assert interp.transport is None
+    assert interp.signalling is None
+    assert interp.preferred_spine is None
+    data = {**VALID_INTERPRETATION, "transport": "mpls"}
+    with pytest.raises(ValidationError):
+        Interpretation.model_validate(data)

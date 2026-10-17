@@ -13,6 +13,11 @@
 #
 # Source: plan.md Component 6 (verbatim), extended with the three
 # no-token ServiceAccounts required by contracts/kubernetes-objects.md.
+# Feature 004 (T468) amends that: the supervisor now holds exactly one
+# scoped read — get on ConfigMap fabric-compat-pins in
+# agentic-netops-system, by resourceName (fabric-compat-reader below) — the
+# capability read behind the SRv6 refusals. Still no list, no watch, no
+# write, and no other object for any tier identity.
 ---
 # T036/T037: the two tier namespaces, both labeled.
 apiVersion: v1
@@ -33,13 +38,16 @@ metadata:
 ---
 # T038: no-token identities. These workloads never talk to the cluster API:
 # automountServiceAccountToken: false means no token is mounted at all, so a
-# compromised supervisor, mapper, or UI pod holds no cluster credential.
+# compromised mapper, or UI pod holds no cluster credential. Feature 004
+# (T467/T550) amends this for the supervisor: it holds a token, but a minimal
+# one — a single scoped get on one ConfigMap (see the fabric-compat-reader
+# Role below). It still cannot write anything, list, or watch.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: intent-supervisor
   namespace: agentic-netops-agents
-automountServiceAccountToken: false
+automountServiceAccountToken: true
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -54,6 +62,35 @@ metadata:
   name: intent-ui
   namespace: agentic-netops-agents
 automountServiceAccountToken: false
+---
+# Feature 004 (T468): the supervisor's ONLY cluster permission — get on the
+# one capability ConfigMap, by resourceName, in the namespace where it lives.
+# No list, no watch, no other object: the read backs the SRv6 R4/R2/R9 gates
+# (contracts/operator-phrasings.md §3) and nothing else.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fabric-compat-reader
+  namespace: agentic-netops-system
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["fabric-compat-pins"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fabric-compat-reader
+  namespace: agentic-netops-system
+subjects:
+- kind: ServiceAccount
+  name: intent-supervisor
+  namespace: agentic-netops-agents
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: fabric-compat-reader
 ---
 # T039: the ONLY two token-bearing (cluster API) identities in the tier.
 # Claim-only identity for the allocator. It has no service-intent or

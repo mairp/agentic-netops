@@ -67,6 +67,25 @@ logger = logging.getLogger("agentic_netops.network_allocator.kuid")
 
 KUID_NAMESPACE = "kuid-system"
 
+# The per-attachment client /24 index (data-model §8.1; deploy/kubenet/
+# srv6-pools.yaml Pool 2, 192.168.0.0/16 served by the ipam family).
+CLIENT_V4_POOL = "srv6-client-v4"
+
+
+def _claim_name(pool: str, correlation_id: str, *parts: str) -> str:
+    """pkg/kuid ``ClaimName`` + ``sanitize``, mirrored exactly.
+
+    The served claim validation (be.kuid.dev/claim-name) rejects names over
+    63 characters with an HTTP 500, and the Go side builds the SAME name for
+    its own claim of the same (correlation id, attachment) — so the
+    truncation has to match byte for byte or the two claim different objects
+    and the controller carves a second /24 the CR's gateways never named.
+    """
+    name = "-".join([pool, "claim", correlation_id, *parts])
+    if len(name) > 63:
+        name = name[:63].strip("-.")
+    return name
+
 LEASE_LABELS = {
     "app.kubernetes.io/managed-by": "agentic-netops",
     "agentic-netops.io/allocation-backend": "lease",
@@ -275,6 +294,69 @@ class KUIDClient:
             f"claim {name} did not become ready within {timeout_seconds}s "
             f"(last observed status: {last_status!r})"
         )
+
+    # ---------------- US4: per-attachment client /24 claim ----------------
+    def allocate_client_prefix(
+        self,
+        *,
+        correlation_id: str,
+        attachment: str,
+        timeout_seconds: float = 20.0,
+    ) -> str:
+        """Claim one client /24 for one srv6 attachment from ``srv6-client-v4``.
+
+        Served counterpart of the srv6-controller's
+        ``pkg/kuid.CreateClientPrefixClaim``: an ``ipam.be.kuid.dev`` IPClaim
+        against the ``srv6-client-v4`` index asking for a /24
+        (``createPrefix`` + ``prefixLength`` — the served validation reads a
+        prefixLength without createPrefix as a dynamicIPRange claim and
+        rejects it, measured live 2026-10-16). The claim name mirrors the Go
+        ``ClaimName`` exactly — ``srv6-client-v4-claim-<correlation>-<attachment>``
+        — so the controller's own claim for the same (correlation id,
+        attachment) finds the object already held by the same correlation id
+        and reuses the allocation instead of carving a second /24.
+
+        Returns the allocated prefix (``status.prefix``). Raises
+        KUIDCollisionError when the name is held by another correlation id,
+        KUIDAPIError when the claim does not become ready.
+        """
+        name = _claim_name(CLIENT_V4_POOL, correlation_id, attachment)
+        url = self._url("ipam.be.kuid.dev", "ipclaims") + f"/{name}"
+        resp = self._client.get(url, headers=self._headers())
+        if resp.status_code == 404:
+            self.create_claim(
+                group="ipam.be.kuid.dev",
+                plural="ipclaims",
+                kind="IPClaim",
+                spec={"index": CLIENT_V4_POOL, "createPrefix": True, "prefixLength": 24},
+                correlation_id=correlation_id,
+                name=name,
+            )
+        elif resp.status_code // 100 == 2:
+            obj = resp.json()
+            held = (obj.get("metadata", {}).get("labels") or {}).get(CORRELATION_LABEL)
+            if held is not None and held != correlation_id:
+                raise KUIDCollisionError(
+                    f"claim {name} already held by correlation id {held!r}"
+                )
+            # Same correlation id: this claim is ours from an earlier pass of
+            # this request (the tier re-builds the intent on every turn);
+            # reuse it and let the wait return the allocation.
+        else:
+            self._classify_http_error(resp.status_code, resp.text)
+        final = self.wait_for_claim(
+            group="ipam.be.kuid.dev",
+            plural="ipclaims",
+            name=name,
+            timeout_seconds=timeout_seconds,
+        )
+        prefix = (final.get("status") or {}).get("prefix")
+        if not prefix:
+            raise KUIDAPIError(
+                f"claim {name} reported ready without an allocated prefix "
+                f"(last observed status: {final.get('status')!r})"
+            )
+        return prefix
 
     # ---------------- T216/T217: release by correlation-id ----------------
     def release_by_correlation(self, correlation_id: str) -> int:

@@ -1,0 +1,36 @@
+# T484 — SRv6 refusals R3 and R5 (contracts/operator-phrasings.md §3).
+#
+# R3: the request names BOTH SRv6 and VXLAN (vxlan/vni terms beside an SRv6
+# qualifier) — a service uses one transport; say which. Terminal: no
+# construct mapping, no claim.
+# R5: SRv6 with `vlan` or `acl` as the construct — SRv6 applies to ip-vrf and
+# mac-vrf; a vlan or an acl has no transport. Terminal, no claim.
+#
+# The mapper names these with the terminal token vocabulary
+# (srv6TransportConflict / srv6UnsupportedConstruct); the supervisor renders
+# the §3 refusal text. Nothing beyond the mapper is ever called.
+#
+# Loaded by tests/unit/test_phrasings_srv6.py; never replayed into
+# baseline_snapshot.json (SC-016).
+category: srv6_conflict
+tier: terminal_refusal
+cases:
+  # R3 — contract §3's own shape: mac-vrf wording with vxlan beside SRv6
+  - id: srv6-conflict-both-transports
+    unsupported: ["srv6TransportConflict"]
+    text: "extend vlan 100 as a mac-vrf over SRv6 with vxlan across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme"
+
+  # R3 — a VNI is a VXLAN identifier: two transports named at once
+  - id: srv6-conflict-vni
+    unsupported: ["srv6TransportConflict"]
+    text: "ip-vrf over srv6 with l3vni 5000 carrying 10.90.0.0/24 between leaf01 wan1 and leaf02 wan1 for tenant acme"
+
+  # R5 — vlan as the construct (not carried by a mac-vrf)
+  - id: srv6-conflict-vlan-construct
+    unsupported: ["srv6UnsupportedConstruct"]
+    text: "use SRv6 to provision vlan 100 between leaf01 ethernet1 and leaf02 ethernet1 for tenant acme"
+
+  # R5 — acl as the construct
+  - id: srv6-conflict-acl-construct
+    unsupported: ["srv6UnsupportedConstruct"]
+    text: "SRv6 acl permitting ingress tcp 443 from 10.0.0.0/24 on leaf01 ethernet1 for tenant acme"

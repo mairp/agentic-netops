@@ -1,0 +1,11 @@
+{
+  "serviceId": "srv6_v3",
+  "type": "ip-vrf",
+  "transport": "srv6",
+  "tenant": "acme",
+  "rdRt": {"rd": "65000:30", "importRT": ["65000:30"], "exportRT": ["65000:30"]},
+  "endpoints": [
+    {"node": "leaf01", "attachment": "wan1", "prefixes": ["2001:db8:3::30/127"]},
+    {"node": "leaf02", "attachment": "wan1", "prefixes": ["2001:db8:4::40/127"]}
+  ]
+}

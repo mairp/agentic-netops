@@ -84,3 +84,108 @@ mapper-level unsupported result and graph-level R1 refusal for each), `gates/pro
 (vocabulary guard, no entry relaxed), `gates/proofs/p1-agents.out` (whole agents suite green after
 the change). The refusal text itself is pinned in `agents/tests/unit/test_phrasings_srv6.py` and
 `agents/tests/unit/test_refusal_paths.py` (`TestSRv6InterimRefusal`).
+
+### R2 — plain-language ip-vrf over SRv6 end to end, client /24 claims (T515, phase 6, 2026-10-17)
+
+What changed and why (US4 scenario 1, spec.md line 217+; contracts/intent-srv6.md §4;
+contracts/srv6service-crd.md A9; data-model.md §8.1; SC-010): a plain-language request — "Give
+tenant blue an ip-vrf over srv6 carrying 10.60.0.0/24 between leaf01 wan1 and leaf02 wan1" — now
+completes the full two-confirmation pipeline to a Ready SRv6Service with the controller's data
+path verified, without any VXLAN construct being created. Two production gaps had to close first:
+
+1. The ip-vrf branch of the allocator's SRv6 intent builder DROPPED the endpoints' client
+   prefixes. The Go translator maps `endpoints[].prefixes` to `spec.attachments[].gateway`
+   (intent-srv6.md §4) and the CRD's rule A9 rejects ip-vrf attachments without a gateway prefix,
+   so the tier dry-ran into a 422 ("ip-vrf attachments need a gateway prefix") at confirmation 1.
+   The allocator now claims each endpoint's client /24 from the `srv6-client-v4` pool BEFORE apply
+   (`KUIDClient.allocate_client_prefix`, claim spec mirrors the Go controller's:
+   `{index: srv6-client-v4, createPrefix: true, prefixLength: 24}`) and derives the gateway as the
+   first usable host of the claimed prefix. VXLAN identifiers remain zero-claimed on the SRv6 path;
+   the client /24s are the one claim an SRv6 request makes.
+2. The python claim name has to byte-match the Go controller's `ClaimName`+`sanitize`
+   (63-character truncation, then `Trim(v, "-.")`) or the controller cannot reuse the allocator's
+   claim and carves a SECOND /24 for the same attachment (measured: a 65-character name 500'd the
+   claim API on attempt 3). `_claim_name` now mirrors the Go rules and is unit-tested against
+   them.
+ 3. A THIRD defect, found after the first "green" receipt, invalidated that receipt's central
+    claim and had to be fixed before the evidence below could be recorded: the correlation id was
+    minted PER STREAM (`uuid.uuid4().hex` in the supervisor's `handle_stream_prompt`), while the
+    claims key on it across turns. The allocator's claims therefore carried the ALLOCATION turn's
+    id, the created `SRv6Service` carried the SUBMIT turn's id, and the controller neither reused
+    the claims nor released them on decline/delete — attempts 6-8 each leaked a pair of /24
+    ipclaims (attempt 6: `e597912f…`; attempt 7: `bcace394…`; attempt 8: `5fcfacd9…`, all
+    deleted by hand from the lab). The earlier statement in this record that "the controller
+    REUSED them via the shared correlation label" described the attempt-6 receipt and was WRONG —
+    the attempt-6 receipt's claim-existence check was vacuous (it grep'd for a family the label
+    filter never matched). The fix (SC-010, recorded in PROGRESS.md §7): the correlation is
+    thread-stable (continuing turns reuse the checkpointed id; only new threads mint), and the
+    supervisor passes it EXPLICITLY inside the fenced allocation payload as an additive
+    `correlationId` key (OTel trace context does not survive the A2A boundary into the worker;
+    the allocator pops the key before validating, so the published schema is unchanged).
+
+Evidence: `gates/proofs/q10-live-ip-vrf-vpn.out` (exit 0, the FINAL receipt, recorded after the
+fix) — both confirmation points offered and answered, SRv6Service/1b0f23f18f92450 Ready with
+"data path verified", probe result=pass, exactly one SRv6Service, no Network for the service id,
+bring-up sample restored Ready + pass after the receipt. The receipt's claim-existence check
+lists BOTH ipclaims BY NAME under the thread's one correlation id
+(`srv6-client-v4-claim-dbb74343fe9f4381b6aca561e2c39d51-leaf01-wa` / `-leaf02-wa`), the created
+service's message carries the same id, and after the receipt service's deletion the claims are
+GONE from the cluster (release witnessed). Attempts 6-8's interim receipts were overwritten by
+this final one; their defect history lives in PROGRESS.md §7 and in the gate evidence.
+
+Disclosed, not reworked: the client pool carves FIFO (192.168.0.0/24 first) while the lab's
+physical clients sit on 192.168.1.0/24 (leaf01) and 192.168.0.0/24-unrelated 192.168.2.0/24
+(leaf02), so the dataPath probe's "pass" witnesses reachability of the PEER attachment's claimed
+client address under the claimed addressing, not the physically-wired client path of this lab
+instance. The drift compounds across runs: after this session's release/re-claim cycles the
+sample holds 192.168.0.0/24 + 192.168.9.0/24 — the ipam server re-uses arbitrary free /24s
+rather than strict FIFO once ranges have been freed — and its probe still reports pass; same
+witness-strength caveat.
+
+Also recorded: a SLIM-tier operational note — restarting ONE agent pod (the allocator) leaves the
+other agents publishing to a stale SLIM session (~60s "timer failed on channel endpoint", the
+orphaned confirm turn then re-classifies fresh and the mapper fallback refuses it). The receipts'
+runs restart all four tier agents together when a redeploy happens; recorded here because any
+future one-pod restart will reproduce it.
+
+### R3 — the phase's changed refusal and confirmation texts (T515, phase 6, 2026-10-18)
+
+What changed and why (FR-003a, FR-005, FR-013; contracts/operator-phrasings.md §3; spec KL-001):
+once the first SRv6 type is supported, every SRv6-named request must get the official per-variant
+answer instead of the phase-2 interim refusal R1 ("SRv6 services are not available yet. …"), and
+the confirmation/decline surfaces must say what is actually being deployed. Texts before / after,
+and the proofs each rests on:
+
+- R2, supported-list form — BEFORE: interim R1 for every SRv6 request. AFTER: for a variant
+  outside the supported set, "`<variant>` is not supported on this image. Supported SRv6
+  services: `<list>`." Proof: `gates/proofs/q10-r2-ip-vrf-evpn.out` (live through the tier, exit
+  0 — the ip-vrf/evpn variant named with the supported list, no SRv6Service, no Network, no
+  claim) and the corpus-tier replay `gates/proofs/q10-srv6-us4.out`.
+- R2, bridged gloss form — BEFORE: interim R1. AFTER: "`mac-vrf over srv6` (bridged EVPN over
+  SRv6) is not supported on this image." — the ONE gloss allowed beside the FR-013 wording
+  (KL-001), with no supported list for this variant. Proof:
+  `gates/proofs/q10-r2-mac-vrf-evpn.out` (live, exit 0); pinned by
+  `agents/tests/unit/test_refusal_paths.py` (`test_r2_bridged_variant_uses_the_kl001_gloss`),
+  `agents/tests/unit/test_capability_reader.py::test_r2_bridged_gloss_is_the_kl001_wording`,
+  and the vocabulary guard (`gates/proofs/q10-guard-us4.out`).
+- R4, capability not proven — NEW: "SRv6 is not available on this lab profile: the capability
+  has not been proven here." rendered BEFORE the mapper when the `fabric-compat-pins` read fails
+  or `srv6-supported` is not exactly "true". Witnessed at unit level only
+  (`agents/tests/unit/test_capability_refusal.py` — zero allocator/deployer calls, and a
+  non-SRv6 request never triggers the read); this lab's capability IS proven, so no live receipt
+  renders R4 here.
+- R3/R5 conflicts and C1/C2 clarifications — NEW: "The request names both SRv6 and VXLAN. …",
+  "SRv6 applies to ip-vrf and mac-vrf. …", "Which SRv6 service: …?", "Routed (…) or bridged
+  (…)?" — the latter list ONLY supported variants. Proofs: the tier-level corpus runs
+  (`unsupported/srv6_conflict.yaml`, `srv6_clarify.yaml` cases) in `gates/proofs/q10-srv6-us4.out`
+  and `agents/tests/unit/test_phrasings_srv6.py`.
+- Confirmation and decline — BEFORE: the two confirmation points existed for VXLAN constructs
+  only, with no transport wording. AFTER: the same two points for an SRv6 request —
+  "Confirm this interpretation? Reply 'confirm' to proceed to allocation, or 'decline' to
+  cancel." then "Deploy this service? Reply 'confirm' to submit it to the cluster, or 'decline'
+  to cancel." — with the deployer card stating the qualified service ("Deploy an ip-vrf over
+  srv6 with vpn signalling between two leaf attachments." / "… with evpn signalling …" / the
+  bridged mac-vrf form). Proofs: `gates/proofs/q10-live-ip-vrf-vpn.out` (both points offered and
+  answered; the Deployed line), `gates/proofs/q10-decline-ip-vrf-vpn.out` (decline at point 1:
+  "refused: confirmation_1 declined by operator"; the receipt asserts no SRv6Service, no
+  Network, no claim).

@@ -1,0 +1,51 @@
+# T485 — preferred-spine forms (contracts/operator-phrasings.md §4):
+# "... preferring spine01", "... prefer spine01", "... via spine01 preferred"
+# set preferredSpine; the spine is path steering on an SRv6 request, not a TE
+# policy. The mapper asserts the steering; the tier level follows each case's
+# variant (ip-vrf/vpn is in this lab's supported set and reaches the
+# confirmation point; the evpn/mac-vrf variants are refused R2).
+#
+# Loaded by tests/unit/test_phrasings_srv6.py; never replayed into
+# baseline_snapshot.json (SC-016).
+category: srv6_steering
+transport: srv6
+cases:
+  - id: srv6-steer-preferring
+    construct: ip-vrf
+    signalling: vpn
+    preferred_spine: spine01
+    tier: confirmed
+    text: "ip-vrf over srv6 carrying 2001:db8:3::30/127 between leaf01 wan1 and leaf02 wan1 for tenant acme preferring spine01"
+    prefixes: ["2001:db8:3::30/127"]
+
+  - id: srv6-steer-prefer
+    construct: ip-vrf
+    signalling: vpn
+    preferred_spine: spine02
+    tier: confirmed
+    text: "ip-vrf over srv6 carrying 10.55.0.0/24 between leaf01 wan1 and leaf02 wan1 for tenant blue, prefer spine02"
+    prefixes: ["10.55.0.0/24"]
+
+  - id: srv6-steer-via-preferred
+    construct: ip-vrf
+    signalling: vpn
+    preferred_spine: spine01
+    tier: confirmed
+    text: "ip-vrf over srv6 carrying 2001:db8:8::/64 via spine01 preferred between leaf01 wan1 and leaf02 wan1 for tenant acme"
+    prefixes: ["2001:db8:8::/64"]
+
+  - id: srv6-steer-macvrf
+    construct: mac-vrf
+    signalling: evpn
+    preferred_spine: spine01
+    tier: r2_refused
+    text: "extend vlan 100 as a mac-vrf over srv6 across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme preferring spine01"
+    vlan: 100
+
+  - id: srv6-steer-ipvrf-evpn
+    construct: ip-vrf
+    signalling: evpn
+    preferred_spine: spine02
+    tier: r2_refused
+    text: "ip-vrf over srv6 with evpn signalling carrying 10.65.0.0/24 between leaf01 wan1 and leaf02 wan1 for tenant acme prefer spine02"
+    prefixes: ["10.65.0.0/24"]

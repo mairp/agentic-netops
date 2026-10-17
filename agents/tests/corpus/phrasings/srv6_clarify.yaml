@@ -1,0 +1,62 @@
+# T477–T483 — the SRv6 clarifications C1–C7 (contracts/operator-phrasings.md
+# §2). One case per clarification. Nothing is provisioned or claimed: the
+# mapper names what is missing with the token vocabulary and the supervisor
+# renders the §2 question for each token.
+#
+# Loaded by tests/unit/test_phrasings_srv6.py; never replayed into
+# baseline_snapshot.json (SC-016).
+category: srv6_clarify
+transport: srv6
+tier: clarify
+cases:
+  # C1 — SRv6 named, no construct
+  - id: srv6-clarify-construct
+    expect: clarify
+    missing: ["srv6_construct"]
+    text: "provision an SRv6 service for tenant acme"
+
+  # C2 — "EVPN over SRv6", routed or bridged not stated
+  - id: srv6-clarify-signalling
+    expect: clarify
+    missing: ["srv6_signalling"]
+    text: "EVPN over SRv6 for tenant acme between leaf01 wan1 and leaf02 wan1"
+
+  # C3 — tenant missing (the existing tenant question)
+  - id: srv6-clarify-tenant
+    expect: clarify
+    construct: ip-vrf
+    signalling: vpn
+    missing: ["tenant"]
+    text: "an ip-vrf over srv6 carrying 2001:db8:3::30/127 between leaf01 wan1 and leaf02 wan1"
+
+  # C4 — fewer than two attachments: which node and port is the other end?
+  - id: srv6-clarify-other-endpoint
+    expect: clarify
+    construct: ip-vrf
+    signalling: vpn
+    missing: ["srv6_other_endpoint"]
+    text: "ip-vrf over srv6 carrying 2001:db8:3::30/127 on leaf01 wan1 for tenant acme"
+
+  # C5 — ip-vrf with no prefix: which prefix does each side use?
+  - id: srv6-clarify-prefix
+    expect: clarify
+    construct: ip-vrf
+    signalling: vpn
+    missing: ["srv6_prefix"]
+    text: "ip-vrf over srv6 between leaf01 wan1 and leaf02 wan1 for tenant acme"
+
+  # C6 — mac-vrf with no vlan: which vlan does the service carry?
+  - id: srv6-clarify-vlan
+    expect: clarify
+    construct: mac-vrf
+    signalling: evpn
+    missing: ["srv6_vlan"]
+    text: "mac-vrf over srv6 across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme"
+
+  # C7 — "prefer a spine" with no spine named: which spine is preferred?
+  - id: srv6-clarify-preferred-spine
+    expect: clarify
+    construct: ip-vrf
+    signalling: vpn
+    missing: ["srv6_preferred_spine"]
+    text: "ip-vrf over srv6 carrying 2001:db8:3::30/127 between leaf01 wan1 and leaf02 wan1 for tenant acme, prefer a spine"

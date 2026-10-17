@@ -24,18 +24,36 @@ import (
 type SiteInventory struct {
 	Nodes       []string
 	Attachments []string
+	// Spines are the site's spine node names (FABRIC_SPINE_NODES,
+	// comma-separated). They back the srv6 preferredSpine check (V7); an empty
+	// list validates nothing, like every other inventory list here.
+	Spines []string
 }
 
 // SiteInventoryFromEnv reads the site's two maps from the environment. It
-// returns nil when neither is configured: the CLI and the unit tests translate
+// returns nil when none is configured: the CLI and the unit tests translate
 // without a site, and inventing an inventory there would reject valid input.
 func SiteInventoryFromEnv() *SiteInventory {
 	nodes := keysOfJSONMap(os.Getenv("FABRIC_NODE_MAP"))
 	ports := keysOfJSONMap(os.Getenv("FABRIC_PORT_MAP"))
-	if len(nodes) == 0 && len(ports) == 0 {
+	spines := spinesOfEnv(os.Getenv("FABRIC_SPINE_NODES"))
+	if len(nodes) == 0 && len(ports) == 0 && len(spines) == 0 {
 		return nil
 	}
-	return &SiteInventory{Nodes: nodes, Attachments: ports}
+	return &SiteInventory{Nodes: nodes, Attachments: ports, Spines: spines}
+}
+
+// spinesOfEnv parses the comma-separated spine node list, sorted for stable
+// cause text. A blank entry ("a,,b") is dropped.
+func spinesOfEnv(raw string) []string {
+	var out []string
+	for _, s := range strings.Split(raw, ",") {
+		if s = strings.TrimSpace(s); s != "" {
+			out = append(out, s)
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 func keysOfJSONMap(raw string) []string {

@@ -1,38 +1,66 @@
-# T006 — interim SRv6 transport phrasings (FR-003, FR-015; plan 1-03).
+# T622 — SRv6 phrasings whose variant is OUTSIDE this lab's supported set
+# (contracts/operator-phrasings.md §3, refusal R2).
 #
-# Natural-language ways an operator can ask for an SRv6 service while the
-# feature has no supported SRv6 type yet. Every phrasing must produce a
-# TERMINAL refusal naming SRv6 (refusal R1, contracts/operator-phrasings.md
-# §3) and must never map to a VXLAN construct (SC-008) — "SRv6 L3VPN
-# between ..." (migration alias) and "ip-vrf over SRv6 ..." name a transport
-# the fabric cannot offer yet, not an ip-vrf/mac-vrf service.
+# The supported SRv6 set on this lab is ip-vrf over srv6 (vpn signalling) plus
+# path steering. These phrasings name ip-vrf/evpn or mac-vrf/evpn variants:
+# the MAPPER maps them (construct, transport srv6, signalling), and the TIER
+# refuses with R2 — "`<variant>` is not supported on this image. Supported
+# SRv6 services: `<list>`." — before any identifier is claimed. Nothing here
+# is an interim refusal any more: the interim R1 was removed when the first
+# supported SRv6 type landed.
+#
+# "EVPN over SRv6" WITHOUT a construct names no variant at all — that is
+# clarification C2 and lives in ../srv6_clarify.yaml. Bare "SRv6 service" is
+# C1, also there. SRv6 together with VXLAN is R3, and SRv6 with a vlan or acl
+# construct is R5 — both in srv6_conflict.yaml.
 #
 # This file is deliberately NOT replayed into baseline_snapshot.json
 # (tests/unit/test_phrasings_baseline.py skips srv6_* files) and not run by
-# the generic unsupported-property runner (the refusal names SRv6, not a Go
-# unsupported-property literal). It is exercised by
+# the generic unsupported-property runner. It is exercised by
 # tests/unit/test_phrasings_srv6.py.
 category: srv6_transport
-property: srv6Transport
+transport: srv6
+tier: r2_refused
 cases:
-  - id: srv6-alias-001
-    # legacy alias beside the SRv6 qualifier: the qualifier decides, the
-    # alias never selects a VXLAN construct (contract §1)
-    text: "SRv6 L3VPN between leaf01 and leaf02 for tenant acme"
-    expect: refusal
+  - id: srv6-unsupported-ipvrf-evpn
+    construct: ip-vrf
+    signalling: evpn
+    text: "routed EVPN over SRv6 for tenant blue carrying 10.80.0.0/24 between leaf01 wan1 and leaf02 wan1"
+    prefixes: ["10.80.0.0/24"]
 
-  - id: srv6-evpn-002
-    text: "EVPN over SRv6 across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme"
-    expect: refusal
+  - id: srv6-unsupported-macvrf-evpn
+    construct: mac-vrf
+    signalling: evpn
+    vlan: 250
+    text: "mac-vrf over srv6 for tenant blue with vlan 250 across leaf01 ethernet1 and leaf02 ethernet1"
 
-  - id: srv6-ipvrf-003
-    text: "give tenant acme an ip-vrf over SRv6 carrying 10.50.0.0/24 between leaf01 wan1 and leaf02 wan1"
-    expect: refusal
+  - id: srv6-unsupported-bridged-evpn
+    construct: mac-vrf
+    signalling: evpn
+    vlan: 150
+    text: "bridged EVPN over SRv6 for tenant green with vlan 150 across leaf01 ethernet1 and leaf02 ethernet1"
 
-  - id: srv6-macvrf-004
-    text: "extend vlan 100 as a mac-vrf over SRv6 across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme"
-    expect: refusal
+  # Moved here when srv6_ipvrf_evpn.yaml (T471) and srv6_macvrf.yaml (T472)
+  # were DELETED per tasks.md 39-42: their (V:evpn) verdicts are
+  # not-achievable in lab/profiles/sonic-vm/srv6-supported.yaml, so those
+  # tasks are dropped as a block and no corpus file of their own may exist.
+  # The phrasings whose surface form this file did not already hold move here
+  # as R2 cases; the "routed EVPN over SRv6" and "bridged EVPN over SRv6"
+  # forms above already covered the other two dropped cases.
+  - id: srv6-ipvrf-evpn-named
+    construct: ip-vrf
+    signalling: evpn
+    text: "ip-vrf over srv6 with evpn signalling carrying 2001:db8:3::30/127 between leaf01 wan1 and leaf02 wan1 for tenant acme"
+    prefixes: ["2001:db8:3::30/127"]
 
-  - id: srv6-bare-005
-    text: "provision an SRv6 service for tenant acme"
-    expect: refusal
+  - id: srv6-macvrf-basic
+    construct: mac-vrf
+    signalling: evpn
+    vlan: 100
+    text: "extend vlan 100 as a mac-vrf over srv6 across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme"
+
+  - id: srv6-macvrf-casing
+    construct: mac-vrf
+    signalling: evpn
+    vlan: 300
+    text: "MAC-VRF OVER SRV6 for tenant green with vlan 300 across leaf01 ethernet1 and leaf02 ethernet1"

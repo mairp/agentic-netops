@@ -1,0 +1,11 @@
+{
+  "serviceId": "srv6_v4",
+  "type": "mac-vrf",
+  "transport": "srv6",
+  "signalling": "vpn",
+  "tenant": "acme",
+  "endpoints": [
+    {"node": "leaf01", "attachment": "wan1", "vlan": 150},
+    {"node": "leaf02", "attachment": "wan1", "vlan": 150}
+  ]
+}

@@ -116,29 +116,272 @@ _UNSUPPORTED_SERVICE_TYPES: list[tuple[re.Pattern[str], str]] = [
 ]
 
 # --- SRv6 recognition (feature 004, T008; contracts/operator-phrasings.md §1)
-# An SRv6 qualifier decides the TRANSPORT, and the fabric has no supported SRv6
-# service type yet (interim refusal R1, FR-015). Recognition therefore runs
-# BEFORE _detect_service_type and every alias/construct pattern in
-# _SERVICE_PATTERNS: an SRv6 qualifier beside a legacy service name, and
-# "ip-vrf over SRv6 ...", name a transport the fabric cannot offer yet, and
-# letting them fall through to the patterns below would map the request onto a
-# VXLAN construct and provision exactly the service the operator did not ask
-# for (SC-008). A bare "segment routing" does not name SRv6 and stays with the
-# existing patterns, so a refusal never claims a request named SRv6 when it
-# did not.
+# An SRv6 qualifier decides the TRANSPORT. Recognition runs BEFORE
+# _detect_service_type and every alias/construct pattern in _SERVICE_PATTERNS:
+# the SRv6 qualifier selects the SRv6 mapping below, and a legacy service name
+# beside it is never enough to select a VXLAN construct (SC-008). A bare
+# "segment routing" does not name SRv6 and stays with the existing patterns,
+# so a refusal never claims a request named SRv6 when it did not.
 _SRV6_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"\bsrv6\b", re.I),
     re.compile(r"\bsegment[- ]routing\s+over\s+ipv6\b", re.I),
     re.compile(r"\bsegment[- ]routing\s+v6\b", re.I),
 ]
-# The unsupported-property literal the refusal, the audit trail and the Go
-# translator share (common/schemas/normalized_intent.py vocabulary, FR-012).
-SRV6_UNSUPPORTED_PROPERTY = "srv6Transport"
 
 
 def _detect_srv6(text: str) -> bool:
     """True when the request names SRv6 (contracts/operator-phrasings.md §1)."""
     return any(pat.search(text) for pat in _SRV6_PATTERNS)
+
+
+# --- US4: the SRv6 token vocabulary (contracts/operator-phrasings.md §2/§3).
+# The mapper emits TOKENS, never question or refusal prose: the supervisor
+# renders every operator-facing text (the §2 question for each missing-field
+# token, the §3 refusal for each terminal token).
+# Clarification tokens (missing_fields):
+SRV6_CONSTRUCT_FIELD = "srv6_construct"  # C1 — SRv6 named, no construct
+SRV6_SIGNALLING_FIELD = "srv6_signalling"  # C2 — "EVPN over SRv6", routed/bridged unstated
+SRV6_OTHER_ENDPOINT_FIELD = "srv6_other_endpoint"  # C4 — fewer than two attachments
+SRV6_PREFIX_FIELD = "srv6_prefix"  # C5 — ip-vrf with no prefix
+SRV6_VLAN_FIELD = "srv6_vlan"  # C6 — mac-vrf with no vlan
+SRV6_PREFERRED_SPINE_FIELD = "srv6_preferred_spine"  # C7 — "prefer a spine", none named
+# Terminal tokens (unsupported_properties):
+SRV6_TRANSPORT_CONFLICT = "srv6TransportConflict"  # R3 — SRv6 together with VXLAN
+SRV6_UNSUPPORTED_CONSTRUCT = "srv6UnsupportedConstruct"  # R5 — SRv6 with vlan/acl
+
+# R3: vxlan/vni terms beside an SRv6 qualifier name two transports at once.
+_SRV6_VXLAN_TERMS_RE = re.compile(r"\bvxlan\b|\bl[23]vni\b|\bvni\b", re.I)
+_SRV6_EVPN_RE = re.compile(r"\bevpn\b", re.I)
+# mac-vrf signals for an SRv6 request. Deliberately NOT the evpn pattern from
+# _SERVICE_PATTERNS: "EVPN over SRv6" with no "routed"/"bridged" names no
+# construct at all — it is clarification C2, not a mac-vrf.
+_SRV6_MAC_VRF_RE = re.compile(r"\bmac[- _]?vrf\b|\bbridged\b|\bl2vpn\b|extend(?:ing)?\s+vlan\b", re.I)
+_SRV6_IP_VRF_RE = re.compile(r"\bip[- _]?vrf\b|\brouted\b", re.I)
+# The legacy routed-service aliases reuse the mapper's existing ip-vrf
+# vocabulary (the contract's §1 migration-alias row) instead of
+# restating it here.
+_SRV6_IP_VRF_ALIAS_PATTERNS: list[re.Pattern[str]] = [
+    p for st, pats in _SERVICE_PATTERNS if st is ServiceType.IP_VRF for p in pats
+]
+_SRV6_ACL_RE = re.compile(r"\bacl\b|access[- ]list", re.I)
+# "via spine01 preferred" (contract §4) is one more preferred-spine form.
+_SRV6_SPINE_VIA_RE = re.compile(r"\bvia\s+(?P<name>spine[\w.-]*)\s+preferred\b", re.I)
+_SRV6_PREFER_RE = re.compile(r"\bprefer(?:ring)?\b(?P<tail>.*)", re.I)
+_SRV6_SPINE_STOP = ("a", "an", "specific", "the")
+_SRV6_WORD_RE = re.compile(r"[A-Za-z][\w.-]*")
+
+
+def _parse_preferred_spine(text: str) -> tuple[str | None, bool]:
+    """(spine name, preference mentioned) — contract §4.
+
+    ``mentioned`` is True only when the request expresses a spine preference;
+    ``name`` is None when none is stated ("prefer a spine") — clarification C7,
+    never a guess.
+    """
+    m = _SRV6_SPINE_VIA_RE.search(text)
+    if m:
+        return m.group("name").lower(), True
+    m = _SRV6_PREFER_RE.search(text)
+    if m is None:
+        return None, False
+    words = [w for w in _SRV6_WORD_RE.findall(m.group("tail")) if w.lower() != "an"]
+    spine_words = [w for w in words if w.lower().startswith("spine")]
+    if not spine_words:
+        return None, False
+    first = words[0].lower() if words else ""
+    if first in _SRV6_SPINE_STOP:
+        # "prefer a spine", "prefer a specific spine": no name stated.
+        named = [w for w in spine_words if w.lower() not in ("spine", "spines")]
+        return (named[0].lower() if named else None), True
+    w = spine_words[0].lower()
+    return (None if w in ("spine", "spines") else w), True
+
+
+def _detect_srv6_construct(text: str) -> tuple[ServiceType | None, str | None]:
+    """(construct, terminal token) for an SRv6 request (contract §1 table).
+
+    The token is R5's when the request names a vlan or an acl as the
+    construct. The construct is None (with no token) while the service type is
+    still unclear — clarification C1, or C2 when the request names EVPN
+    without "routed"/"bridged".
+    """
+    if _SRV6_ACL_RE.search(text):
+        return None, SRV6_UNSUPPORTED_CONSTRUCT
+    if _SRV6_MAC_VRF_RE.search(text):
+        return ServiceType.MAC_VRF, None
+    if _SRV6_IP_VRF_RE.search(text) or any(
+        p.search(text) for p in _SRV6_IP_VRF_ALIAS_PATTERNS
+    ):
+        return ServiceType.IP_VRF, None
+    if _VLAN_RE.search(text):
+        # A vlan named with no mac-vrf/bridged phrasing IS the construct (R5):
+        # "extend vlan 100 ..." carries the vlan, "vlan 100 over srv6" asks
+        # for one.
+        return None, SRV6_UNSUPPORTED_CONSTRUCT
+    return None, None
+
+
+def _endpoint_prefix_clauses(text: str) -> list[str]:
+    """The raw endpoint clause texts, in endpoint order (for per-endpoint
+    prefix extraction; []-padded like the endpoints they describe)."""
+    m = _ENDPOINT_BETWEEN.search(text) or _ENDPOINT_ATTACH.search(text)
+    if not m:
+        single = _ENDPOINT_SINGLE_ON.search(text)
+        return [single.group(0)] if single else []
+    return [m.group("left"), m.group("right")]
+
+
+def _attach_endpoint_prefixes(
+    text: str, eps: list[EndpointIntent], prefixes: list[str]
+) -> list[EndpointIntent]:
+    """Carry each endpoint's routed prefix on the endpoint itself
+    (contracts/intent-srv6.md §2). A prefix named inside an endpoint's own
+    clause stays with that endpoint; prefixes named elsewhere are distributed
+    in the order they were given."""
+    clauses = _endpoint_prefix_clauses(text)
+    assigned: list[list[str]] = []
+    for i in range(len(eps)):
+        local: list[str] = []
+        if i < len(clauses):
+            v4, v6 = _parse_prefixes(clauses[i])
+            local = v4 + v6
+        if not local:
+            local = prefixes[i : i + 1]
+        assigned.append(local)
+    return [
+        ep.model_copy(update={"prefixes": local}) if local else ep
+        for ep, local in zip(eps, assigned)
+    ]
+
+
+def srv6_mapping(text: str) -> dict[str, Any]:
+    """The deterministic SRv6 mapping (contracts/operator-phrasings.md §1–§3).
+
+    Shared by the mapper node and the corpus harness's stub mapper so the two
+    cannot drift. Returns the SRv6 interpretation fields: service_type
+    (a schema-valid placeholder whenever the real construct is unknown or
+    refused — the terminal flags are what route, never this value), tenant,
+    endpoints, prefixes, transport/signalling/preferred_spine and the terminal
+    flag lists (token vocabulary, no prose).
+    """
+    missing: list[str] = []
+    unsupported: list[str] = []
+    placeholder_eps = [EndpointIntent(site_or_node="missing", attachment="missing")]
+
+    tenant = _detect_tenant(text)
+    if not tenant:
+        missing.append("tenant")
+        tenant = "missing"
+
+    def _result(
+        st: ServiceType,
+        *,
+        eps: list[EndpointIntent] | None = None,
+        v4: list[str] | None = None,
+        v6: list[str] | None = None,
+        transport: str | None = None,
+    ) -> dict[str, Any]:
+        return {
+            "service_type": st,
+            "tenant": tenant,
+            "endpoints": placeholder_eps if eps is None else eps,
+            "ipv4_prefixes": v4 or [],
+            "ipv6_prefixes": v6 or [],
+            "transport": transport,
+            "signalling": None,
+            "preferred_spine": None,
+            "missing": missing,
+            "unsupported": unsupported,
+        }
+
+    # R3 — SRv6 named together with VXLAN: two transports in one request, a
+    # service uses one. Terminal before any construct mapping, no claim.
+    if _SRV6_VXLAN_TERMS_RE.search(text):
+        unsupported.append(SRV6_TRANSPORT_CONFLICT)
+        return _result(ServiceType.VLAN)
+
+    st, blocked = _detect_srv6_construct(text)
+    if blocked is not None:
+        # R5 — SRv6 applies to ip-vrf and mac-vrf; a vlan or an acl has no
+        # transport. Terminal, no claim.
+        unsupported.append(blocked)
+        return _result(ServiceType.VLAN)
+
+    transport: str | None = "srv6"
+    signalling: str | None = None
+    preferred_spine: str | None = None
+    eps: list[EndpointIntent]
+    v4: list[str] = []
+    v6: list[str] = []
+
+    if st is None:
+        # Construct unclear: C2 when EVPN is named without routed/bridged,
+        # C1 otherwise. The request named SRv6, so the transport claim is
+        # honest — but signalling stays unset with the construct, and the
+        # remaining checks need one, so nothing else is asked yet.
+        missing.append(SRV6_SIGNALLING_FIELD if _SRV6_EVPN_RE.search(text) else SRV6_CONSTRUCT_FIELD)
+        return _result(ServiceType.VLAN, transport="srv6")
+
+    # The construct is known: fill the signalling default (contract §1).
+    if st is ServiceType.MAC_VRF:
+        signalling = "evpn"
+    else:
+        signalling = "evpn" if _SRV6_EVPN_RE.search(text) else "vpn"
+
+    eps = list(_parse_endpoints(text))
+    distinct_nodes = {ep.site_or_node.lower() for ep in eps}
+    if len(eps) < 2 or len(distinct_nodes) < 2:
+        # C4 — an SRv6 service joins two attachment points on distinct nodes.
+        # Never the generic "endpoints" token: the supervisor asks the SRv6
+        # question.
+        missing.append(SRV6_OTHER_ENDPOINT_FIELD)
+    while len(eps) < 1:
+        eps.append(EndpointIntent(site_or_node="missing", attachment="missing"))
+
+    if st is ServiceType.IP_VRF:
+        v4, v6 = _parse_prefixes(text)
+        if not v4 and not v6:
+            # C5 — an ip-vrf routes; with no prefix anywhere there is nothing
+            # to route.
+            missing.append(SRV6_PREFIX_FIELD)
+        else:
+            eps = _attach_endpoint_prefixes(text, eps, v4 + v6)
+    elif st is ServiceType.MAC_VRF and not _VLAN_RE.search(text):
+        # C6 — a mac-vrf bridges a vlan; with no vlan anywhere there is
+        # nothing to bridge.
+        missing.append(SRV6_VLAN_FIELD)
+
+    name, mentioned = _parse_preferred_spine(text)
+    if mentioned:
+        if name:
+            preferred_spine = name
+        else:
+            # C7 — a preference with no spine named.
+            missing.append(SRV6_PREFERRED_SPINE_FIELD)
+
+    # C1..C7 order, so the questions are asked in contract order.
+    order = {
+        SRV6_CONSTRUCT_FIELD: 0,
+        SRV6_SIGNALLING_FIELD: 0,
+        "tenant": 1,
+        SRV6_OTHER_ENDPOINT_FIELD: 2,
+        SRV6_PREFIX_FIELD: 3,
+        SRV6_VLAN_FIELD: 4,
+        SRV6_PREFERRED_SPINE_FIELD: 5,
+    }
+    missing.sort(key=lambda tok: order.get(tok, 9))
+    return {
+        "service_type": st,
+        "tenant": tenant,
+        "endpoints": eps,
+        "ipv4_prefixes": v4,
+        "ipv6_prefixes": v6,
+        "transport": transport,
+        "signalling": signalling,
+        "preferred_spine": preferred_spine,
+        "missing": missing,
+        "unsupported": unsupported,
+    }
 
 # "between A and B" and "across A and B" are the same two-attachment clause.
 # "across" is the phrasing the served suggestions use for a mac-vrf, and the
@@ -532,83 +775,102 @@ class MappingAgent:
         # T008 — SRv6 recognition runs BEFORE _detect_service_type and before
         # every alias/construct pattern below (contracts/operator-phrasings.md
         # §1): the SRv6 qualifier decides the transport, and a legacy service
-        # name beside it is never enough to select a VXLAN construct. The
-        # result is terminal via unsupported_properties (missing_fields is
-        # emptied below whenever unsupported is non-empty), so nothing is
-        # routed onward and no DataPart is emitted (T204/T206).
+        # name beside it is never enough to select a VXLAN construct (SC-008).
+        # US4: a mappable SRv6 request maps for real — construct, signalling,
+        # preferred spine, endpoints with their prefixes — and what is missing
+        # or refused is named by the §2/§3 TOKEN vocabulary (never prose; the
+        # supervisor renders the operator-facing texts).
+        srv6_fields: dict[str, Any] | None = None
+        transport: str | None = None
+        signalling: str | None = None
+        preferred_spine: str | None = None
         if _detect_srv6(low):
-            unsupported.append(SRV6_UNSUPPORTED_PROPERTY)
-            # Coerce to a valid enum for schema validation only; the terminal
-            # unsupported flag prevents routing (mirrors the unknown-construct
-            # coerce below).
-            st = ServiceType.VLAN
+            srv6_fields = srv6_mapping(low)
+            unsupported.extend(srv6_fields["unsupported"])
+            missing.extend(srv6_fields["missing"])
+            st: ServiceType | None = srv6_fields["service_type"]
+            transport = srv6_fields["transport"]
+            signalling = srv6_fields["signalling"]
+            preferred_spine = srv6_fields["preferred_spine"]
         else:
             st = _detect_service_type(low)
-        if st is None:
-            # T202: check for explicitly unsupported service types (distinct from missing)
-            ust = _detect_unsupported_service_type(low)
-            if ust is not None:
-                unsupported.append(f"serviceType:{ust}")
-                # Coerce to a valid enum for schema validation only; terminal flag prevents routing
-                st = ServiceType.VLAN
-            else:
-                # FR-004: refuse an unknown construct and list the supported constructs
-                unsupported.append("constructs: vlan, mac-vrf, ip-vrf, acl")
-                # Coerce to a valid construct for schema shape; unsupported_properties makes it terminal
-                st = ServiceType.VLAN
-        tenant = _detect_tenant(low)
-        if not tenant:
-            missing.append("tenant")
-            tenant = "missing"  # RFC 1123-valid placeholder; named in missing_fields
-        eps = _parse_endpoints(low)
-        # The per-construct endpoint minimum (research.md Decision 11): a
-        # mac-vrf extends a bridge domain and needs two attachments; a vlan, an
-        # ip-vrf and an acl are legitimately single-attachment. Requiring two of
-        # everything — the feature-002 rule left in place here — made
-        # "provision a vlan 130 on leaf01 ethernet1 for tenant acme"
-        # unmappable.
-        minimum = 2 if st is ServiceType.MAC_VRF else 1
-        if len(eps) < minimum:
-            missing.append("endpoints")
-            # Placeholders keep the payload schema-valid; missing_fields is what
-            # makes it terminal.
-            while len(eps) < max(minimum, 1):
-                eps.append(EndpointIntent(site_or_node="missing", attachment="missing"))
-        ipv4_prefixes, ipv6_prefixes = _parse_prefixes(low)
-        # Only an ip-vrf routes prefixes. Every other construct still mentions
-        # CIDRs — an anycast gateway address, an access-list match — and
-        # carrying those into ipv4_prefixes put address families in the
-        # proposal that the operator never asked for, next to a clarification
-        # text promising that nothing is substituted for them.
-        if st is not ServiceType.IP_VRF:
-            ipv4_prefixes, ipv6_prefixes = [], []
-
-        # The acl construct IS the filter; every other construct may carry one
-        # that binds to its own attachment ports (contracts/interpretation.
-        # schema.json: "optional on any other construct"). The composed shape —
-        # "extend vlan 170 as a mac-vrf across ... , permitting only ingress tcp
-        # 443 from 10.0.0.0/24" — is a suggestion this tier serves, so dropping
-        # the filter clause and provisioning the bare mac-vrf would hand the
-        # operator a service that forwards everything they asked to block.
         acl_block: dict[str, Any] | None = None
-        if st is ServiceType.ACL:
-            acl_block, acl_missing = _parse_acl(low)
-            missing.extend(acl_missing)
-        elif _ACL_FILTER_CLAUSE_RE.search(low):
-            attached, attached_missing = _parse_acl(low)
-            if attached is not None:
-                acl_block = attached
-            elif "acl.rules" not in attached_missing:
-                # A filter clause with a readable rule but no stage: ask, never
-                # guess which direction it binds.
-                missing.extend(attached_missing)
+        gateway: dict[str, str] | None = None
+        if srv6_fields is None:
+            if st is None:
+                # T202: check for explicitly unsupported service types (distinct from missing)
+                ust = _detect_unsupported_service_type(low)
+                if ust is not None:
+                    unsupported.append(f"serviceType:{ust}")
+                    # Coerce to a valid enum for schema validation only; terminal flag prevents routing
+                    st = ServiceType.VLAN
+                else:
+                    # FR-004: refuse an unknown construct and list the supported constructs
+                    unsupported.append("constructs: vlan, mac-vrf, ip-vrf, acl")
+                    # Coerce to a valid construct for schema shape; unsupported_properties makes it terminal
+                    st = ServiceType.VLAN
+            tenant = _detect_tenant(low)
+            if not tenant:
+                missing.append("tenant")
+                tenant = "missing"  # RFC 1123-valid placeholder; named in missing_fields
+            eps = _parse_endpoints(low)
+            # The per-construct endpoint minimum (research.md Decision 11): a
+            # mac-vrf extends a bridge domain and needs two attachments; a vlan, an
+            # ip-vrf and an acl are legitimately single-attachment. Requiring two of
+            # everything — the feature-002 rule left in place here — made
+            # "provision a vlan 130 on leaf01 ethernet1 for tenant acme"
+            # unmappable.
+            minimum = 2 if st is ServiceType.MAC_VRF else 1
+            if len(eps) < minimum:
+                missing.append("endpoints")
+                # Placeholders keep the payload schema-valid; missing_fields is what
+                # makes it terminal.
+                while len(eps) < max(minimum, 1):
+                    eps.append(EndpointIntent(site_or_node="missing", attachment="missing"))
+            ipv4_prefixes, ipv6_prefixes = _parse_prefixes(low)
+            # Only an ip-vrf routes prefixes. Every other construct still mentions
+            # CIDRs — an anycast gateway address, an access-list match — and
+            # carrying those into ipv4_prefixes put address families in the
+            # proposal that the operator never asked for, next to a clarification
+            # text promising that nothing is substituted for them.
+            if st is not ServiceType.IP_VRF:
+                ipv4_prefixes, ipv6_prefixes = [], []
 
-        gateway, gateway_named = _parse_anycast_gateway(low)
-        if gateway_named and st is not ServiceType.MAC_VRF:
-            unsupported.append("anycastGateway: only a mac-vrf carries an anycast gateway")
-            gateway = None
-        elif gateway_named and gateway is None:
-            missing.append("anycast_gateway")
+            # The acl construct IS the filter; every other construct may carry one
+            # that binds to its own attachment ports (contracts/interpretation.
+            # schema.json: "optional on any other construct"). The composed shape —
+            # "extend vlan 170 as a mac-vrf across ... , permitting only ingress tcp
+            # 443 from 10.0.0.0/24" — is a suggestion this tier serves, so dropping
+            # the filter clause and provisioning the bare mac-vrf would hand the
+            # operator a service that forwards everything they asked to block.
+            if st is ServiceType.ACL:
+                acl_block, acl_missing = _parse_acl(low)
+                missing.extend(acl_missing)
+            elif _ACL_FILTER_CLAUSE_RE.search(low):
+                attached, attached_missing = _parse_acl(low)
+                if attached is not None:
+                    acl_block = attached
+                elif "acl.rules" not in attached_missing:
+                    # A filter clause with a readable rule but no stage: ask, never
+                    # guess which direction it binds.
+                    missing.extend(attached_missing)
+
+            gateway, gateway_named = _parse_anycast_gateway(low)
+            if gateway_named and st is not ServiceType.MAC_VRF:
+                unsupported.append("anycastGateway: only a mac-vrf carries an anycast gateway")
+                gateway = None
+            elif gateway_named and gateway is None:
+                missing.append("anycast_gateway")
+        else:
+            # SRv6: srv6_mapping produced the whole interpretation — tenant,
+            # endpoints (with their prefixes), construct, transport,
+            # signalling, preferred spine and the terminal flags. Its
+            # schema-valid placeholders ("missing") never route: the terminal
+            # flags are what the supervisor reads.
+            tenant = srv6_fields["tenant"]
+            eps = list(srv6_fields["endpoints"])
+            ipv4_prefixes = list(srv6_fields["ipv4_prefixes"])
+            ipv6_prefixes = list(srv6_fields["ipv6_prefixes"])
 
         payload = {
             "service_id": _gen_service_id(),
@@ -620,6 +882,15 @@ class MappingAgent:
             "missing_fields": [] if unsupported else missing,
             "unsupported_properties": unsupported,
         }
+        # US4: set only for an SRv6 request — a non-SRv6 payload never carries
+        # these keys, so legacy interpretation dumps stay byte-identical
+        # (SC-016). None values are left unset: absent, not null.
+        if transport is not None:
+            payload["transport"] = transport
+        if signalling is not None:
+            payload["signalling"] = signalling
+        if preferred_spine is not None:
+            payload["preferred_spine"] = preferred_spine
         if acl_block is not None:
             payload["acl"] = acl_block
         if gateway is not None:

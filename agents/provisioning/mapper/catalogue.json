@@ -14,21 +14,21 @@
       "hints": { "bandwidth": ["gbps", "mbps", "g", "m"] }
     },
     "mac-vrf": {
-      "description": "Map a VLAN extended over the fabric by an L2VNI with EVPN route-targets (MAC VRF).",
+      "description": "Map a VLAN extended over the fabric by an L2VNI with EVPN route-targets (MAC VRF), or over srv6 (segment routing over IPv6).",
       "examples": [
         "provision a mac vrf between leaf01 ethernet1 and leaf02 ethernet2 for tenant acme vlan 100",
         "extend vlan 200 over the fabric as a mac-vrf for tenant acme"
       ],
-      "keywords": ["mac-vrf", "l2vni", "l2", "evpn", "bridge", "l2vpn"],
+      "keywords": ["mac-vrf", "l2vni", "l2", "evpn", "bridge", "l2vpn", "over srv6", "srv6", "segment routing v6"],
       "hints": { "bandwidth": ["gbps", "mbps", "g", "m"] }
     },
     "ip-vrf": {
-      "description": "Map a routed instance (IP VRF) with an L3VNI and route-targets.",
+      "description": "Map a routed instance (IP VRF) with an L3VNI and route-targets, or over srv6 (segment routing over IPv6).",
       "examples": [
         "create an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant acme with prefix 10.0.10.0/24",
         "provision a vrf for tenant blue across leaf01 and leaf02"
       ],
-      "keywords": ["ip-vrf", "l3vni", "vrf", "routing", "layer3"],
+      "keywords": ["ip-vrf", "l3vni", "vrf", "routing", "layer3", "over srv6", "srv6", "segment routing v6"],
       "hints": { "bandwidth": ["gbps", "mbps", "g", "m"] }
     },
     "acl": {
