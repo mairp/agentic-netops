@@ -122,17 +122,21 @@ invalid_yang_tests() {
 
 partial_srv6_endpoint_programming() {
   echo "[failure] partial SRv6 endpoint programming"
-  # Patch SRv6Service to temporarily remove one attachment; assert Ready is not True
-  kubectl --context "$CTX" -n default patch srv6service example-srv6 --type json -p='[{"op":"remove","path":"/spec/attachments/1"}]' || true
+  # Degrade one endpoint so the service cannot keep both leaves programmed;
+  # assert Ready is not True. (The old probe removed attachments[1], but the
+  # feature-004 admission rules refuse any spec that does not carry exactly
+  # two complete attachments — the API now guarantees complete intent, so the
+  # injection is an admission-valid one: an unresolvable port on attachment 2.)
+  kubectl --context "$CTX" -n agentic-netops-intent patch srv6service srv6-ip-vrf-vpn --type json -p='[{"op":"replace","path":"/spec/attachments/1/port","value":"sriov3"}]' || true
   local ready
-  ready=$(kubectl --context "$CTX" -n default get srv6service example-srv6 -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' || true)
+  ready=$(kubectl --context "$CTX" -n agentic-netops-intent get srv6service srv6-ip-vrf-vpn -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' || true)
   echo "$ready" | tee "$PROOF_DIR/srv6-ready-after-partial.txt" >/dev/null
   if [[ "$ready" == "True" ]]; then
     echo "[failure] ERROR: SRv6Service reported Ready=True with partial endpoint programming" >&2
     exit 1
   fi
   # Restore by reapplying sample
-  kubectl --context "$CTX" apply -f config/samples/agentic-netops_v1alpha1_srv6service.yaml || true
+  kubectl --context "$CTX" apply -f config/samples/srv6service-ip-vrf-vpn.yaml || true
 }
 
 prohibit_false_aggregate_ready() {

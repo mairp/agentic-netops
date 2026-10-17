@@ -1,0 +1,31 @@
+# Sample: mac-vrf/evpn SRv6 service between leaf01 and leaf02 (variant evpn2).
+#
+# No identifier is typed here (contracts/srv6service-crd.md rule A12): the
+# VLAN is operator INTENT (data-model.md section 4) — the controller reserves
+# it in the fabric-vlan index under the correlation id BEFORE any device
+# write, and a VLAN another service holds is terminal VlanInUse. mac-vrf
+# requires the vlan (admission rule A8).
+#
+# The sample is admission-valid, but the variant has NO proven recipe on the
+# pinned sonic-vm image (bridged EVPN signals but does not forward;
+# docs/SRV6_SERVICE_RECIPE.md section 4): the controller refuses it by name
+# with the terminal UnsupportedVariant condition naming the supported set
+# (ip-vrf/vpn, steering). Deliberately kept as the refused-by-name evidence
+# object.
+apiVersion: agentic-netops.io/v1alpha1
+kind: SRv6Service
+metadata:
+  name: srv6-mac-vrf-evpn
+  namespace: agentic-netops-intent
+  labels:
+    agentic-netops.io/correlation-id: srv6-mac-vrf-evpn
+spec:
+  tenant: acme
+  construct: mac-vrf
+  signalling: evpn
+  vlan: 120
+  attachments:
+    - node: leaf01
+      port: wan1
+    - node: leaf02
+      port: wan1

@@ -146,3 +146,10 @@ Watch cycle complete (one cycle, per section 5). Everything above came from comm
 **What I did:** nothing to the run — read probe/state/notes, confirmed the 07:58 directive is being executed, left wake-pending and watch.py untouched, and logged the cycle in standin.log (signed by stand-in glm-5.3-flash).
 2026-10-16 13:10:31 cycle end rc=0
 2026-10-16 13:30:31 primary owner is back — standing down
+2026-10-16 20:12:54 stand-in daemon started (stale=2400s cycle=1200s model=zai/glm-5.3-flash)
+2026-10-16 20:12:54 primary owner silent for 12147s — taking the watch
+2026-10-16 20:12:54 cycle start
+
+dsh: TIMEOUT: Request timed out.
+2026-10-16 20:14:01 cycle end rc=1
+2026-10-16 20:34:01 primary owner is back — standing down

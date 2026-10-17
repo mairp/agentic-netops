@@ -3,10 +3,12 @@
 exits ONLY when the owner has something to decide. On exit it prints a few
 lines and leaves `wake-pending` (the reasons); the owner deletes that file when
 it has handled the wake. Read-only towards the loop and the lab."""
+import glob
 import json, os, re, subprocess, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROGRESS = "/root/agentic-netops/.wiggum/features/004-srv6-service-requests/PROGRESS.md"
+YIELD_JOBS = "/root/agentic-netops/.wiggum/features/004-srv6-service-requests/yield-jobs"
 INTERVAL = int(os.environ.get("INTERVAL", 300))
 INFRA_GRACE = 2400      # sick lab with no chain: give the proposer this long to heal it
 CROSS_REPEAT = 1800     # sick lab under a live chain: re-wake this often while it lasts
@@ -65,6 +67,15 @@ def main():
             why.append("new OWNER-REPORT in PROGRESS.md")
         if l["yields_this_run"] > pl["yields_this_run"]:
             why.append(f"yield armed #{l['yields_this_run']}/4: {l.get('yield')}")
+        # O-65: a yield that resolves (above all with a failed job) can need a
+        # directive; the proposer has already resumed by the time we see it.
+        if pl.get("waiting_on_yield") and not l.get("waiting_on_yield"):
+            rcs = sorted(glob.glob(f"{YIELD_JOBS}/*{l.get('run_id')}*.rc"), key=os.path.getmtime)
+            try:
+                rc = open(rcs[-1]).read().strip() if rcs else "?"
+            except OSError:
+                rc = "?"
+            why.append(f"yield resolved: job rc={rc}")
         if c.get("name") != pc.get("name"):
             why.append(f"new chain {c.get('name')}: check it has a health gate")
         infra = [a for a in al if a.startswith("infra:")]

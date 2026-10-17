@@ -1,0 +1,23 @@
+# Fixture for Q9 (q9-unknown-port): the port does not resolve in the site
+# port map. Admission accepts it (the port is a plain name); the controller
+# ends it at terminal InvalidSite listing the valid ports (rule C2).
+apiVersion: agentic-netops.io/v1alpha1
+kind: SRv6Service
+metadata:
+  name: srv6-unknown-port
+  namespace: agentic-netops-intent
+  labels:
+    agentic-netops.io/correlation-id: srv6-unknown-port
+spec:
+  tenant: acme
+  construct: ip-vrf
+  signalling: vpn
+  attachments:
+    - node: leaf01
+      port: sriov3
+      gateway:
+        - 192.168.1.1/24
+    - node: leaf02
+      port: wan1
+      gateway:
+        - 192.168.2.1/24

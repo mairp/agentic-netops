@@ -2,6 +2,7 @@
 package fabricplan
 
 import (
+	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
@@ -423,7 +424,6 @@ func TestIPVRFPlanPerKind_VMGuestNeedsItsVTEPBaseline(t *testing.T) {
 	}
 }
 
-
 func l2Network(vlan int64, l2vni int64) *kubenet.Network {
 	return &kubenet.Network{Spec: map[string]any{
 		"bridgeDomains": []any{map[string]any{
@@ -633,9 +633,9 @@ func TestACLPlan_RendersRedisOnly_WithDefaultRuleAndChecks_NoGCU(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "svc-acl", Namespace: "tenant-a"},
 		Spec: map[string]any{
 			"accessLists": []any{map[string]any{
-				"name": "allow-web",
-				"stage": "ingress",
-				"type":  "l3",
+				"name":          "allow-web",
+				"stage":         "ingress",
+				"type":          "l3",
 				"defaultAction": "deny",
 				"rules": []any{map[string]any{
 					"name": "allow-https", "priority": float64(100), "action": "permit", "protocol": "tcp", "destinationPort": "443",
@@ -752,7 +752,9 @@ func TestACLPlan_RendersRedisOnly_WithDefaultRuleAndChecks_NoGCU(t *testing.T) {
 	for i, op := range np.Rollback {
 		for _, cmd := range op.Redis {
 			if strings.Contains(cmd, "del 'ACL_RULE|") {
-				if idxRuleFirst < 0 { idxRuleFirst = i }
+				if idxRuleFirst < 0 {
+					idxRuleFirst = i
+				}
 			} else if strings.Contains(cmd, "del 'ACL_TABLE|") {
 				idxTable = i
 			} else if strings.Contains(cmd, "ACL_") {
@@ -776,7 +778,7 @@ func TestACLPlan_RendersOnNodesWithAttachments_BindsPerNodePorts(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "svc-acl2", Namespace: "tenant-b"},
 		Spec: map[string]any{
 			"accessLists": []any{map[string]any{
-				"name": "deny-all-egress",
+				"name":  "deny-all-egress",
 				"stage": "egress",
 				"type":  "l3",
 				"rules": []any{map[string]any{"name": "deny", "priority": float64(100), "action": "deny"}},
@@ -825,7 +827,7 @@ func TestACLOnlyNetwork_WithNoAttachmentsIsError(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "svc-acl3", Namespace: "tenant-c"},
 		Spec: map[string]any{
 			"accessLists": []any{map[string]any{
-				"name": "deny-all",
+				"name":  "deny-all",
 				"stage": "ingress",
 				"type":  "l3",
 				"rules": []any{map[string]any{"name": "deny", "priority": float64(100), "action": "deny"}},
@@ -1080,6 +1082,7 @@ func TestPlanAcceptsNodeKind(t *testing.T) {
 //     for qualifier-carrying rules), so MinCount must not count them;
 //  3. ASIC materialization is asynchronous on vm — the trial's verify ran
 //     before the table/entry objects existed.
+//
 // The vs rendering stays byte-identical (exact match, full MinCount, no wait).
 func TestACLPlanPerKind_VMAppliedViewToleratesListBindPointsAndSkipsQualifierlessEntries(t *testing.T) {
 	aclNet := func() *kubenet.Network {
@@ -1175,7 +1178,7 @@ func TestMACVRFGWPlanPerKind_VMGuestNeedsItsVTEPBaseline(t *testing.T) {
 			Spec: map[string]any{
 				"bridgeDomains": []any{map[string]any{
 					"name": "bd-gw1", "vlan": float64(3502), "l2vni": float64(13502),
-					"irb": map[string]any{"vrf": "p4-trial-gw", "gatewayIPv4": "10.199.2.1/24"},
+					"irb":  map[string]any{"vrf": "p4-trial-gw", "gatewayIPv4": "10.199.2.1/24"},
 					"evpn": map[string]any{"routeTargets": map[string]any{"export": []any{"65000:13502"}}},
 				}},
 				"routers": []any{map[string]any{
@@ -1210,5 +1213,37 @@ func TestMACVRFGWPlanPerKind_VMGuestNeedsItsVTEPBaseline(t *testing.T) {
 		t.Fatalf("sonic-vs ForNetwork: %v", err)
 	} else if vsFirst := vs.Nodes["leaf01"].Ops[0]; len(vsFirst.GCU) == 0 || len(vsFirst.Shell) != 0 {
 		t.Fatalf("sonic-vs mac-vrf-gw rendering changed; first op must stay the VRF GCU row, got %#v", vsFirst)
+	}
+}
+
+func TestProbePingCheckCarriesTheFixedContractFields(t *testing.T) {
+	// T327 (contracts/fabricplan-srv6.md §2): the one new check type carries
+	// probeFrom, probeTo, addr, size and count — and nothing else is needed
+	// for the executor to run the one fixed ping argv in the registered
+	// client container.
+	ck := Check{Type: "probe-ping", ProbeFrom: "leaf01/wan1", ProbeTo: "leaf02/wan1",
+		Addr: "192.168.2.10", Size: 8900, Count: 3}
+	if ck.ProbeFrom != "leaf01/wan1" || ck.ProbeTo != "leaf02/wan1" {
+		t.Fatalf("probe attachments lost: %#v", ck)
+	}
+	if ck.Size != 8900 || ck.Count != 3 || ck.Addr != "192.168.2.10" {
+		t.Fatalf("probe ping parameters lost: %#v", ck)
+	}
+	b, err := json.Marshal(ck)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	for _, field := range []string{`"probeFrom":"leaf01/wan1"`, `"probeTo":"leaf02/wan1"`,
+		`"addr":"192.168.2.10"`, `"size":8900`, `"count":3`, `"type":"probe-ping"`} {
+		if !strings.Contains(string(b), field) {
+			t.Fatalf("probe-ping JSON missing %s: %s", field, b)
+		}
+	}
+	// The unused vocabulary fields must not leak into the JSON of a
+	// probe-ping check (omitempty everywhere else in the struct).
+	for _, field := range []string{"redisKey", "iface", "master", "command", "expect"} {
+		if strings.Contains(string(b), `"`+field+`":`) {
+			t.Fatalf("probe-ping check leaks unused field %q: %s", field, b)
+		}
 	}
 }

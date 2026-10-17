@@ -61,6 +61,13 @@ type Op struct {
 	VTYSh []string `json:"vtysh,omitempty"`
 	// Append lines to /etc/frr/bgpd.conf (durable FRR state) if not present.
 	FRRConf []string `json:"frrconf,omitempty"`
+	// OnClient scopes the op to the PROBE CLIENT container registered for
+	// the "<node>/<port>" attachment (FABRIC_PROBE_MAP) instead of the fabric
+	// node — the client-addressing item of contracts/fabricplan-srv6.md §3.1
+	// (the clients are busybox: addressing goes through docker exec,
+	// data-model.md §8.7). The executor refuses an attachment absent from its
+	// probe map with "no probe host for <attachment>".
+	OnClient string `json:"onClient,omitempty"`
 }
 
 // Check verifies one piece of applied state on the node.
@@ -91,7 +98,22 @@ type Check struct {
 	Command string `json:"command,omitempty"`
 
 	Expect string `json:"expect,omitempty"`
-	Type   string `json:"type"`
+	// probe-ping (contracts/fabricplan-srv6.md §2): the probe host registered
+	// for attachment ProbeFrom ("<node>/<logical-port>") must reach Addr with
+	// Count echoes of Size bytes, don't-fragment set. ProbeTo names the
+	// destination attachment for messages; the executor runs the ping only
+	// inside the container FABRIC_PROBE_MAP registers for ProbeFrom, always
+	// with docker exec and the one fixed argv it builds itself. Used once, at
+	// first activation; never part of the periodic per-node checks.
+	ProbeFrom string `json:"probeFrom,omitempty"`
+	ProbeTo   string `json:"probeTo,omitempty"`
+	Size      int    `json:"size,omitempty"`
+	Count     int    `json:"count,omitempty"`
+	// OnClient scopes the check into the probe client container registered
+	// for the attachment (see Op.OnClient): ip-addr on eth1 verifies the
+	// client-addressing item of contracts/fabricplan-srv6.md §3.1.
+	OnClient string `json:"onClient,omitempty"`
+	Type     string `json:"type"`
 }
 
 // Error is a rendering failure that maps to a SchemaMismatch-style condition.

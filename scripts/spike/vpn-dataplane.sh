@@ -38,8 +38,8 @@ node_run "$c2" "ip -6 route show | grep -c 'fcbb:bbbb:4::/48'" || true
 node_run "$c2" "ip -6 route show | grep 'fcbb:bbbb:3::/48'" | grep -E "bgp|Ethernet" || true
 
 echo "===== L3. End.DT46 decap asserted in the kernel on both leaves ====="
-node_run "$c1" "sudo ip -6 route replace fcbb:bbbb:3:11::/64 encap seg6local action End.DT46 vrftable 1001 dev Vrf1" >/dev/null 2>&1 || true
-node_run "$c2" "sudo ip -6 route replace fcbb:bbbb:4:11::/64 encap seg6local action End.DT46 vrftable 1001 dev Vrf1" >/dev/null 2>&1 || true
+node_run "$c1" "sudo ip -6 route replace fcbb:bbbb:3:11::/64 encap seg6local action End.DT46 vrftable \$(ip -d link show Vrf1 | grep -o 'table [0-9]*' | cut -d' ' -f2) dev Vrf1" >/dev/null 2>&1 || true
+node_run "$c2" "sudo ip -6 route replace fcbb:bbbb:4:11::/64 encap seg6local action End.DT46 vrftable \$(ip -d link show Vrf1 | grep -o 'table [0-9]*' | cut -d' ' -f2) dev Vrf1" >/dev/null 2>&1 || true
 echo "--- CONFIG_DB declared SID rows ---"
 node_run "$c1" "sudo redis-cli -n 4 HGET 'SRV6_MY_SIDS|loc-leaf01|fcbb:bbbb:3:11::/64' action" || true
 node_run "$c2" "sudo redis-cli -n 4 HGET 'SRV6_MY_SIDS|loc-leaf02|fcbb:bbbb:4:11::/64' action" || true

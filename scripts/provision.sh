@@ -210,8 +210,24 @@ if command -v docker >/dev/null 2>&1 && command -v kind >/dev/null 2>&1 && comma
   # the guests it actually faces, per kind (p4-*-trial evidence).
   kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system set env deploy/agentic-netops-sonic-provider "FABRIC_NODE_KIND=${AGENTIC_NETOPS_PROFILE}" >/dev/null
   kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system apply -f "${REPO_ROOT}/deploy/agentic-netops/manifests/srv6-controller.yaml"
+  # The SRv6 controller consumes the same profile data the provider does
+  # (T399): the logical->kernel port map for attachment validation and the
+  # node kind the plans render for. Injected, never baked into the manifest.
+  if [[ -f "$PROVIDER_PORT_MAP_FILE" ]] && command -v python3 >/dev/null 2>&1; then
+    kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system set env deploy/agentic-netops-srv6-controller "FABRIC_PORT_MAP=${PROVIDER_PORT_MAP}" >/dev/null
+  else
+    echo "[provision] WARN: ${PROVIDER_PORT_MAP_FILE} missing — srv6-controller port map not set from profile" >&2
+  fi
+  kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system set env deploy/agentic-netops-srv6-controller "FABRIC_NODE_KIND=${AGENTIC_NETOPS_PROFILE}" >/dev/null
   kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system set image deploy/agentic-netops-sonic-provider provider=agentic-netops-sonic-provider:dev || true
   kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system set image deploy/agentic-netops-srv6-controller srv6-controller=agentic-netops-srv6-controller:dev || true
+  # Both images ride the SAME :dev tag across rebuilds, so "set image" is a
+  # no-op whenever the tag string is unchanged — the deployment keeps the OLD
+  # pod and the stale binary (verified 2026-10-16: a re-provision loaded a new
+  # image ID while the 39h-old pod kept running, and the bring-up sample never
+  # reached Ready). rollout restart always mints a new ReplicaSet, and the
+  # fresh pod resolves the tag to the just-loaded image.
+  kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system rollout restart deploy/agentic-netops-sonic-provider deploy/agentic-netops-srv6-controller
   echo "[provision] waiting for controller pods ready (timeout=${AGENTIC_NETOPS_TIMEOUT})"
   kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system rollout status deploy/agentic-netops-sonic-provider --timeout="${AGENTIC_NETOPS_TIMEOUT}"
   kubectl --context "kind-${AGENTIC_NETOPS_CLUSTER_NAME}" -n agentic-netops-system rollout status deploy/agentic-netops-srv6-controller --timeout="${AGENTIC_NETOPS_TIMEOUT}"
@@ -289,10 +305,21 @@ if [[ -f /tmp/agentic-netops-fabric-executor-bin ]] && command -v docker >/dev/n
     TRANSPORT_ROWS+=("\"site-b\":{\"kind\":\"ssh\",\"addr\":\"${EXEC_ADDR[leaf02]}\",\"user\":\"admin\"}")
     FABRIC_NODE_TRANSPORT_JSON="{$(IFS=,; echo "${TRANSPORT_ROWS[*]}")}"
   fi
+  # Probe hosts (contracts/executor-transport.md §4, T330): the SRv6 client
+  # containers of lab/topology.sonic-vm.clab.yml, one per leaf, reachable
+  # over their wan1 attachment. The executor refuses a probe-ping naming an
+  # attachment absent from this map ("no probe host for <attachment>"), so
+  # the map is exactly the set of attachments a first-activation data-path
+  # check can be run from — the same set published below as
+  # srv6-probe-attachments in fabric-compat-pins (T605, capability-record §1).
+  FABRIC_PROBE_MAP='{"leaf01/wan1":"clab-agentic-netops-fabric-srv6-client01","leaf02/wan1":"clab-agentic-netops-fabric-srv6-client02"}'
+  # Exported so the compat-pins generation below can publish the same set as
+  # srv6-probe-attachments (T605).
+  export FABRIC_PROBE_MAP
   # The executor resolves its transport ONCE at start: a still-healthy process
   # from a previous profile would keep the wrong transport. Restart whenever
   # the transport configuration differs from the running one.
-  TRANSPORT_STAMP=$(printf '%s' "$FABRIC_NODE_TRANSPORT_JSON|$FABRIC_SSH_KEY_PATH|$FABRIC_SSH_KNOWN_HOSTS_PATH" | sha256sum | cut -d' ' -f1)
+  TRANSPORT_STAMP=$(printf '%s' "$FABRIC_NODE_TRANSPORT_JSON|$FABRIC_SSH_KEY_PATH|$FABRIC_SSH_KNOWN_HOSTS_PATH|$FABRIC_PROBE_MAP" | sha256sum | cut -d' ' -f1)
   if [[ "$EXECUTOR_CHANGED" -eq 0 ]] && \
      [[ "$(cat "$RUN_DIR/fabric-executor.transport" 2>/dev/null)" == "$TRANSPORT_STAMP" ]] && \
      curl -fsS --max-time 2 "http://127.0.0.1:8084/healthz" >/dev/null 2>&1; then
@@ -367,6 +394,16 @@ def image_of(entry_name):
     return im.group(1) if im else ""
 
 profile = os.environ.get("AGENTIC_NETOPS_PROFILE", "sonic-vs")
+# T605 (capability-record §1): srv6-probe-attachments lists the keys of the
+# executor's FABRIC_PROBE_MAP set above — the attachments a first-activation
+# data-path check can be run from (spec KL-009). Empty when the executor
+# never came up (no probe hosts); rule C8 then refuses any SRv6Service whose
+# attachments cannot be verified.
+probe_map = os.environ.get("FABRIC_PROBE_MAP", "")
+try:
+    probe_attachments = ",".join(sorted(json.loads(probe_map).keys())) if probe_map else ""
+except ValueError:
+    probe_attachments = ""
 sonic_image = image_of("sonic_vm" if profile == "sonic-vm" else "sonic_vs")
 if not sonic_image:
     raise SystemExit(f"versions.lock.yaml sonic_images has no image for profile {profile}")
@@ -401,6 +438,10 @@ cm = {"apiVersion": "v1", "kind": "ConfigMap",
         # ConfigMap from the qualification gate report and the profile's
         # srv6-supported.yaml. A failed or skipped gate leaves "false".
         "cap-sai-srv6": "false",
+        # T605 (capability-record §1, spec KL-009): the keys of the
+        # executor's FABRIC_PROBE_MAP — controller rule C8 reads this key to
+        # refuse an SRv6Service whose attachments cannot be verified.
+        "srv6-probe-attachments": probe_attachments,
         # Informational (T025): which profile this generation served, so a
         # reader of the live ConfigMap can trace the pins back to the lab
         # profile without asking the provisioner.
@@ -525,6 +566,28 @@ if command -v kubectl >/dev/null 2>&1 && [[ -f "${LIB_DIR}/capability.sh" ]]; th
     --type merge -p "{\"data\":{\"cap-sai-srv6\":\"${capability_cap}\",\"srv6-supported\":\"${capability_supported}\"}}" \
     || echo "[provision] WARN: capability patch failed" >&2
   echo "[provision] capability derived from gate report: cap-sai-srv6=${capability_cap} srv6-supported=${capability_supported}"
+fi
+
+# T400: one PROVEN sample SRv6 service at bring-up — only when the site
+# actually qualifies. T034 keeps the sample OUT of the unconditional path
+# (provisioning an SRv6 service is a deliberate, capability-gated act); this
+# block is the capability-true complement: a site whose gate derived
+# cap-sai-srv6=true runs the ip-vrf/vpn sample end to end and the bring-up
+# FAILS if the service never reaches Ready — a green gate that cannot deliver
+# a proven service is not a green bring-up. The sample is the same file the
+# live acceptance proofs use, so a bring-up failure reproduces outside
+# provisioning.
+if command -v kubectl >/dev/null 2>&1 && [[ "${capability_cap:-false}" == "true" ]]; then
+  CTX="kind-${AGENTIC_NETOPS_CLUSTER_NAME}"
+  echo "[provision] cap-sai-srv6=true: applying the proven ip-vrf/vpn sample at bring-up"
+  kubectl --context "$CTX" -n agentic-netops-intent apply -f "${REPO_ROOT}/config/samples/srv6service-ip-vrf-vpn.yaml" \
+    || { echo "[provision] sample SRv6 service apply failed" >&2; exit 1; }
+  if ! kubectl --context "$CTX" -n agentic-netops-intent wait --for=condition=Ready=True --timeout=300s srv6service/srv6-ip-vrf-vpn; then
+    kubectl --context "$CTX" -n agentic-netops-intent get srv6service/srv6-ip-vrf-vpn -o jsonpath='{.status.conditions}' >&2 || true
+    echo "[provision] bring-up FAILED: the proven SRv6 sample never reached Ready" >&2
+    exit 1
+  fi
+  echo "[provision] sample SRv6 service srv6-ip-vrf-vpn is Ready"
 fi
 
 if [[ "$TIER_FAILED" == "true" ]]; then

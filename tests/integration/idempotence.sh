@@ -24,7 +24,7 @@ noop_apply() {
   kubectl --context "$CTX" apply -f deploy/kubenet/networks/tenants/l2-bridged.yaml >/dev/null 2>&1 || true
   kubectl --context "$CTX" apply -f deploy/kubenet/networks/tenants/l3-routed.yaml >/dev/null 2>&1 || true
   kubectl --context "$CTX" apply -f deploy/kubenet/networks/tenants/irb-symmetric.yaml >/dev/null 2>&1 || true
-  kubectl --context "$CTX" apply -f config/samples/agentic-netops_v1alpha1_srv6service.yaml >/dev/null 2>&1 || true
+  kubectl --context "$CTX" apply -f config/samples/srv6service-ip-vrf-vpn.yaml >/dev/null 2>&1 || true
 }
 
 assert_no_new_sets() {

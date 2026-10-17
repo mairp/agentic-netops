@@ -24,6 +24,10 @@ spec:
         # Scoped device-network egress for gNMI read-back against the fabric
         # (deploy/rbac/base.yaml allow-fabric-gnmi-egress).
         agentic-netops.io/needs-fabric-gnmi: "true"
+        # Selected by allow-fabric-executor-egress (deploy/rbac/base.yaml): the
+        # only egress to the host fabric-executor write path this reconciler
+        # drives (T399 — "Done when the pod reaches the executor").
+        agentic-netops.io/needs-fabric-executor: "true"
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8081"
@@ -42,6 +46,21 @@ spec:
           value: agentic-netops-srv6-controller
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: http://otel-collector.agentic-netops-system:4318
+        # Fabric write path (T399): the host fabric-executor service on the
+        # kind bridge gateway, reached through allow-fabric-executor-egress.
+        - name: FABRIC_EXECUTOR_URL
+          value: http://172.30.0.1:8084
+        # Port map contract (same as the provider, T187/T602): the spec's
+        # logical attachment names resolved to the lab's kernel ports. The map
+        # is profile data — provision.sh replaces this value from
+        # lab/profiles/<profile>/port-map.json; unknown names are rejected by
+        # the renderer, never guessed.
+        - name: FABRIC_PORT_MAP
+          value: '{"wan1":"Ethernet12"}'
+        # Node kind is profile data too (T192): plans render for the guests
+        # the profile actually runs; provision.sh replaces this value.
+        - name: FABRIC_NODE_KIND
+          value: sonic-vm
         readinessProbe:
           httpGet: { path: /readyz, port: 8082 }
           initialDelaySeconds: 5

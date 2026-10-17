@@ -93,10 +93,10 @@ authoritative statement of which write path applies where:
 
 If a SRv6Service or provider-owned resource is stuck due to external issues and normal deletion does not proceed, remove finalizers explicitly as a last resort and allow the cluster to clean up owned resources:
 
-- SRv6Service finalizer removal (example name: example-srv6):
+- SRv6Service finalizer removal (example name: srv6-ip-vrf-vpn in namespace agentic-netops-intent):
 
 ```bash
-kubectl -n default patch srv6service example-srv6 --type=json \
+kubectl -n agentic-netops-intent patch srv6service srv6-ip-vrf-vpn --type=json \
   -p='[{"op":"remove","path":"/metadata/finalizers"}]'
 ```
 

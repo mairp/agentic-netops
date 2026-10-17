@@ -1,0 +1,24 @@
+# Fixture for Q9 (q9-typed-id): a hand-typed locator/VRF/SID is refused at
+# admission — identifiers are allocated, not typed (contract rule A12; none of
+# these fields exist in the schema).
+apiVersion: agentic-netops.io/v1alpha1
+kind: SRv6Service
+metadata:
+  name: srv6-typed-locator
+  namespace: agentic-netops-intent
+spec:
+  tenant: acme
+  construct: ip-vrf
+  signalling: vpn
+  attachments:
+    - node: leaf01
+      port: wan1
+      gateway:
+        - 192.168.1.1/24
+    - node: leaf02
+      port: wan1
+      gateway:
+        - 192.168.2.1/24
+  locatorPrefix: fcbb:bbbb:1::/48
+  vrf: Vrf99
+  sid: fcbb:bbbb:1:11::/64

@@ -35,6 +35,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -57,6 +58,11 @@ type ApplyOp struct {
 	Shell   []string         `json:"shell,omitempty"`
 	VTYSh   []string         `json:"vtysh,omitempty"`
 	FRRConf []string         `json:"frrconf,omitempty"`
+	// OnClient scopes the op to the probe client container registered for
+	// the "<node>/<port>" attachment (FABRIC_PROBE_MAP): docker exec only,
+	// sh -c (busybox clients, data-model.md §8.7) — the client-addressing
+	// item of contracts/fabricplan-srv6.md §3.1.
+	OnClient string `json:"onClient,omitempty"`
 }
 
 type ApplyRequest struct {
@@ -92,6 +98,11 @@ type VerifyCheck struct {
 	Line        string            `json:"line,omitempty"`
 	Command     string            `json:"command,omitempty"`
 	Expect      string            `json:"expect,omitempty"`
+	ProbeFrom   string            `json:"probeFrom,omitempty"`
+	ProbeTo     string            `json:"probeTo,omitempty"`
+	Size        int               `json:"size,omitempty"`
+	Count       int               `json:"count,omitempty"`
+	OnClient    string            `json:"onClient,omitempty"`
 }
 
 type VerifyRequest struct {
@@ -146,6 +157,20 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "transport config refused: %v\n", err)
 		os.Exit(1)
+	}
+	if err := initProbeMap(os.Getenv("FABRIC_PROBE_MAP")); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	// contracts/executor-transport.md §4: the executor owns the probe table
+	// and says out loud which attachments it can verify a data path from.
+	keys := make([]string, 0, len(probeHosts))
+	for k := range probeHosts {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		fmt.Fprintf(os.Stderr, "probe attachment %s -> %s\n", k, probeHosts[k])
 	}
 	srv := &server{nodeMap: nm, trans: map[string]transport{}}
 	for node := range nm {
@@ -292,6 +317,10 @@ func (s *server) handleApply(w http.ResponseWriter, r *http.Request) {
 	resp := ApplyResponse{Node: req.Node, OK: true}
 	for i, op := range req.Ops {
 		switch {
+		case op.OnClient != "":
+			res := s.applyClient(ctx, op)
+			res.Kind = fmt.Sprintf("ops[%d].client[%s]", i, op.OnClient)
+			resp.Results = append(resp.Results, res)
 		case len(op.GCU) > 0:
 			res := s.applyGCU(ctx, node, op.GCU)
 			res.Kind = fmt.Sprintf("ops[%d].gcu", i)
@@ -466,6 +495,35 @@ print("gcu applied with daemon race; end-state confirmed:", len(patch), "op(s)")
 	return OpResult{OK: true, Output: strings.TrimSpace(out)}
 }
 
+// applyClient runs a client-scoped op inside the probe client container
+// registered for the attachment: docker exec with sh -c only, never SSH (the
+// clients are busybox-style containers, data-model.md §8.7;
+// executor-transport.md §4). An attachment absent from FABRIC_PROBE_MAP is
+// refused with the same message probe-ping uses.
+func (s *server) applyClient(ctx context.Context, op ApplyOp) OpResult {
+	host, err := probeHost(op.OnClient)
+	if err != nil {
+		return OpResult{OK: false, Error: err.Error()}
+	}
+	if len(op.Shell) == 0 {
+		return OpResult{OK: false, Error: fmt.Sprintf("client op for %q must carry shell commands", op.OnClient)}
+	}
+	var log bytes.Buffer
+	t := &dockerTransport{container: host}
+	for _, c := range op.Shell {
+		out, stderr, err := t.run(ctx, []string{"sh", "-c", c}, nil)
+		log.WriteString("> " + oneLine(c) + "\n" + strings.TrimSpace(out))
+		if strings.TrimSpace(stderr) != "" {
+			log.WriteString("\n[stderr] " + strings.TrimSpace(stderr))
+		}
+		log.WriteString("\n")
+		if err != nil {
+			return OpResult{OK: false, Error: firstErr(err, stderr).Error(), Output: log.String()}
+		}
+	}
+	return OpResult{OK: true, Output: log.String()}
+}
+
 func (s *server) applyShell(ctx context.Context, node string, cmds []string, _ bool) OpResult {
 	var log bytes.Buffer
 	for _, c := range cmds {
@@ -559,6 +617,20 @@ func (s *server) verifyOne(ctx context.Context, node string, ck VerifyCheck) Ver
 	run := func(cmd string) (string, error) {
 		out, stderr, err := s.execNode(ctx, node, []string{"bash", "-c", cmd}, nil)
 		return strings.TrimSpace(out), firstErr(err, stderr)
+	}
+	// OnClient scopes the check into the probe client container registered
+	// for the attachment (client-addressing check, contracts/fabricplan-srv6.md
+	// §3.1): docker exec with sh -c only, never SSH (data-model.md §8.7).
+	if ck.OnClient != "" {
+		host, herr := probeHost(ck.OnClient)
+		if herr != nil {
+			return VerifyResult{OK: false, Error: herr.Error()}
+		}
+		t := &dockerTransport{container: host}
+		run = func(cmd string) (string, error) {
+			out, stderr, err := t.run(ctx, []string{"sh", "-c", cmd}, nil)
+			return strings.TrimSpace(out), firstErr(err, stderr)
+		}
 	}
 	// default redis DB
 	db := ck.RedisDB
@@ -661,6 +733,28 @@ func (s *server) verifyOne(ctx context.Context, node string, ck VerifyCheck) Ver
 			msg = fmt.Sprintf("expected at least %d object(s) matching %v; enumerated %d, matched %d", min, ck.MatchFields, len(keys), matched)
 		}
 		return VerifyResult{OK: ok, Actual: fmt.Sprintf("keys=%d matched=%d", len(keys), matched), Error: msg}
+	case "command":
+		// contracts/fabricplan-srv6.md §2: a read-only shell command whose
+		// output must contain Expect (e.g. `ip -6 route show` kernel-route
+		// read-backs). Run like the other shell-backed checks.
+		got, err := run(ck.Command)
+		if err != nil {
+			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
+		}
+		ok := strings.Contains(got, ck.Expect)
+		return VerifyResult{OK: ok, Actual: got, Error: neqContainsMsg(got, ck.Expect)}
+	case "probe-ping":
+		// contracts/executor-transport.md §4: docker exec, fixed ping argv,
+		// only into a client container registered in FABRIC_PROBE_MAP.
+		host, err := probeHost(ck.ProbeFrom)
+		if err != nil {
+			return VerifyResult{OK: false, Error: err.Error()}
+		}
+		out, err := runProbePing(ctx, host, ck.Addr, ck.Size, ck.Count)
+		if err != nil {
+			return VerifyResult{OK: false, Error: err.Error(), Actual: out}
+		}
+		return VerifyResult{OK: true, Actual: out}
 	default:
 		return VerifyResult{OK: false, Error: "unknown check type " + ck.Type}
 	}

@@ -167,6 +167,16 @@ sonic_yang:
     The provider validates the target SONiC image against these commit pins before
     generating SDC intent. A mismatch sets SchemaMismatch and blocks downstream.
 
+# ---------------------------------------------------------------------------
+# Code generation pin (feature 004: CRD manifests and deepcopy)
+# controller-gen v0.14.0 is the release line matching the vendored
+# controller-runtime v0.17.x; the Makefile resolves it offline through the
+# local module cache (sha256 above is the cached module zip).
+# ---------------------------------------------------------------------------
+codegen:
+  controller_gen: v0.14.0
+  controller_gen_zip_sha256: 71cf341e052e8996ef9e42901daae97d543029765b5899425c6fe991f2b24242
+
 notes:
   redistribution: >
     SONiC images must be acquired by the operator under upstream terms and are

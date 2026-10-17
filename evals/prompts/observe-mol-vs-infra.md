@@ -298,3 +298,11 @@ The old unit `mol004-direct-resume` cannot be reused: with `KillMode=process`, t
 its cgroup, so the unit stays loaded. **Do not kill that process.** For any later relaunch use the same
 command with a fresh unit name (`mol004-direct-resume4`, `5`, …); check
 `systemctl list-units 'mol004-direct-resume*'` first.
+
+### Addendum 2026-10-16 22:35 — the owner is now a daemon
+`mol004-owner-daemon.service` (enabled, survives reboots) replaces `mol004-owner-standin.service` and any
+session-held `watch.py`. It keeps `watch.py` running, runs one owner cycle per wake with headless Claude Code
+(`owner-daemon-task.md` beside the probe; dsh glm fallback), and relaunches a dead run by itself after a
+reboot kill, rc=4, or an unheld rc=6 older than 15 min (max 3 per 6 h). Relaunch by hand with
+`owner-daemon.sh relaunch "<reason>"`; park the run with `touch owner-hold`. An interactive session is an
+observer: read `owner-daemon.log` first and do not start a second watcher.

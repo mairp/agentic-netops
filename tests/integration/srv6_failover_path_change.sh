@@ -4,8 +4,8 @@ set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 TOPO=${TOPO:-$ROOT_DIR/lab/topology.clab.yml}
-SERVICE_NS=${SERVICE_NS:-default}
-SERVICE_NAME=${SERVICE_NAME:-example-srv6}
+SERVICE_NS=${SERVICE_NS:-agentic-netops-intent}
+SERVICE_NAME=${SERVICE_NAME:-srv6-ip-vrf-vpn}
 LEAF_HEADEND=${LEAF_HEADEND:-172.31.0.21:8080}
 GNMIC_BIN=${GNMIC_BIN:-gnmic}
 GNMI_USER=${GNMI_USER:-admin}

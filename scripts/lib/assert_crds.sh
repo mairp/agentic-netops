@@ -57,10 +57,25 @@ for n in $all_crds; do
     networkconfigs|networkdevices|topologies)
       if [[ "$group" != "network.kubenet.dev" ]]; then conflicts+=("$n (expected group network.kubenet.dev)"); fi ;;
   esac
-  # KUID
+  # KUID. The aggregated *.be.kuid.dev groups served by kuid-server (the
+  # allocator's claim families, feature 004 included) coexist with the
+  # CRD-backed id.kuid.dev group used for fabric underlay indices
+  # (deploy/kuid/indices.yaml header). ipindices is genuinely served by both
+  # groups (fabric underlay via id.kuid.dev, client /24 pools via
+  # ipam.be.kuid.dev), so both are allowed for it.
   case "$plural" in
-    ipindices|asnindices|vniindices|claims)
+    asnindices|vniindices|claims)
       if [[ "$group" != "id.kuid.dev" ]]; then conflicts+=("$n (expected group id.kuid.dev)"); fi ;;
+    genidindices|genidclaims|genidentries)
+      if [[ "$group" != "genid.be.kuid.dev" ]]; then conflicts+=("$n (expected group genid.be.kuid.dev)"); fi ;;
+    vlanindices|vlanclaims|vlanentries)
+      if [[ "$group" != "vlan.be.kuid.dev" ]]; then conflicts+=("$n (expected group vlan.be.kuid.dev)"); fi ;;
+    asindices|asclaims|asentries)
+      if [[ "$group" != "as.be.kuid.dev" ]]; then conflicts+=("$n (expected group as.be.kuid.dev)"); fi ;;
+    extcommindices|extcommclaims|extcommentries)
+      if [[ "$group" != "extcomm.be.kuid.dev" ]]; then conflicts+=("$n (expected group extcomm.be.kuid.dev)"); fi ;;
+    ipindices|ipclaims|ipentries)
+      if [[ "$group" != "id.kuid.dev" && "$group" != "ipam.be.kuid.dev" ]]; then conflicts+=("$n (expected group id.kuid.dev or ipam.be.kuid.dev)"); fi ;;
   esac
   # SDC
   case "$plural" in

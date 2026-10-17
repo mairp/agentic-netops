@@ -115,7 +115,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		Status:             metav1.ConditionFalse,
 		ObservedGeneration: nd.Generation,
 		LastTransitionTime: metav1.NewTime(time.Now()),
-		Reason:             reasons.ReasonWaitingDependencies,
+		Reason:             reasonWaitingDependencies,
 		Message:            "Waiting for Kubenet/KUID, targets, schema, SDC validation",
 	}
 	updated := nd

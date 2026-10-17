@@ -28,8 +28,20 @@ hash_default_fabric() {
     | sha256sum | awk '{print $1}'
 }
 
+# The direct SRv6 sample moved with feature 004: name srv6-ip-vrf-vpn in
+# namespace agentic-netops-intent (config/samples/srv6service-ip-vrf-vpn.yaml).
+SRV6_SAMPLE_NS=agentic-netops-intent
+SRV6_SAMPLE_NAME=srv6-ip-vrf-vpn
+SRV6_SAMPLE_FILE=config/samples/srv6service-ip-vrf-vpn.yaml
+
+ensure_srv6_sample() {
+  # Idempotent ensure: the old flow assumed the (deleted) placeholder sample
+  # already existed; apply the feature-004 sample instead.
+  kubectl --context "$CTX" apply -f "$SRV6_SAMPLE_FILE" >/dev/null 2>&1 || true
+}
+
 srv6_annotation_json() {
-  kubectl --context "$CTX" -n default get srv6service example-srv6 -o json 2>/dev/null \
+  kubectl --context "$CTX" -n "$SRV6_SAMPLE_NS" get srv6service "$SRV6_SAMPLE_NAME" -o json 2>/dev/null \
     | jq -S '.metadata.annotations // {}'
 }
 
@@ -38,6 +50,7 @@ hash_srv6_annotation() {
 }
 
 update_service() {
+  ensure_srv6_sample
   echo "[lifecycle] snapshot before update"
   list_sdc_configs | tee "$PROOF_DIR/update.sdc-configs.before.txt" >/dev/null
   hash_default_fabric | tee "$PROOF_DIR/update.default-fabric.hash.before.txt" >/dev/null
@@ -47,7 +60,7 @@ update_service() {
   echo "[lifecycle] update EVPN and SRv6 services; shared IPv6 underlay preserved"
   # Update a tenant RT and SRv6 policy description (no functional change)
   kubectl --context "$CTX" -n kubenet-system patch network tenant-a-l3-routed --type merge -p '{"spec":{"routers":[{"name":"vrf-tenant-a","routeTargets":{"import":["65000:100"],"export":["65000:100"]}}]}}' || true
-  kubectl --context "$CTX" -n default patch srv6service example-srv6 --type merge -p '{"metadata":{"annotations":{"agentic-netops.dev/description":"update"}}}' || true
+  kubectl --context "$CTX" -n "$SRV6_SAMPLE_NS" patch srv6service "$SRV6_SAMPLE_NAME" --type merge -p '{"metadata":{"annotations":{"agentic-netops.dev/description":"update"}}}' || true
 
   echo "[lifecycle] snapshot after update"
   list_sdc_configs | tee "$PROOF_DIR/update.sdc-configs.after.txt" >/dev/null
@@ -83,7 +96,7 @@ delete_service() {
   echo "[lifecycle] delete SRv6 service; release SRv6-owned claims and SDC Configs without removing shared IPv6 underlay"
   local before
   before=$(count_sdc_device_configs)
-  kubectl --context "$CTX" -n default delete srv6service example-srv6 --ignore-not-found=true || true
+  kubectl --context "$CTX" -n "$SRV6_SAMPLE_NS" delete srv6service "$SRV6_SAMPLE_NAME" --ignore-not-found=true || true
 
   echo "[lifecycle] snapshot after delete"
   kubectl --context "$CTX" -n kubenet-system get network default-fabric -o name | tee "$PROOF_DIR/delete.default-fabric.txt" >/dev/null
@@ -112,10 +125,10 @@ delete_service() {
   #   (2) the device-owned Config population is unchanged by the service
   #       lifecycle (shared device state must survive);
   #   (3) the shared default-fabric Network hash is unchanged.
-  kubectl --context "$CTX" -n default get srv6service example-srv6 >/dev/null 2>&1 && {
-    echo "[lifecycle] ERROR: example-srv6 still present after delete" >&2; exit 1
+  kubectl --context "$CTX" -n "$SRV6_SAMPLE_NS" get srv6service "$SRV6_SAMPLE_NAME" >/dev/null 2>&1 && {
+    echo "[lifecycle] ERROR: $SRV6_SAMPLE_NAME still present after delete" >&2; exit 1
   }
-  echo "example-srv6 removed" # proof keyword
+  echo "$SRV6_SAMPLE_NAME removed" # proof keyword
 
   if [[ "$before" != "$after" ]]; then
     echo "[lifecycle] ERROR: device-owned SDC Config population changed across SRv6 service delete" >&2; exit 1

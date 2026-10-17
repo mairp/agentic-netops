@@ -179,18 +179,15 @@ ecmp_hashing_test() {
     docker exec -i "$SRC" sh -lc "nc -u -w1 $DST_IP $p || true" < "$payload" >/dev/null 2>&1 || true
   done
   echo "[mtu-ecmp] burst sent: $BURST_FLOWS flows x $BURST_PACKETS packets x ${BURST_PAYLOAD_BYTES}-byte payload = $BURST_BYTES bytes"
-  # ECMP mechanism, stated plainly (measured live 2026-10-16 on the sonic-vm
-  # leaf): the kernel-vxlan encap route lookup builds a flow with NO L4 fields,
-  # so even fib_multipath_hash_policy=1 pins every encapped flow to ONE
-  # multipath bucket (tcpdump: every outer frame carried the same spine dst
-  # MAC while `ip route get` alternated per sport). NO port- or mark-keyed
-  # flow split is installed to paper over this (owner amendment 2026-10-16
-  # forbids one): hash policy 1 (L4) and BGP maximum-paths 2 are asserted,
-  # and the both-uplinks floor below is expected to FAIL HONESTLY until the
-  # limitation is fixed at the source — the receipts record the failure live
-  # and the evidence cites the cause (installed two-nexthop route +
-  # L4-less encap lookup on sonic-vm; peer-VTEP route over mgmt on sonic-vs).
-  echo "[mtu-ecmp] ECMP mechanism: kernel-vxlan encap lookup carries no L4 fields — fib_multipath_hash_policy=1 (L4) and BGP maximum-paths 2 underneath, yet every encapped flow pins to one multipath bucket; NO flow split is installed (owner amendment 2026-10-16), so the both-uplinks floor below fails honestly"
+  # ECMP mechanism, stated plainly (measured live on the sonic-vm leaf): the
+  # uplink route to the peer VTEP is installed with BOTH nexthops (Ethernet0
+  # and Ethernet4, BGP maximum-paths 2) and fib_multipath_hash_policy=1
+  # (L4). The floor below measures how the burst actually lands on the two
+  # uplinks under that as-built ECMP. NO port- or mark-keyed flow split is
+  # installed: the recorded deltas are the measurement, whatever they show,
+  # and a one-sided result is an honest exit 1 with no cause claim that no
+  # receipt shows.
+  echo "[mtu-ecmp] ECMP mechanism: uplink route to the peer VTEP has both nexthops (Ethernet0, Ethernet4; BGP maximum-paths 2) with fib_multipath_hash_policy=1 (L4); the floor below measures the actual per-uplink split — no flow split is installed"
   echo "[mtu-ecmp] ECMP floor: each uplink delta must be >= $BURST_FLOOR bytes ($BURST_FLOOR_PCT% of the burst); background ticks (~1 KB/min, measured 2026-10-16) cannot reach it"
   # counterpoll feeds the COUNTERS table on its poll interval (10 s default);
   # an immediate single read can predate the last sample taken over the burst

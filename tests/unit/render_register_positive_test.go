@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package unit
 
 import (
@@ -23,18 +24,22 @@ func TestRendererPathsCoveredByRegister(t *testing.T) {
 	merge(render.RenderBGP(model.BGPGlobal{ASN: 65000, RouterID: "1.1.1.1"}, []model.BGPNeighbor{{NeighborAddress: "10.0.0.2", PeerASN: 65001, EVPN: true}}))
 	merge(render.RenderNetworkInstances([]model.NetworkInstance{{Name: "DEFAULT", Type: "DEFAULT"}}))
 	merge(render.RenderVXLAN(model.VXLAN{SourceInterface: "Loopback0", UDPPort: 4789}, []model.VLAN{{ID: 10, Name: "blue", L2VNI: 10010}}))
-	merge(render.RenderSRv6(model.SRv6Locator{Name: "default", Prefix: "2001:db8:1::/48"}, []model.MySID{{SID: "2001:db8:1::1", Behavior: "End"}}))
+	// Schema-backed SRv6 tables only: SRV6_MY_LOCATORS (bootstrap-owned, FR-006)
+	// and SRV6_MY_SIDS (accepted by the YANG but measured not to program the
+	// dataplane — spike-sid-write).
+	merge(render.RenderSRv6MyLocators([]model.SRv6MyLocator{{Node: "leaf01", Prefix: "fcbb:bbbb:1::/48"}}))
+	merge(render.RenderSRv6MySids([]model.SRv6MySid{{Node: "leaf01", Prefix: "fcbb:bbbb:1:11::/64", Action: "uDT46", DecapVRF: "Vrf1"}}))
 	// Add local VLANs to exercise SONiC-native VLAN register entries
 	merge(render.RenderLocalVLANs([]model.VLAN{{ID: 120, Name: "vlan-local"}}, map[int][]string{120: {"Ethernet1"}}))
 	// Add ACLs to exercise SONiC-native ACL register entries
 	merge(render.RenderACL([]model.ACL{{
-		Name:       "allow-web",
-		Stage:      "ingress",
-		Type:       "l3",
-		Ports:      []string{"Ethernet1"},
-		PolicyDesc: "tenant-a/svc-a",
+		Name:          "allow-web",
+		Stage:         "ingress",
+		Type:          "l3",
+		Ports:         []string{"Ethernet1"},
+		PolicyDesc:    "tenant-a/svc-a",
 		DefaultAction: "deny",
-		Rules: []model.ACLRule{{Name: "allow-https", Priority: 100, Action: "permit", Protocol: "tcp", DestinationPort: "443"}},
+		Rules:         []model.ACLRule{{Name: "allow-https", Priority: 100, Action: "permit", Protocol: "tcp", DestinationPort: "443"}},
 	}}))
 	reg, err := os.ReadFile(filepath.Join("..", "..", "pkg", "register", "oc_vs_sonic.yaml"))
 	if err != nil {

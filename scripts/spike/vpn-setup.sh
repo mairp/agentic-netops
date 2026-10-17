@@ -40,10 +40,39 @@ done
 # and a wedged orchagent must fail the proof, not record a 100%-loss
 # dataplane with exit 0 (measured 2026-10-13 04:2x: the sick lab recorded
 # garbage receipts while healthy in CONFIG_DB).
+# Heal path (measured 2026-10-17): the churn across the receipt chain trips
+# the intfmgrd race — CONFIG vrf_name=Vrf1 while the kernel port is
+# un-enslaved, and the CONFIG-backed connected route never (re)derives into
+# the VRF device's table. Move the kernel to where the service already
+# requires it to be (re-enslave + service-addr bounce), then gate.
 for _lf in leaf01 leaf02; do
     _c=$(container_of "$_lf")
+    _svc=$([[ "$_lf" == leaf01 ]] && echo 192.168.1 || echo 192.168.2)
     _ok=$(node_run "$_c" "ip -br link show Vrf1 >/dev/null 2>&1 && ip -br addr show Ethernet12 | grep -q '192\.168\.' && echo Y" 2>/dev/null || true)
+    if [[ "$_ok" != *Y* ]]; then
+        node_run "$_c" "sudo ip link set Ethernet12 nomaster 2>/dev/null; sudo ip addr del ${_svc}.1/24 dev Ethernet12 2>/dev/null; sudo ip link set Ethernet12 master Vrf1; sudo ip addr add ${_svc}.1/24 dev Ethernet12" >/dev/null 2>&1 || true
+        sleep 2
+        _ok=$(node_run "$_c" "ip -br link show Vrf1 >/dev/null 2>&1 && ip -br addr show Ethernet12 | grep -q '192\.168\.' && echo Y" 2>/dev/null || true)
+    fi
     [[ "$_ok" == *Y* ]] || { echo "VPN-SETUP-STUCK: $_lf kernel VRF state not programmed" >&2; exit 1; }
+done
+# Same race one level deeper (measured): the service gateway addr can be on
+# the port with the connected route MISSING from the VRF table (decap'd
+# traffic to the client subnet then unroutable -> 100% loss). Bounce the
+# addr to force the re-derive; poll briefly.
+for _lf in leaf01 leaf02; do
+    _c=$(container_of "$_lf")
+    _svc=$([[ "$_lf" == leaf01 ]] && echo 192.168.1 || echo 192.168.2)
+    _ok=$(node_run "$_c" "ip route show vrf Vrf1 2>/dev/null | grep -q '^${_svc}\.0/24 dev ' && echo Y" 2>/dev/null || true)
+    if [[ "$_ok" != *Y* ]]; then
+        node_run "$_c" "sudo ip addr del ${_svc}.1/24 dev Ethernet12 2>/dev/null; sudo ip addr add ${_svc}.1/24 dev Ethernet12" >/dev/null 2>&1 || true
+        _i=0
+        while [[ $_i -lt 10 ]]; do
+            _ok=$(node_run "$_c" "ip route show vrf Vrf1 2>/dev/null | grep -q '^${_svc}\.0/24 dev ' && echo Y" 2>/dev/null || true)
+            [[ "$_ok" == *Y* ]] && break
+            _i=$((_i+1)); sleep 2
+        done
+    fi
 done
 
 originate() { # $1 node  $2 loc-addr(no /48 suffix)  $3 asn
@@ -125,8 +154,8 @@ done
 echo "SID-ROW-ABSENT (write class proven+reverted by spike-sid-write; as-built decap below)"
 
 echo "===== End.DT46 decap asserted in the kernel (both leaves) ====="
-node_run "$c1" "sudo ip -6 route replace fcbb:bbbb:3:11::/64 encap seg6local action End.DT46 vrftable 1001 dev Vrf1 && ip -6 route show | grep 'fcbb:bbbb:3:11'" || true
-node_run "$c2" "sudo ip -6 route replace fcbb:bbbb:4:11::/64 encap seg6local action End.DT46 vrftable 1001 dev Vrf1 && ip -6 route show | grep 'fcbb:bbbb:4:11'" || true
+node_run "$c1" "sudo ip -6 route replace fcbb:bbbb:3:11::/64 encap seg6local action End.DT46 vrftable \$(ip -d link show Vrf1 | grep -o 'table [0-9]*' | cut -d' ' -f2) dev Vrf1 && ip -6 route show | grep 'fcbb:bbbb:3:11'" || true
+node_run "$c2" "sudo ip -6 route replace fcbb:bbbb:4:11::/64 encap seg6local action End.DT46 vrftable \$(ip -d link show Vrf1 | grep -o 'table [0-9]*' | cut -d' ' -f2) dev Vrf1 && ip -6 route show | grep 'fcbb:bbbb:4:11'" || true
 
 echo "===== ingress steering toward the peer's uDT46 SID (in Vrf1) ====="
 node_run "$c1" "sudo ip route replace 192.168.2.0/24 vrf Vrf1 encap seg6 mode encap segs fcbb:bbbb:4:11:: dev Ethernet0 && ip route show vrf Vrf1 | grep '192.168.2.0'" || true
