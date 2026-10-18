@@ -2088,13 +2088,32 @@ class ProvisioningGraph:
                 phase = str(status_report.get("phase") or "Unknown")
                 resources = status_report.get("resources") if isinstance(status_report.get("resources"), list) else []
                 # Compose a short summary including any unverified properties so the
-                # operator never sees a property as verified when the check did not run.
+                # operator never sees a property as verified when the check did not
+                # run. Each resource renders exactly the per-resource contract of the
+                # deployer's own summary (`DeployerAgent._summary_status`, US6/T544):
+                # the FR-013 type wording (or the bare VXLAN construct) beside the
+                # name and the Ready/Degraded verdicts, then the controller's
+                # condition message — so the type and Ready state the deployer
+                # derives survive the supervisor's re-render instead of being
+                # dropped on the floor (found live, gate-8 T547: the old short form
+                # answered "Network/<name> (<message>)" with no type and no Ready).
                 parts: list[str] = []
                 for r in resources:
                     if not isinstance(r, dict):
                         continue
                     name = f"{r.get('kind')}/{r.get('name')}"
                     detail = str(r.get("message") or r.get("reason") or "").strip()
+                    stype = str(r.get("serviceType") or "")
+                    ready = r.get("ready")
+                    verdict = "Ready=True" if ready is True else "Ready=False" if ready is False else "Ready=<unset>"
+                    degraded = r.get("degraded")
+                    degraded_verdict = (
+                        "Degraded=True"
+                        if degraded is True
+                        else "Degraded=False"
+                        if degraded is False
+                        else "Degraded=<unset>"
+                    )
                     suffix = ""
                     unver = r.get("unverified")
                     if isinstance(unver, list) and unver:
@@ -2106,11 +2125,18 @@ class ProvisioningGraph:
                                 items.append(f"{prop}@{node}")
                         if items:
                             suffix = "; unverified: " + ", ".join(items)
-                    text = name
+                    text = (
+                        f"{name} ({stype}) {verdict} {degraded_verdict}"
+                        if stype
+                        else f"{name} {verdict} {degraded_verdict}"
+                    )
                     if detail:
-                        text += f" ({detail}{suffix})"
-                    elif suffix:
-                        text += f" ({suffix.lstrip('; ')})"
+                        text += f' "{detail}"'
+                    at = str(r.get("lastTransitionTime") or "")
+                    if at:
+                        text += f" since {at}"
+                    if suffix:
+                        text += suffix
                     parts.append(text)
                 summary = redact_model_response((phase + ". " + "; ".join(parts)).strip())
             else:

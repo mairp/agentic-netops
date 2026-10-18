@@ -132,6 +132,35 @@ def _prompt_ids(prompts: list[str]) -> list[str]:
     return [p[:48] for p in prompts]
 
 
+@pytest.fixture(autouse=True)
+def _proven_capability(monkeypatch):
+    """The tier's real graph refuses an SRv6 request when the live capability
+    read fails closed (fail-closed on every error, T466) — and in these tests
+    there is no cluster to read. The seam is stubbed with exactly what
+    ``lab/profiles/sonic-vm/srv6-supported.yaml`` records as ``proven`` and
+    what the executor's FABRIC_PROBE_MAP (scripts/provision.sh) registers as
+    verifiable: the (V:x) rule says no example exists for an unproven variant,
+    so the served SRv6 prompts are ip-vrf/vpn and the steering form of it, on
+    the leaf01/leaf02 wan1 attachments. Non-SRv6 prompts never trigger the
+    read (T549), so the stub changes nothing for them.
+    """
+    from types import SimpleNamespace
+
+    from supervisors.provisioning.graph import graph as graph_mod
+
+    monkeypatch.setattr(
+        graph_mod,
+        "read_srv6_capability",
+        lambda: SimpleNamespace(
+            available=True,
+            supported=("ip-vrf/vpn", "steering"),
+            verifiable_attachments=("leaf01/wan1", "leaf02/wan1"),
+            lab_profile="sonic-vm",
+            sonic_image=None,
+        ),
+    )
+
+
 # ---------------------------------------------------------------------------
 # 1. The deterministic guard layer, which runs before anything is classified.
 # ---------------------------------------------------------------------------

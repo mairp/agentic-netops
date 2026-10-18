@@ -80,18 +80,22 @@ function useIntentHealth() {
 
 function useSuggestedPrompts() {
   // Shown only when /suggested-prompts is unreachable — which is the first
-  // thing a new operator sees if the supervisor is down, so it has to speak the
-  // same construct vocabulary as the served set rather than drift behind it.
-  // The two provisioning entries are copied verbatim from
-  // agents/supervisors/provisioning/suggested_prompts.json; the guard test in
-  // agents/tests/unit/test_suggested_prompts_ports_constructs.py fails if they
-  // stop matching, because a fallback that names a construct must be a scenario
-  // that actually runs at this site.
+  // thing a new operator sees if the supervisor is down, so it has to BE the
+  // served set rather than drift behind it. The entries are copied verbatim
+  // from agents/supervisors/provisioning/suggested_prompts.json; the guard
+  // tests in agents/tests/unit/test_suggested_prompts_ports_constructs.py
+  // fail if they stop matching, because a fallback that names a construct
+  // must be a scenario that actually runs at this site.
   const fallback = useMemo(
     () => [
       'Provision a vlan 130 on leaf01 ethernet1 for tenant acme',
+      'Extend vlan 150 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant blue',
       'Deploy an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant initech with prefix 10.50.0.0/24',
-      'Show the status of my services.',
+      'Create a mac-vrf on vlan 160 across leaf01 ethernet1 and leaf02 ethernet1 for tenant umbrella with an anycast gateway at 10.60.0.1/24',
+      'Apply an acl on leaf01 wan1 for tenant acme: allow ingress tcp port 443 from 10.0.0.0/24, deny everything else',
+      'Extend vlan 170 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme, permitting only ingress tcp port 443 from 10.0.0.0/24',
+      'Give tenant acme an ip-vrf over srv6 carrying 2001:db8:3::30/127 and 2001:db8:4::40/127 between leaf01 wan1 and leaf02 wan1',
+      'Give tenant acme an ip-vrf over srv6 carrying 2001:db8:3::30/127 between leaf01 wan1 and leaf02 wan1 preferring spine01',
     ],
     [],
   )

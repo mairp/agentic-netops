@@ -341,6 +341,11 @@ class DeployerAgent:
             if not isinstance(resource, dict):
                 continue
             name = f"{resource.get('kind')}/{resource.get('name')}"
+            # US6/T544: the service type rides beside the name — FR-013's
+            # wording for SRv6 ("ip-vrf over srv6", ...) and the bare
+            # construct for the VXLAN Networks — so a status answer over a
+            # mixed fabric names which service is which.
+            stype = str(resource.get("serviceType") or "")
             ready = resource.get("ready")
             verdict = "Ready=True" if ready is True else "Ready=False" if ready is False else "Ready=<unset>"
             degraded = resource.get("degraded")
@@ -353,7 +358,11 @@ class DeployerAgent:
             )
             detail = str(resource.get("message") or resource.get("reason") or "")
             at = str(resource.get("lastTransitionTime") or "")
-            entry = f"{name} {verdict} {degraded_verdict}"
+            entry = (
+                f"{name} ({stype}) {verdict} {degraded_verdict}"
+                if stype
+                else f"{name} {verdict} {degraded_verdict}"
+            )
             if detail:
                 entry += f' "{detail}"'
             if at:
