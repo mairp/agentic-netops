@@ -97,6 +97,10 @@ _SERVICE_PATTERNS: list[tuple[ServiceType, list[re.Pattern[str]]]] = [
 
 _UNSUPPORTED_FEATURES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"traffic engineering|\bte[- ]policy|te[- ]path", re.I), "tePolicy"),
+    # T487 — the contract's remaining §4 R6 phrasings (explicit path, SID
+    # list, pin the flow): traffic engineering other than a preferred spine
+    # on an SRv6 request, and the same refusal names the property.
+    (re.compile(r"\bexplicit path\b|\bsid list\b|\bpin(?:ning)? the flow\b", re.I), "tePolicy"),
     (re.compile(r"pseudowire oam|\bpw oam\b|control word", re.I), "pseudowireOAM"),
     (re.compile(r"\bmulticast\b|\bpim\b|\bmsdp\b", re.I), "multicastVPN"),
     (re.compile(r"service chain\w*|chained services?", re.I), "serviceChain"),
@@ -169,6 +173,18 @@ _SRV6_SPINE_VIA_RE = re.compile(r"\bvia\s+(?P<name>spine[\w.-]*)\s+preferred\b",
 _SRV6_PREFER_RE = re.compile(r"\bprefer(?:ring)?\b(?P<tail>.*)", re.I)
 _SRV6_SPINE_STOP = ("a", "an", "specific", "the")
 _SRV6_WORD_RE = re.compile(r"[A-Za-z][\w.-]*")
+# T487 — the ONE alternate form the contract names (§4): "... with spine02 as
+# alternate" ("as the alternate" tolerated). The alternate is validated, not
+# stored: it rides the interpretation only as far as the tier's R7.
+_SRV6_ALTERNATE_RE = re.compile(
+    r"\bwith\s+(?P<name>spine[\w.-]*)\s+as\s+(?:the\s+)?alternate\b", re.I
+)
+
+
+def _parse_alternate_spine(text: str) -> str | None:
+    """The named alternate spine, or None — contract §4's single form."""
+    m = _SRV6_ALTERNATE_RE.search(text)
+    return m.group("name").lower() if m else None
 
 
 def _parse_preferred_spine(text: str) -> tuple[str | None, bool]:
@@ -290,6 +306,7 @@ def srv6_mapping(text: str) -> dict[str, Any]:
             "transport": transport,
             "signalling": None,
             "preferred_spine": None,
+            "alternate_spine": None,
             "missing": missing,
             "unsupported": unsupported,
         }
@@ -310,6 +327,7 @@ def srv6_mapping(text: str) -> dict[str, Any]:
     transport: str | None = "srv6"
     signalling: str | None = None
     preferred_spine: str | None = None
+    alternate_spine: str | None = None
     eps: list[EndpointIntent]
     v4: list[str] = []
     v6: list[str] = []
@@ -358,6 +376,10 @@ def srv6_mapping(text: str) -> dict[str, Any]:
         else:
             # C7 — a preference with no spine named.
             missing.append(SRV6_PREFERRED_SPINE_FIELD)
+    # T487 — the contract's single alternate form (§4). Parsed for R7
+    # validation only; it is never stored past the tier (the allocator copies
+    # only preferred_spine).
+    alternate_spine = _parse_alternate_spine(text)
 
     # C1..C7 order, so the questions are asked in contract order.
     order = {
@@ -379,6 +401,7 @@ def srv6_mapping(text: str) -> dict[str, Any]:
         "transport": transport,
         "signalling": signalling,
         "preferred_spine": preferred_spine,
+        "alternate_spine": alternate_spine,
         "missing": missing,
         "unsupported": unsupported,
     }
@@ -784,6 +807,7 @@ class MappingAgent:
         transport: str | None = None
         signalling: str | None = None
         preferred_spine: str | None = None
+        alternate_spine: str | None = None
         if _detect_srv6(low):
             srv6_fields = srv6_mapping(low)
             unsupported.extend(srv6_fields["unsupported"])
@@ -792,8 +816,15 @@ class MappingAgent:
             transport = srv6_fields["transport"]
             signalling = srv6_fields["signalling"]
             preferred_spine = srv6_fields["preferred_spine"]
+            alternate_spine = srv6_fields["alternate_spine"]
         else:
             st = _detect_service_type(low)
+            # T487 — contract §4: a preferred spine on a request that is NOT
+            # SRv6 is traffic engineering (R6). The refusal names the same
+            # tePolicy property the TE phrasings carry; no claim is made.
+            _, spine_mentioned = _parse_preferred_spine(low)
+            if spine_mentioned:
+                unsupported.append("tePolicy")
         acl_block: dict[str, Any] | None = None
         gateway: dict[str, str] | None = None
         if srv6_fields is None:
@@ -891,6 +922,8 @@ class MappingAgent:
             payload["signalling"] = signalling
         if preferred_spine is not None:
             payload["preferred_spine"] = preferred_spine
+        if alternate_spine is not None:
+            payload["alternate_spine"] = alternate_spine
         if acl_block is not None:
             payload["acl"] = acl_block
         if gateway is not None:

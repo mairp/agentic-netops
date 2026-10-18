@@ -28,6 +28,7 @@ worker transport are harness stand-ins.
 from __future__ import annotations
 
 import inspect
+import json
 import sys
 
 import pytest
@@ -597,6 +598,60 @@ class TestSRv6Refusals:
             SRV6_IPVRF_REQUEST + " with a traffic engineering policy", llm, transport
         )
         self._assert_no_claim(state, transport, "tePolicy")
+
+    # ------------------------------------------------------------------
+    # T525 — the preferred-spine EXCEPTION and the remaining §4 R6
+    # phrasings (contracts/operator-phrasings.md §4, quickstart q11's
+    # `-k te` selection).
+    # ------------------------------------------------------------------
+    async def test_te_exception_preferred_spine_provisionable(self, monkeypatch):
+        """Naming a PREFERRED SPINE on an SRv6 request is path steering, NOT
+        a TE policy: with the site knowing its spines, the request —
+        preferred spine AND named alternate — reaches the confirmation point
+        with both carried for validation and nothing claimed beyond the
+        mapper."""
+        monkeypatch.setattr(graph_mod, "read_srv6_capability", lambda: _CAP)
+        monkeypatch.setenv("FABRIC_SPINE_NODES", "spine01,spine02")
+        llm = FixedWordLLM("provisionable")
+        transport = StubTransport()
+        state = await _run(
+            SRV6_IPVRF_REQUEST + " preferring spine01 with spine02 as alternate",
+            llm,
+            transport,
+        )
+        assert state.get("workflow_status") == NetworkProvisioningStatus.MAPPED.value
+        assert state.get("pending_action") == "confirm_1"
+        assert not state.get("refusal_reason")
+        assert state.get("awaiting_confirmation")
+        mapped = json.loads(state["mapped_parameters"]) if state.get("mapped_parameters") else {}
+        assert mapped.get("preferred_spine") == "spine01"
+        # The alternate is validated (R7 knows spine02), never refused — and
+        # it rides the interpretation only as far as validation.
+        assert mapped.get("alternate_spine") == "spine02"
+        # Nothing claimed: the mapper is the only worker called.
+        assert [stage for stage, _ in transport.calls] == ["mapper"]
+
+    async def _assert_r6_refused(self, monkeypatch, phrase: str):
+        monkeypatch.setattr(graph_mod, "read_srv6_capability", lambda: _CAP)
+        llm = FixedWordLLM("provisionable")
+        transport = StubTransport()
+        state = await _run(SRV6_IPVRF_REQUEST + " " + phrase, llm, transport)
+        self._assert_no_claim(state, transport, "tePolicy")
+
+    async def test_r6_te_explicit_path_still_refused(self, monkeypatch):
+        """T525 — '... explicit path' on an SRv6 request is R6 (contract
+        §4): the same tePolicy refusal, zero claims."""
+        await self._assert_r6_refused(monkeypatch, "with an explicit path through spine01")
+
+    async def test_r6_te_sid_list_still_refused(self, monkeypatch):
+        """T525 — '... SID list ...' on an SRv6 request is R6 (contract
+        §4): the same tePolicy refusal, zero claims."""
+        await self._assert_r6_refused(monkeypatch, "with a SID list through spine01")
+
+    async def test_r6_te_pin_the_flow_still_refused(self, monkeypatch):
+        """T525 — '... pin the flow ...' on an SRv6 request is R6 (contract
+        §4): the same tePolicy refusal, zero claims."""
+        await self._assert_r6_refused(monkeypatch, "and pin the flow through spine01")
 
 
 # ---------------------------------------------------------------------------

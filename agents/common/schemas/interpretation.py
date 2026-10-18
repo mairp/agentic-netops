@@ -188,6 +188,12 @@ class Interpretation(BaseModel):
     transport: Literal["vxlan", "srv6"] | None = None
     signalling: Literal["vpn", "evpn"] | None = None
     preferred_spine: str | None = Field(default=None, alias="preferredSpine")
+    # The fail-over spine (T487, contract §4: "preferring spine01 with spine02
+    # as alternate" — same; the alternate is VALIDATED, not stored): parsed so
+    # the tier can answer R7 on it, and never persisted past validation — the
+    # allocator copies only preferred_spine, and the CRD spec's
+    # path.alternateSpine is the operator's own field.
+    alternate_spine: str | None = Field(default=None, alias="alternateSpine")
 
     # Terminal flags — mutually exclusive with each other (see class docstring)
     missing_fields: list[str] = Field(default_factory=list)
@@ -201,7 +207,7 @@ class Interpretation(BaseModel):
         consumers keep reading "absent" as vxlan, like the Go side's empty
         Transport."""
         data = handler(self)
-        for key in ("transport", "signalling", "preferred_spine"):
+        for key in ("transport", "signalling", "preferred_spine", "alternate_spine"):
             if data.get(key) is None:
                 data.pop(key, None)
         return data

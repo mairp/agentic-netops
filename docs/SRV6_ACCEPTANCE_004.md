@@ -189,3 +189,54 @@ and the proofs each rests on:
   answered; the Deployed line), `gates/proofs/q10-decline-ip-vrf-vpn.out` (decline at point 1:
   "refused: confirmation_1 declined by operator"; the receipt asserts no SRv6Service, no
   Network, no claim).
+
+### R4 — the TE exception: a preferred spine is path steering, not a TE policy (T628, phase 7, 2026-10-18)
+
+What changed and why (US5; contracts/operator-phrasings.md §3 R6 + §4; contracts/intent-srv6.md
+rule V8; spec FR-026; plan 10-08): with steering delivered, the ONE TE-adjacent phrasing family
+that names a preferred spine on an SRv6 request became provisionable end to end — while every
+other TE form stays refused with the same `tePolicy` property as before. This record reviews the
+refusal-surface texts before and after, per the TE-exception review obligation (tasks.md T628).
+
+Texts before / after:
+
+- Classifier (`agents/supervisors/provisioning/prompts/system.py`, UNSUPPORTED_CLASSIFICATION_PROMPT,
+  lines 129-133) — BEFORE: "names a construct with no fabric equivalent: traffic engineering (TE)
+  policies, pseudowire OAM / control words, multicast VPN, service chaining, complex QoS, or raw
+  CLI as a service property" with no exception, so a steering phrasing risked classification as an
+  out-of-contract TE ask. AFTER: the same bullet extended in place (lines 129-133): "Naming a
+  PREFERRED SPINE on an SRv6 service is not a TE policy — it is path steering, and it is
+  provisionable; TE policies remain out of contract". (Committed at the phase-6 gate, 5dbaf1b4,
+  ahead of the steering increment.)
+- Mapper (`agents/provisioning/mapper/agent.py`) — BEFORE: `_UNSUPPORTED_FEATURES` matched
+  `traffic engineering|te-policy|te-path` only; `preferredSpine` was parsed (US4) but no path
+  preference existed to render, and a preferred spine on a NON-SRv6 request produced no refusal.
+  AFTER: `_parse_alternate_spine` (lines 184-190) parses the contract's single alternate form;
+  `alternateSpine` rides the interpretation for validation only
+  (`agents/common/schemas/interpretation.py` lines 191-196, `alternate_spine` field, popped when
+  absent like its siblings); and a preferred spine on a request that is NOT SRv6 appends `tePolicy`
+  (`agent.py` lines 821-827, "a preferred spine on a request that is NOT
+  SRv6 is traffic engineering (R6)").
+- Supervisor (`agents/supervisors/provisioning/graph/graph.py`) — BEFORE: TE patterns covered
+  `traffic engineering|te-policy|te-path` only, so the contract's remaining R6 phrasings ("explicit
+  path", "SID list", "pin the flow") fell through unmatched. AFTER: all three added to
+  `UNSUPPORTED_FEATURE_PATTERNS` under the same `tePolicy` property (lines 211-213), and the
+  alternate spine gets R7 validation naming the field ("alternateSpine: unknown …", lines
+  1898-1908).
+- Contract tables unchanged (they specified this exact shape): operator-phrasings.md §3 R6 —
+  "traffic engineering other than a preferred spine → the existing `tePolicy` refusal, unchanged" —
+  and §4's Path preference rows; intent-srv6.md V8 — `unsupported.tePolicy` set together with
+  `preferredSpine` is still refused as `tePolicy`.
+- The provisionable side is real, not just unrefused: the renderer pins the peer /64 via the
+  preferred spine's leg (`pkg/fabricplan/srv6.go`, T516/T517) and the controller reads the DEVICE
+  pin into `status.activePath`, treats an alternate-leg pin as FAILOVER rather than drift (FR-026)
+  and refuses `PathDown` when neither leg serves the pin
+  (`controllers/srv6service/path.go`, T520/T521).
+
+Proofs this record rests on: `gates/proofs/q11-te.out` (exit 0: 69 passed — every TE corpus case
+still refused, the steering corpus mapping through, at unit level) and `gates/proofs/q11-path.out`
+(exit 0, LIVE: the steered service's pin reads `via 2001:db8:1::3 dev Ethernet0` naming spine01 —
+`spec.path.preferredSpine` — and the wire witness counts 12 SRH packets on the spine01 leg and 0
+on the spine02 leg). The failover/return/both proofs (q11-failover/q11-return/q11-both) witness
+that the exception's provisionable side survives an operator-directed path change and a
+both-paths-down; they are cited in the SC-007 row by the acceptance-index task.

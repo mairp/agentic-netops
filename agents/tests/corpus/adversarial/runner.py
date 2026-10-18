@@ -67,7 +67,7 @@ from common.provisioning_states import NetworkProvisioningStatus
 from common.schemas.audit import AuditEvent
 from common.schemas.interpretation import Interpretation
 from common.schemas.normalized_intent import NormalizedServiceIntent
-from provisioning.mapper.agent import _detect_srv6, srv6_mapping
+from provisioning.mapper.agent import _detect_srv6, _parse_preferred_spine, srv6_mapping
 from supervisors.provisioning.graph.graph import (
     MAPPER_MARKER,
     ProvisioningGraph,
@@ -354,6 +354,8 @@ def parse_service_request(text: str) -> dict | None:
             payload["signalling"] = f["signalling"]
         if f["preferred_spine"]:
             payload["preferred_spine"] = f["preferred_spine"]
+        if f["alternate_spine"]:
+            payload["alternate_spine"] = f["alternate_spine"]
         if f["unsupported"]:
             payload["unsupported_properties"] = list(f["unsupported"])
         elif f["missing"]:
@@ -417,6 +419,11 @@ def parse_service_request(text: str) -> dict | None:
         pfx = _PREFIX_RE.search(low)
         if pfx:
             payload["ipv4_prefixes"] = [pfx.group(1)]
+    # T487/R6 (contract §4): a preferred spine on a request that is NOT SRv6
+    # is traffic engineering — the same tePolicy flag the real mapper's
+    # legacy branch emits, so stub and production refuse alike.
+    if _parse_preferred_spine(text)[1]:
+        payload["unsupported_properties"] = ["tePolicy"]
     if missing:
         payload["missing_fields"] = missing
     return payload

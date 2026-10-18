@@ -5,6 +5,11 @@
 # variant (ip-vrf/vpn is in this lab's supported set and reaches the
 # confirmation point; the evpn/mac-vrf variants are refused R2).
 #
+# T487 — the alternate half of §4: "... with spine02 as alternate" is parsed
+# for R7 validation and never stored; the remaining TE phrasings (explicit
+# path, SID list, pin the flow) and a preferred spine on a NON-SRv6 request
+# are R6 — the existing tePolicy refusal.
+#
 # Loaded by tests/unit/test_phrasings_srv6.py; never replayed into
 # baseline_snapshot.json (SC-016).
 category: srv6_steering
@@ -49,3 +54,44 @@ cases:
     tier: r2_refused
     text: "ip-vrf over srv6 with evpn signalling carrying 10.65.0.0/24 between leaf01 wan1 and leaf02 wan1 for tenant acme prefer spine02"
     prefixes: ["10.65.0.0/24"]
+
+  # T487 — the ONE alternate form the contract names (§4): "preferring
+  # spine01 with spine02 as alternate". The alternate is validated (R7), not
+  # stored: it never reaches the allocator or the CRD.
+  - id: srv6-steer-alternate
+    construct: ip-vrf
+    signalling: vpn
+    preferred_spine: spine01
+    alternate_spine: spine02
+    tier: confirmed
+    text: "ip-vrf over srv6 carrying 2001:db8:12::/64 between leaf01 wan1 and leaf02 wan1 for tenant acme preferring spine01 with spine02 as alternate"
+    prefixes: ["2001:db8:12::/64"]
+
+  # T493's alternate half — an unknown alternate is R7, the same rung as an
+  # unknown preferred spine, and the refusal names the field.
+  - id: srv6-steer-alternate-unknown
+    construct: ip-vrf
+    signalling: vpn
+    preferred_spine: spine01
+    alternate_spine: spine09
+    tier: r7_refused
+    text: "ip-vrf over srv6 carrying 2001:db8:13::/64 between leaf01 wan1 and leaf02 wan1 for tenant acme preferring spine01 with spine09 as alternate"
+    prefixes: ["2001:db8:13::/64"]
+
+  # T487/R6 — TE phrasings an SRv6 request cannot carry (contract §4): the
+  # existing tePolicy refusal, naming the property. The mapper flags the
+  # token; the tier refuses (the graph's FR-012 scan often fires first).
+  - id: srv6-te-sid-list
+    tier: r6_refused
+    text: "ip-vrf over srv6 carrying 2001:db8:14::/64 between leaf01 wan1 and leaf02 wan1 for tenant acme with a SID list through spine01"
+    prefixes: ["2001:db8:14::/64"]
+    unsupported: ["tePolicy"]
+
+  # T487/R6 — a preferred spine on a request that is NOT SRv6 is traffic
+  # engineering: same tePolicy refusal, no claim, nothing provisioned.
+  - id: legacy-te-preferred-spine
+    construct: mac-vrf
+    tier: r6_refused
+    text: "extend vlan 100 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme preferring spine01"
+    vlan: 100
+    unsupported: ["tePolicy"]

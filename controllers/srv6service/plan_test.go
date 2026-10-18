@@ -296,7 +296,31 @@ func applyFailResult(node, errText string) *executorclient.ApplyResult {
 
 // verifyAllOK passes every check the executor was handed.
 func verifyAllOK(node string, checks []fabricplan.Check) *executorclient.VerifyResult {
+	// The path stage's read (T520) is a single read-only command check with
+	// an EMPTY Expect: it never asserts, it carries the observed route table
+	// back in Actual. The default fake models a converged steered device —
+	// the pin via the node's spine01 leg, the test site's preferred spine —
+	// the same table `ip -6 route show` prints on the lab.
+	if len(checks) == 1 && checks[0].Type == "command" &&
+		checks[0].Command == "ip -6 route show" && checks[0].Expect == "" {
+		return verifyScripted(node, checks, true, convergedRouteTable(node), "")
+	}
 	return verifyScripted(node, checks, true, "", "")
+}
+
+// convergedRouteTable is the default fake's `ip -6 route show` slice for the
+// test site (DefaultSiteFacts): the /48 pin, the decap route and — on each
+// attachment node — the per-service pin via that node's spine01 leg toward
+// the PEER function space (data-model §8.6; leaf01 is 3, leaf02 is 4).
+func convergedRouteTable(node string) string {
+	peer := "fcbb:bbbb:4:11::"
+	leg := "2001:db8:1::3"
+	if node == "leaf02" {
+		peer = "fcbb:bbbb:3:11::"
+		leg = "2001:db8:1::5"
+	}
+	return "fcbb:bbbb:3::/48 via 2001:db8:1::3 dev Ethernet0 metric 5\n" +
+		peer + " from :: via " + leg + " dev Ethernet0 metric 20\n"
 }
 
 // verifyAllFail fails every check with the same detail.
@@ -306,23 +330,35 @@ func verifyAllFail(node string, checks []fabricplan.Check, errText string) *exec
 
 func verifyScripted(node string, checks []fabricplan.Check, ok bool, actual, errText string) *executorclient.VerifyResult {
 	res := &executorclient.VerifyResult{Node: node}
+	// The actual/err text is JSON-escaped (the route table the path read
+	// carries is multi-line; a raw newline would break the payload).
+	actualJSON, errTextJSON := jsonString(actual), jsonString(errText)
 	payload := `{"node":"` + node + `","ok":` + boolJSON(ok) + `,"results":[`
 	for i := range checks {
 		if i > 0 {
 			payload += ","
 		}
 		payload += `{"check":"checks[` + itoa(i) + `]","ok":` + boolJSON(ok)
-		if actual != "" {
-			payload += `,"actual":"` + actual + `"`
+		if actualJSON != `""` {
+			payload += `,"actual":` + actualJSON
 		}
-		if errText != "" {
-			payload += `,"error":"` + errText + `"`
+		if errTextJSON != `""` {
+			payload += `,"error":` + errTextJSON
 		}
 		payload += `}`
 	}
 	payload += `]}`
 	resultFromJSON(res, payload)
 	return res
+}
+
+// jsonString marshals s as a JSON string ("": for an empty input).
+func jsonString(s string) string {
+	b, err := json.Marshal(s)
+	if err != nil {
+		return `""`
+	}
+	return string(b)
 }
 
 func boolJSON(b bool) string {

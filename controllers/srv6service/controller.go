@@ -181,6 +181,36 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// per-node check against device-observed state.
 	nodeStatus, vref := verifyPlan(ctx, r.Executor, plan, order, r.Facts.Locators)
 	svc.Status.Nodes = nodeStatus
+
+	// Path (path.go, T520/T521): the device-observed spine in use for a
+	// steered service, read off the pin's via address on the ingress leaf
+	// AFTER verify. It decides failover-vs-drift — a pin on the alternate is
+	// the failure action's state, not drift — and raises PathDown naming the
+	// missing path when neither leg serves the pin. Unsteered services leave
+	// status.activePath empty (data-model §2).
+	var view *pathView
+	var pobs pathObservation
+	if v := steeredPathView(&svc, order, alloc.ServiceSIDs, r.Facts.SpineLinks); v != nil {
+		obs, oerr := observePath(ctx, r.Executor, *v)
+		if oerr != nil {
+			r.Log.Error(oerr, "path observation failed; requeueing",
+				"srv6service", client.ObjectKeyFromObject(&svc))
+			return ctrl.Result{RequeueAfter: failureBackoff}, nil
+		}
+		view, pobs = v, obs
+	}
+	path := steerPathOutcome(&svc, view, pobs, vref)
+	if path.Refusal != nil {
+		return r.refuse(ctx, &svc, path.Refusal)
+	}
+	if path.SkipRepair {
+		// The pin rides the alternate: the failed preferred-pin checks are
+		// the failover state (FR-026 — traffic moves to the other spine),
+		// not drift. Re-applying the plan here would re-install the
+		// preferred pin and undo the operator's switch, so the reconcile
+		// proceeds to Ready with the observed path instead.
+		vref = nil
+	}
 	if vref != nil {
 		// Drift repair (T392/T393): when the checks fail but the rendered
 		// plan is unchanged (the device state moved, not the spec), the
@@ -234,11 +264,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// time instead of being re-stamped every reconcile.
 		setDataPathPassed(&svc.Status)
 	}
-	activePath := svc.Spec.Path.PreferredSpine
-	if activePath == "" {
-		activePath = svc.Spec.Path.AlternateSpine
-	}
-	setReadyOutcome(&svc.Status, svc.Generation, hashes, svc.Spec.DeepCopy(), corrID, activePath, alloc.Allocations)
+	// status.activePath (T520/T521): the device-observed spine the service
+	// rides, empty when not steered (data-model §2). Never a spec echo.
+	setReadyOutcome(&svc.Status, svc.Generation, hashes, svc.Spec.DeepCopy(), corrID, path.ActivePath, alloc.Allocations)
 	// T388 steady state: when every field this stage would write already
 	// matches — the same Verified/Degraded pair (upsertCondition keeps the
 	// LastTransitionTime unless the status itself changed), the same

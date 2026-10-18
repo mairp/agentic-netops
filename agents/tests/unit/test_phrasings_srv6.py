@@ -86,6 +86,7 @@ def load_srv6_cases() -> list[dict]:
                     "missing": raw.get("missing", []),
                     "unsupported": raw.get("unsupported", []),
                     "preferred_spine": raw.get("preferred_spine"),
+                    "alternate_spine": raw.get("alternate_spine"),
                     "vlan": raw.get("vlan"),
                     "prefixes": raw.get("prefixes", []),
                 }
@@ -175,7 +176,18 @@ def test_mapper_maps_every_srv6_case_to_its_file_expectation():
         v: list[str] = []
         dump = interp.model_dump(mode="json")
 
-        if case["unsupported"]:
+        if case["tier"] == "r6_refused":
+            # T487/R6 (contract §4): the mapper flags the TE property with
+            # the tePolicy token and clarifies nothing; the tier refuses. On
+            # an SRv6 request the rest of the mapping is still honest (the
+            # transport is srv6), on a legacy one no transport is claimed.
+            if interp.unsupported_properties != ["tePolicy"]:
+                v.append(f"r6 unsupported {interp.unsupported_properties!r} != ['tePolicy']")
+            if interp.missing_fields:
+                v.append(f"r6 case also clarifies: {interp.missing_fields!r}")
+            if dump.get("transport") == "srv6" and not _detect_srv6(case["text"]):
+                v.append("non-SRv6 case claimed transport srv6")
+        elif case["unsupported"]:
             # Terminal (R3/R5): the token, nothing missing, and NO claim —
             # no transport, no signalling, no spine, no endpoint prefixes.
             if interp.unsupported_properties != case["unsupported"]:
@@ -213,6 +225,13 @@ def test_mapper_maps_every_srv6_case_to_its_file_expectation():
                     f"preferred_spine {dump.get('preferred_spine')!r} != "
                     f"{case['preferred_spine']!r}"
                 )
+            if case["alternate_spine"] and dump.get("alternate_spine") != case["alternate_spine"]:
+                v.append(
+                    f"alternate_spine {dump.get('alternate_spine')!r} != "
+                    f"{case['alternate_spine']!r}"
+                )
+            elif not case["alternate_spine"] and dump.get("alternate_spine") is not None:
+                v.append(f"unexpected alternate_spine {dump.get('alternate_spine')!r}")
             if case["vlan"] is not None:
                 for ep in interp.endpoints:
                     if ep.vlan != case["vlan"]:
@@ -244,6 +263,10 @@ def test_mapper_emits_only_the_token_vocabulary_for_srv6():
         "tenant",
         "srv6TransportConflict",
         "srv6UnsupportedConstruct",
+        # T487/R6 — the property vocabulary rides the same channel: an SRv6
+        # request that asks for real TE is flagged with the Go-side literal
+        # (contract §4: "the existing tePolicy refusal, unchanged").
+        "tePolicy",
     }
     agent = MappingAgent()
     for case in load_srv6_cases():
@@ -291,6 +314,10 @@ def test_tier_confirms_refuses_and_clarifies_per_file(monkeypatch):
             "landed yet (the parallel graph worker's change)"
         )
     monkeypatch.setattr(graph_mod, "read_srv6_capability", _srv6_capability)
+    # T487/R7 — the site knows its spines, so the R7 spine rung (preferred
+    # AND alternate) is LIVE for every steering case: the confirmed cases
+    # must name real spines and the r7_refused case must be caught.
+    monkeypatch.setenv("FABRIC_SPINE_NODES", "spine01,spine02")
     failures: list[str] = []
     for case in load_srv6_cases():
         state, transport, events = asyncio.run(_run_graph(case["text"]))
@@ -334,6 +361,28 @@ def test_tier_confirms_refuses_and_clarifies_per_file(monkeypatch):
                 v.append("mapped_parameters accepted on an R2 refusal")
             if not any(e.event_type == "refuse" for e in events):
                 v.append("no 'refuse' AuditEvent for the R2 refusal")
+        elif tier == "r6_refused":
+            # T487 — R6: the existing tePolicy refusal (contract §4), naming
+            # the property, nothing mapped, nothing claimed.
+            if status != NetworkProvisioningStatus.FAILED.value:
+                v.append(f"expected FAILED (R6), got status={status!r} pending={pending!r}")
+            reason = state.get("refusal_reason") or ""
+            if "tePolicy" not in reason:
+                v.append(f"refusal is not R6/tePolicy: {reason!r}")
+            if mapped is not None:
+                v.append("mapped_parameters accepted on an R6 refusal")
+        elif tier == "r7_refused":
+            # T487 — R7 on the ALTERNATE (validated, not stored): the refusal
+            # names the alternateSpine field and lists the site's spines.
+            if status != NetworkProvisioningStatus.FAILED.value:
+                v.append(f"expected FAILED (R7), got status={status!r} pending={pending!r}")
+            reason = state.get("refusal_reason") or ""
+            if 'alternateSpine: unknown "spine09"' not in reason:
+                v.append(f"refusal is not the alternateSpine R7: {reason!r}")
+            if "(site has: spine01, spine02)" not in reason:
+                v.append(f"R7 refusal does not list the site's spines: {reason!r}")
+            if mapped is not None:
+                v.append("mapped_parameters accepted on an R7 refusal")
         elif tier == "clarify":
             if status != NetworkProvisioningStatus.MAPPED.value or pending != "clarify":
                 v.append(f"expected clarify, got status={status!r} pending={pending!r}")

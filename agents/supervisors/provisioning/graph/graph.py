@@ -206,6 +206,11 @@ UNSUPPORTED_FEATURE_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     (re.compile(r"\btraffic engineering\b"), "tePolicy", "traffic engineering (TE) policy"),
     (re.compile(r"\bte[- ]policy\b"), "tePolicy", "traffic engineering (TE) policy"),
     (re.compile(r"\bte[- ]path\b"), "tePolicy", "TE explicit path"),
+    # T487 — the contract's remaining §4 R6 phrasings (explicit path, SID
+    # list, pin the flow): all one refusal, the tePolicy property.
+    (re.compile(r"\bexplicit path\b"), "tePolicy", "TE explicit path"),
+    (re.compile(r"\bsid list\b"), "tePolicy", "SID list"),
+    (re.compile(r"\bpin(?:ning)? the flow\b"), "tePolicy", "pinned flow"),
     (re.compile(r"\bpseudowire oam\b"), "pseudowireOAM", "pseudowire OAM"),
     (re.compile(r"\bpw oam\b"), "pseudowireOAM", "pseudowire OAM"),
     (re.compile(r"\bcontrol word\b"), "pseudowireOAM", "pseudowire control word"),
@@ -1885,6 +1890,17 @@ class ProvisioningGraph:
                 state,
                 config,
                 f"preferredSpine: unknown \"{interpretation.preferred_spine}\" "
+                f"(site has: {', '.join(inv.spines)})",
+                DEFAULT_SUGGESTION,
+                stage="supervisor",
+            )
+        # T487 — the alternate is validated, not stored (contract §4): the
+        # same R7 rung, named for the alternateSpine field.
+        if inv.spines and interpretation.alternate_spine and not knows(inv.spines, interpretation.alternate_spine):
+            return self._refuse(
+                state,
+                config,
+                f"alternateSpine: unknown \"{interpretation.alternate_spine}\" "
                 f"(site has: {', '.join(inv.spines)})",
                 DEFAULT_SUGGESTION,
                 stage="supervisor",
