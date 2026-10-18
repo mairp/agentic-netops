@@ -253,14 +253,15 @@ seg6_witness() {
     local node probe out
     node=$(node_for_ip "${t%%:*}")
     [[ -n "$node" ]] || die "$label: cannot resolve containerlab node for $t"
-    # Kernel seg6 lwtunnel is required for this witness. The sonic-vs image
-    # runs on the container host kernel (supports seg6); the sonic-vm guest
-    # runs the SONiC Debian kernel where LWTUNNEL/seg6 is disabled — "ip
-    # route ... encap seg6" is silently accepted but the encap is dropped.
-    # Probe once; when the node kernel cannot host the witness the check
-    # exits SKIP (77) so the gate counts it as skipped, never passed (T029) —
-    # the gNMI CONFIG_DB SRv6 witnesses still cover SRv6 control-plane state
-    # on both profiles.
+    # Kernel seg6 lwtunnel is required for this witness. Per the research
+    # addendum (feature 004, verified on this lab): seg6 IS built into the
+    # sonic-vm guest kernel; the earlier "kernel has seg6 disabled" reading
+    # was an artifact of probing on `dev lo`, which silently drops the route.
+    # The probe therefore binds to the real `Loopback0` (T028), and only a
+    # genuinely non-programmable node falls out below. Probe once; when the
+    # node cannot host the witness the check exits SKIP (77) so the gate
+    # counts it as skipped, never passed (T029) — the gNMI CONFIG_DB SRv6
+    # witnesses still cover SRv6 control-plane state on both profiles.
     if [[ -z "${SEG6_KERNEL_OK:-}" ]]; then
       local probe_out
       probe_out=$(seg6_probe_out "$node")

@@ -18,7 +18,10 @@ notes: |
   VM-aware: clab::bootstrap execs init-sonic-bootstrap.sh in the launcher,
   which provisions the guest over SSH (TLS certs, TELEMETRY/gNMI enablement
   with TLS, gNMI Linux user, persistence via `config save`). Limited to TLS +
-  gNMI enablement; the EVPN/SRv6 tests program configuration via gNMI during
-  qualification. Build the image with scripts/build-sonic-vm.sh and keep the
+  gNMI enablement; gNMI serves reads and the gate's read-back witnesses —
+  device WRITES go through the fabric executor as GCU patches over SSH, and
+  the qualification suite's configuration steps drive that same SSH path
+  (no gNMI Sets are issued for service state). Build the image with
+  scripts/build-sonic-vm.sh and keep the
   digest pinned in versions.lock.yaml (authoritative; this file is
   informational and is not consumed by deploy tooling).

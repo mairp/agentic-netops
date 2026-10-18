@@ -135,7 +135,7 @@ Approaches to try (written before the first attempt):
 | item | verdict | proofs | note |
 | --- | --- | --- | --- |
 | Vrf1 create + client-port attach (CONFIG_DB) | proven | `spike-vrf-apply-leaf01`, `spike-vpn-state-leaf02` | field-level GCU adds; a whole-table `/INTERFACE` replace WIPES the fabric links (measured) — never remove what the service does not own |
-| per-service End.DT46 decap | proven | `spike-vpn-state-leaf01`, `spike-vpn-state-leaf02`, `spike-vpn-readback-leaf01` | kernel route `fcbb:bbbb:<n>:11::/64 encap seg6local action End.DT46 vrftable 1001 dev Vrf1 metric 1024` |
+| per-service End.DT46 decap | proven | `spike-vpn-state-leaf01`, `spike-vpn-state-leaf02`, `spike-vpn-readback-leaf01` | kernel route `fcbb:bbbb:<n>:11::/64 encap seg6local action End.DT46 vrftable 1001 count dev Vrf1 metric 1024`; the `count` flag (T560) turns on the kernel's per-SID counters — `ip -s -6 route show` then reports `packets N bytes M errors 0` on the route line |
 | ingress encapsulation toward the peer SID | proven | `spike-vpn-capture`, `spike-steering-path` | kernel route in Vrf1: `<peer-subnet> encap seg6 mode encap segs 1 [ fcbb:bbbb:<peer>:11:: ] dev Ethernet0` |
 | wire format witness (SRH on the fabric) | proven | `spike-vpn-capture` | tcpdump shows IPv6 + Routing header dst = the peer service SID; decap witnessed on the egress leaf's kernel route |
 | client-to-client traffic (acceptance bar) | proven | `spike-vpn-ping`, `spike-vpn-clients` | 0% loss both directions at default size AND 8900-byte payload DF |
@@ -161,8 +161,10 @@ Device commands, in order (builders: `scripts/spike/vrf-apply.sh`,
 3. **Service SID (per node)**: originate the locator /48
    (`ipv6 route fcbb:bbbb:<n>::/48 Loopback0` + BGP `network`), then assert
    the decap: `ip -6 route replace fcbb:bbbb:<n>:11::/64 encap seg6local
-   action End.DT46 vrftable 1001 dev Vrf1` (the Vrf1 table id is 1001 for
-   leaf01 / 1002 for leaf02 — read from the device, do not assume).
+   action End.DT46 vrftable 1001 count dev Vrf1` (the Vrf1 table id is 1001
+   for leaf01 / 1002 for leaf02 — read from the device, do not assume;
+   `count` is the seg6local per-behavior counter flag, T560, and sits
+   INSIDE the encap clause — before `dev`).
 4. **Ingress steering (per node, in Vrf1)**: `ip route replace
    <peer-subnet> vrf Vrf1 encap seg6 mode encap segs 1 [ fcbb:bbbb:<peer>:11:: ]
    dev Ethernet0` — the underlay route toward the peer locator /48 is pinned

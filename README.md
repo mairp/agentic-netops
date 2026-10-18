@@ -51,7 +51,10 @@ the collected evidence is in
 ![Fabric topology](docs/images/lab-topology.png)
 
 Two spines, two leaves and four clients in containerlab, wired as a Clos with a
-dual-stack eBGP underlay and an EVPN/VXLAN overlay.
+dual-stack eBGP underlay and an EVPN/VXLAN overlay. The **sonic-vm** profile
+(default) runs each node as a SONiC VM (vrnetlab/KVM) and is the profile the
+SRv6 service plane is delivered and qualified on; **sonic-vs** stays selectable
+for hosts without KVM.
 
 ![Fabric telemetry](docs/images/grafana-fabric-telemetry.png)
 
@@ -117,9 +120,10 @@ gnmic directly, Grafana renders it.
 
 | Piece | What it is |
 | --- | --- |
-| SONiC fabric | 2 spines, 2 leaves, 4 clients in containerlab; BGP underlay, EVPN/VXLAN overlay |
-| Controllers | SRv6Service CRD + provider, built from vendored Go source |
-| Observability | OpenTelemetry collector, Prometheus, Grafana with fabric dashboards |
+| SONiC fabric | 2 spines, 2 leaves, 4 clients in containerlab; BGP underlay, EVPN/VXLAN overlay; sonic-vm profile default, sonic-vs selectable |
+| Controllers | SRv6Service CRD + provider and the sonicprovider Network controller, built from vendored Go source; southbound writes go through the host-side fabric-executor (GCU over ssh on sonic-vm), reads over gNMI |
+| SRv6 services | the delivered variant is `ip-vrf` over srv6 with `vpn` signalling, optionally steered (preferred + alternate spine, `status.activePath`); `evpn`-signalled and mac-vrf variants are refused (`UnsupportedVariant`/`CapabilityMissing`), and per-SID traffic counters do not exist on this build — controller gauges expose locator/SID state and the active path |
+| Observability | OpenTelemetry collector, Prometheus, Grafana with fabric + SRv6 dashboards and the SRv6PathDown alert |
 | Intent tier | AGNTCY supervisor + mapper/allocator/deployer agents over A2A/SLIM; the deployer runs the deployment transaction (translate → dry-run → apply → rollback → convergence watch) and reports truthfully |
 
 ## Prerequisites
@@ -139,7 +143,9 @@ For a guided walk-through — including driving the agents from plain language �
 
 ```bash
 # bring the fabric up (~30-40 min on first run: image pulls + controller build)
-./scripts/provision.sh --profile sonic-vs --cluster-name agentic-netops
+# sonic-vm is the default profile (SONiC VMs; needs KVM and a locally built image);
+# pass --profile sonic-vs on hosts without KVM
+./scripts/provision.sh --cluster-name agentic-netops
 
 # verify
 ./tests/integration/fabric_verify.sh      # BGP sessions, EVPN routes, overlay data path
@@ -159,7 +165,7 @@ Add the agent tier:
 cp .env.example .env
 $EDITOR .env        # e.g. LLM_MODEL=openai/gpt-5, OPENAI_API_KEY=..., OPENAI_BASE_URL=https://api.openai.com/v1
 
-./scripts/provision.sh --profile sonic-vs --cluster-name agentic-netops --with-intent-tier
+./scripts/provision.sh --cluster-name agentic-netops --with-intent-tier
 kubectl --context kind-agentic-netops -n agentic-netops-agents get deploy
 # UI on http://localhost:30000
 ```
@@ -187,12 +193,26 @@ These are real, reproduced, and documented rather than hidden:
 - **`docs/INTENT_TIER_OPS_READINESS.md` contains resource figures that were never measured.**
   They were produced before a cluster existed and before metrics-server was installed; real
   values differ by large factors. Re-measure before relying on that document.
+- **SRv6 service plane is sonic-vm-only and variant-limited.** The delivered
+  variant is `ip-vrf` over srv6 with `vpn` signalling (steerable); the
+  `evpn`-signalled ip-vrf and mac-vrf variants are refused by the capability
+  record, not approximated. Per-SID traffic counters do not exist on the
+  pinned image (`COUNTERS_SRV6_NAME_MAP` is empty — the spike-counters proof);
+  the executor exposes kernel VRF device counters instead, and the
+  controller emits locator/SID/active-path gauges the SRv6 dashboard and the
+  SRv6PathDown alert run on.
+- **The sonic-vm image must be built locally** (`scripts/build-sonic-vm.sh`,
+  no public registry serves it) and needs KVM/nested virtualization; without
+  it `--profile sonic-vm` fails at deploy with the documented missing-image
+  gate-fail path. The topology names that image by TAG with a preflight
+  digest check (the pinned-image-by-digest exception is recorded in
+  `lab/profiles/sonic-vm/README.md`).
 
 ## Repository layout
 
 ```
 scripts/          provision.sh, off.sh, and lib/ (containerlab, rbac, qualify, intent_tier)
-lab/              containerlab topology and the sonic-vs profile bootstrap
+lab/              containerlab topology and the sonic-vm (default) / sonic-vs profile bootstraps
 deploy/           Kubernetes manifests: controllers, kubenet, observability, agents
 controllers/      SRv6Service and sonicprovider Network controllers (Go); see README-CONTROLLERS.md
 tests/            integration (fabric_verify, cycles_runner) and unit suites

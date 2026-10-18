@@ -40,8 +40,12 @@
 #   --fail-both <name>       both pins removed: Ready goes False with
 #                            PathDown naming the missing path; the preferred
 #                            pin is re-installed afterwards (self-restoring)
-#   --assert-alert <name>    US8's SRv6PathDown alert proof — deliberately
-#                            not implemented in US5 (exits 3)
+#   --assert-alert <name>    US8's SRv6PathDown alert proof (12-06): remove
+#                            the preferred pin, wait for the controller's
+#                            resync to record preferred=0, then watch
+#                            ALERTS{alertname="SRv6PathDown"} turn firing on
+#                            the Prometheus API; restore the pin and watch
+#                            the firing alert clear (self-restoring)
 #
 # Honest SLO (printed by the failover modes): the FR-026a bound above holds
 # for the operator-directed pin switch. The MEASURED bound for a real link
@@ -449,9 +453,75 @@ cmd_fail_both() { # --fail-both: neither path usable -> PathDown
   ok "fail-both: PathDown named the missing path; service restored to ${PREF_SPINE}"
 }
 
-cmd_assert_alert() { # US8 adds this proof; US5 refuses to fake it.
-  echo "FAIL: --assert-alert is US8's proof (SRv6PathDown alert via the Prometheus API) and is deliberately not implemented in US5" >&2
-  exit 3
+cmd_assert_alert() { # --assert-alert <name>: SRv6PathDown fires while the
+                     # preferred pin is away and clears when it is back
+                     # (12-06, US8/T566; US5 refused to fake it)
+  local name=$1 alert="${ALERT_NAME:-SRv6PathDown}"
+  facts_of "$name"
+  local c s line via port PF_PORT PF_PID prom_up
+  c=$(container_of "$INGRESS")
+  s=$(node_sudo "$c")
+
+  # The Prometheus API over a port-forward this mode owns and always tears
+  # down; alert evaluation is every 15s and the rule holds for 1m.
+  PF_PORT="${PROM_PF_PORT:-19092}"
+  kubectl --context "$CTX" -n monitoring port-forward svc/prometheus "${PF_PORT}:9090" >/dev/null 2>&1 &
+  PF_PID=$!
+  cleanup_pf() { kill "$PF_PID" 2>/dev/null || true; }
+  trap cleanup_pf EXIT
+  prom_up=0
+  for ((i = 0; i < 30; i++)); do
+    curl -fsS "http://127.0.0.1:${PF_PORT}/-/ready" >/dev/null 2>&1 && { prom_up=1; break; }
+    sleep 1
+  done
+  [[ "$prom_up" == 1 ]] || die "Prometheus never became reachable through the port-forward"
+  prom_query() { # prom_query <promql> -> the API's JSON answer
+    curl -fsS "http://127.0.0.1:${PF_PORT}/api/v1/query?query=$(python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))' "$1")"
+  }
+  firing_series() { # count of firing <alert> series right now
+    prom_query "ALERTS{alertname=\"${alert}\",alertstate=\"firing\"}" |
+      python3 -c 'import json,sys;print(len(json.load(sys.stdin).get("data",{}).get("result",[])))'
+  }
+
+  n=$(firing_series)
+  [[ "$n" == 0 ]] || die "${alert} is already firing before the proof starts ($n series) — fix the fabric first; an alert proof needs a clean baseline"
+
+  echo "--- deleting the preferred pin on $INGRESS (${alert} must fire: no preferred leg serves the pin)"
+  line=$(current_pin "$INGRESS" "$PEER_FN")
+  [[ -n "$line" ]] || die "$INGRESS: no pin for $PEER_FN"
+  node_run "$c" "${s} ip -6 route del ${line}" || die "pin delete failed"
+
+  echo "--- waiting for the firing ${alert} series (resync <=5 min + for:1m + eval 15s)"
+  fired=""
+  for ((i = 0; i < (AWAIT_ACTIVE_PATH_TIMEOUT + 180); i += 15)); do
+    n=$(firing_series || echo 0)
+    if [[ "$n" != 0 ]]; then fired="$n"; break; fi
+    sleep 15
+  done
+  if [[ -z "$fired" ]]; then
+    echo "--- diagnostics: $(prom_query 'agentic_netops_srv6_active_path' | head -c 600)"
+    die "${alert} never reached firing (waited $((AWAIT_ACTIVE_PATH_TIMEOUT + 180))s)"
+  fi
+  ok "${alert} is FIRING with the preferred pin away ($fired series, after ~${i}s)"
+
+  # Self-restoring: put the pin back the way the controller holds it, then
+  # watch the alert clear (12-06: "and clears when it is restored").
+  echo "--- restoring the preferred pin via ${PREF_SPINE} (self-restore)"
+  read -r via port < <(leg_of "$INGRESS" "$PREF_SPINE") || die "no $PREF_SPINE leg on $INGRESS"
+  node_run "$c" "${s} ip -6 route replace ${PEER_FN} from :: via ${via} dev ${port} metric 20" ||
+    die "restore failed"
+  await_active_path "$name" "$PREF_SPINE"
+  await_ready "$name" "True" "180"
+  cleared=""
+  for ((i = 0; i < 240; i += 15)); do
+    n=$(firing_series || echo 0)
+    if [[ "$n" == 0 ]]; then cleared=1; break; fi
+    sleep 15
+  done
+  [[ -n "$cleared" ]] || die "${alert} still firing after the preferred pin was restored"
+  cleanup_pf
+  trap - EXIT
+  ok "assert-alert: ${alert} fired while the preferred pin was away and cleared after the restore to ${PREF_SPINE}"
 }
 
 SKIP_LIVE() {
@@ -480,5 +550,5 @@ case "$mode" in
   --fail-preferred) cmd_fail_preferred "$name" ;;
   --restore-preferred) cmd_restore_preferred "$name" ;;
   --fail-both) cmd_fail_both "$name" ;;
-  --assert-alert) cmd_assert_alert ;;
+  --assert-alert) cmd_assert_alert "$name" ;;
 esac

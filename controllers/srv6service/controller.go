@@ -181,6 +181,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// per-node check against device-observed state.
 	nodeStatus, vref := verifyPlan(ctx, r.Executor, plan, order, r.Facts.Locators)
 	svc.Status.Nodes = nodeStatus
+	// T558: the locator and SID state gauges say what this pass just saw
+	// (the drift-repair re-verify below overwrites them again).
+	recordSrv6Verify(&svc, order, r.Facts.Locators, alloc.ServiceSIDs, nodeStatus)
 
 	// Path (path.go, T520/T521): the device-observed spine in use for a
 	// steered service, read off the pin's via address on the ingress leaf
@@ -200,6 +203,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		view, pobs = v, obs
 	}
 	path := steerPathOutcome(&svc, view, pobs, vref)
+	// T559: the active-path gauges are written BEFORE the stage's refusal is
+	// raised, so a pin with no serving leg reaches Prometheus as 0 under both
+	// labels — the condition the SRv6PathDown alert fires on.
+	recordSrv6ActivePath(&svc, view, path.ActivePath)
 	if path.Refusal != nil {
 		return r.refuse(ctx, &svc, path.Refusal)
 	}
@@ -230,6 +237,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			if aerr == nil {
 				nodeStatus2, vref2 := verifyPlan(ctx, r.Executor, plan, order, r.Facts.Locators)
 				svc.Status.Nodes = nodeStatus2
+				// T558: the repair's re-verify is now the newest pass; the
+				// gauges follow it.
+				recordSrv6Verify(&svc, order, r.Facts.Locators, alloc.ServiceSIDs, nodeStatus2)
 				vref = vref2
 			} else {
 				if rberr := rollbackPlan(ctx, r.Executor, plan, order, r.Log); rberr != nil {

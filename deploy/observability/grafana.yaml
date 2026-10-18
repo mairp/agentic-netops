@@ -103,13 +103,14 @@ data:
       "editable": true,
       "graphTooltip": 0,
       "panels": [
-        {"type": "graph", "title": "SRv6 MySID Counters by Endpoint/Behavior", "targets": [{"expr": "sum by(endpoint,behavior,sid) (rate(sonic_srv6_mysid_packets_total[5m]))"}]},
-        {"type": "stat", "title": "Active Path State by Endpoint", "targets": [{"expr": "max by(path,endpoint) (agentic_netops_srv6_active_path{path=~'primary|alternate'})"}]},
-        {"type": "graph", "title": "Path Utilization by Endpoint/Behavior", "targets": [{"expr": "sum by(path,endpoint,behavior) (rate(sonic_srv6_mysid_packets_total[5m]))"}]}
+        {"type": "stat", "title": "SRv6 Locator State per Node (verified by the controller)", "targets": [{"expr": "max by(service,node,locator) (agentic_netops_srv6_locator_state)"}]},
+        {"type": "stat", "title": "SRv6 SID State per Node (verified by the controller)", "targets": [{"expr": "max by(service,node,sid) (agentic_netops_srv6_sid_state)"}]},
+        {"type": "stat", "title": "Active Path per Service (1 = the pin rides that spine)", "targets": [{"expr": "max by(service,node,path,spine) (agentic_netops_srv6_active_path)"}]},
+        {"type": "timeseries", "title": "Per-SID kernel forwarding (decapsulated packets/s by the End.DT46 behavior)", "targets": [{"expr": "sum by (node, sid) (rate(fabric_executor_srv6_sid_packets_total{direction=\"decap\"}[1m]))"}]}
       ],
       "schemaVersion": 39,
       "title": "Agentic NetOps SRv6 Service Path",
-      "version": 2
+      "version": 4
     }
   pipeline-health.json: |
     {

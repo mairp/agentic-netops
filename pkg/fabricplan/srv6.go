@@ -257,9 +257,27 @@ func ForSRv6Service(svc *v1alpha1.SRv6Service, alloc Allocations, opts SRv6Optio
 		// decap (recipe §2a step 3): the VRF table id is device-allocated, so
 		// the recorded read-back (`ip -d link show <vrf> | grep -o 'table
 		// [0-9]*'`) is embedded in the command itself — the op reads it on
-		// the node, never assumes 1001.
+		// the node, never assumes 1001. The `count` keyword (seg6local
+		// option; iproute2 SEG6LOCAL grammar `action ACTION [ OPTIONS ]
+		// [ count ]`) turns on the kernel's per-behavior counters for THIS
+		// SID's route: `ip -s -6 route show` then reports
+		// `packets N bytes M errors 0` inline on the route line — the per-SID
+		// forwarding counter spec.md FR-036/Principle IV makes observable,
+		// which cmd/fabric-executor/metrics.go scrapes as
+		// fabric_executor_srv6_sid_packets_total. Measured live on the
+		// sonic-vm guest (kernel 6.1.0-29-2-amd64, iproute2 6.1.0): without
+		// `count` the dump carries no counter fields (spike-counters §4 read
+		// exactly that) and the spike wrongly concluded per-SID counters do
+		// not exist; with it, 4 client pings decapsulated by
+		// fcbb:bbbb:3:11::/64 raised that route's own packets counter 0 → 4
+		// on both leaves at 0% loss. `count` must sit INSIDE the encap clause
+		// (before `dev`); at end-of-line iproute2 rejects it with
+		// `Error: either "to" is duplicate, or "count" is a garbage`. The
+		// seg6 mode-encap steering route has no count option (only seg6local
+		// behaviors count), so the decap counter is the per-SID series this
+		// feature exports.
 		np.Ops = append(np.Ops, Op{Shell: []string{
-			fmt.Sprintf("ip -6 route replace %s encap seg6local action End.DT46 vrftable $(ip -d link show %s 2>/dev/null | grep -o 'table [0-9]*' | cut -d' ' -f2) dev %s", self.sid, vrf, vrf),
+			fmt.Sprintf("ip -6 route replace %s encap seg6local action End.DT46 vrftable $(ip -d link show %s 2>/dev/null | grep -o 'table [0-9]*' | cut -d' ' -f2) count dev %s", self.sid, vrf, vrf),
 		}})
 
 		// steering-route (recipe §2a step 4): the client /24 of the PEER

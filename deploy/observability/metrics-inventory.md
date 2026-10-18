@@ -16,6 +16,9 @@ Sources and examples (series names are indicative; exporters must label consiste
 - Provider (Go Prom client):
   - agentic_netops_sonicprovider_applies_total{}
   - controller_runtime_reconcile_errors_total{controller}
+- fabric-executor (Go Prom client, host service scraped through the kind bridge gateway, T560):
+  - fabric_executor_srv6_sid_packets_total{node,sid,direction}
+  - fabric_executor_node_vrf_packets_total{node,device,direction}
 - Kubernetes:
   - up{job}
   - kube_pod_status_ready{namespace,pod}

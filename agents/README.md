@@ -133,9 +133,26 @@ accepted as deprecated aliases. Credentials are never committed.
 - Container base images are pinned by digest under `intent_tier:` in
   `versions.lock.yaml`; the Dockerfiles in `docker/` use those digests.
 
+## The "over srv6" qualifier
+
+A request may qualify a connectivity intent with **over srv6** ("connect these
+two sites over srv6", "give tenant acme an ip-vrf over srv6"). The tier maps
+it to an `SRv6Service` submission rather than a `Network`:
+
+- **Delivered**: `ip-vrf` over srv6 with `vpn` signalling — optionally
+  **steered** (`preferredSpine` + `alternateSpine`; `status.activePath`
+  reports which spine the pin rides). Identifiers are claimed by the
+  controller; the tier never types them.
+- **Refused, not improvised**: `ip-vrf` over srv6 with `evpn` signalling and
+  `mac-vrf` over srv6 are outside the delivered set. The controller refuses
+  them (`UnsupportedVariant` / `CapabilityMissing`, naming the capability
+  record) and the tier reports that refusal instead of submitting a shape the
+  fabric cannot verify. A typed locator/SID/VRF in a request is likewise
+  refused — identifiers are pool-claimed only.
+
 ## Vocabulary
 
-The operator-facing vocabulary is the four constructs: vlan, mac-vrf, ip-vrf, acl. Legacy names (VPLS, VPWS/E-Line, L3VPN, IRB) are accepted only as migration aliases and are recorded as provenance; they are not askable types.
+The operator-facing vocabulary is the four constructs: vlan, mac-vrf, ip-vrf, acl. Legacy names (VPLS, VPWS/E-Line, L3VPN, IRB) are accepted only as migration aliases and are recorded as provenance; they are not askable types. The SRv6 ask is the "over srv6" qualifier of the section above; there is no separate legacy name for it.
 
 ## Develop
 

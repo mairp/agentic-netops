@@ -58,6 +58,14 @@ func (r *Reconciler) finalizeDelete(ctx context.Context, svc *v1alpha1.SRv6Servi
 	corrID := correlationID(svc)
 	log := r.Log.WithValues("finalizing", client.ObjectKeyFromObject(svc), "correlationId", corrID)
 
+	// T558/T559: a deleted service must stop claiming locator, SID and path
+	// state in Prometheus. Without this, the gauges keep the last observed
+	// values of a service that no longer exists — its active-path series
+	// would hold the alert open about nothing.
+	if dropped := clearSrv6Metrics(svc); dropped > 0 {
+		log.Info("cleared SRv6 state gauges for the deleted service", "series", dropped)
+	}
+
 	// Render the plan of what is (or was) applied, to roll it back. Without
 	// allocations nothing was ever applied or claimed — in that case the
 	// completion event says so explicitly instead of claiming a rollback that

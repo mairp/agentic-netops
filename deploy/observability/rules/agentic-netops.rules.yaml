@@ -36,12 +36,29 @@ spec:
           labels: { severity: warning }
           annotations: { description: "SDC target unreachable", summary: "Target unreachable" }
         - alert: SRv6PathDown
-          expr: max_over_time(sonic_srv6_mysid_packets_total[10m]) == 0
-          for: 10m
+          # T563 (V:steer — steering is proven on the default profile,
+          # lab/profiles/sonic-vm/srv6-supported.yaml): the alert watches the
+          # active-path gauge the SRv6Service controller sets from the path
+          # stage's route-table observation (controllers/srv6service/metrics.go).
+          # A steered service whose pin no longer rides its preferred spine
+          # reads 0 under path="preferred" — failover (pin on the alternate)
+          # and a lost pin alike — so the alert says "the preferred path is
+          # not in use", which is the condition worth paging on. The short
+          # `for` keeps the signal close to the state change (the old
+          # 10m-quiet-window form watched a per-SID counter that nothing on
+          # this build emits — proof spike-counters).
+          expr: agentic_netops_srv6_active_path{path="preferred"} == 0
+          for: 1m
           labels: { severity: critical }
-          annotations: { description: "No SRv6 MySID packets observed", summary: "SRv6 path/counter failure" }
+          annotations: { description: "A steered SRv6 service's pin is not on its preferred spine", summary: "SRv6 preferred path not active" }
         - alert: TopologyInventoryMismatch
-          expr: on(device) (count by(device) (sonic_interface_packets_total) != count by(device) (label_replace(sonic_interface_packets_total, "device", "$1", "device", "(.*)")))
+          # `on(device)` is a BINARY matching modifier — it must sit between
+          # the two operands, never lead the expression (a leading on() is a
+          # PromQL parse error, caught live 2026-10-18 when this group first
+          # actually loaded). The comparison is the per-device series count of
+          # two independent sonic families: a family losing series (partial
+          # scrape) mismatches the other and fires.
+          expr: count by(device) (sonic_interface_packets_total) != on(device) count by(device) (sonic_interface_oper_status)
           for: 10m
           labels: { severity: warning }
           annotations: { description: "Prometheus series do not match inventory labels", summary: "Topology inventory mismatch" }
@@ -55,3 +72,123 @@ spec:
           for: 5m
           labels: { severity: warning }
           annotations: { description: "OTel Collector exporter failures", summary: "OTel export failure" }
+---
+# T563/T576 deployability on this cluster: the PrometheusRule above needs the
+# monitoring.coreos.com/v1 CRD, which this lab's bare Prometheus
+# (deploy/observability/prometheus.yaml — no operator) does not have, so
+# `kubectl apply` of that document was a silent no-op (`|| true` in
+# scripts/lib/observability.sh) and the stub ConfigMap inside prometheus.yaml
+# was the only rule set Prometheus ever loaded. The ConfigMap below carries
+# the SAME groups for the bare Prometheus to load from /etc/prometheus/rules —
+# one rule content, two shapes, and SRv6PathDown's expr is identical in both
+# (agentic_netops_srv6_active_path{path="preferred"} == 0).
+# scripts/lib/observability.sh applies this file AFTER prometheus.yaml, so
+# this ConfigMap — same name as the one the Deployment mounts — wins; it also
+# carries targets.rules.yml verbatim from prometheus.yaml so this apply never
+# drops the two target alerts (nothing consumes the stub's
+# agentic_netops_constant_one recording rule, which the real groups replace).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+data:
+  targets.rules.yml: |
+    groups:
+      - name: targets.health
+        rules:
+          - alert: OTelCollectorDown
+            expr: up{job="otel-collector"} == 0
+            for: 2m
+            labels: { severity: critical }
+            annotations:
+              summary: OTel Collector target down
+              description: Prometheus cannot scrape the OTel Collector exporter.
+          - alert: Agentic NetOpsControllersDown
+            expr: sum by(pod) (up{job="controllers"}) == 0
+            for: 2m
+            labels: { severity: warning }
+            annotations:
+              summary: Agentic NetOps controller target missing
+              description: Prometheus scrape discovered no controller metrics endpoints.
+  agentic-netops.rules.yml: |
+    groups:
+    - name: agentic-netops.fabric
+      rules:
+      - alert: LinkDown
+        expr: min_over_time(sonic_interface_oper_status{state="down"}[5m]) == 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          description: Interface down detected
+          summary: Link down
+      - alert: BGPPeerDown
+        expr: bgp_session_state == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          description: BGP session down
+          summary: BGP peer down
+      - alert: ProviderFailedReconcile
+        expr: increase(controller_runtime_reconcile_errors_total{controller="agentic-netops-sonic-provider"}[5m])
+          > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          description: Provider reconcile errors observed
+          summary: Reconciliation failed
+      - alert: ProviderDegradedDeviation
+        expr: increase(agentic_netops_sonicprovider_applies_total[15m]) > 0 and on() absent_over_time(agentic_netops_sonicprovider_applies_total[15m])
+          == 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          description: Deviation persists without successful apply
+          summary: Persistent deviation
+      - alert: SDCTargetUnreachable
+        expr: sdc_target_reachable == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          description: SDC target unreachable
+          summary: Target unreachable
+      - alert: SRv6PathDown
+        expr: agentic_netops_srv6_active_path{path="preferred"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          description: A steered SRv6 service's pin is not on its preferred spine
+          summary: SRv6 preferred path not active
+      - alert: TopologyInventoryMismatch
+        expr: count by(device) (sonic_interface_packets_total) != on(device) count by(device)
+          (sonic_interface_oper_status)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          description: Prometheus series do not match inventory labels
+          summary: Topology inventory mismatch
+      - alert: GNMIcExportFailures
+        expr: rate(gnmic_output_errors_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          description: gNMIc output errors detected
+          summary: gNMIc export failure
+      - alert: OTelExportFailures
+        expr: rate(otelcol_exporter_enqueue_failed[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          description: OTel Collector exporter failures
+          summary: OTel export failure

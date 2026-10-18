@@ -70,12 +70,20 @@ def main():
         # O-65: a yield that resolves (above all with a failed job) can need a
         # directive; the proposer has already resumed by the time we see it.
         if pl.get("waiting_on_yield") and not l.get("waiting_on_yield"):
-            rcs = sorted(glob.glob(f"{YIELD_JOBS}/*{l.get('run_id')}*.rc"), key=os.path.getmtime)
-            try:
-                rc = open(rcs[-1]).read().strip() if rcs else "?"
-            except OSError:
-                rc = "?"
-            why.append(f"yield resolved: job rc={rc}")
+            # O-112: read the rc of the job this yield waited on (matched by pid), not
+            # the newest rc file of the run, which can belong to an earlier phase.
+            jpid = str((pl.get("yield") or {}).get("job_pid") or "")
+            rc = "none"
+            for pf in glob.glob(f"{YIELD_JOBS}/*{l.get('run_id')}*.pid"):
+                try:
+                    if open(pf).read().strip() == jpid and os.path.exists(pf[:-4] + ".rc"):
+                        rc = open(pf[:-4] + ".rc").read().strip()
+                except OSError:
+                    pass
+            alive_now = bool(jpid) and os.path.exists(f"/proc/{jpid}")
+            ev = l.get("last_event")
+            why.append(f"yield resolved: job pid {jpid or '?'} rc={rc}"
+                       f"{' (STILL RUNNING)' if alive_now else ''} last_event={ev}")
         if c.get("name") != pc.get("name"):
             why.append(f"new chain {c.get('name')}: check it has a health gate")
         infra = [a for a in al if a.startswith("infra:")]

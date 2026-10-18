@@ -209,7 +209,10 @@ func TestSRv6IPVRFVPNHappyPath(t *testing.T) {
 		}
 		for _, want := range []string{
 			"ip -6 route replace fcbb:bbbb:",
-			"encap seg6local action End.DT46 vrftable $(ip -d link show Vrf1 2>/dev/null | grep -o 'table [0-9]*' | cut -d' ' -f2) dev Vrf1",
+			// `count` is the seg6local per-behavior counter flag (T560): the
+			// plan MUST install it so the kernel per-SID counter exists, and
+			// it must sit inside the encap clause — before `dev`.
+			"encap seg6local action End.DT46 vrftable $(ip -d link show Vrf1 2>/dev/null | grep -o 'table [0-9]*' | cut -d' ' -f2) count dev Vrf1",
 			"ip route replace " + peer24 + " vrf Vrf1 encap seg6 mode encap segs " + peerSID + " dev Ethernet0",
 		} {
 			if !strings.Contains(shellAll, want) {

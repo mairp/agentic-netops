@@ -14,6 +14,29 @@ The intent tier expresses four datacenter constructs and nothing else:
 
 Legacy service-provider names are migration aliases only; see “Migration aliases” below.
 
+## SRv6 services (the "over srv6" qualifier)
+
+An SRv6 service request qualifies a construct with **over srv6** and is
+submitted as an `SRv6Service` — a separate CR with its own controller,
+identifier pools and capability record. The delivered set, and only it:
+
+| Variant | Status | What the controller delivers |
+|---|---|---|
+| ip-vrf over srv6, `signalling: vpn` | **delivered** | KUID-claimed locator + service id (VRF named `Vrf<id>`) + per-attachment client /24; `End.DT46` decap into the service VRF on every leaf; `Ready` only after per-node checks and a passing data-path probe |
+| ip-vrf over srv6 with `signalling: evpn` | **refused** | outside the capability record: refused terminal with `UnsupportedVariant`; no device write, no partial behavior |
+| mac-vrf over srv6 | **refused** | same refusal class; the controller names the capability record instead of improvising |
+
+A service may be **steered**: `spec.path.preferredSpine` + `alternateSpine`
+pin the per-service route through one spine on the ingress leaf;
+`status.activePath` names the spine the pin currently rides and the
+SRv6PathDown alert fires if the preferred path stops serving it. A request
+that types a locator, SID or VRF itself is refused — identifiers are
+pool-claimed only. Per-SID traffic counters do not exist on the pinned image
+(`COUNTERS_SRV6_NAME_MAP` is empty, proof `spike-counters`); observability
+runs on controller gauges (`agentic_netops_srv6_locator_state`,
+`agentic_netops_srv6_sid_state`, `agentic_netops_srv6_active_path`) plus the
+executor's kernel VRF device counter.
+
 ## Required variables and render contract per construct
 
 | Construct | Required variables | Optional variables | CONFIG_DB / redis | Kernel | FRR | Verified by |

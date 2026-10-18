@@ -14,14 +14,31 @@ Requirements:
 Notes:
 - The sonic-vm image is pinned by digest in versions.lock.yaml and must be imported locally.
 - This profile may take significantly longer to boot than sonic-vs.
-- The bootstrap remains limited to TLS + gNMI enablement and persistence; the EVPN/SRv6 tests
-  program configuration via gNMI during qualification.
+- The bootstrap drives the guest over **ssh** (vrnetlab launcher, admin on the
+  launcher's mgmt IP): TLS + gNMI enablement, the fabric baseline, and
+  persistence. Southbound SERVICE writes do not go over gNMI — the fabric
+  executor renders them as GCU patches over ssh (T565/T576 transport); gNMI
+  serves reads (and the qualification gate's read-back witnesses).
 - The full qualification gate (`scripts/lib/qualify.sh`) passes on this profile
-  (17/17). Verified caveats: the guest kernel has no seg6 lwtunnel (kernel-side
-  `encap seg6` dataplane witnesses auto-skip; SRv6 control plane is asserted over
-  gNMI), the image default config gives every node `Loopback0=10.1.0.1/32` and
-  bgpd AS 65100/router-id 10.1.0.1 (do not use 10.1.0.1 as a peer address), and
-  persistence is verified with a guest `config reload`.
+  with 17 passed / 0 failed / 0 skipped (proofs `q14-gate-vm`/`q14-report-vm`).
+  Verified facts that replace two stale claims:
+  - The guest kernel (SONiC Debian 6.1) DOES include kernel seg6 lwtunnel.
+    The earlier "seg6 absent" reading came from probing with a route bound to
+    `dev lo`, which the kernel silently drops; the suite's probe binds
+    `Loopback0` and the seg6 probe self-test passes here. SRv6 dataplane
+    witnesses run on this profile.
+  - Node identity is bootstrap-owned per `lab/profiles/sonic-vm/fabric.yaml`:
+    spines AS 65000, leaf01 65101, leaf02 65102; loopbacks
+    `10.0.0.<11,12,21,22>` (leaf01 `Loopback0 10.0.0.21/32`); each node's
+    router-id is its IPv4 loopback. The image's factory identity (every node
+    `Loopback0=10.1.0.1/32`, bgpd AS 65100) does not survive provisioning:
+
+    ```bash verify="local AS number 65101"
+    ssh -i secrets/fabric-executor.key -o UserKnownHostsFile=secrets/known_hosts_executor \
+      admin@172.31.0.21 "vtysh -c 'show bgp summary'"
+    ```
+- Persistence is verified with a guest `config reload` (re-reads
+  `/etc/sonic/config_db.json`) rather than a container restart.
 
 Known exceptions:
 - The topology (`lab/topology.sonic-vm.clab.yml`) names the sonic-vm image by

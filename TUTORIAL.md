@@ -30,17 +30,23 @@ the same intent is applied twice. Those are the sections that matter here.
                     └─────────────┼─────────────┘
                                   ▼
                         ┌──────────────────┐
-                        │  SRv6Service CR  │   declarative desired state
+                        │ Network CR  or   │   declarative desired state
+                        │ SRv6Service CR   │   (one CR per service type)
                         └────────┬─────────┘
                                  ▼
                         ┌──────────────────┐
                         │   controllers    │◄─── reconcile loop, forever
                         └────────┬─────────┘
                                  ▼
-                          SONiC fabric (gNMI)
+          SONiC fabric (fabric-executor writes; gNMI reads)
                                  │
                                  └──► telemetry ──► back to the top
 ```
+
+The provisioning tier submits a **`Network`** for the constructs it interprets
+(vlan, mac-vrf, ip-vrf, acl) and an **`SRv6Service`** for an SRv6 service request
+("connect these sites over srv6") — one declarative CR per service type, and the
+controllers own every southbound write.
 
 The agents run **once per request**. The controllers run **continuously** — that is
 where autonomy actually lives.
@@ -49,7 +55,17 @@ where autonomy actually lives.
 
 ```bash
 cd /root/agentic-netops
-./scripts/provision.sh --profile sonic-vs --cluster-name agentic-netops --with-intent-tier
+./scripts/provision.sh --cluster-name agentic-netops --with-intent-tier
+```
+
+`sonic-vm` is the default profile — four SONiC VMs (it needs KVM/nested
+virtualization and a locally built `local/sonic-vm` image; the documented
+gate-fail path when it is absent is a deploy-time missing-image error). The
+`sonic-vs` profile stays selectable for hosts without KVM:
+
+```bash verify="clab-agentic-netops-fabric-leaf01,clab-agentic-netops-fabric-spine02"
+# confirm the lab is up: four fabric nodes plus the probe clients
+docker ps --format '{{.Names}}' | grep -E 'fabric-(spine|leaf)0[12]$'
 ```
 
 Read **[docs/DEPENDENCIES.md](docs/DEPENDENCIES.md)** first — two traps cost the most
@@ -110,8 +126,14 @@ kubectl --context kind-agentic-netops -n agentic-netops-intent get networks.netw
   -o custom-columns=NAME:.metadata.name,\
 TYPE:'.metadata.annotations.agentic-netops\.io/service-type',\
 READY:'.status.conditions[?(@.type=="Ready")].status' -w
+```
 
-docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show evpn vni'
+On the `sonic-vm` profile the switches are VMs — read them over ssh with the
+per-provision executor key, never by exec-ing into the lab containers:
+
+```bash verify="Remote VTEPs"
+ssh -i secrets/fabric-executor.key -o UserKnownHostsFile=secrets/known_hosts_executor \
+  admin@172.31.0.21 "vtysh -c 'show evpn vni'"
 ```
 
 `Ready=True` is set only after every rendered operation applied *and* every
@@ -237,8 +259,11 @@ Real, reproduced, documented rather than hidden:
   exist, `scripts/build-sonic-vm.sh` builds the vrnetlab image, and the full
   qualification gate (`scripts/lib/qualify.sh`: Capabilities/Get/Set/
   Subscribe, sonic-srv6, persistence, EVPN Type-2/3/5, SRv6 underlay/End/
-  End.DT46/decap/counters, YANG paths) passes end-to-end against
-  `local/sonic-vm:202505`. It still requires the **operator** to build the
+  End.DT46/decap/counters, YANG paths) passes on `local/sonic-vm:202505`
+  with the recorded totals 17 passed / 0 failed / 0 skipped (feature-004
+  proofs `q14-gate-vm` and `q14-report-vm`); the `sonic-vs` profile's own
+  gate run skips the checks its image cannot host and counts them as
+  skipped, never passed. It still requires the **operator** to build the
   `local/sonic-vm` image
   (`scripts/build-sonic-vm.sh --image-url <sonic-vs.img.gz> --update-pin`),
   because no public registry serves it, plus KVM/nested virtualization on the
@@ -252,13 +277,23 @@ Real, reproduced, documented rather than hidden:
   - The vrnetlab launcher resets the guest admin password to containerlab's
     `PASSWORD` env (default `admin`); the guest is reachable over SSH on the
     **launcher's own mgmt IP**, not 127.0.0.1 (loopback→slirp stalls).
-  - The image default config gives every node `Loopback0=10.1.0.1/32` and
-    bgpd AS 65100/route-id 10.1.0.1 — test topologies must not use 10.1.0.1
-    as a peer address (martian-dropped) and must set distinct router-ids.
-  - The guest kernel (SONiC Debian 6.1) has **no kernel seg6 lwtunnel**
-    support: the kernel-side `encap seg6` dataplane witnesses are
-    auto-skipped on this profile; SRv6 control-plane state is still asserted
-    over gNMI. Kernel seg6 witnesses run on the `sonic-vs` profile.
+  - Node identity is **bootstrap-owned**, written per
+    `lab/profiles/sonic-vm/fabric.yaml`: spines AS 65000, leaf01 65101,
+    leaf02 65102; loopbacks `10.0.0.<11,12,21,22>` (leaf01 `Loopback0
+    10.0.0.21/32`); each node's router-id is its IPv4 loopback. The image's
+    factory config (every node `Loopback0=10.1.0.1/32`, bgpd AS 65100) does
+    not survive provisioning. Check what the running lab reports:
+
+    ```bash verify="local AS number 65101"
+    ssh -i secrets/fabric-executor.key -o UserKnownHostsFile=secrets/known_hosts_executor \
+      admin@172.31.0.21 "vtysh -c 'show bgp summary'"
+    ```
+  - The guest kernel (SONiC Debian 6.1) DOES include **kernel seg6
+    lwtunnel**. The earlier "seg6 disabled on this profile" note was an
+    artifact of probing with a route bound to `dev lo`, which the kernel
+    silently drops (feature-004 research addendum); the suite's probe binds
+    `Loopback0` (T028) and the seg6 probe self-test passes here. SRv6
+    dataplane witnesses run on this profile; they are not sonic-vs-only.
   - Persistence on `sonic-vm` is verified with a guest `config reload`
     (re-reads `/etc/sonic/config_db.json`) rather than a container restart.
 - **Two pinned images have no local build step** (`grafana/flow-plugin`,

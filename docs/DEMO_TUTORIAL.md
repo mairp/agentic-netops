@@ -116,53 +116,44 @@ kubectl $CTX -n kuid-system get claims -o wide
 
 ## 4. Building block: SRv6
 
-`SRv6Service` expresses a bidirectional IPv6 VPN: a KUID-allocated locator, two
-attachments, a path with primary/alternate waypoints, and an immutable VRF.
-Structural CEL rules on the CRD reject bad shapes (non-IPv6 prefixes, identical
-endpoints, locator outside /48-/64) at admission time.
+The delivered SRv6 service is **`ip-vrf` over srv6 with `vpn` signalling**
+(`construct: ip-vrf`, `signalling: vpn`): the controller claims a locator, a
+service id (the VRF is named `Vrf<service-id>`) and a per-attachment client
+/24 from `deploy/kubenet/srv6-pools.yaml` — nothing is typed in the spec. A
+service may be **steered**: `spec.path.preferredSpine` pins its route through
+one spine on the ingress leaf, `alternateSpine` names the fail-over spine.
+Structural CEL rules on the CRD reject bad shapes (bad spines, identical
+endpoints) at admission time. `ip-vrf over srv6` with `evpn` signalling and
+`mac-vrf over srv6` are **not delivered**: the capability record marks them
+unsupported and the controller refuses them (`UnsupportedVariant`,
+`CapabilityMissing`) instead of improvising.
 
-Try it directly:
+Apply the proven steered sample:
 
-```bash
-kubectl $CTX -n agentic-netops-intent apply -f - <<'EOF'
-apiVersion: agentic-netops.io/v1alpha1
-kind: SRv6Service
-metadata:
-  name: demo-srv6
-spec:
-  topologyRef: agentic-netops-topology
-  vrf: demo-vrf
-  underlay: ipv6
-  locatorPrefix: 2001:db8:feed::/48
-  servicePrefix: 2001:db8:10::/64
-  path:
-    primary: spine01
-  attachments:
-  - node: leaf01
-    interface: ethernet4
-  - node: leaf02
-    interface: ethernet4
-  client:
-    name: srv6-client01
-    ip: 2001:db8:10::11/64
-  server:
-    name: srv6-client02
-    ip: 2001:db8:10::22/64
-EOF
-kubectl $CTX -n agentic-netops-intent get srv6services demo-srv6 -w
+```bash verify="srv6-ip-vrf-vpn-steered"
+kubectl $CTX -n agentic-netops-intent apply -f config/samples/srv6service-steered.yaml
+kubectl $CTX -n agentic-netops-intent get srv6service srv6-ip-vrf-vpn-steered
 ```
 
-Verify on the fabric:
+`Ready=True` appears once every per-node check passed and the data path was
+probed; the controller re-verifies every five minutes. Watch the two claims
+the service drives — the pin on the ingress leaf (through the PREFERRED
+spine's leg) and the `End.DT46` decap into the service VRF. On the `sonic-vm`
+profile the switches are VMs, read over ssh — never exec into the lab
+containers:
 
-```bash
-docker exec clab-agentic-netops-fabric-leaf01 vtysh -c 'show segment-routing srv6 locator'
+```bash verify="End.DT46"
+ssh -i secrets/fabric-executor.key -o UserKnownHostsFile=secrets/known_hosts_executor \
+  admin@172.31.0.21 "ip -6 route show | grep End.DT46"
 ```
 
-Honest limitations to state: full SRv6/EVPN conformance runs on the `sonic-vm`
-profile and passes the full qualification gate there (17/17, `scripts/lib/qualify.sh`);
-on the virtual-SONiC image the proven path is GCU-write → gNMI read-back witnesses
-(locator, `SRV6_MY_SIDS`, counters) — details in
-[SRV6_GNMI_CAPABILITY_FINDINGS.md](SRV6_GNMI_CAPABILITY_FINDINGS.md).
+Honest limitations to state: the qualification gate passes on the `sonic-vm`
+profile with 17 passed / 0 failed / 0 skipped (`scripts/lib/qualify.sh`,
+proofs `q14-gate-vm`/`q14-report-vm`); the `sonic-vs` profile's gate run
+counts the checks its image cannot host as skipped, never passed. Per-SID
+traffic counters do not exist on this build (the locator/SID state and the
+per-service active path are exposed as controller gauges instead) — details
+in [SRV6_GNMI_CAPABILITY_FINDINGS.md](SRV6_GNMI_CAPABILITY_FINDINGS.md).
 
 ---
 
