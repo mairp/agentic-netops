@@ -507,36 +507,40 @@ assert_evpn_established() {
   note "$node: $label asserted (L2VPN EVPN session Established with $peer)"
 }
 
-EVPN_Type2() {
+# T567: these three checks assert ONLY that the L2VPN EVPN session reaches
+# Established (plus, for the JSON-RIB one, that the RIB answers as JSON) —
+# no MAC/IP (Type-2), IMET (Type-3) or IP-prefix (Type-5) route content is
+# asserted — so their names say what is asserted, not what is not.
+EVPN_Session_Established_MACIP() {
   evpn_session_up
   IFS=',' read -ra tgts <<<"$TARGETS"
-  assert_evpn_established "EVPN-Type2 (MAC/IP advertisement AF)" "$(node_for_ip "${tgts[0]%%:*}")" "${tgts[1]%%:*}"
+  assert_evpn_established "EVPN-Session-Established-MACIP (session Established only; no MAC/IP route content asserted)" "$(node_for_ip "${tgts[0]%%:*}")" "${tgts[1]%%:*}"
 }
 
-EVPN_Type3() {
+EVPN_Session_Established_IMET() {
   evpn_session_up
   IFS=',' read -ra tgts <<<"$TARGETS"
-  assert_evpn_established "EVPN-Type3 (inclusive multicast AF)" "$(node_for_ip "${tgts[1]%%:*}")" "${tgts[0]%%:*}"
+  assert_evpn_established "EVPN-Session-Established-IMET (session Established only; no IMET route content asserted)" "$(node_for_ip "${tgts[1]%%:*}")" "${tgts[0]%%:*}"
 }
 
-EVPN_Type5() {
+EVPN_Session_Established_JSONRIB() {
   evpn_session_up
   IFS=',' read -ra tgts <<<"$TARGETS"
-  # Type-5 (IP prefix): this FRR build has no per-route-type walk command, so
-  # assert the EVPN RIB answers as structured JSON (route-type filtering lives
-  # in the table dump the way SONiC's bgpd exposes it)
+  # What this check adds over the two above: the EVPN RIB answers as
+  # structured JSON (route-type filtering lives in the table dump the way
+  # SONiC's bgpd exposes it). No Type-5 route content is asserted.
   local node out
   node=$(node_for_ip "${tgts[0]%%:*}")
   out=$(node_run "$node" 'vtysh -c "show bgp l2vpn evpn json"' 2>&1)
-  jq -e . >/dev/null 2>&1 <<<"$out" || die "EVPN-Type5: EVPN RIB not parsable as JSON: $out"
-  assert_evpn_established "EVPN-Type5 (IP prefix AF)" "$node" "${tgts[1]%%:*}"
+  jq -e . >/dev/null 2>&1 <<<"$out" || die "EVPN-Session-Established-JSONRIB: EVPN RIB not parsable as JSON: $out"
+  assert_evpn_established "EVPN-Session-Established-JSONRIB (session Established, RIB parses as JSON; no prefix route content asserted)" "$node" "${tgts[1]%%:*}"
 }
 
 main() {
   case "$1" in
-    EVPN-Type2) EVPN_Type2 ;;
-    EVPN-Type3) EVPN_Type3 ;;
-    EVPN-Type5) EVPN_Type5 ;;
+    EVPN-Session-Established-MACIP) EVPN_Session_Established_MACIP ;;
+    EVPN-Session-Established-IMET) EVPN_Session_Established_IMET ;;
+    EVPN-Session-Established-JSONRIB) EVPN_Session_Established_JSONRIB ;;
     SRv6-Underlay) SRv6_Underlay ;;
     H.Encaps.Red) H_Encaps_Red ;;
     End) End ;;

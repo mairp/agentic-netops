@@ -240,3 +240,47 @@ still refused, the steering corpus mapping through, at unit level) and `gates/pr
 on the spine02 leg). The failover/return/both proofs (q11-failover/q11-return/q11-both) witness
 that the exception's provisionable side survives an operator-directed path change and a
 both-paths-down; they are cited in the SC-007 row by the acceptance-index task.
+
+### R4 (capability not proven) and R9 (no registered probe host) — first live refusal surface (T630, phase 9, 2026-10-18)
+
+What changed and why (FR-003a; contracts/operator-phrasings.md §3 R4 + R9; plan A-18 — this
+record blocks nothing): phase 9 turns the lab to the sonic-vs profile, whose capability gate
+cannot prove SRv6 encapsulation (`H.Encaps.Red` and `SID-list` exit SKIP 77 — kernel seg6
+lwtunnel unavailable), so `cap-sai-srv6` is `"false"` and `srv6-supported` is not `"true"`.
+The refusal texts themselves are unchanged; what changed is that R4 is now rendered LIVE, on
+both entry points, where before it existed only as a unit-level sentence. This record reviews
+both texts before and after, per the review obligation (tasks.md T630).
+
+Texts before / after:
+
+- R4 — "SRv6 is not available on this lab profile: the capability has not been proven here."
+  BEFORE: unchanged sentence since the phase-6 record above, witnessed at unit level only
+  (`agents/tests/unit/test_capability_refusal.py`); that record stated "this lab's capability
+  IS proven, so no live receipt renders R4 here", because the sonic-vm lab's gate proved
+  `ip-vrf`/`vpn` end to end. AFTER: the SAME sentence now renders live on the sonic-vs profile —
+  a chat request naming SRv6 is refused with it before the mapper (one ConfigMap read, T623;
+  no confirmation point offered, no resource, no claim), and the controller twin refuses a
+  directly applied SRv6Service with the terminal `CapabilityMissing` reason naming the key
+  ("SRv6 is not proven on this site (key cap-sai-srv6 is not \"true\"; configmap
+  agentic-netops-system/fabric-compat-pins)") before any allocation.
+- R9 — "`<port>` on `<node>` has no client to verify traffic from, so an SRv6 service there
+  cannot reach Ready. Attachments that can be verified: `<list>`." BEFORE: the interim R1
+  refusal covered an unverifiable attachment (phase-6 record). AFTER: the T624 sentence,
+  decided from `capability.py` before any claim (plan A-16). It remains witnessed at unit level
+  only (`agents/tests/unit/test_refusal_paths.py`, the R9 case asserting no claim): on this
+  sonic-vs lab R4 fires earlier in the same turn for every SRv6 request, and on sonic-vm the
+  registered probe hosts cover the lab's attachments (`srv6-probe-attachments:
+  leaf01/wan1,leaf02/wan1`), so no live receipt renders R9 on either profile. No live R9
+  receipt exists; none is claimed.
+
+Proofs this record rests on: `gates/proofs/q13-chat.out` (exit 0, LIVE through the tier: the
+exact R4 sentence, `confirmation_points=0`, no correlation-id claim — the SRv6 chat driver's own
+trailing "no SRv6Service after confirmation" line is its confirm-path assertion, expected on a
+refusal and annotated in the receipt), `gates/proofs/q13-direct.out` (exit 0, LIVE: the direct
+apply ends at `CapabilityMissing`), `gates/proofs/q13-claims.out` (exit 0: no claim of any kind
+for either request; the refused object carries empty `status.allocations` and
+`status.correlationId`), and `gates/proofs/q13-capability-source.out` (exit 0: `"false"` because
+nothing was proven — the two encapsulation checks skip — not because of a name: the EVPN checks
+ran under their final names and the five runnable SRv6 checks passed). The non-SRv6 surface is
+unaffected on the same lab: `gates/proofs/q13-vlan.out` (exit 0, LIVE: the vlan 130 request
+provisions as today).

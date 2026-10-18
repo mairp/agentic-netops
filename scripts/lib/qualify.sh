@@ -85,7 +85,7 @@ main() {
   # EVPN/SRv6 capability coverage (short-circuit on first FAILURE; a check
   # that cannot run exits 77 and is recorded as skip — never pass, never fail)
   local t rc
-  for t in EVPN-Type2 EVPN-Type3 EVPN-Type5 SRv6-Underlay H.Encaps.Red End End.DT46 SID-list Decapsulation Counters; do
+  for t in EVPN-Session-Established-MACIP EVPN-Session-Established-IMET EVPN-Session-Established-JSONRIB SRv6-Underlay H.Encaps.Red End End.DT46 SID-list Decapsulation Counters; do
     echo "[qualify] Running $t"
     set +e
     "${ROOT_DIR}/tests/integration/evpn_srv6_suite.sh" --run "$t" 2>&1 | tee -a "$REPORT_DIR/qualify.$t.out.log"
