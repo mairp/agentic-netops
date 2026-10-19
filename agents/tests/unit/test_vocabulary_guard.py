@@ -101,9 +101,9 @@ def test_no_retired_vocabulary_on_operator_surfaces():
 def test_fr013_restatement_forms_contain_no_retired_token():
     """The only forms shown on operator surfaces pass the guard untouched."""
     from supervisors.provisioning.prompts.system import (
+        CLASSIFIER_PROMPT,
         PROVISIONABLE_CLASSIFICATION_PROMPT,
         UNSUPPORTED_CLASSIFICATION_PROMPT,
-        CLASSIFIER_PROMPT,
     )
 
     allowed = [

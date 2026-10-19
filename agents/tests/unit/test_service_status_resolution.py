@@ -234,7 +234,7 @@ def test_the_service_listing_covers_srv6services_as_well_as_networks():
     assert sorted(str(o.get("kind")) for o in found) == ["Network", "SRv6Service"]
     assert [u.rsplit("/", 1)[-1] for u in http.urls].count("srv6services") == 1
     assert [u.rsplit("/", 1)[-1] for u in http.urls].count("networks") == 1
-    for url, params in zip(http.urls, http.params):
+    for url, params in zip(http.urls, http.params, strict=True):
         assert url.startswith("https://api.example/apis/"), url
         assert params == {"labelSelector": f"agentic-netops.io/correlation-id={CID}"}, url
 

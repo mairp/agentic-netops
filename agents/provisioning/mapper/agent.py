@@ -266,7 +266,7 @@ def _attach_endpoint_prefixes(
         assigned.append(local)
     return [
         ep.model_copy(update={"prefixes": local}) if local else ep
-        for ep, local in zip(eps, assigned)
+        for ep, local in zip(eps, assigned, strict=True)
     ]
 
 
