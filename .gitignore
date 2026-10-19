@@ -63,3 +63,7 @@ testautomation/
 !.mixture-of-loops/**/verification-commands.json
 .mixture-of-loops/**/generated/
 .mixture-of-loops/**/runs/
+
+# Go build cache and scratch research clones (never commit)
+.gocache/
+tmp_research/
