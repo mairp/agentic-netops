@@ -1,0 +1,12 @@
+##### 13:06:05 START P-provision: ./scripts/provision.sh --profile sonic-vm
+##### 13:16:13 RC P-provision=1
+##### 13:16:13 provision rc=1 lab_up=8; settling 90s
+##### 13:17:43 START Q1-conv: converge
+##### 13:28:20 RC Q1-conv=0
+##### 13:28:20 START Q1-canary: canary
+##### 13:29:59 RC Q1-canary=1
+##### 13:29:59 canary failed (CANARY-FAIL vrf-apply leaf01: 
+missing); one provision-recovery
+##### 13:29:59 START Q1-recover: provision
+##### 13:52:42 RC Q1-recover=1
+##### 13:52:42 LAB-SICK: canary still failing after recovery: ##### 13:52:42 RC CANN=1

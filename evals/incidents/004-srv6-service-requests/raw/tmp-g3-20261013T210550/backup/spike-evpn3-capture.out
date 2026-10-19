@@ -1,0 +1,17 @@
+===== capture 1: steering away + export knobs removed (EVPN attempt) =====
+-- witnesses before capture 1 --
+-- leaf01 default table: DEFAULT-TABLE-CLEAN
+PEER-VRF-ROUTE-ABSENT
+-- ECHO-REPLIES in the window (expect 0: requests die inside leaf01) --
+0
+===== capture 2: control — §2 steering route restored =====
+192.168.2.0/24  encap seg6 mode encap segs 1 [ fcbb:bbbb:4:11:: ] dev Ethernet0 scope link 
+192.168.1.0/24  encap seg6 mode encap segs 1 [ fcbb:bbbb:3:11:: ] dev Ethernet0 scope link 
+-- SRv6-encapped echo flow in the window (expect NONZERO; ipv6-normalized) --
+IP6 2001:db8:1::2 > fcbb:bbbb:4:11::: RT6 (len=2, type=4, segleft=0, last-entry=0, tag=0, [0]fcbb:bbbb:4:11::) IP 192.168.1.2 > 192.168.2.2: ICMP echo request, seq N, length L
+IP6 2001:db8:1::4 > fcbb:bbbb:3:11::: RT6 (len=2, type=4, segleft=0, last-entry=0, tag=0, [0]fcbb:bbbb:3:11::) IP 192.168.2.2 > 192.168.1.2: ICMP echo reply, seq N, length L
+ECHO-REPLIES: NONZERO
+===== restore the export knobs (proof ends in the evpn3 setup state) =====
+LEAKED-SUBNETS-IN-DEFAULT
+
+[exit code: 0]

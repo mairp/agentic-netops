@@ -1,0 +1,13 @@
+{
+  "serviceId": "srv6_v5",
+  "type": "ip-vrf",
+  "tenant": "acme",
+  "preferredSpine": "spine01",
+  "rdRt": {"rd": "65000:50", "importRT": ["65000:50"], "exportRT": ["65000:50"]},
+  "l3vni": 10050,
+  "addressFamilies": {"ipv4Prefixes": ["10.50.0.0/24"]},
+  "endpoints": [
+    {"node": "leaf01", "attachment": "wan1", "vrf": "vrf-acme"},
+    {"node": "leaf02", "attachment": "wan1", "vrf": "vrf-acme"}
+  ]
+}

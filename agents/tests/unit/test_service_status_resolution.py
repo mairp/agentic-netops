@@ -141,6 +141,139 @@ def test_retired_type_reported_as_construct_with_provenance_and_no_writeback(pat
     assert "agentic-netops.io/source-service-type" not in obj["metadata"]["annotations"]
 
 
+# --- US6 (T543/T544): SRv6 services in the listing and the status answer ----
+
+
+def _srv6_service(
+    name: str,
+    *,
+    construct: str = "ip-vrf",
+    signalling: str = "vpn",
+    ready: bool | None = True,
+    message: str = "applied and verified on all nodes",
+) -> dict[str, Any]:
+    conditions = []
+    if ready is not None:
+        conditions.append(
+            {
+                "type": "Ready",
+                "status": "True" if ready else "False",
+                "reason": "ApplySucceeded" if ready else "ApplyFailed",
+                "message": message,
+                "lastTransitionTime": "2026-10-18T09:15:00Z",
+            }
+        )
+    return {
+        "apiVersion": "agentic-netops.io/v1alpha1",
+        "kind": "SRv6Service",
+        "metadata": {
+            "name": name,
+            "namespace": "agentic-netops-intent",
+            "annotations": {
+                "agentic-netops.io/service-type": construct,
+                "agentic-netops.io/transport": "srv6",
+            },
+        },
+        "spec": {"construct": construct, "signalling": signalling},
+        "status": {"conditions": conditions},
+    }
+
+
+class _FakeListResponse:
+    def __init__(self, status_code: int, body: dict[str, Any]) -> None:
+        self.status_code = status_code
+        self._body = body
+
+    def json(self) -> dict[str, Any]:
+        return self._body
+
+
+class _FakeListHTTP:
+    """The REST layer under KubernetesIntentClient.list_by_correlation: it
+    records every collection URL it is asked to read."""
+
+    def __init__(self, collections: dict[str, list[dict[str, Any]]]) -> None:
+        self._collections = collections
+        self.urls: list[str] = []
+        self.params: list[dict[str, str] | None] = []
+
+    def get(self, url: str, headers=None, params=None) -> _FakeListResponse:
+        self.urls.append(url)
+        self.params.append(params)
+        items = self._collections.get(url.rsplit("/", 1)[-1], [])
+        return _FakeListResponse(200, {"items": items})
+
+
+def test_the_service_listing_covers_srv6services_as_well_as_networks():
+    """US6/T543: one correlation id resolves a mixed fabric.
+
+    The deployer's service listing (submit.KubernetesIntentClient.
+    list_by_correlation) reads every allow-listed collection — the SRv6Service
+    collection as well as Network — so the status answer over a fabric
+    carrying both transports names them all.
+    """
+    from provisioning.deployer.submit import RESOURCE_PATHS, KubernetesIntentClient
+
+    assert ("agentic-netops.io/v1alpha1", "SRv6Service") in RESOURCE_PATHS, (
+        "the allow-list has no SRv6Service row; the listing would never see one"
+    )
+    assert ("network.kubenet.dev/v1alpha1", "Network") in RESOURCE_PATHS
+
+    client = KubernetesIntentClient.__new__(KubernetesIntentClient)
+    client.endpoint = "https://api.example"
+    client._headers = {}
+    http = _FakeListHTTP(
+        {
+            "srv6services": [_srv6_service("svc-srv6-acme")],
+            "networks": [_network("net-svc-alpha", True, "ApplySucceeded", "ok")],
+        }
+    )
+    client._client = http
+
+    found = client.list_by_correlation(CID)
+    assert sorted(str(o.get("kind")) for o in found) == ["Network", "SRv6Service"]
+    assert [u.rsplit("/", 1)[-1] for u in http.urls].count("srv6services") == 1
+    assert [u.rsplit("/", 1)[-1] for u in http.urls].count("networks") == 1
+    for url, params in zip(http.urls, http.params, strict=True):
+        assert url.startswith("https://api.example/apis/"), url
+        assert params == {"labelSelector": f"agentic-netops.io/correlation-id={CID}"}, url
+
+
+def test_an_srv6_service_reports_the_fr013_type_and_ready_state(patch_client):
+    patch_client([_srv6_service("svc-srv6-acme", construct="ip-vrf", signalling="vpn")])
+    result = deployer_tools.get_service_status(correlation_id=CID)
+    assert result["phase"] == "Deployed"
+    resource = result["resources"][0]
+    assert resource["kind"] == "SRv6Service"
+    assert resource["serviceType"] == "ip-vrf over srv6"
+    assert resource["ready"] is True
+    assert resource["message"] == "applied and verified on all nodes"
+
+
+def test_an_srv6_evpn_service_names_the_signalling_wording(patch_client):
+    patch_client([_srv6_service("svc-srv6-evpn", construct="ip-vrf", signalling="evpn")])
+    result = deployer_tools.get_service_status(correlation_id=CID)
+    assert result["resources"][0]["serviceType"] == "ip-vrf over srv6 with evpn signalling"
+
+
+def test_a_bridged_srv6_service_names_the_mac_vrf_wording(patch_client):
+    patch_client([_srv6_service("svc-srv6-bridged", construct="mac-vrf", signalling="evpn")])
+    result = deployer_tools.get_service_status(correlation_id=CID)
+    assert result["resources"][0]["serviceType"] == "mac-vrf over srv6"
+
+
+def test_a_not_ready_srv6_service_reports_its_failed_state(patch_client):
+    patch_client(
+        [_srv6_service("svc-srv6-acme", ready=False, message="leaf02 rejected the locator write")]
+    )
+    result = deployer_tools.get_service_status(correlation_id=CID)
+    assert result["phase"] == "Failed"
+    resource = result["resources"][0]
+    assert resource["serviceType"] == "ip-vrf over srv6"
+    assert resource["ready"] is False
+    assert resource["message"] == "leaf02 rejected the locator write"
+
+
 def test_one_failure_among_many_is_a_failed_transaction(patch_client):
     patch_client(
         [
@@ -236,6 +369,42 @@ class TestStatusSummary:
         assert "Degraded=False" in summary
         assert "applied and verified on all nodes" in summary
         assert "2026-09-04T07:48:18Z" in summary
+
+    def test_the_summary_names_the_srv6_type_and_ready_state(self):
+        """US6/T544: over a mixed fabric the operator reads which service is
+        which — the FR-013 wording for SRv6, the construct for VXLAN."""
+        from provisioning.deployer.agent import DeployerAgent
+
+        summary = DeployerAgent()._summary_status(
+            {
+                "phase": "Deployed",
+                "resources": [
+                    {
+                        "kind": "SRv6Service",
+                        "name": "svc-srv6-acme",
+                        "serviceType": "ip-vrf over srv6",
+                        "ready": True,
+                        "degraded": False,
+                        "reason": "ApplySucceeded",
+                        "message": "applied and verified on all nodes",
+                        "lastTransitionTime": "2026-10-18T09:15:00Z",
+                    },
+                    {
+                        "kind": "Network",
+                        "name": "net-svc-alpha",
+                        "serviceType": "mac-vrf",
+                        "ready": True,
+                        "degraded": False,
+                        "reason": "ApplySucceeded",
+                        "message": "applied and verified on all nodes",
+                        "lastTransitionTime": "2026-10-18T09:15:00Z",
+                    },
+                ],
+            }
+        )
+        assert summary.startswith("Deployed.")
+        assert "SRv6Service/svc-srv6-acme (ip-vrf over srv6) Ready=True Degraded=False" in summary
+        assert "Network/net-svc-alpha (mac-vrf) Ready=True Degraded=False" in summary
 
     def test_a_failure_summary_names_the_condition(self):
         from provisioning.deployer.agent import DeployerAgent

@@ -173,3 +173,103 @@ def test_release_by_correlation_no_claims_is_success(kuid):
     client._client = fake
 
     assert client.release_by_correlation("corr-absent") == 0
+
+
+class _IPClaimHTTP:
+    """Fake aggregation layer for the ipam family (client /24 claims)."""
+
+    def __init__(self, existing: dict | None = None) -> None:
+        self.existing = existing
+        self.created: list[dict] = []
+
+    def get(self, url, *, headers=None, params=None, **_kwargs):
+        name = url.rsplit("/", 1)[-1]
+        if self.existing is not None and self.existing.get("metadata", {}).get("name") == name:
+            return httpx.Response(200, json=self.existing)
+        for body in self.created:
+            if body.get("metadata", {}).get("name") == name:
+                served = json.loads(json.dumps(body))
+                served.setdefault("status", {})["prefix"] = "192.168.1.0/24"
+                served["status"]["conditions"] = [{"type": "Ready", "status": "True"}]
+                return httpx.Response(200, json=served)
+        return httpx.Response(404, text="not found")
+
+    def post(self, url, *, headers=None, content=None, **_kwargs):
+        body = json.loads(content or "{}")
+        self.created.append(body)
+        return httpx.Response(201, json=body)
+
+
+_ALLOCATED = {
+    "apiVersion": "ipam.be.kuid.dev/v1alpha1",
+    "kind": "IPClaim",
+    "metadata": {
+        "name": "srv6-client-v4-claim-corr-1-leaf01-wan1",
+        "namespace": "kuid-system",
+        "labels": {"agentic-netops.io/correlation-id": "corr-1"},
+    },
+    "spec": {"index": "srv6-client-v4", "createPrefix": True, "prefixLength": 24},
+    "status": {
+        "prefix": "192.168.1.0/24",
+        "conditions": [{"type": "Ready", "status": "True"}],
+    },
+}
+
+
+def test_claim_name_matches_the_go_truncation():
+    """pkg/kuid.sanitize truncates at 63 — a 32-hex correlation id plus the
+    attachment part overflows, and the served claim validation 500s a longer
+    name. The python side must cut at exactly the same byte or the
+    controller's own claim misses ours and carves a second /24."""
+    import importlib
+    mod = importlib.import_module("provisioning.allocator.kuid")
+    corr = "c9459fcb55774355a1c3d8617a4f0c65"
+    name = mod._claim_name("srv6-client-v4", corr, "leaf01-wan1")
+    assert len(name) <= 63, name
+    # The Go side: strings.Join(...) then Trim(v[:63], "-.")
+    raw = f"srv6-client-v4-claim-{corr}-leaf01-wan1"
+    assert name == raw[:63].strip("-."), name
+    # A short correlation id (the bring-up sample's label) is untouched.
+    assert mod._claim_name("srv6-client-v4", "srv6-ip-vrf-vpn", "leaf01-wan1") == (
+        "srv6-client-v4-claim-srv6-ip-vrf-vpn-leaf01-wan1"
+    )
+
+
+def test_client_prefix_claim_creates_and_reads_the_allocation(kuid):
+    """US4: the allocator claims the attachment's client /24, never invents it.
+
+    The claim mirrors the srv6-controller's pkg/kuid.CreateClientPrefixClaim:
+    deterministic name srv6-client-v4-claim-<correlation>-<attachment>,
+    createPrefix + prefixLength 24 against the srv6-client-v4 index, and the
+    allocated prefix read back from status.prefix.
+    """
+    client = kuid.KUIDClient(kuid.KUIDIdentity("https://kubernetes.default.svc:443", "token", False))
+    fake = _IPClaimHTTP()
+    client._client = fake
+
+    prefix = client.allocate_client_prefix(correlation_id="corr-1", attachment="leaf01-wan1")
+
+    assert prefix == "192.168.1.0/24"
+    assert len(fake.created) == 1
+    claim = fake.created[0]
+    assert claim["metadata"]["name"] == "srv6-client-v4-claim-corr-1-leaf01-wan1"
+    assert claim["metadata"]["namespace"] == "kuid-system"
+    assert claim["metadata"]["labels"][kuid.CORRELATION_LABEL] == "corr-1"
+    assert claim["spec"] == {"index": "srv6-client-v4", "createPrefix": True, "prefixLength": 24}
+
+
+def test_client_prefix_claim_reuses_our_own_and_refuses_a_foreign_one(kuid):
+    """A claim already held by the SAME correlation id is reused (idempotent
+    re-builds of the intent); one held by ANOTHER correlation id collides."""
+    client = kuid.KUIDClient(kuid.KUIDIdentity("https://kubernetes.default.svc:443", "token", False))
+
+    same = _IPClaimHTTP(existing=_ALLOCATED)
+    client._client = same
+    assert client.allocate_client_prefix(correlation_id="corr-1", attachment="leaf01-wan1") == "192.168.1.0/24"
+    assert same.created == [], "our own live claim must be reused, not recreated"
+
+    foreign = json.loads(json.dumps(_ALLOCATED))
+    foreign["metadata"]["labels"][kuid.CORRELATION_LABEL] = "corr-other"
+    client._client = _IPClaimHTTP(existing=foreign)
+    with pytest.raises(kuid.KUIDCollisionError):
+        client.allocate_client_prefix(correlation_id="corr-1", attachment="leaf01-wan1")

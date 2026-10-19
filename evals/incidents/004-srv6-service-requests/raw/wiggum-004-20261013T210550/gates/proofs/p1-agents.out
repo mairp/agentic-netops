@@ -1,0 +1,84 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /root/agentic-netops/agents
+configfile: pyproject.toml
+testpaths: tests
+plugins: langsmith-0.8.5, anyio-4.14.2, asyncio-1.4.0, vcr-1.0.2, cov-7.1.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 313 items / 5 deselected / 308 selected
+
+tests/e2e/test_decline.py ...                                            [  0%]
+tests/e2e/test_golden_equivalence.py ......                              [  2%]
+tests/e2e/test_operator_journey.py ..                                    [  3%]
+tests/e2e/test_restart_midrequest.py ..                                  [  4%]
+tests/e2e/test_sc010_join.py ..                                          [  4%]
+tests/e2e/test_service_lifecycle.py ...                                  [  5%]
+tests/e2e/test_stage_failures.py ...                                     [  6%]
+tests/e2e/test_telemetry_fanout.py ...                                   [  7%]
+tests/e2e/test_worker_down.py ..                                         [  8%]
+tests/test_package_skeleton.py .....                                     [ 10%]
+tests/unit/test_adversarial_corpus.py .                                  [ 10%]
+tests/unit/test_allocator_agent.py ..........                            [ 13%]
+tests/unit/test_deployment_transaction.py .............................. [ 23%]
+......................                                                   [ 30%]
+tests/unit/test_graph_routing.py ....                                    [ 31%]
+tests/unit/test_kuid_client.py ..........                                [ 35%]
+tests/unit/test_mapper_agent.py .                                        [ 35%]
+tests/unit/test_phrasings_baseline.py .                                  [ 35%]
+tests/unit/test_phrasings_positive.py .                                  [ 36%]
+tests/unit/test_phrasings_srv6.py .                                      [ 36%]
+tests/unit/test_refusal_paths.py ....................................... [ 49%]
+.....                                                                    [ 50%]
+tests/unit/test_schemas.py ................................              [ 61%]
+tests/unit/test_service_status_resolution.py ....................        [ 67%]
+tests/unit/test_suggested_prompts_map.py ......ssss.....                 [ 72%]
+tests/unit/test_suggested_prompts_ports_constructs.py .......            [ 74%]
+tests/unit/test_suggested_prompts_runnable.py .......................... [ 83%]
+........                                                                 [ 85%]
+tests/unit/test_supervisor_stream.py .......                             [ 87%]
+tests/unit/test_us3_transport.py ....................................    [ 99%]
+tests/unit/test_vocabulary_guard.py .                                    [100%]
+
+=============================== warnings summary ===============================
+tests/unit/test_deployment_transaction.py: 4 warnings
+tests/unit/test_mapper_agent.py: 4 warnings
+tests/unit/test_phrasings_baseline.py: 259 warnings
+tests/unit/test_phrasings_srv6.py: 18 warnings
+tests/unit/test_service_status_resolution.py: 1 warning
+tests/unit/test_suggested_prompts_map.py: 40 warnings
+  /root/agentic-netops/agents/.venv/lib/python3.13/site-packages/ioa_observe/sdk/decorators/util.py:57: PydanticDeprecatedSince211: Accessing the 'model_computed_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    and hasattr(obj, attr_name)
+
+tests/unit/test_deployment_transaction.py: 4 warnings
+tests/unit/test_mapper_agent.py: 4 warnings
+tests/unit/test_phrasings_baseline.py: 259 warnings
+tests/unit/test_phrasings_srv6.py: 18 warnings
+tests/unit/test_service_status_resolution.py: 1 warning
+tests/unit/test_suggested_prompts_map.py: 40 warnings
+  /root/agentic-netops/agents/.venv/lib/python3.13/site-packages/ioa_observe/sdk/decorators/util.py:60: PydanticDeprecatedSince211: Accessing the 'model_computed_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    attr_value = getattr(obj, attr_name)
+
+tests/unit/test_deployment_transaction.py: 4 warnings
+tests/unit/test_mapper_agent.py: 4 warnings
+tests/unit/test_phrasings_baseline.py: 259 warnings
+tests/unit/test_phrasings_srv6.py: 18 warnings
+tests/unit/test_service_status_resolution.py: 1 warning
+tests/unit/test_suggested_prompts_map.py: 40 warnings
+  /root/agentic-netops/agents/.venv/lib/python3.13/site-packages/ioa_observe/sdk/decorators/util.py:57: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    and hasattr(obj, attr_name)
+
+tests/unit/test_deployment_transaction.py: 4 warnings
+tests/unit/test_mapper_agent.py: 4 warnings
+tests/unit/test_phrasings_baseline.py: 259 warnings
+tests/unit/test_phrasings_srv6.py: 18 warnings
+tests/unit/test_service_status_resolution.py: 1 warning
+tests/unit/test_suggested_prompts_map.py: 40 warnings
+  /root/agentic-netops/agents/.venv/lib/python3.13/site-packages/ioa_observe/sdk/decorators/util.py:60: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    attr_value = getattr(obj, attr_name)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [4] tests/unit/test_suggested_prompts_map.py:97: prompt asks for no filter
+========= 304 passed, 4 skipped, 5 deselected, 1304 warnings in ELAPSED =========
+
+[exit code: 0]

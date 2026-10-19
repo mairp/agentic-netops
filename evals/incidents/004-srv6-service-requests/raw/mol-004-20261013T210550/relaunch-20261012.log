@@ -1,0 +1,8 @@
+[MOL-GATE] check=launcher-intact status=pass
+[MOL-GATE] check=contract-validated status=pass
+[MOL-GATE] check=authorized-root status=pass
+[MOL-GATE] check=launcher-syntax status=pass
+[MOL-GATE] check=launcher-dry-run status=pass
+[MOL-GATE] check=run-directory-free status=pass
+[MOL-GATE] decision=launch
+[MOL-LAUNCH] pipeline=004-srv6-service-requests mode=auto launcher=/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/run-004-srv6-service-requests.sh run-dir=/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/.mixture-of-loops/runs/004-srv6-service-requests stages=1 flags="--no-color" relaunch-budget=2/2 (default) wall-clock-ceiling=3.11049e+07s pid=3104766 stop="kill -TERM -3104766"

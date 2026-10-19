@@ -1,0 +1,28 @@
+# Final sweep — Go (T016-T019, T026): 2026-10-11T19:14:12Z
+$ go build ./...
+go build: OK
+
+$ go test ./...
+?   	github.com/mairp/agentic-netops/pkg/migration	[no test files]
+?   	github.com/mairp/agentic-netops/pkg/model	[no test files]
+?   	github.com/mairp/agentic-netops/pkg/reasons	[no test files]
+?   	github.com/mairp/agentic-netops/pkg/render	[no test files]
+?   	github.com/mairp/agentic-netops/pkg/sdc	[no test files]
+?   	github.com/mairp/agentic-netops/pkg/version	[no test files]
+ok  	github.com/mairp/agentic-netops/tests/envtest	0.056s
+ok  	github.com/mairp/agentic-netops/tests/unit	2.985s
+
+$ go test ./tests/unit/ -run TestCompat -v (scoping + pins)
+=== RUN   TestCompat_FullValidateContractsAndPins
+--- PASS: TestCompat_FullValidateContractsAndPins (0.00s)
+=== RUN   TestCompat_FullValidateSRv6CapabilityScoping
+=== RUN   TestCompat_FullValidateSRv6CapabilityScoping/network_validates_with_cap-sai-srv6_false
+=== RUN   TestCompat_FullValidateSRv6CapabilityScoping/srv6_service_does_not_validate_with_cap-sai-srv6_false
+=== RUN   TestCompat_FullValidateSRv6CapabilityScoping/srv6_service_validates_when_the_capability_is_present
+--- PASS: TestCompat_FullValidateSRv6CapabilityScoping (0.00s)
+=== RUN   TestCompat_AnnotationForDerivedCapabilityKeys
+--- PASS: TestCompat_AnnotationForDerivedCapabilityKeys (0.00s)
+=== RUN   TestCompat_ResolveSitePinsRoutesDerivedKeys
+--- PASS: TestCompat_ResolveSitePinsRoutesDerivedKeys (0.00s)
+PASS
+ok  	github.com/mairp/agentic-netops/tests/unit	(cached)

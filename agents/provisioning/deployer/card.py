@@ -25,6 +25,9 @@ DEPLOY_SERVICE_SKILL = AgentSkill(
         "mac-vrf",
         "ip-vrf",
         "acl",
+        "srv6",
+        "ip-vrf over srv6",
+        "mac-vrf over srv6",
         "connectivity",
         "deployment",
         "remove",
@@ -34,6 +37,9 @@ DEPLOY_SERVICE_SKILL = AgentSkill(
         "Provision a local vlan to the fabric from allocated parameters.",
         "Execute deployment for an ip-vrf with allocated L3VNI and RD/RT.",
         "Apply allocated construct parameters to the network infrastructure.",
+        "Deploy an ip-vrf over srv6 with vpn signalling between two leaf attachments.",
+        "Deploy an ip-vrf over srv6 with evpn signalling between two leaf attachments.",
+        "Deploy a mac-vrf over srv6 (bridged EVPN over SRv6) with evpn signalling.",
     ],
 )
 

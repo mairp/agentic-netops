@@ -1,0 +1,17 @@
+===== leaf01: seg6_enabled set to 1 via /proc, read back =====
+all=1
+default=1
+Ethernet0=1
+Ethernet4=1
+Loopback0=1
+===== leaf01: vrf module loaded, proven by link add/del =====
+vrf                    36864  0
+vrf-link-add-OK
+vrf-link-del-OK
+===== leaf01: net.vrf.strict_mode set to 1 via /proc, read back =====
+strict_mode=1
+===== leaf01: seg6_action + ipv6 forwarding (reference values) =====
+seg6_action=no-proc-entry
+forwarding=1
+
+[exit code: 0]

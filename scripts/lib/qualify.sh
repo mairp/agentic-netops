@@ -10,6 +10,8 @@ mkdir -p "$REPORT_DIR"
 ALL_TESTS=()
 ALL_STATUSES=()
 FAILED=0
+SKIPPED=0
+PASSED=0
 
 run_test() {
   local name=$1
@@ -21,7 +23,12 @@ record_result() {
   local name=$1 status=$2
   ALL_TESTS+=("$name")
   ALL_STATUSES+=("$status")
-  if [[ "$status" != "pass" ]]; then FAILED=1; fi
+  case "$status" in
+    pass) PASSED=$((PASSED + 1)) ;;
+    # T030: a skip is not a pass and not a fail — only failures gate.
+    skip) SKIPPED=$((SKIPPED + 1)) ;;
+    *) FAILED=1 ;;
+  esac
 }
 
 emit_report() {
@@ -32,11 +39,11 @@ emit_report() {
       printf '%s{"name":"%s","status":"%s"}' "$sep" "${ALL_TESTS[$i]}" "${ALL_STATUSES[$i]}"
       sep=",";
     done
-    if (( FAILED != 0 )); then
-      echo '],"result":"fail"}'
-    else
-      echo '],"result":"pass"}'
-    fi
+    # T030 (contracts/capability-record.md §5): totals make skips first-class —
+    # result is pass iff failed == 0 (skips never count as passed).
+    printf '],"totals":{"passed":%s,"failed":%s,"skipped":%s},"result":"%s"}\n' \
+      "$PASSED" "$FAILED" "$SKIPPED" \
+      "$(if (( FAILED != 0 )); then echo fail; else echo pass; fi)"
   } > "$REPORT_DIR/qualify.report.json"
 }
 
@@ -75,11 +82,19 @@ main() {
     bail "persistence check failed; not running EVPN/SRv6 or YANG path suites"
   fi
 
-  # EVPN/SRv6 capability coverage (short-circuit on first failure)
-  for t in EVPN-Type2 EVPN-Type3 EVPN-Type5 SRv6-Underlay H.Encaps.Red End End.DT46 SID-list Decapsulation Counters; do
+  # EVPN/SRv6 capability coverage (short-circuit on first FAILURE; a check
+  # that cannot run exits 77 and is recorded as skip — never pass, never fail)
+  local t rc
+  for t in EVPN-Session-Established-MACIP EVPN-Session-Established-IMET EVPN-Session-Established-JSONRIB SRv6-Underlay H.Encaps.Red End End.DT46 SID-list Decapsulation Counters; do
     echo "[qualify] Running $t"
-    if "${ROOT_DIR}/tests/integration/evpn_srv6_suite.sh" --run "$t" 2>&1 | tee -a "$REPORT_DIR/qualify.$t.out.log"; then
+    set +e
+    "${ROOT_DIR}/tests/integration/evpn_srv6_suite.sh" --run "$t" 2>&1 | tee -a "$REPORT_DIR/qualify.$t.out.log"
+    rc=$?
+    set -e
+    if (( rc == 0 )); then
       record_result "$t" "pass"
+    elif (( rc == 77 )); then
+      record_result "$t" "skip"
     else
       record_result "$t" "fail"
       bail "EVPN/SRv6 capability '$t' failed; gating remaining tests"
@@ -87,8 +102,14 @@ main() {
   done
 
   # Required OpenConfig/SONiC YANG path qualification
-  if "${ROOT_DIR}/tests/integration/yang_paths_suite.sh" --run YANG-Paths 2>&1 | tee -a "$REPORT_DIR/qualify.YANG-Paths.out.log"; then
+  set +e
+  "${ROOT_DIR}/tests/integration/yang_paths_suite.sh" --run YANG-Paths 2>&1 | tee -a "$REPORT_DIR/qualify.YANG-Paths.out.log"
+  rc=$?
+  set -e
+  if (( rc == 0 )); then
     record_result "YANG-Paths" "pass"
+  elif (( rc == 77 )); then
+    record_result "YANG-Paths" "skip"
   else
     record_result "YANG-Paths" "fail"
     bail "YANG path qualification failed"
@@ -98,5 +119,12 @@ main() {
   emit_report
   echo "[qualify] OK" | tee -a "$REPORT_DIR/qualify.run.log"
 }
+
+# T600: report the path qualify writes its machine-readable report to, so
+# downstream derivation (scripts/lib/capability.sh) never hardcodes a literal.
+if [[ ${1:-} == "--print-report-path" ]]; then
+  echo "${REPORT_DIR}/qualify.report.json"
+  exit 0
+fi
 
 main "$@"

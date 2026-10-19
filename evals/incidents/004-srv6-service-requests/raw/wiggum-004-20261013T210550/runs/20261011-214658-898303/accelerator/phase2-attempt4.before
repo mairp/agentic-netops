@@ -1,0 +1,39 @@
+agents/provisioning/mapper/agent.py	+40	-1
+agents/supervisors/provisioning/graph/graph.py	+32	-0
+agents/supervisors/provisioning/prompts/system.py	+7	-3
+agents/tests/corpus/adversarial/runner.py	+23	-0
+agents/tests/corpus/phrasings/baseline_snapshot.json	new
+agents/tests/corpus/phrasings/runner.py	+7	-0
+agents/tests/corpus/phrasings/unsupported/srv6_transport.yaml	new
+agents/tests/unit/test_phrasings_baseline.py	new
+agents/tests/unit/test_phrasings_srv6.py	new
+agents/tests/unit/test_refusal_paths.py	+72	-0
+controllers/sonicprovider/controller.go	+3	-1
+controllers/sonicprovider/network_controller.go	+4	-1
+controllers/srv6service/controller.go	+4	-1
+docs/SRV6_ACCEPTANCE_004.md	+39	-1
+docs/SRV6_SERVICE_RECIPE.md	+4	-4
+lab/profiles/sonic-vm/README.md	+14	-0
+.mixture-of-loops/004-srv6-service-requests/verification-commands.json	+8	-16
+pkg/compat/compat.go	+20	-5
+pkg/compat/matrix.go	+4	-3
+pkg/compat/pins.go	+7	-0
+scripts/lib/capability.sh	new
+scripts/lib/qualify.sh	+37	-9
+scripts/lib/verify_pins.sh	+6	-10
+scripts/proof.sh	+7	-2
+scripts/proofs/run-p1-agents.sh	new
+scripts/proofs/run-q10-baseline.sh	new
+scripts/proofs/run-q10-guard.sh	new
+scripts/proofs/run-q10-srv6.sh	new
+scripts/provision.sh	+89	-12
+tests/envtest/provider_compat_envtest_test.go	+1	-1
+tests/fixtures/qualify/all-pass/qualify.report.json	new
+tests/fixtures/qualify/one-fail/qualify.report.json	new
+tests/fixtures/qualify/one-skip/qualify.report.json	new
+tests/integration/evpn_srv6_suite.sh	+56	-8
+tests/unit/capability_derive_test.sh	new
+tests/unit/compat_fullvalidate_test.go	+36	-1
+tests/unit/compat_pins_test.go	new
+vendor/sonic-buildimage	+0	-0
+versions.lock.yaml	+3	-2

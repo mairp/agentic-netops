@@ -1,0 +1,29 @@
+# Anomaly inspection report — checks A–J over the snapshot
+
+Snapshot: `evals/incidents/004-srv6-service-requests/raw/` (proofs under
+`wiggum-004-20261013T210550/gates/proofs/`, logs under `tmp-g3-20261013T210550/`).
+
+| Check | Finding | Severity | Artifacts | Verdict |
+| --- | --- | --- | --- | --- |
+| A false-clean | 1 hit (historical): `spike-rerun-steering.out` content at chain2 time ended `no difference` + `[exit code: 0]` (`chain2.log` 08:39:03 RC=0, verdict file `clean`) while the five member `.out` files it replayed were `PREFLIGHT-FAILED … [exit code: 1]` (overwritten 07:12–07:50). At snapshot time the CURRENT `spike-rerun-steering.out` honestly reports `2 of 5 differ [exit code: 1]`, so the false-clean is evidenced by chain2 logs + `chain2.summary` (`spike-rerun-steering=clean`), not by the current receipt bytes. | critical | `tmp-g3-*/chain2.log` (lines 45–57), `tmp-g3-*/chain2.summary`, `wiggum-004-*/PROGRESS.md` pass 20 | CONFIRMED (historical) |
+| A false-clean (current) | No current receipt is false-clean: vpn receipt `[exit code: 0]` with all 8 members `[exit code: 0]`; steering/evpn3/evpn2/baseline receipts are `[exit code: 1]`. | — | `gates/proofs/spike-rerun-*.out` | CLEAN |
+| B recorded-failure inventory | Non-zero-exit member `.out` files: `p1-image-by-digest.out` `[exit code: 1]` (2026-10-11 22:47, pull denied) = **stale** (phase-1 red record, superseded); `spike-steering-path.out` + `spike-steering-failover-launcher.out` = **live** garbage (`PREFLIGHT-FAILED [exit code: 1]`, 19:59/20:25 — still the stored records at snapshot); the four `spike-rerun-*.out` receipts `[exit code: 1]` are live differ verdicts (correct behavior, not garbage). | major | `gates/proofs/p1-image-by-digest.out`, `gates/proofs/spike-steering-path.out`, `gates/proofs/spike-steering-failover-launcher.out` | 1 stale, 2 live garbage |
+| C rc/verdict mismatch | (a) chain2: `A-seed=1` and `G-seed=1` followed by dependent recordings/receipts with no covering re-run (`chain2.log`, `chain2.summary`). (b) chain5: all five `spike-rerun-*.verdict` MISSING while `chain5.summary` ran (`H-canary=1`). (c) `spike-rerun-*.verdict` present only for vpn/steering/evpn3 at snapshot — evpn2/baseline verdicts absent while their receipts exist on disk. | major | `tmp-g3-*/chain2.summary`, `tmp-g3-*/chain5.summary`, `tmp-g3-*/spike-rerun-*.verdict` | 3 hits |
+| D temporal invalidation | `spike-rerun-baseline.out` mtime 2026-10-13 11:32:02 < member `spike-baseline-spine02.out` 15:24:47 (receipt cannot cover current records). `spike-rerun-evpn3.out` 20:57:22 < members `spike-evpn3-ping.out` 20:58:59 … `spike-evpn3-state-leaf01.out` 21:02:16 (snapshot cut mid-re-record). | major | `gates/proofs/spike-rerun-baseline.out`, `gates/proofs/spike-rerun-evpn3.out`, `gates/proofs/spike-baseline-*.out`, `gates/proofs/spike-evpn3-*.out` | 2 receipts stale |
+| E missing pair | No `.cmd`-without-`.out` or `.out`-without-`.cmd` among the 249 proof entries. `clab-digest-proof` is a bare directory (no `.cmd`/`.out`). `.record-order` lists `restore-check` which has NO stored `.cmd`/`.out` pair — an order entry without a record. All five `spike-rerun-*` receipts exist. | minor | `gates/proofs/.record-order`, `gates/proofs/clab-digest-proof/` | 1 hit (`restore-check`) |
+| F stale pid | `chain6.pid` held 1226865 (exiting setsid wrapper) before hand-correction to 1226866 (`PROGRESS.md` pass 24); `chain2.pid`=1024502 and `chain4.pid`=935362 are dead-chain pids (historical, expected); `chain7.pid` ABSENT while chain7 runs (pid 3538140 per the yield file). | minor | `tmp-g3-*/chain6.pid`, `tmp-g3-*/chain2.pid`, `tmp-g3-*/chain4.pid`, `wiggum-004-*/yield/phase3-attempt1-20261013-120241-4145257.json` | CONFIRMED |
+| G provenance gap | `git status --porcelain scripts/spike/` → `?? scripts/spike/`; `git ls-files scripts/spike` empty. All 44 proof-body scripts incl. `vrf-apply.sh` (wedge cure) untracked during the live run. | major | `scripts/spike/` (git state at snapshot) | CONFIRMED |
+| H yield-budget mismatch | chain6 yield `deadline_sec: 18000` armed ~14:44 (expiry ~19:42) vs ~2h15 of remaining D/E/F/G work at 17:59 (`chain6.summary` states this explicitly). chain7's re-yield (14400 s from 19:33) is consistent with the remaining scope. | major | `wiggum-004-*/yield/phase3-attempt1-20261013-120241-4145257.json`, `tmp-g3-*/chain6.summary`, `tmp-g3-*/chain6.log` | CONFIRMED (chain6) |
+| I garbage loop | No two proof `.out` files are byte-identical (`md5sum` uniq: none) — the PREFLIGHT-FAILED texts differ per mode ("steering capture refused" vs "launcher failover refused"). The loop-detection signal must therefore match on failure MARKER + exit code, not exact bytes. Historical loop: chain2 D-1..D-5 (five consecutive rc=1 re-records, `chain2.log` 07:12–07:50) and chain7 D-1/D-1-r2/D-2/D-2-r2 (19:46–20:25). | minor | `gates/proofs/spike-steering-*.out`, `tmp-g3-*/chain2.log`, `tmp-g3-*/chain7.log` | marker-level loops confirmed; no byte-identical pairs |
+| J control (future mtimes) | `find gates/proofs -newermt '2026-10-13T21:06'` → empty. No future-dated files. | — | `gates/proofs/` | CLEAN |
+
+## Checks the harness lacks (→ harness regression evals)
+
+The specstride machinery (`scripts/proof.sh` record/replay, proposer yield contract,
+watchdog) currently performs NONE of: **A** (member-health gate on a `clean` receipt),
+**B/C** (recorded-failure & verdict inventory), **D** (receipt-vs-member freshness binding),
+**E-partial** (pair check exists implicitly; `.record-order` completeness does not),
+**F** (pid liveness/identity validation), **G** (untracked run-critical script alarm),
+**H** (arm-time yield budget feasibility), **I** (consecutive-failure re-record loop alarm).
+**J** is the only check with an existing analog (watchdog timing), and even that does not
+scan evidence mtimes. Each maps to a harness-regression eval below (EVAL-004-011…018).

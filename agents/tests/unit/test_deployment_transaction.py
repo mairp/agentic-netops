@@ -1036,6 +1036,65 @@ class TestStatusQuestionOnACompletedThread:
         assert out["workflow_status"] == NetworkProvisioningStatus.COMPLETED.value
         assert "Deployed." in out["messages"][0].content
 
+    async def test_the_composed_status_answer_names_the_type_and_ready_state(self, graph_llm):
+        """US6/T544 through the supervisor: the operator-facing answer carries the
+        FR-013 wording and the Ready verdicts per resource, exactly as the
+        deployer's own summary renders them. Found live (gate 8, T547): the
+        supervisor re-render used to answer "Network/<name> (<message>)" — no
+        type, no Ready — dropping the deployer's derived fields on the floor.
+        """
+
+        report = {
+            "status": {
+                "serviceId": "svc-alpha",
+                "correlationId": CID,
+                "phase": "Deployed",
+                "resources": [
+                    {
+                        "kind": "SRv6Service",
+                        "name": "svc-srv6-acme",
+                        "serviceType": "ip-vrf over srv6",
+                        "ready": True,
+                        "degraded": False,
+                        "reason": "ApplySucceeded",
+                        "message": "applied and verified on all nodes",
+                        "lastTransitionTime": "2026-10-18T09:15:00Z",
+                    },
+                    {
+                        "kind": "Network",
+                        "name": "net-svc-alpha",
+                        "serviceType": "ip-vrf",
+                        "ready": True,
+                        "degraded": False,
+                        "reason": "ApplySucceeded",
+                        "message": "applied and verified on all nodes",
+                        "lastTransitionTime": "2026-10-18T09:15:00Z",
+                    },
+                ],
+            }
+        }
+        parts = [
+            {"data": report},
+            {"text": _marker_text("Deployed. SRv6Service/svc-srv6-acme (ip-vrf over srv6) Ready=True.\n", report)},
+        ]
+        state = {
+            **_deployer_state(),
+            "tool_action": "status",
+            "tool_request": canonical_json({"action": "status", "correlationId": CID}),
+        }
+        out = await _run_deployer_node(graph_llm, parts, state=state)
+        assert out["workflow_status"] == NetworkProvisioningStatus.COMPLETED.value
+        answer = out["messages"][0].content
+        assert answer.startswith("Deployed.")
+        assert (
+            'SRv6Service/svc-srv6-acme (ip-vrf over srv6) Ready=True Degraded=False '
+            '"applied and verified on all nodes" since 2026-10-18T09:15:00Z'
+        ) in answer
+        assert (
+            'Network/net-svc-alpha (ip-vrf) Ready=True Degraded=False '
+            '"applied and verified on all nodes" since 2026-10-18T09:15:00Z'
+        ) in answer
+
     async def test_a_resolved_failure_answer_names_the_responsible_stage(self, graph_llm):
         """A resolved status of Failed ends the thread FAILED and says so.
 

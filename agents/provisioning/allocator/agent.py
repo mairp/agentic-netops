@@ -155,6 +155,106 @@ class AllocatorAgent:
             data["defaultAction"] = data.pop("default_action")
         return ACL.model_validate(data)
 
+    def _srv6_endpoints(self, endpoints: list[Endpoint]) -> list[Endpoint]:
+        """Carry an operator-named vlan through an srv6 mac-vrf endpoint.
+
+        The vlan the operator named travels with the intent untouched; it is
+        never claimed. An srv6 mac-vrf without a named vlan cannot invent one
+        (clarification C6 asks for it before mapping), so the endpoint keeps
+        no vlan at all.
+        """
+
+        declared = sorted({e.vlan for e in endpoints if e.vlan})
+        if len(declared) > 1:
+            raise ValueError(
+                "mac-vrf over srv6 is one bridge domain, so all endpoints share "
+                f"one vlan; the request names {len(declared)}: "
+                f"{', '.join(str(v) for v in declared)}"
+            )
+        vlan = declared[0] if declared else None
+        return [
+            Endpoint(node=e.node, attachment=e.attachment, vlan=vlan) for e in endpoints
+        ]
+
+    def _srv6_intent(
+        self,
+        interp: Interpretation,
+        acl: ACL | None,
+        endpoints: list[Endpoint],
+        correlation_id: str,
+    ) -> NormalizedServiceIntent:
+        """The transport srv6 claim profile: identifiers are fabric-allocated.
+
+        The allocator claims none of the VXLAN identifiers on this path — no
+        vlan, no l2vni, no l3vni, no rd/rt claim (contracts/kuid-claim-profiles.md;
+        intent-srv6.md §5: "for transport srv6 it adds no identifier"). Only
+        ip-vrf and mac-vrf carry an SRv6 transport (V2); the intent carries
+        type/tenant/endpoints, the transport qualifier itself, and none of the
+        VXLAN identifiers. For ip-vrf the endpoints additionally carry the
+        claimed per-attachment gateway prefixes (intent-srv6.md §4:
+        ``endpoints[].prefixes`` → ``spec.attachments[].gateway``).
+        """
+
+        st = interp.service_type.value
+        if st == "mac-vrf":
+            if interp.anycast_gateway is not None:
+                raise ValueError(
+                    "mac-vrf over srv6 is bridged: it carries no anycast gateway"
+                )
+            return NormalizedServiceIntent(
+                serviceId=interp.service_id,
+                type="mac-vrf",
+                transport="srv6",
+                signalling=interp.signalling or "evpn",
+                preferredSpine=interp.preferred_spine,
+                acl=acl,
+                tenant=interp.tenant,
+                endpoints=self._srv6_endpoints(endpoints),
+            )
+        if st == "ip-vrf":
+            if interp.ipv4_prefixes or interp.ipv6_prefixes:
+                af = AddressFamilies(
+                    ipv4Prefixes=interp.ipv4_prefixes,
+                    ipv6Prefixes=interp.ipv6_prefixes,
+                )
+            else:
+                af = AddressFamilies(ipv4Prefixes=["10.0.0.0/24"])
+            # The SRv6Service CRD's A9 rule requires a gateway prefix on both
+            # attachments, and intent-srv6.md §4 maps endpoints[].prefixes to
+            # spec.attachments[].gateway. The leaf-side addressing is claimed,
+            # never invented: one client /24 per attachment from the
+            # srv6-client-v4 index (data-model §8.1), through the deterministic
+            # claim name the srv6-controller shares (same correlation id, same
+            # attachment key), and the gateway is the claimed subnet's first
+            # usable host — the fabric bootstrap's x.y.z.1/n convention (.1 the
+            # leaf SVI, .2 the client container the data-path probe pings).
+            eps = []
+            for e in endpoints:
+                claimed = self.kuid.allocate_client_prefix(
+                    correlation_id=correlation_id,
+                    attachment=f"{e.node}-{e.attachment}",
+                )
+                eps.append(
+                    Endpoint(
+                        node=e.node,
+                        attachment=e.attachment,
+                        vrf=e.vrf or f"vrf-{interp.tenant}",
+                        prefixes=[_gateway_address([claimed], claimed)],
+                    )
+                )
+            return NormalizedServiceIntent(
+                serviceId=interp.service_id,
+                type="ip-vrf",
+                transport="srv6",
+                signalling=interp.signalling or "vpn",
+                preferredSpine=interp.preferred_spine,
+                acl=acl,
+                tenant=interp.tenant,
+                addressFamilies=af,
+                endpoints=eps,
+            )
+        raise ValueError(f"transport srv6 applies to ip-vrf and mac-vrf only (got {st})")
+
     def _build_intent(self, interp: Interpretation, correlation_id: str) -> NormalizedServiceIntent:
         st = interp.service_type.value
         acl = self._normalized_acl(interp)
@@ -175,8 +275,14 @@ class AllocatorAgent:
         l3vni = None
         rd_rt: RdRt | None = None
 
+        # transport srv6 (US4): srv6 identifiers are fabric-allocated, so this
+        # path claims none of the VXLAN identifiers (V3) — the only claim it
+        # makes is the ip-vrf attachment client /24s (the A9 gateway
+        # prefixes), made inside _srv6_intent.
+        if interp.transport == "srv6":
+            intent = self._srv6_intent(interp, acl, endpoints, correlation_id)
         # Type-specific mapping
-        if st == "vlan":
+        elif st == "vlan":
             # Resolve L2 endpoints on ONE vlan; allocate from KUID only if not named
             # Determine if operator named a VLAN on any endpoint
             named_vlan = any(e.vlan for e in endpoints)
@@ -335,6 +441,13 @@ class AllocatorAgent:
             m = json.loads(interp_json)
             if not isinstance(m, dict):
                 return {"result_text": "invalid interpretation payload", "payload": None}
+            # SC-010: the supervisor injects the THREAD's correlation id as an
+            # additive "correlationId" key inside the fenced data block. Pop it
+            # before validation (the published Interpretation schema is
+            # unchanged) and allocate under it, so the claims this call creates
+            # share the id the deployer stamps onto the created objects and the
+            # controller releases on decline/delete.
+            correlation_id = str(m.pop("correlationId", "") or "")
             interp = Interpretation.model_validate(m)
         except Exception as exc:  # noqa: BLE001
             logger.error("failed to parse/validate interpretation: %s", exc)
@@ -352,13 +465,11 @@ class AllocatorAgent:
                 "payload": json.loads(cached),
             }
 
-        correlation_id = ""
-        # The supervisor stamps the state; allocator uses the correlation-id when allocating
-        try:
-            # Attempt to scrape a correlation-id marker if present in text; otherwise random.
-            correlation_id = uuid4().hex
-        except Exception:
-            correlation_id = uuid4().hex
+        # SC-010 claims traceability: the correlation comes from the supervisor
+        # inside the fenced payload ("correlationId", popped above). Empty only
+        # for direct/unfenced callers — then `_build_intent` falls back to the
+        # trace id and finally a random uuid, so the claim still has a key.
+        # correlation_id already set by the pop; nothing to do here.
 
         # Build normalized intent, allocate identifiers (T222-T223)
         intent = self._build_intent(interp, correlation_id)

@@ -1,0 +1,10 @@
+{
+  "serviceId": "srv6_v2",
+  "type": "vlan",
+  "transport": "srv6",
+  "tenant": "acme",
+  "endpoints": [
+    {"node": "leaf01", "attachment": "wan1", "vlan": 100},
+    {"node": "leaf02", "attachment": "wan1", "vlan": 100}
+  ]
+}

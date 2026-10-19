@@ -1,0 +1,15 @@
+===== client01 -> client02: default size =====
+3 packets transmitted, 3 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+===== client01 -> client02: 8900-byte payload, don't-fragment =====
+3 packets transmitted, 3 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+===== client02 -> client01: default size (return path) =====
+3 packets transmitted, 3 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+===== client02 -> client01: 8900-byte payload, don't-fragment =====
+3 packets transmitted, 3 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+===== probe size confirmed: 8900-byte payload DF passes both directions =====
+
+[exit code: 0]

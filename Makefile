@@ -10,7 +10,7 @@ SHELL := /bin/bash
 # agents/, broke. $(CURDIR) is the directory make itself is running in.
 REPO_ROOT := $(CURDIR)
 
-.PHONY: help verify-pins verify-intent-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest build build-migration-cli build-intent-translator supply-chain security-audit acceptance suites test-all
+.PHONY: help verify-pins verify-intent-pins validate-crds verify-compat lab-qualify verify-register test test-static test-envtest build build-migration-cli build-intent-translator supply-chain security-audit acceptance suites test-all manifests generate
 
 help:
 	@echo "Targets:"
@@ -43,6 +43,29 @@ verify-intent-pins:
 verify-compat: verify-pins validate-crds verify-register verify-intent-pins
 	@echo "[verify-compat] pins, intent_tier digests, CRD, and register validations passed"
 
+# ---------------------------------------------------------------------------
+# Code generation (feature 004). controller-gen is pinned in
+# versions.lock.yaml (codegen.controller_gen). The module cache is served as a
+# file proxy so generation never touches the network; a cold cache fails fast
+# instead of hanging on a proxy timeout.
+# ---------------------------------------------------------------------------
+CONTROLLER_GEN ?= v0.14.0
+GO_MODULE_CACHE_FILEPROXY ?= file://$(HOME)/go/pkg/mod/cache/download
+CONTROLLER_GEN_INVOCATION := cd $(REPO_ROOT) && env GOFLAGS=-mod=mod GOPROXY=$(GO_MODULE_CACHE_FILEPROXY) go run sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN)
+
+manifests:
+	@echo "[manifests] regenerating config/crd/bases with controller-gen $(CONTROLLER_GEN)"
+	@$(CONTROLLER_GEN_INVOCATION) crd \
+	  paths=./api/... \
+	  output:crd:artifacts:config=config/crd/bases
+
+generate:
+	@echo "[generate] regenerating deepcopy with controller-gen $(CONTROLLER_GEN)"
+	@$(CONTROLLER_GEN_INVOCATION) \
+	  object:headerFile="hack/boilerplate.go.txt" \
+	  paths=./api/...
+
+
 supply-chain:
 	@"$(REPO_ROOT)/scripts/ci/supply_chain.sh"
 
@@ -68,7 +91,8 @@ build-intent-translator:
 	@GOFLAGS=-buildvcs=false CGO_ENABLED=0 go build -mod=vendor -trimpath -ldflags "-s -w -buildid=" ./cmd/intent-translator
 
 # Lifecycle wrappers (do not reimplement phases): call scripts directly
-PROF ?= sonic-vs
+# T249: sonic-vm is the default profile, matching scripts/provision.sh.
+PROF ?= sonic-vm
 CLUSTER ?= agentic-netops
 TIMEOUT ?= 180s
 
@@ -123,12 +147,18 @@ test-static:
 
 test-envtest:
 	@echo ">> envtest for SRv6Service CRD"
-	@go test ./tests/envtest -run TestSRv6ServiceCRD_Envtest -v
+	@KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./tests/envtest -run TestSRv6ServiceAdmissionRules -v
+
+# envtest binaries (T294): the kubebuilder release the CRD tests run against.
+# Exported as a default only when the caller has not set KUBEBUILDER_ASSETS
+# already; the test harness falls back to /usr/local/kubebuilder/bin before
+# refusing.
+export KUBEBUILDER_ASSETS ?= $(HOME)/.local/share/kubebuilder-envtest/envtest-1.29.4-linux-amd64
 
 # suites — Phase 8: run all test suites and capture logs under gates/proofs
 suites:
 	@echo "[suites] running Phase 8 suites"
-	@bash "$(REPO_ROOT)/scripts/ci/run_suites.sh"
+	@AGENTIC_NETOPS_PROFILE="$(PROF)" bash "$(REPO_ROOT)/scripts/ci/run_suites.sh"
 
 # test-all — include suites plus static/envtest
 test-all: test suites

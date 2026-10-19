@@ -22,6 +22,7 @@ No identifier in this model may be locally generated: every ``l2vni``,
 from __future__ import annotations
 
 import ipaddress
+import os
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -61,6 +62,9 @@ class Endpoint(BaseModel):
     attachment: str = Field(min_length=1)
     vlan: int | None = Field(default=None, ge=1, le=4094)
     vrf: str | None = None
+    # SRv6 services carry their routed prefixes on the attachment itself
+    # (contracts/intent-srv6.md §2); VXLAN endpoints never set this.
+    prefixes: list[str] | None = None
 
 
 class AnycastGateway(BaseModel):
@@ -154,6 +158,13 @@ class NormalizedServiceIntent(BaseModel):
     # mac-vrf anycast gateway (symmetric IRB)
     anycastGateway: AnycastGateway | None = None
 
+    # SRv6 transport (US4, contracts/intent-srv6.md §1). Plain strings so the
+    # refusal is a validation cause (V1), not a parse error — the Go decoder
+    # accepts the wire value and lets ValidateAllOrNothing refuse it.
+    transport: str = "vxlan"
+    signalling: str | None = None
+    preferredSpine: str | None = None
+
     # Endpoints
     endpoints: list[Endpoint]
 
@@ -188,19 +199,68 @@ class NormalizedServiceIntent(BaseModel):
         if len(self.endpoints) == 0:
             causes.append("endpoints: at least one endpoint is required")
 
+        # SRv6 transport rules (US4, contracts/intent-srv6.md §3 V1–V8).
+        # tePolicy wins: V8 — the existing tePolicy refusal is the whole
+        # answer, no V5/V7 causes are added for preferredSpine alongside it.
+        srv6 = self.transport == "srv6"
+        te_policy = self.unsupported is not None and self.unsupported.tePolicy is not None
+        if self.transport not in ("vxlan", "srv6"):
+            causes.append(
+                f"transport: unsupported '{self.transport}' (transports: vxlan, srv6)"
+            )
+        elif srv6:
+            # V2
+            if self.type not in ("ip-vrf", "mac-vrf"):
+                causes.append("transport: srv6 applies to ip-vrf and mac-vrf only")
+            # V3
+            if self.l2vni or self.l3vni or self.rdRt is not None:
+                causes.append("srv6: identifiers are allocated by the fabric, not supplied")
+            # V4
+            if self.type == "mac-vrf" and self.signalling == "vpn":
+                causes.append("signalling: mac-vrf over srv6 uses evpn")
+            # V6
+            if not (
+                len(self.endpoints) == 2
+                and self.endpoints[0].node
+                and self.endpoints[0].node != self.endpoints[1].node
+            ):
+                causes.append(
+                    "endpoints: an srv6 service joins exactly two attachments on distinct nodes"
+                )
+            # V7 — mirror the Go SiteInventory: without FABRIC_SPINE_NODES
+            # the site inventory is empty and V7 validates nothing.
+            spine_env = os.environ.get("FABRIC_SPINE_NODES")
+            if (
+                self.preferredSpine
+                and not te_policy
+                and spine_env
+            ):
+                spines = [s.strip() for s in spine_env.split(",") if s.strip()]
+                if self.preferredSpine not in spines:
+                    causes.append(
+                        f"preferredSpine: unknown '{self.preferredSpine}' (site has: {', '.join(spines)})"
+                    )
+        else:  # transport vxlan (or omitted)
+            # V5
+            if self.signalling is not None:
+                causes.append("signalling: only valid with transport srv6")
+            if self.preferredSpine is not None and not te_policy:
+                causes.append("preferredSpine: only valid with transport srv6")
+
         t = self.type
         if t == "vlan":
-            # Wrong-construct variables
-            if self.l2vni:
+            # Wrong-construct variables (identifier allocation is an srv6
+            # concern — V3 already refuses them there)
+            if not srv6 and self.l2vni:
                 causes.append("l2vni: a vlan is local to the node; ask for a mac-vrf to extend it over the fabric")
-            if self.l3vni:
+            if not srv6 and self.l3vni:
                 causes.append(
                     "l3vni: a vlan carries no routed instance; ask for an ip-vrf, or a mac-vrf "
                     "with an anycastGateway"
                 )
-            if self.rdRt is not None:
+            if not srv6 and self.rdRt is not None:
                 causes.append("rdRt: a vlan is not advertised by EVPN and has no route distinguisher or targets")
-            if self.anycastGateway is not None:
+            if not srv6 and self.anycastGateway is not None:
                 causes.append("anycastGateway: only a mac-vrf carries an anycast gateway")
             if len(self.endpoints) < 1:
                 causes.append("endpoints: vlan requires >=1 endpoint")
@@ -220,18 +280,22 @@ class NormalizedServiceIntent(BaseModel):
                             f"must share one vlan (got {vlan} and {ep.vlan})"
                         )
         elif t == "mac-vrf":
-            if not self.l2vni:
+            # Over srv6 the VXLAN identifiers are lifted (V3 refuses them when
+            # supplied); the fabric allocates them.
+            if not srv6 and not self.l2vni:
                 causes.append("l2vni: required for mac-vrf")
-            if self.rdRt is None:
+            if not srv6 and self.rdRt is None:
                 causes.append("rdRt: required for mac-vrf")
             min_eps = 2
             if self.anycastGateway is not None:
                 min_eps = 1
-            if len(self.endpoints) < min_eps:
+            if not srv6 and len(self.endpoints) < min_eps:
                 causes.append(f"endpoints: mac-vrf requires >={min_eps} endpoints")
             # Reserved VLAN band and vlan presence / equality across endpoints
+            # — a VXLAN bridging concern; an srv6 mac-vrf carries prefixes on
+            # its attachments instead (V6 covers the topology).
             vlan = 0
-            for i, ep in enumerate(self.endpoints):
+            for i, ep in enumerate(self.endpoints if not srv6 else []):
                 if not ep.vlan:
                     causes.append(f"endpoints[{i}].vlan: required for mac-vrf")
                 else:
@@ -245,41 +309,45 @@ class NormalizedServiceIntent(BaseModel):
                             f"endpoint must share one vlan (got {vlan} and {ep.vlan})"
                         )
             # anycastGateway requires l3vni in the ip-vrf it routes into
-            if self.anycastGateway is not None:
+            # (VXLAN only — srv6 allocates it, V3)
+            if self.anycastGateway is not None and not srv6:
                 if not self.l3vni:
                     causes.append("l3vni: required for a mac-vrf with an anycastGateway (the ip-vrf it routes into)")
                 if not (10000 <= (self.l3vni or 0) <= 14094):
                     causes.append(
                         f"l3vni: {self.l3vni} has no derivable service VLAN; this fabric renders L3VNIs in 10000-14094"
                     )
-            elif self.l3vni:
+            elif not srv6 and self.l3vni:
                 causes.append("l3vni: a mac-vrf carries an L3VNI only when it declares an anycastGateway")
         elif t == "ip-vrf":
-            if not self.l3vni:
+            # Over srv6 the VXLAN identifiers are lifted (V3 refuses them when
+            # supplied); prefixes ride on the attachments.
+            if not srv6 and not self.l3vni:
                 causes.append("l3vni: required for ip-vrf")
-            if not (self.l3vni is None or 10000 <= self.l3vni <= 14094):
+            if not srv6 and not (self.l3vni is None or 10000 <= self.l3vni <= 14094):
                 causes.append(
                     f"l3vni: {self.l3vni} has no derivable service VLAN; this fabric renders L3VNIs in 10000-14094"
                 )
-            if self.rdRt is None:
+            if not srv6 and self.rdRt is None:
                 causes.append("rdRt: required for ip-vrf")
             af = self.addressFamilies
-            if af is None or (len(af.ipv4Prefixes) == 0 and len(af.ipv6Prefixes) == 0):
+            if not srv6 and (af is None or (len(af.ipv4Prefixes) == 0 and len(af.ipv6Prefixes) == 0)):
                 causes.append("addressFamilies: at least one prefix is required for ip-vrf")
-            if self.l2vni:
+            if not srv6 and self.l2vni:
                 causes.append(
                     "l2vni: an ip-vrf carries no bridge domain; ask for a mac-vrf with an "
                     "anycastGateway to get both"
                 )
-            if self.anycastGateway is not None:
+            if not srv6 and self.anycastGateway is not None:
                 causes.append("anycastGateway: belongs to the mac-vrf whose SVI carries it, not to the ip-vrf")
-            if len(self.endpoints) < 1:
+            if not srv6 and len(self.endpoints) < 1:
                 causes.append("endpoints: ip-vrf requires >=1 endpoint")
-            for i, ep in enumerate(self.endpoints):
-                if not ep.vrf:
-                    causes.append(f"endpoints[{i}].vrf: required for ip-vrf")
+            if not srv6:
+                for i, ep in enumerate(self.endpoints):
+                    if not ep.vrf:
+                        causes.append(f"endpoints[{i}].vrf: required for ip-vrf")
         elif t == "acl":
-            if self.l2vni or self.l3vni or self.rdRt is not None or self.anycastGateway is not None:
+            if not srv6 and (self.l2vni or self.l3vni or self.rdRt is not None or self.anycastGateway is not None):
                 causes.append(
                     "acl: an acl binds to ports and carries no VNI, route targets or gateway; "
                     "attach it to a vlan, mac-vrf or ip-vrf to filter that service"

@@ -1,0 +1,708 @@
+{
+  "schema_version": "1.0",
+  "feature": "004-srv6-service-requests",
+  "commands": [
+    {
+      "id": "p1-proof-recorder-selftest",
+      "phase": 1,
+      "executable": "bash",
+      "args": [
+        "scripts/proof.sh",
+        "selftest",
+        "--",
+        "true"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 60
+    },
+    {
+      "id": "p1-proof-recorder-replay",
+      "phase": 1,
+      "executable": "bash",
+      "args": [
+        "scripts/proof.sh",
+        "replay",
+        "selftest"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 120
+    },
+    {
+      "id": "p2-phrasings-baseline-pytest",
+      "phase": 2,
+      "executable": "bash",
+      "args": [
+        "scripts/proofs/run-q10-baseline.sh"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p2-phrasings-srv6-pytest",
+      "phase": 2,
+      "executable": "bash",
+      "args": [
+        "scripts/proofs/run-q10-srv6.sh"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p2-vocabulary-guard-pytest",
+      "phase": 2,
+      "executable": "bash",
+      "args": [
+        "scripts/proofs/run-q10-guard.sh"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p2-agents-pytest-full",
+      "phase": 2,
+      "executable": "bash",
+      "args": [
+        "scripts/proofs/run-p1-agents.sh"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 1800
+    },
+    {
+      "id": "p2-go-build",
+      "phase": 2,
+      "executable": "go",
+      "args": [
+        "build",
+        "./..."
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p2-go-test-envtest",
+      "phase": 2,
+      "executable": "make",
+      "args": [
+        "test-envtest"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 3600
+    },
+    {
+      "id": "p2-pins-verify",
+      "phase": 2,
+      "executable": "make",
+      "args": [
+        "verify-pins"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 300
+    },
+    {
+      "id": "p3-reuse-proof-recorder-selftest",
+      "phase": 3,
+      "executable": "bash",
+      "args": [
+        "scripts/proof.sh",
+        "selftest",
+        "--",
+        "true"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 60
+    },
+    {
+      "id": "p3-reuse-proof-recorder-replay",
+      "phase": 3,
+      "executable": "bash",
+      "args": [
+        "scripts/proof.sh",
+        "replay",
+        "selftest"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 120
+    },
+    {
+      "id": "p3-reuse-phrasings-baseline-pytest",
+      "phase": 3,
+      "executable": "bash",
+      "args": [
+        "scripts/proofs/run-q10-baseline.sh"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p3-reuse-phrasings-srv6-pytest",
+      "phase": 3,
+      "executable": "bash",
+      "args": [
+        "scripts/proofs/run-q10-srv6.sh"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p3-reuse-vocabulary-guard-pytest",
+      "phase": 3,
+      "executable": "bash",
+      "args": [
+        "scripts/proofs/run-q10-guard.sh"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p3-reuse-agents-pytest-full",
+      "phase": 3,
+      "executable": "bash",
+      "args": [
+        "scripts/proofs/run-p1-agents.sh"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 1800
+    },
+    {
+      "id": "p3-reuse-go-build",
+      "phase": 3,
+      "executable": "go",
+      "args": [
+        "build",
+        "./..."
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p3-reuse-go-test-envtest",
+      "phase": 3,
+      "executable": "make",
+      "args": [
+        "test-envtest"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 3600
+    },
+    {
+      "id": "p3-reuse-pins-verify",
+      "phase": 3,
+      "executable": "make",
+      "args": [
+        "verify-pins"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 300
+    },
+    {
+      "id": "p4-agents-pytest-full",
+      "phase": 4,
+      "executable": "bash",
+      "args": [
+        "scripts/proofs/run-p1-agents.sh"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 1800
+    },
+    {
+      "id": "p4-go-test",
+      "phase": 4,
+      "executable": "make",
+      "args": [
+        "test"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 3600
+    },
+    {
+      "id": "p5-pins-verify",
+      "phase": 5,
+      "executable": "make",
+      "args": [
+        "verify-pins"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 300
+    },
+    {
+      "id": "p5-crds-manifests",
+      "phase": 5,
+      "executable": "make",
+      "args": [
+        "manifests"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p5-crds-generate",
+      "phase": 5,
+      "executable": "make",
+      "args": [
+        "generate"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p5-compat-verify",
+      "phase": 5,
+      "executable": "make",
+      "args": [
+        "verify-compat"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p6-phrasings-baseline-pytest",
+      "phase": 6,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_phrasings_baseline.py"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p6-phrasings-srv6-pytest",
+      "phase": 6,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_phrasings_srv6.py"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p6-vocabulary-guard-pytest",
+      "phase": 6,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_vocabulary_guard.py"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p6-agents-pytest-full",
+      "phase": 6,
+      "executable": "bash",
+      "args": [
+        "scripts/proofs/run-p1-agents.sh"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 1800
+    },
+    {
+      "id": "p6-go-unit-tests",
+      "phase": 6,
+      "executable": "go",
+      "args": [
+        "test",
+        "./tests/unit/..."
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 1800
+    },
+    {
+      "id": "p7-refusal-te-pytest",
+      "phase": 7,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_refusal_paths.py -k te"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p8-suggested-prompts-pytest",
+      "phase": 8,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_suggested_prompts_ports_constructs.py tests/unit/test_suggested_prompts_runnable.py"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p9-reuse-proof-recorder-selftest",
+      "phase": 9,
+      "executable": "bash",
+      "args": [
+        "scripts/proof.sh",
+        "selftest",
+        "--",
+        "true"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 60
+    },
+    {
+      "id": "p9-reuse-proof-recorder-replay",
+      "phase": 9,
+      "executable": "bash",
+      "args": [
+        "scripts/proof.sh",
+        "replay",
+        "selftest"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 120
+    },
+    {
+      "id": "p9-reuse-phrasings-baseline-pytest",
+      "phase": 9,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_phrasings_baseline.py"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p9-reuse-phrasings-srv6-pytest",
+      "phase": 9,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_phrasings_srv6.py"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p9-reuse-vocabulary-guard-pytest",
+      "phase": 9,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_vocabulary_guard.py"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p9-reuse-agents-pytest-full",
+      "phase": 9,
+      "executable": "bash",
+      "args": [
+        "scripts/proofs/run-p1-agents.sh"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 1800
+    },
+    {
+      "id": "p9-reuse-go-build",
+      "phase": 9,
+      "executable": "go",
+      "args": [
+        "build",
+        "./..."
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p9-reuse-go-test-envtest",
+      "phase": 9,
+      "executable": "make",
+      "args": [
+        "test-envtest"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 3600
+    },
+    {
+      "id": "p9-reuse-pins-verify",
+      "phase": 9,
+      "executable": "make",
+      "args": [
+        "verify-pins"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 300
+    },
+    {
+      "id": "p9-reuse-go-test",
+      "phase": 9,
+      "executable": "make",
+      "args": [
+        "test"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 3600
+    },
+    {
+      "id": "p9-reuse-crds-manifests",
+      "phase": 9,
+      "executable": "make",
+      "args": [
+        "manifests"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p9-reuse-crds-generate",
+      "phase": 9,
+      "executable": "make",
+      "args": [
+        "generate"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p9-reuse-compat-verify",
+      "phase": 9,
+      "executable": "make",
+      "args": [
+        "verify-compat"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p9-reuse-go-unit-tests",
+      "phase": 9,
+      "executable": "go",
+      "args": [
+        "test",
+        "./tests/unit/..."
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 1800
+    },
+    {
+      "id": "p9-reuse-refusal-te-pytest",
+      "phase": 9,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_refusal_paths.py -k te"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p9-reuse-suggested-prompts-pytest",
+      "phase": 9,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_suggested_prompts_ports_constructs.py tests/unit/test_suggested_prompts_runnable.py"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p10-reuse-proof-recorder-selftest",
+      "phase": 10,
+      "executable": "bash",
+      "args": [
+        "scripts/proof.sh",
+        "selftest",
+        "--",
+        "true"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 60
+    },
+    {
+      "id": "p10-reuse-proof-recorder-replay",
+      "phase": 10,
+      "executable": "bash",
+      "args": [
+        "scripts/proof.sh",
+        "replay",
+        "selftest"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 120
+    },
+    {
+      "id": "p10-reuse-phrasings-baseline-pytest",
+      "phase": 10,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_phrasings_baseline.py"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p10-reuse-phrasings-srv6-pytest",
+      "phase": 10,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_phrasings_srv6.py"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p10-reuse-vocabulary-guard-pytest",
+      "phase": 10,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_vocabulary_guard.py"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p10-reuse-agents-pytest-full",
+      "phase": 10,
+      "executable": "bash",
+      "args": [
+        "scripts/proofs/run-p1-agents.sh"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 1800
+    },
+    {
+      "id": "p10-reuse-go-build",
+      "phase": 10,
+      "executable": "go",
+      "args": [
+        "build",
+        "./..."
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p10-reuse-go-test-envtest",
+      "phase": 10,
+      "executable": "make",
+      "args": [
+        "test-envtest"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 3600
+    },
+    {
+      "id": "p10-reuse-pins-verify",
+      "phase": 10,
+      "executable": "make",
+      "args": [
+        "verify-pins"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 300
+    },
+    {
+      "id": "p10-reuse-go-test",
+      "phase": 10,
+      "executable": "make",
+      "args": [
+        "test"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 3600
+    },
+    {
+      "id": "p10-reuse-crds-manifests",
+      "phase": 10,
+      "executable": "make",
+      "args": [
+        "manifests"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p10-reuse-crds-generate",
+      "phase": 10,
+      "executable": "make",
+      "args": [
+        "generate"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p10-reuse-compat-verify",
+      "phase": 10,
+      "executable": "make",
+      "args": [
+        "verify-compat"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p10-reuse-go-unit-tests",
+      "phase": 10,
+      "executable": "go",
+      "args": [
+        "test",
+        "./tests/unit/..."
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 1800
+    },
+    {
+      "id": "p10-reuse-refusal-te-pytest",
+      "phase": 10,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_refusal_paths.py -k te"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p10-reuse-suggested-prompts-pytest",
+      "phase": 10,
+      "executable": "bash",
+      "args": [
+        "-c",
+        "cd agents && . .venv/bin/activate && pytest tests/unit/test_suggested_prompts_ports_constructs.py tests/unit/test_suggested_prompts_runnable.py"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    },
+    {
+      "id": "p11-agents-pytest-full",
+      "phase": 11,
+      "executable": "bash",
+      "args": [
+        "scripts/proofs/run-p1-agents.sh"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 1800
+    },
+    {
+      "id": "p11-go-test",
+      "phase": 11,
+      "executable": "make",
+      "args": [
+        "test"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 3600
+    },
+    {
+      "id": "p11-compat-verify",
+      "phase": 11,
+      "executable": "make",
+      "args": [
+        "verify-compat"
+      ],
+      "cwd": "/root/agentic-netops",
+      "timeoutSec": 600
+    }
+  ]
+}

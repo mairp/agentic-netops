@@ -109,6 +109,34 @@ def _derive_construct_and_provenance(annotations: dict[str, Any]) -> tuple[str |
     return construct, provenance
 
 
+def _srv6_type_wording(construct: str | None, obj: dict[str, Any]) -> str:
+    """US6/T544 — the operator-facing type of one intent object.
+
+    FR-013's SRv6 forms are restated, never paraphrased: an SRv6Service (or
+    any object carrying the srv6 transport annotation) reads "ip-vrf over
+    srv6", "ip-vrf over srv6 with evpn signalling" or "mac-vrf over srv6" —
+    the signalling taken from the object's own spec, the same default the
+    translator filled (contract §4: vpn for ip-vrf, evpn for mac-vrf). A
+    VXLAN/underlay Network keeps the bare construct word.
+    """
+    if not construct:
+        return ""
+    meta = obj.get("metadata") if isinstance(obj.get("metadata"), dict) else {}
+    annotations = meta.get("annotations") if isinstance(meta.get("annotations"), dict) else {}
+    spec = obj.get("spec") if isinstance(obj.get("spec"), dict) else {}
+    is_srv6 = str(obj.get("kind") or "") == "SRv6Service" or (
+        str(annotations.get("agentic-netops.io/transport") or "").lower() == "srv6"
+    )
+    if not is_srv6:
+        return construct
+    signalling = str(spec.get("signalling") or "").lower()
+    if construct == "mac-vrf":
+        return "mac-vrf over srv6"
+    if construct == "ip-vrf" and signalling == "evpn":
+        return "ip-vrf over srv6 with evpn signalling"
+    return "ip-vrf over srv6"
+
+
 def _condition_summary(obj: dict[str, Any]) -> dict[str, Any]:
     """Reduce one intent object to its Ready and Degraded conditions, verbatim.
 
@@ -176,7 +204,7 @@ def _condition_summary(obj: dict[str, Any]) -> dict[str, Any]:
         "kind": str(obj.get("kind") or ""),
         "name": str(meta.get("name") or ""),
         "namespace": str(meta.get("namespace") or ""),
-        "serviceType": construct or "",
+        "serviceType": _srv6_type_wording(construct, obj),
         "sourceServiceType": provenance or "",
         "ready": ready_condition.get("status"),
         "reason": ready_condition.get("reason", ""),

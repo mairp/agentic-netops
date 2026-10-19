@@ -1,0 +1,66 @@
+# T622 — SRv6 phrasings whose variant is OUTSIDE this lab's supported set
+# (contracts/operator-phrasings.md §3, refusal R2).
+#
+# The supported SRv6 set on this lab is ip-vrf over srv6 (vpn signalling) plus
+# path steering. These phrasings name ip-vrf/evpn or mac-vrf/evpn variants:
+# the MAPPER maps them (construct, transport srv6, signalling), and the TIER
+# refuses with R2 — "`<variant>` is not supported on this image. Supported
+# SRv6 services: `<list>`." — before any identifier is claimed. Nothing here
+# is an interim refusal any more: the interim R1 was removed when the first
+# supported SRv6 type landed.
+#
+# "EVPN over SRv6" WITHOUT a construct names no variant at all — that is
+# clarification C2 and lives in ../srv6_clarify.yaml. Bare "SRv6 service" is
+# C1, also there. SRv6 together with VXLAN is R3, and SRv6 with a vlan or acl
+# construct is R5 — both in srv6_conflict.yaml.
+#
+# This file is deliberately NOT replayed into baseline_snapshot.json
+# (tests/unit/test_phrasings_baseline.py skips srv6_* files) and not run by
+# the generic unsupported-property runner. It is exercised by
+# tests/unit/test_phrasings_srv6.py.
+category: srv6_transport
+transport: srv6
+tier: r2_refused
+cases:
+  - id: srv6-unsupported-ipvrf-evpn
+    construct: ip-vrf
+    signalling: evpn
+    text: "routed EVPN over SRv6 for tenant blue carrying 10.80.0.0/24 between leaf01 wan1 and leaf02 wan1"
+    prefixes: ["10.80.0.0/24"]
+
+  - id: srv6-unsupported-macvrf-evpn
+    construct: mac-vrf
+    signalling: evpn
+    vlan: 250
+    text: "mac-vrf over srv6 for tenant blue with vlan 250 across leaf01 ethernet1 and leaf02 ethernet1"
+
+  - id: srv6-unsupported-bridged-evpn
+    construct: mac-vrf
+    signalling: evpn
+    vlan: 150
+    text: "bridged EVPN over SRv6 for tenant green with vlan 150 across leaf01 ethernet1 and leaf02 ethernet1"
+
+  # Moved here when srv6_ipvrf_evpn.yaml (T471) and srv6_macvrf.yaml (T472)
+  # were DELETED per tasks.md 39-42: their (V:evpn) verdicts are
+  # not-achievable in lab/profiles/sonic-vm/srv6-supported.yaml, so those
+  # tasks are dropped as a block and no corpus file of their own may exist.
+  # The phrasings whose surface form this file did not already hold move here
+  # as R2 cases; the "routed EVPN over SRv6" and "bridged EVPN over SRv6"
+  # forms above already covered the other two dropped cases.
+  - id: srv6-ipvrf-evpn-named
+    construct: ip-vrf
+    signalling: evpn
+    text: "ip-vrf over srv6 with evpn signalling carrying 2001:db8:3::30/127 between leaf01 wan1 and leaf02 wan1 for tenant acme"
+    prefixes: ["2001:db8:3::30/127"]
+
+  - id: srv6-macvrf-basic
+    construct: mac-vrf
+    signalling: evpn
+    vlan: 100
+    text: "extend vlan 100 as a mac-vrf over srv6 across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme"
+
+  - id: srv6-macvrf-casing
+    construct: mac-vrf
+    signalling: evpn
+    vlan: 300
+    text: "MAC-VRF OVER SRV6 for tenant green with vlan 300 across leaf01 ethernet1 and leaf02 ethernet1"

@@ -1,0 +1,33 @@
+===== EVPN session readiness gate (up to ~60s for reconvergence) =====
+EVPN-PEERS-ESTABLISHED: 3 (expect 3)
+===== zebra VNI view (kernel L2VNI truth) =====
+VNI        Type VxLAN IF              # MACs   # ARPs   # Remote VTEPs  Tenant VRF                           
+100        L2   vxlan-100             0        0        1               default                              
+1001       L3   vxlan-1001            0        0        n/a             Vrf1                                 
+===== bgpd VNI view (Type-2/3 generation precondition) =====
+Number of L2 VNIs: 1
+Number of L3 VNIs: 0
+===== EVPN table: Type-3 IMET exchange (local + remote) =====
+Route Distinguisher: 10.0.0.21:3
+ *>  [3]:[0]:[32]:[10.0.0.21]
+                    10.0.0.21                              0 65101 i
+                    RT:65101:100 ET:8
+ *                    10.0.0.21                              0 65000 65101 i
+                    RT:65101:100
+ *                    10.0.0.21                              0 65000 65101 i
+                    RT:65101:100
+Route Distinguisher: 10.0.0.22:3
+ *>  [3]:[0]:[32]:[10.0.0.22]
+                    10.0.0.22                          32768 i
+                    ET:8 RT:65102:100
+
+Displayed 2 out of 4 total prefixes
+===== EVPN MAC table for VNI 100 (Type-2 precondition: bridge members) =====
+MAC-ENTRIES: 0
+===== L2VNI kernel devices (id/local/flags only; MAC is random) =====
+<BROADCAST,MULTICAST,UP,LOWER_UP>
+vxlan id 100
+local 10.0.0.22
+<BROADCAST,MULTICAST,UP,LOWER_UP>
+
+[exit code: 0]

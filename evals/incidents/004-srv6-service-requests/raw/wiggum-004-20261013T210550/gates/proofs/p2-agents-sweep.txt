@@ -1,0 +1,3 @@
+# Whole agents suite (pytest, venv): 2026-10-11T19:23:03Z
+$ cd agents && source .venv/bin/activate && pytest -q
+304 passed, 4 skipped, 5 deselected, 1304 warnings in 29.15s

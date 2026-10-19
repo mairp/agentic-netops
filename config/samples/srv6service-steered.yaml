@@ -1,0 +1,37 @@
+# Sample: a STEERED ip-vrf/vpn SRv6 service (T522, plan 6-09): the proven
+# ip-vrf/vpn variant of config/samples/srv6service-ip-vrf-vpn.yaml with a
+# preferred spine (contracts/srv6service-crd.md A10, data-model §8.6).
+#
+# spec.path.preferredSpine pins the per-service route through spine01 on the
+# ingress leaf (the attachment node that sorts first); alternateSpine names
+# the fail-over spine the failure action may re-point the pin to. Both names
+# must be spines of the site (C3) and must differ (A10, CRD CEL rule).
+#
+# No identifier is typed here (rule A12): the controller claims the service
+# id (VRF name Vrf<service-id>) and the per-attachment client /24 from
+# deploy/kubenet/srv6-pools.yaml. The correlation-id label makes the claims
+# deterministic across re-apply; the controller falls back to the object UID
+# without it.
+apiVersion: agentic-netops.io/v1alpha1
+kind: SRv6Service
+metadata:
+  name: srv6-ip-vrf-vpn-steered
+  namespace: agentic-netops-intent
+  labels:
+    agentic-netops.io/correlation-id: srv6-ip-vrf-vpn-steered
+spec:
+  tenant: acme
+  construct: ip-vrf
+  signalling: vpn
+  attachments:
+    - node: leaf01
+      port: wan1
+      gateway:
+        - 192.168.1.1/24
+    - node: leaf02
+      port: wan1
+      gateway:
+        - 192.168.2.1/24
+  path:
+    preferredSpine: spine01
+    alternateSpine: spine02

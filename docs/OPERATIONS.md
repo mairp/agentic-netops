@@ -35,6 +35,25 @@ Adjustments:
 - The fast profile uses containerlab-supported sonic-vs (pinned digest). The conformance profile uses a locally built sonic-vm image (pinned digest) created with vrnetlab.
 - All controller/observability images are pinned by immutable digest in deploy/**.yaml.
 
+## Fabric write path per node kind
+
+The fabric-executor is the only southbound write path (host service on the kind
+bridge gateway, port 8084). Every node it serves has exactly one transport, and
+`GET /v1/nodes` names each node with its kind — the output below is the
+authoritative statement of which write path applies where:
+
+| Node kind (`/v1/nodes`) | Profile | Write path | Privilege | Durable FRR file |
+| --- | --- | --- | --- | --- |
+| `docker` | sonic-vs | `docker exec` into the SONiC VS container over the host docker socket | root in the container | `/etc/frr/bgpd.conf` |
+| `ssh` | sonic-vm | SSH into the SONiC guest (per-lab key under `secrets/`, BatchMode, strict host key) | `sudo -n` | `/etc/sonic/frr/bgpd.conf` |
+
+- Reads (telemetry) never use the executor: gNMI via gNMIc is the only
+  device-metric collector, and it is read-only.
+- GCU patches travel as the applied command's stdin payload on both kinds.
+- Provisioning builds the executor's transport map from each node container's
+  `clab-node-kind` label (`scripts/provision.sh`); a node without an ssh entry
+  uses `docker`.
+
 ## EVPN/SRv6 mapping limitations
 
 - Supported EVPN constructs:
@@ -48,9 +67,11 @@ Adjustments:
 
 ## Telemetry pipeline
 
-- gNMIc runs inside the Kind cluster as the sole SONiC device-metric collector. It subscribes to interface, BGP, and SRv6 MySID counters and exports OTLP to the OTel Collector.
+- gNMIc runs inside the Kind cluster as the sole SONiC device-metric collector. It subscribes to interface and BGP paths and exports OTLP to the OTel Collector. There is no SRv6 counter subscription: the pinned image serves no such counters (`COUNTERS_SRV6_NAME_MAP` is empty — proof `spike-counters`), so the SRv6 dashboards and alerts do not run on gNMIc series.
+- The SRv6Service controller emits its own gauges on :8081 (scraped via the pod's `prometheus.io/scrape` annotation): `agentic_netops_srv6_locator_state`, `agentic_netops_srv6_sid_state`, `agentic_netops_srv6_active_path`.
+- The fabric-executor exposes two kernel forwarding-counter families on its own /metrics: `fabric_executor_srv6_sid_packets_total{node,sid,direction}` — the kernel per-SID counters, kept by the End.DT46 decap route because the plan installs it with the seg6local `count` flag (visible as `packets N bytes M errors 0` on the route line of `ip -s -6 route show`); this is the series the SRv6 dashboard plots — and `fabric_executor_node_vrf_packets_total{node,device,direction}`, the coarser VRF-device companion granularity. Both are read at scrape time through the executor's node transports.
 - OTel Collector processes and exposes Prometheus scrape endpoints.
-- Prometheus scrapes OTel and other instrumented targets and retains metrics on a PVC.
+- Prometheus scrapes OTel, the annotated controller pods, and the host-side fabric-executor (through the `kind` bridge gateway address — the executor holds the lab's SSH keys, so it is not a pod; a `FabricExecutorDown` alert watches the scrape), and retains metrics on a PVC.
 - Grafana uses a provisioned Prometheus datasource and dashboards as code. The Grafana Flow plugin is pinned by digest; anonymous access is disabled; admin credentials are generated at runtime via a Kubernetes Job.
 - SDC subscribe is disabled to avoid duplicate device series; only gNMIc provides SONiC metrics.
 
@@ -58,6 +79,32 @@ Adjustments:
 
 - A versioned topology ConfigMap (deploy/observability/topology-configmap.yaml) is generated from containerlab inspect output and labeled by the orchestration. Grafana’s Flow panel renders a physical fabric view using this ConfigMap and Prometheus metrics.
 - Dashboards provided: physical-fabric.json, sdc-orchestration.json, srv6-service-path.json, pipeline-health.json (embedded in deploy/observability/grafana.yaml ConfigMaps).
+
+## SRv6Service states an operator will see
+
+The `Ready` condition's reason is the contract (specs/004-srv6-service-requests
+data-model §6); each message names the node and check where one applies:
+
+| Reason | Ready | Meaning |
+| --- | --- | --- |
+| `Verified` | True | every per-node check passed and the data path passed at first activation; re-verified every ~5 min |
+| `InvalidSite` | False (terminal) | unknown node, port or spine; message lists the valid names |
+| `PortInUse` | False (terminal) | an attachment port belongs to another service; message names it |
+| `CapabilityMissing` | False (terminal) | the capability record is not `"true"`, absent or unreadable |
+| `UnsupportedVariant` | False (terminal) | construct/signalling pair outside the delivered set (e.g. ip-vrf over srv6 with evpn signalling, mac-vrf over srv6); message names it |
+| `PoolExhausted` | False (terminal) | an identifier pool ran out; message names the pool, partial claims released |
+| `ApplyFailed` | False | a node failed to apply; rolled back on every node |
+| `CheckFailed` | False | a per-node verification check failed; message names node and check |
+| `LocatorMissing` | False | the bootstrap-owned locator is absent or changed; never recreated by the controller |
+| `DataPathFailed` | False | device state correct, client traffic does not pass |
+| `DataPathUnverifiable` | False (terminal) | no probe host registered for an attachment; decided before any claim |
+| `VlanInUse` | False (terminal) | the named VLAN of a mac-vrf is reserved elsewhere; no device write |
+| `PathDown` | False | a steered service has neither path usable |
+| `Finalizing` | False | delete in progress; message names the nodes not yet clean |
+
+A steered service reports its current path in `status.activePath`
+(preferred/alternate spine). Requests that type a locator, SID or VRF
+themselves are refused — identifiers are pool-claimed only, never typed.
 
 ## Recovery procedures
 
@@ -74,10 +121,10 @@ Adjustments:
 
 If a SRv6Service or provider-owned resource is stuck due to external issues and normal deletion does not proceed, remove finalizers explicitly as a last resort and allow the cluster to clean up owned resources:
 
-- SRv6Service finalizer removal (example name: example-srv6):
+- SRv6Service finalizer removal (example name: srv6-ip-vrf-vpn in namespace agentic-netops-intent):
 
 ```bash
-kubectl -n default patch srv6service example-srv6 --type=json \
+kubectl -n agentic-netops-intent patch srv6service srv6-ip-vrf-vpn --type=json \
   -p='[{"op":"remove","path":"/metadata/finalizers"}]'
 ```
 

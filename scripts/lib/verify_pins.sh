@@ -132,21 +132,17 @@ check_baseline() {
     sec && vm && /^[^[:space:]]/ {vm=0}
     sec && vm && $1=="image:" {print $2; exit}
   ' "$LOCK_FILE")
-  svm_dig=$(awk '
-    $1=="sonic_images:" {sec=1; next}
-    sec && /^[^[:space:]]/ {exit}
-    sec && $1=="sonic_vm:" {vm=1; next}
-    sec && vm && /^[^[:space:]]/ {vm=0}
-    sec && vm && $1=="digest:" {print $2; exit}
-  ' "$LOCK_FILE")
 
   [[ -n "$svs_img" && -n "$svs_dig" ]] || fail "sonic_vs image and digest required"
-  [[ -n "$svm_img" && -n "$svm_dig" ]] || fail "sonic_vm image and digest required"
+  # T021 (FR-009): sonic_vm is pinned in the ONE image form — a single
+  # image@sha256:<digest> line — so there is no second key to join; validate
+  # the line's shape directly.
+  [[ -n "$svm_img" ]] || fail "sonic_vm image required"
+  [[ "$svm_img" =~ ^local/sonic-vm@sha256:[0-9a-f]{64}$ ]] || fail "sonic_vm image must be local/sonic-vm@sha256:<digest> on one line"
   [[ "$svs_dig" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "sonic_vs digest must be sha256:..."
-  [[ "$svm_dig" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "sonic_vm digest must be sha256:..."
 
   svs_full="${svs_img%@*}@${svs_dig}"
-  svm_full="${svm_img%@*}@${svm_dig}"
+  svm_full="$svm_img"
 
   # YANG compatibility must include entries for both images and match commit prefixes
   # Extract commits by simple grep (robust to comments/indent)

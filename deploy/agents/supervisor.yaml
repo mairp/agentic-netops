@@ -46,7 +46,9 @@ data:
       "Deploy an ip-vrf between leaf01 wan1 and leaf02 wan1 for tenant initech with prefix 10.50.0.0/24",
       "Create a mac-vrf on vlan 160 across leaf01 ethernet1 and leaf02 ethernet1 for tenant umbrella with an anycast gateway at 10.60.0.1/24",
       "Apply an acl on leaf01 wan1 for tenant acme: allow ingress tcp port 443 from 10.0.0.0/24, deny everything else",
-      "Extend vlan 170 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme, permitting only ingress tcp port 443 from 10.0.0.0/24"
+      "Extend vlan 170 as a mac-vrf across leaf01 ethernet1 and leaf02 ethernet1 for tenant acme, permitting only ingress tcp port 443 from 10.0.0.0/24",
+      "Give tenant acme an ip-vrf over srv6 carrying 2001:db8:3::30/127 and 2001:db8:4::40/127 between leaf01 wan1 and leaf02 wan1",
+      "Give tenant acme an ip-vrf over srv6 carrying 2001:db8:3::30/127 between leaf01 wan1 and leaf02 wan1 preferring spine01"
     ]
 ---
 apiVersion: v1
@@ -105,7 +107,14 @@ spec:
         agentic-netops.io/tier: intent
     spec:
       serviceAccountName: intent-supervisor
-      automountServiceAccountToken: false
+      # Feature 004 (T467/T550): the supervisor reads ConfigMap
+      # fabric-compat-pins in agentic-netops-system to gate SRv6 on the
+      # proven capability (refusal R4). The token is mounted only because
+      # that read needs it, and the RBAC is scoped to exactly that one
+      # object, get-only, by resourceName (namespace-rbac.yaml,
+      # fabric-compat-reader) — no list, no watch, no other object. Every
+      # other tier no-token rule (T038) still holds for the mapper and UI.
+      automountServiceAccountToken: true
       containers:
         - name: supervisor
           image: agentic-netops/intent-supervisor:latest
@@ -154,6 +163,20 @@ spec:
             # deployment that actually converged.
             - name: DEPLOYER_CALL_TIMEOUT_SECONDS
               value: "210"
+            # Feature 004 (T493): the site's own inventory, the same maps the
+            # Go translator parses (pkg/migration/site.go). The supervisor
+            # uses them only for the SRv6 R7 site-knowledge refusal (unknown
+            # node, port or spine) and the C7 spine question; an unset map
+            # validates nothing, exactly like the Go side. Keep in step with:
+            #   FABRIC_NODE_MAP -> scripts/provision.sh (fabric-executor)
+            #   FABRIC_PORT_MAP -> deploy/agents/deployer.yaml (translator sidecar)
+            #   FABRIC_SPINE_NODES -> scripts/provision.sh
+            - name: FABRIC_NODE_MAP
+              value: '{"leaf01":"clab-agentic-netops-fabric-leaf01","leaf02":"clab-agentic-netops-fabric-leaf02","spine01":"clab-agentic-netops-fabric-spine01","spine02":"clab-agentic-netops-fabric-spine02","site-a":"clab-agentic-netops-fabric-leaf01","site-b":"clab-agentic-netops-fabric-leaf02"}'
+            - name: FABRIC_PORT_MAP
+              value: '{"wan1":"eth4","ethernet1":"eth3","ethernet2":"eth3","ethernet3":"eth3","eth1":"eth1","eth2":"eth2","eth3":"eth3","eth4":"eth4"}'
+            - name: FABRIC_SPINE_NODES
+              value: "spine01,spine02"
             # LLM provider selection is the LLM_MODEL prefix alone
             # (common/llm.py); the credentials come from Secret/llm-provider,
             # which provisioning builds from the operator's .env. Every key in

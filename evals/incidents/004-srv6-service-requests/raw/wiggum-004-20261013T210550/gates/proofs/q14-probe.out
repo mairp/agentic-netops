@@ -1,0 +1,3 @@
+[evpn-srv6-suite] seg6 probe selftest: route installed on Loopback0 and visible with encap (2001:db8:7fff:ffff::/64  encap seg6 mode encap segs 1 [ fc00::1 ] dev Loopback0 metric 1024 pref medium)
+
+[exit code: 0]

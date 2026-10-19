@@ -1,0 +1,4 @@
+11:41:43 APPROVED=2
+11:41:43 TERMINAL:
+[DIGEST] state=failed exit=22 last-stage=run-004-srv6-service-requests child-exit=4 evidence=/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/.mixture-of-loops/runs/004-srv6-service-requests
+11:56:35 ORCH-3982362-EXIT

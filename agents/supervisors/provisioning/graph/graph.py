@@ -206,6 +206,11 @@ UNSUPPORTED_FEATURE_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     (re.compile(r"\btraffic engineering\b"), "tePolicy", "traffic engineering (TE) policy"),
     (re.compile(r"\bte[- ]policy\b"), "tePolicy", "traffic engineering (TE) policy"),
     (re.compile(r"\bte[- ]path\b"), "tePolicy", "TE explicit path"),
+    # T487 — the contract's remaining §4 R6 phrasings (explicit path, SID
+    # list, pin the flow): all one refusal, the tePolicy property.
+    (re.compile(r"\bexplicit path\b"), "tePolicy", "TE explicit path"),
+    (re.compile(r"\bsid list\b"), "tePolicy", "SID list"),
+    (re.compile(r"\bpin(?:ning)? the flow\b"), "tePolicy", "pinned flow"),
     (re.compile(r"\bpseudowire oam\b"), "pseudowireOAM", "pseudowire OAM"),
     (re.compile(r"\bpw oam\b"), "pseudowireOAM", "pseudowire OAM"),
     (re.compile(r"\bcontrol word\b"), "pseudowireOAM", "pseudowire control word"),
@@ -227,6 +232,165 @@ DEFAULT_SUGGESTION = (
     "I will map it into an interpretation, allocate from the allocation authority, "
     "and submit it to the cluster only after your two explicit confirmations."
 )
+
+# ---------------------------------------------------------------------------
+# US4 — SRv6 (feature 004). Recognition, refusal texts, clarification
+# questions, and the capability seam.
+#
+# Every refusal text below is VERBATIM from
+# specs/004-srv6-service-requests/contracts/operator-phrasings.md §3 (the
+# interim R1 was removed when the first supported SRv6 types landed; R2..R9
+# replaced it — FR-015). The unsupported-property TOKENS are the strings the
+# mapper worker emits in ``Interpretation.unsupported_properties``
+# (contracts/operator-phrasings.md §3 R3/R5); the graph owns the graph-side
+# rendering of exactly these tokens.
+# ---------------------------------------------------------------------------
+
+# --- §1 recognition -------------------------------------------------------
+# A request names SRv6 when it matches any of these, case-insensitively. A
+# bare "segment routing" does NOT name SRv6 and is left to the existing
+# patterns, so a refusal never says a request named SRv6 when it did not.
+_SRV6_NAME_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\bsrv6\b", re.I),
+    re.compile(r"\bsegment[ -]routing v6\b", re.I),
+    re.compile(r"\bsegment[ -]routing over ipv6\b", re.I),
+)
+
+
+def names_srv6(text: str) -> bool:
+    """§1 recognition: True when the request names SRv6 (case-insensitive)."""
+    if not text:
+        return False
+    return any(p.search(text) for p in _SRV6_NAME_PATTERNS)
+
+
+# --- the capability seam --------------------------------------------------
+# The mapper node reads the live capability through THIS function and only
+# for a request that names SRv6. Tests monkeypatch ``graph.read_srv6_capability``
+# (T549/T546-style harnesses); the default implementation imports the
+# capability reader LAZILY, inside the function, so this module still imports
+# no Kubernetes client (T129) and an out-of-cluster run fails closed
+# (read fails -> available=False -> refusal R4).
+def read_srv6_capability():
+    from supervisors.provisioning.capability import read_capability
+
+    return read_capability()
+
+
+# --- §3 refusal texts (verbatim) -----------------------------------------
+SRV6_R4_REASON = (
+    "SRv6 is not available on this lab profile: the capability has not been proven here."
+)
+SRV6_R3_REASON = "The request names both SRv6 and VXLAN. A service uses one transport; say which."
+SRV6_R5_REASON = "SRv6 applies to ip-vrf and mac-vrf. A vlan or an acl has no transport."
+
+
+def srv6_r2_reason(variant: str, supported: tuple[str, ...]) -> str:
+    """R2 verbatim. ``variant`` is ``construct/signalling`` rendered in the
+    contract's restated wording (FR-013); for bridged the ONE KL-001 gloss
+    is allowed beside the restated wording (§3 R2)."""
+    if variant == "mac-vrf/evpn":
+        return "`mac-vrf over srv6` (bridged EVPN over SRv6) is not supported on this image."
+    return (
+        f"`{restated_variant(variant)}` is not supported on this image. "
+        f"Supported SRv6 services: `{restated_supported_list(supported)}`."
+    )
+
+
+def srv6_r8_reason(node: str, port: str, service: str) -> str:
+    return f"`{port}` on `{node}` already belongs to `{service}`."
+
+
+def srv6_r9_reason(node: str, port: str, verifiable: tuple[str, ...]) -> str:
+    listing = ", ".join(verifiable) if verifiable else "none"
+    return (
+        f"`{port}` on `{node}` has no client to verify traffic from, so an SRv6 service there "
+        f"cannot reach Ready. Attachments that can be verified: `{listing}`."
+    )
+
+
+# --- restated wording (FR-013: the only forms shown on operator surfaces) --
+def restated_variant(variant: str) -> str:
+    """``construct/signalling`` -> the operator-facing restatement."""
+    return {
+        "ip-vrf/vpn": "ip-vrf over srv6",
+        "mac-vrf/evpn": "mac-vrf over srv6",
+        "ip-vrf/evpn": "ip-vrf over srv6 with evpn signalling",
+        "steering": "steering",
+    }.get(variant, variant)
+
+
+def restated_supported_list(supported: tuple[str, ...]) -> str:
+    return ", ".join(restated_variant(v) for v in supported)
+
+
+# --- unsupported-property tokens (the mapper emits exactly these) ---------
+# contracts/operator-phrasings.md §3 R3/R5; the mapper worker's rewrite emits
+# these token strings in ``Interpretation.unsupported_properties`` and the
+# graph renders R3/R5 for them (this file owns the graph side).
+SRV6_TRANSPORT_CONFLICT = "srv6TransportConflict"  # SRv6 together with VXLAN -> R3
+SRV6_UNSUPPORTED_CONSTRUCT = "srv6UnsupportedConstruct"  # SRv6 with vlan/acl -> R5
+
+# --- §2 clarification tokens (the mapper names these in missing_fields) ----
+SRV6_CONSTRUCT_FIELD = "srv6_construct"
+SRV6_SIGNALLING_FIELD = "srv6_signalling"
+SRV6_OTHER_ENDPOINT_FIELD = "srv6_other_endpoint"
+SRV6_PREFIX_FIELD = "srv6_prefix"
+SRV6_VLAN_FIELD = "srv6_vlan"
+SRV6_PREFERRED_SPINE_FIELD = "srv6_preferred_spine"
+
+_SRV6_CLARIFICATION_FIELDS = frozenset(
+    {
+        SRV6_CONSTRUCT_FIELD,
+        SRV6_SIGNALLING_FIELD,
+        SRV6_OTHER_ENDPOINT_FIELD,
+        SRV6_PREFIX_FIELD,
+        SRV6_VLAN_FIELD,
+        SRV6_PREFERRED_SPINE_FIELD,
+    }
+)
+
+
+def _supported_option(variant: str) -> str:
+    """One C1 option in restated wording, with routed/bridged glossed."""
+    return {
+        "ip-vrf/vpn": "ip-vrf over srv6 (routed)",
+        "mac-vrf/evpn": "mac-vrf over srv6 (bridged)",
+        "ip-vrf/evpn": "ip-vrf over srv6 with evpn signalling",
+    }.get(variant, restated_variant(variant))
+
+
+def srv6_clarification_question(field: str, capability) -> str | None:
+    """The §2 question for one SRv6 missing field, or None to keep the
+    generic clarification wording for that token (e.g. C7 with no spine
+    inventory configured). C1/C2 list ONLY supported variants."""
+    if field == SRV6_CONSTRUCT_FIELD:
+        options = [_supported_option(v) for v in capability.supported if v in ("ip-vrf/vpn", "mac-vrf/evpn")]
+        if not options:
+            return None
+        return f"Which SRv6 service: {' or '.join(options)}?"
+    if field == SRV6_SIGNALLING_FIELD:
+        options = []
+        if "ip-vrf/evpn" in capability.supported:
+            options.append("Routed (ip-vrf over srv6 with evpn signalling)")
+        if "mac-vrf/evpn" in capability.supported:
+            options.append("bridged (mac-vrf over srv6)")
+        if not options:
+            return None
+        return f"{' or '.join(options)}?"
+    if field == SRV6_OTHER_ENDPOINT_FIELD:
+        return "An SRv6 service joins two attachment points. Which node and port is the other end?"
+    if field == SRV6_PREFIX_FIELD:
+        return "Which prefix does each side use?"
+    if field == SRV6_VLAN_FIELD:
+        return "Which vlan does the service carry?"
+    if field == SRV6_PREFERRED_SPINE_FIELD:
+        spines = [s.strip() for s in os.getenv("FABRIC_SPINE_NODES", "").split(",") if s.strip()]
+        if not spines:
+            return None  # no spine inventory: keep the generic wording
+        return f"Which spine is preferred: {' or '.join(spines)}?"
+    return None
+
 # FR-010 companion (live finding, 2026-09-04): a clarification that only
 # names the missing fields invites an equally vague restatement ("provision
 # a mac vrf across all leafs" -> same clarification loop). Name the accepted
@@ -238,20 +402,28 @@ CLARIFICATION_HINT = (
     "as a mac-vrf across leaf01 ethernet2 and leaf02 ethernet2 for tenant acme'."
 )
 
-def clarification_prompt(missing_fields: list[str] | None) -> str:
+def clarification_prompt(
+    missing_fields: list[str] | None, srv6_questions: list[str] | None = None
+) -> str:
     """The single operator-facing clarification text (FR-010).
 
     Built here and reused by the NDJSON surface, so the wording cannot drift
     into two near-identical paragraphs rendered back to back — which is what
     the operator saw before (one from the stream's clarification_request, one
     from this node's AIMessage).
+
+    ``srv6_questions`` (US4): the per-token §2 questions for the SRv6
+    missing fields, rendered by the caller from the live capability. None
+    keeps the text byte-identical for every non-SRv6 clarification.
     """
 
     fields = ", ".join(str(f) for f in (missing_fields or [])) or "required service fields"
+    extra = "".join(f" {q}" for q in (srv6_questions or []))
     return (
         f"Before I can map this service I need: {fields}. Please restate the full "
         "request including those values (no defaults are substituted for "
         "service-defining fields)."
+        f"{extra}"
         f"{CLARIFICATION_HINT}"
     )
 
@@ -921,6 +1093,17 @@ class ProvisioningGraph:
         async for chunk in g.astream(seed, config=config, stream_mode="updates"):
             yield chunk
 
+    async def aget_state(self, config: dict):
+        """Checkpointed state snapshot for a thread.
+
+        The HTTP layer uses it to keep the correlation id thread-stable
+        (SC-010): the allocator's claims, the deployer's stamps and the
+        controller's release all key on it, so a fresh id per stream would
+        orphan every claim the moment the next turn starts.
+        """
+        g = await self._compiled_graph()
+        return await g.aget_state(config)
+
     # ---------------- graph construction ----------------
     def build_graph(self, checkpointer=None) -> CompiledStateGraph:
         """Constructs and compiles the LangGraph instance.
@@ -1536,6 +1719,24 @@ class ProvisioningGraph:
             )
         user_content = user_message.content
 
+        # US4/R4 gate (T550): a request naming SRv6 on a profile where the
+        # capability has not been proven is refused HERE, before the mapper
+        # maps anything — so no increment creates a resource on a profile
+        # without the capability. Non-SRv6 requests never trigger the read
+        # (T549). The capability instance read here is the SAME one the R2/R9
+        # checks below use within this turn (T623: one ConfigMap read).
+        capability = None
+        if names_srv6(user_content):
+            capability = read_srv6_capability()
+            if not capability.available:
+                return self._refuse(
+                    state,
+                    config,
+                    SRV6_R4_REASON,
+                    DEFAULT_SUGGESTION,
+                    stage="supervisor",
+                )
+
         nonce = new_request_nonce()
         fenced = wrap_user_text(redact_prompt(user_content), nonce)  # T094
         logger.info("[Mapper] calling mapper worker (fenced user text, nonce=%s)", nonce[:8])
@@ -1582,6 +1783,14 @@ class ProvisioningGraph:
         # FR-012: unsupported properties -> refusal naming them, NO
         # partial assignment (SC-003).
         if interpretation.unsupported_properties:
+            # US4 (T490/T491): the mapper's SRv6 conflict tokens render R3/R5
+            # (contracts/operator-phrasings.md §3) — terminal, no payload, no
+            # claim. Every other property keeps the generic text (R6's
+            # tePolicy path is unchanged by this branch).
+            if SRV6_TRANSPORT_CONFLICT in interpretation.unsupported_properties:
+                return self._refuse(state, config, SRV6_R3_REASON, DEFAULT_SUGGESTION, stage="mapper")
+            if SRV6_UNSUPPORTED_CONSTRUCT in interpretation.unsupported_properties:
+                return self._refuse(state, config, SRV6_R5_REASON, DEFAULT_SUGGESTION, stage="mapper")
             props = ", ".join(interpretation.unsupported_properties)
             return self._refuse(
                 state,
@@ -1594,6 +1803,16 @@ class ProvisioningGraph:
         # FR-010: missing fields -> clarification request, not an
         # interpretation; the supervisor must not route to the allocator.
         if interpretation.missing_fields:
+            # US4 (T488): the SRv6 tokens get their §2 question texts,
+            # rendered from the SAME capability read this turn (T623).
+            # Non-SRv6 missing fields keep today's text EXACTLY.
+            srv6_questions: list[str] = []
+            if _SRV6_CLARIFICATION_FIELDS & set(interpretation.missing_fields):
+                cap = capability or read_srv6_capability()
+                for field in interpretation.missing_fields:
+                    q = srv6_clarification_question(field, cap)
+                    if q is not None:
+                        srv6_questions.append(q)
             return {
                 "next_node": END,
                 "workflow_status": NetworkProvisioningStatus.MAPPED.value,
@@ -1607,8 +1826,24 @@ class ProvisioningGraph:
                 "missing_fields": list(interpretation.missing_fields),
                 "awaiting_confirmation": True,
                 "pending_action": "clarify",
-                "messages": [AIMessage(content=clarification_prompt(interpretation.missing_fields))],
+                "messages": [
+                    AIMessage(
+                        content=clarification_prompt(
+                            interpretation.missing_fields, srv6_questions or None
+                        )
+                    )
+                ],
             }
+
+        # US4 (T469/T493/T494/T624): the SRv6 checks run on a complete srv6
+        # interpretation BEFORE the confirm_1 point — R2 (supported set),
+        # R7 (site knowledge), R9 (verifiable attachments) and R8 (port
+        # holder) all refuse terminally, before any identifier is claimed.
+        if (interpretation.transport or "vxlan") == "srv6":
+            cap = capability or read_srv6_capability()
+            refusal = self._srv6_guard_refusal(state, config, interpretation, cap)
+            if refusal is not None:
+                return refusal
 
         # Complete, valid interpretation -> first confirmation point.
         summary = redact_model_response(worker_text.split("<!--")[0].strip()) or "Interpretation ready."
@@ -1624,6 +1859,110 @@ class ProvisioningGraph:
             "pending_action": "confirm_1",
             "messages": [AIMessage(content=summary)],
         }
+
+    # ---------------- US4 SRv6 checks (before any claim) ----------------
+    def _srv6_guard_refusal(self, state: GraphState, config: RunnableConfig, interpretation, capability) -> dict | None:
+        """The SRv6 refusal ladder for a complete srv6 interpretation, in
+        contract order, each rung terminal and BEFORE any identifier is
+        claimed: R2 (supported set, T469), R7 (site knowledge, T493), R9
+        (verifiable attachments, T624 — fail-closed: an empty verifiable
+        list means NOTHING can reach Ready, spec KL-009), R8 (port held by
+        another service, T494). Returns the refusal dict or None."""
+        # --- R2: the variant must be in the live supported set -----------
+        construct = interpretation.service_type.value
+        signalling = interpretation.signalling or ("vpn" if construct == "ip-vrf" else "evpn")
+        variant = f"{construct}/{signalling}"
+        if variant not in capability.supported:
+            return self._refuse(
+                state,
+                config,
+                srv6_r2_reason(variant, capability.supported),
+                DEFAULT_SUGGESTION,
+                stage="supervisor",
+            )
+
+        # --- R7: site knowledge (unset inventory validates NOTHING) ------
+        from supervisors.provisioning.capability import knows, site_inventory
+
+        inv = site_inventory()
+        if inv.spines and interpretation.preferred_spine and not knows(inv.spines, interpretation.preferred_spine):
+            return self._refuse(
+                state,
+                config,
+                f"preferredSpine: unknown \"{interpretation.preferred_spine}\" "
+                f"(site has: {', '.join(inv.spines)})",
+                DEFAULT_SUGGESTION,
+                stage="supervisor",
+            )
+        # T487 — the alternate is validated, not stored (contract §4): the
+        # same R7 rung, named for the alternateSpine field.
+        if inv.spines and interpretation.alternate_spine and not knows(inv.spines, interpretation.alternate_spine):
+            return self._refuse(
+                state,
+                config,
+                f"alternateSpine: unknown \"{interpretation.alternate_spine}\" "
+                f"(site has: {', '.join(inv.spines)})",
+                DEFAULT_SUGGESTION,
+                stage="supervisor",
+            )
+        for i, ep in enumerate(interpretation.endpoints):
+            if inv.nodes and not knows(inv.nodes, ep.site_or_node):
+                return self._refuse(
+                    state,
+                    config,
+                    f"endpoints[{i}].node: \"{ep.site_or_node}\" is not a node at this site "
+                    f"(site has: {', '.join(inv.nodes)})",
+                    DEFAULT_SUGGESTION,
+                    stage="supervisor",
+                )
+            if inv.attachments and not knows(inv.attachments, ep.attachment):
+                return self._refuse(
+                    state,
+                    config,
+                    f"endpoints[{i}].attachment: \"{ep.attachment}\" is not an attachment point "
+                    f"at this site (site has: {', '.join(inv.attachments)})",
+                    DEFAULT_SUGGESTION,
+                    stage="supervisor",
+                )
+
+        # --- R9: every endpoint must be verifiable (fail-closed) ---------
+        verifiable = capability.verifiable_attachments
+        for ep in interpretation.endpoints:
+            if f"{ep.site_or_node}/{ep.attachment}" not in {v.lower() for v in verifiable}:
+                return self._refuse(
+                    state,
+                    config,
+                    srv6_r9_reason(ep.site_or_node, ep.attachment, verifiable),
+                    DEFAULT_SUGGESTION,
+                    stage="supervisor",
+                )
+
+        # --- R8: the attachment port must be free ------------------------
+        for ep in interpretation.endpoints:
+            holder = self._srv6_port_holder(ep.site_or_node, ep.attachment)
+            if holder:
+                return self._refuse(
+                    state,
+                    config,
+                    srv6_r8_reason(ep.site_or_node, ep.attachment, holder),
+                    DEFAULT_SUGGESTION,
+                    stage="supervisor",
+                )
+        return None
+
+    def _srv6_port_holder(self, node: str, port: str) -> str | None:
+        """R8 seam: the service id holding (node, port), or None when free.
+
+        The intended live implementation queries the deployer's inventory
+        through the tools path; the deployer's tools contract today has no
+        full-inventory read (``deployer.get_service_status`` selects by
+        correlation id only — provisioning/deployer/tools/deployer_tools.py),
+        so until that read exists this default reports the port FREE rather
+        than guess a holder. It is the single injectable seam: tests (and a
+        later live implementation) monkeypatch it; a returned holder renders
+        refusal R8 with no allocator or deployer call.
+        """
+        return None
 
     async def _allocator_node(self, state: GraphState, config: RunnableConfig) -> dict:
         """Calls the allocator worker with the (validated) interpretation
@@ -1645,7 +1984,24 @@ class ProvisioningGraph:
             )
 
         nonce = new_request_nonce()
-        fenced = wrap_worker_text(redact_prompt(mapped), nonce)  # T095: worker-returned text
+        # SC-010 claims traceability: the thread's correlation id rides INSIDE
+        # the fenced data block as an additive "correlationId" key. OTel trace
+        # context does not survive the A2A boundary into the worker, so without
+        # this the allocator mints a random id, the claims it creates are
+        # orphaned at release time, and the controller carves a SECOND
+        # identifier for the same attachment. The allocator pops the key before
+        # validating the interpretation, so the published schema is unchanged.
+        mapped_with_corr = mapped
+        try:
+            corr = state.get("correlation_id") or ""
+            if corr:
+                obj = json.loads(mapped)
+                if isinstance(obj, dict):
+                    obj["correlationId"] = corr
+                    mapped_with_corr = json.dumps(obj, separators=(",", ":"))
+        except Exception:  # noqa: BLE001 — fenced payload stays the plain interpretation
+            mapped_with_corr = mapped
+        fenced = wrap_worker_text(redact_prompt(mapped_with_corr), nonce)  # T095: worker-returned text
         logger.info("[Allocator] calling allocator worker (fenced interpretation, nonce=%s)", nonce[:8])
         try:
             result = await self.transport.call_allocator(fenced)
@@ -1732,13 +2088,32 @@ class ProvisioningGraph:
                 phase = str(status_report.get("phase") or "Unknown")
                 resources = status_report.get("resources") if isinstance(status_report.get("resources"), list) else []
                 # Compose a short summary including any unverified properties so the
-                # operator never sees a property as verified when the check did not run.
+                # operator never sees a property as verified when the check did not
+                # run. Each resource renders exactly the per-resource contract of the
+                # deployer's own summary (`DeployerAgent._summary_status`, US6/T544):
+                # the FR-013 type wording (or the bare VXLAN construct) beside the
+                # name and the Ready/Degraded verdicts, then the controller's
+                # condition message — so the type and Ready state the deployer
+                # derives survive the supervisor's re-render instead of being
+                # dropped on the floor (found live, gate-8 T547: the old short form
+                # answered "Network/<name> (<message>)" with no type and no Ready).
                 parts: list[str] = []
                 for r in resources:
                     if not isinstance(r, dict):
                         continue
                     name = f"{r.get('kind')}/{r.get('name')}"
                     detail = str(r.get("message") or r.get("reason") or "").strip()
+                    stype = str(r.get("serviceType") or "")
+                    ready = r.get("ready")
+                    verdict = "Ready=True" if ready is True else "Ready=False" if ready is False else "Ready=<unset>"
+                    degraded = r.get("degraded")
+                    degraded_verdict = (
+                        "Degraded=True"
+                        if degraded is True
+                        else "Degraded=False"
+                        if degraded is False
+                        else "Degraded=<unset>"
+                    )
                     suffix = ""
                     unver = r.get("unverified")
                     if isinstance(unver, list) and unver:
@@ -1750,11 +2125,18 @@ class ProvisioningGraph:
                                 items.append(f"{prop}@{node}")
                         if items:
                             suffix = "; unverified: " + ", ".join(items)
-                    text = name
+                    text = (
+                        f"{name} ({stype}) {verdict} {degraded_verdict}"
+                        if stype
+                        else f"{name} {verdict} {degraded_verdict}"
+                    )
                     if detail:
-                        text += f" ({detail}{suffix})"
-                    elif suffix:
-                        text += f" ({suffix.lstrip('; ')})"
+                        text += f' "{detail}"'
+                    at = str(r.get("lastTransitionTime") or "")
+                    if at:
+                        text += f" since {at}"
+                    if suffix:
+                        text += suffix
                     parts.append(text)
                 summary = redact_model_response((phase + ". " + "; ".join(parts)).strip())
             else:

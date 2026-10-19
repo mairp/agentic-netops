@@ -1,0 +1,28 @@
+# p7-ip-vrf-evpn trial input (T341/T342): the ip-vrf construct — a routed
+# instance, a VRF with an L3VNI and route targets — identical to the proven
+# p4-trial-ipvrf input (T201) except the attachment port: eth3 (Ethernet8)
+# instead of wan1 (Ethernet12). The p7 receipts record against a lab whose
+# wan1 port carries the live SRv6 service (Vrf1 access); Ethernet8 is the
+# construct trial port the mac-vrf trial (T195) already proved free.
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: p4-trial-ipvrf
+  namespace: agentic-netops-system
+spec:
+  routers:
+    - name: p4-trial-ipvrf
+      l3vni: 13518
+      rd: "65000:18"
+      routeTargets:
+        import: ["65000:18"]
+        export: ["65000:18"]
+      prefixes:
+        - "10.199.0.0/24"
+  attachments:
+    - node: leaf01
+      attachment: eth3
+      vrf: p4-trial-ipvrf
+    - node: leaf02
+      attachment: eth3
+      vrf: p4-trial-ipvrf

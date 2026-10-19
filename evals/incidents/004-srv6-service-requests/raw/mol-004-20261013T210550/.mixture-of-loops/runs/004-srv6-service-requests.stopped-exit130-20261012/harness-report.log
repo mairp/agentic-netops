@@ -1,0 +1,40 @@
+[MOL-GATE] check=launcher-intact status=pass
+[MOL-GATE] check=contract-validated status=pass
+[MOL-GATE] check=authorized-root status=pass
+[MOL-GATE] check=launcher-syntax status=pass
+[MOL-GATE] check=launcher-dry-run status=pass
+[MOL-GATE] check=run-directory-free status=pass
+[MOL-GATE] decision=launch
+[MOL-GATE] check=launcher-intact status=pass
+[MOL-GATE] check=contract-validated status=pass
+[MOL-GATE] check=authorized-root status=pass
+[MOL-GATE] check=launcher-syntax status=pass
+[MOL-GATE] check=launcher-dry-run status=pass
+[MOL-GATE] check=run-directory-free status=pass
+[MOL-GATE] decision=launch
+[MOL-LAUNCH] pipeline=004-srv6-service-requests mode=auto launcher=/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/run-004-srv6-service-requests.sh run-dir=/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/.mixture-of-loops/runs/004-srv6-service-requests stages=1 flags="--no-color" relaunch-budget=2/2 (default) wall-clock-ceiling=3.11049e+07s pid=898228 stop="kill -TERM -898228"
+[MOL-STATE] pipeline=004-srv6-service-requests stage=1/1 id=run-004-srv6-service-requests state=running stage-elapsed=9s total-elapsed=10s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=1 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=59s
+[MOL-NEXT] poll-in=90s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=1 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=70s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=2 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=131s
+[MOL-NEXT] poll-in=135s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=2 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=160s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=3 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=295s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=4 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=497s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=5 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=801s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=6 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=1257s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=7 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=1857s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=8 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=2457s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=9 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=3057s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=10 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=3657s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=11 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=4257s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=12 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=4857s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=13 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=5457s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=14 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=6057s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=15 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=6657s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=16 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=7257s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=17 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=7857s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=18 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=8457s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=19 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=9057s
+[MOL-HOLD] pipeline=004-srv6-service-requests unchanged=20 stage=1/1 id=run-004-srv6-service-requests state=running total-elapsed=9657s

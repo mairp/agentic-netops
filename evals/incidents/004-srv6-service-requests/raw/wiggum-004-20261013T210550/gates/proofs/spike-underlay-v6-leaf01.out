@@ -1,0 +1,9 @@
+===== leaf01: fabric-link v6 addresses =====
+===== leaf01: BGP v6 sessions =====
+Neighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc
+2001:db8:1::3   4      65000        C C C C C UPTIME            2        4 N/A
+2001:db8:2::3   4      65000        C C C C C UPTIME            2        4 N/A
+===== leaf01: session state invariant =====
+v6 ESTABLISHED=2 OTHER=0
+
+[exit code: 0]

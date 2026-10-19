@@ -1,0 +1,64 @@
+   138	### 2a. As-built service recipe (`ip-vrf` / `vpn`)
+   139	
+   140	Device commands, in order (builders: `scripts/spike/vrf-apply.sh`,
+   141	`vpn-setup.sh`; replayed as `spike-vpn-*` proofs):
+   142	
+   143	1. **VRF + attachment** (GCU `config apply-patch` over SSH, CONFIG_DB class):
+   144	   `/VRF/Vrf1` (whole-table add is safe on a factory node; on any node that
+   145	   already has VRFs use field-level adds), `Ethernet12 vrf_name=Vrf1`
+   146	   (field-level add onto the existing `/INTERFACE` table — a whole-table
+   147	   replace destroys the fabric link rows), access prefix `192.168.1.1/24` via
+   148	   JSON-pointer `~1` escaping.
+   149	2. **Kernel prerequisites**: `vrf` module auto-loads; `seg6_enabled=1` on
+   150	   `all/default/Ethernet0/Ethernet4/Loopback0`; `net.vrf.strict_mode=1`
+   151	   (`/proc/sys` is the only write path — no sysctl binary on the guest).
+   152	3. **Service SID (per node)**: originate the locator /48
+   153	   (`ipv6 route fcbb:bbbb:<n>::/48 Loopback0` + BGP `network`), then assert
+   154	   the decap: `ip -6 route replace fcbb:bbbb:<n>:11::/64 encap seg6local
+   155	   action End.DT46 vrftable 1001 dev Vrf1` (the Vrf1 table id is 1001 for
+   156	   leaf01 / 1002 for leaf02 — read from the device, do not assume).
+   157	4. **Ingress steering (per node, in Vrf1)**: `ip route replace
+   158	   <peer-subnet> vrf Vrf1 encap seg6 mode encap segs 1 [ fcbb:bbbb:<peer>:11:: ]
+   159	   dev Ethernet0` — the underlay route toward the peer locator /48 is pinned
+   160	   (`metric 5` kernel static) so zebra keeps a consistent nhg; without the
+   161	   pin zebra refuses to install the encap from an IPv4-mapped IPv6 nexthop
+   162	   (measured).
+   163	5. **Clients**: the two srv6-client containers get their /24 on `eth1`.
+   164	
+   165	Read-backs (all recorded in `spike-vpn-readback-leaf01/leaf02`): the decap
+   166	kernel route per node, the steering route per node, the client addressing,
+   167	the FRR locator table, and the honest negatives (no vpnv4/vpnv6 AFs; no BGP
+   168	/48 in the table — the /48 travels as a kernel static + BGP `network`).
+   169	
+   170	### 2b. Rollback
+   171	
+   172	`scripts/spike/vpn-rollback.sh` (proof `spike-vpn-rollback`): remove the
+   173	kernel routes first (loop-del until gone — the as-built decap and any zebra
+   174	static are separate routes for the same prefix), remove `/INTERFACE` and
+   175	`/VRF` in their own processes (GCU wedge semantics; removals in the same
+   176	process as adds raise), restore the fabric `/INTERFACE` rows, flush the
+   177	client ports, assert: no VRF/attach/SID rows, 0 seg6local routes, locator
+   178	untouched. The kernel `Vrf1` device itself lingers after row removal (image
+   179	behaviour — only a re-provision clears it); recorded honestly.
+   180	
+   181	### 2c. The `SRV6_MY_SIDS` CONFIG_DB write class (measured, not used as-built)
+   182	
+   183	`spike-sid-write` proves the write class end to end on the live image:
+   184	
+   185	- A payload with a `prefix_len` field is REJECTED
+   186	  (`All Keys are not parsed in SRV6_MY_SIDS … exceptionList:["'prefix_len'"]`)
+   187	  — the 202505 `sonic-srv6.yang` models composite key `locator|ip_prefix`
+   188	  (e.g. `loc-leaf01|fcbb:bbbb:3:11::/64`) with `action` + `decap_vrf` only.
+   189	- `decap_vrf` is a YANG leafref into `/VRF`: a row naming an unknown VRF is
+   190	  rejected, and while a valid row exists `/VRF` cannot be removed
+   191	  (`VRF-REMOVE-REJECTED ValueError`) — the row is live, integrity-checked
+   192	  config, not a no-op.
+   193	- The YANG-valid row is ACCEPTED on both leaves and reads back from
+   194	  CONFIG_DB with `action=uDT46`, `decap_vrf=Vrf1`.
+   195	- **Not relied on as-built**: during one earlier lab session the row's SRv6
+   196	  orchestration programmed a uDT46 decap through zebra (kernel
+   197	  `proto 196 metric 20`); bounded reproduction attempts (60 s polls on add)
+   198	  did not reproduce it, so the as-built dataplane does not depend on it —
+   199	  the builder asserts the kernel route directly (§2a step 3) and the write
+   200	  class is proven + reverted in the same proof.
+   201	

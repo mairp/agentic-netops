@@ -1,0 +1,14 @@
+===== EVPN table with the L2VNI attempt up (expect exactly the 2 Type-3 IMETs) =====
+Displayed 2 out of 4 total prefixes
+===== client01 -> client02 (8900-byte payload DF, as-built §2 path) =====
+3 packets transmitted, 3 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+===== client02 -> client01 (8900-byte payload DF) =====
+3 packets transmitted, 3 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+===== EVPN MAC table after client traffic (expect no Type-2 learning) =====
+MAC-ENTRIES: 0
+===== EVPN table after client traffic (still just the 2 Type-3 IMETs) =====
+Displayed 2 out of 4 total prefixes
+
+[exit code: 0]

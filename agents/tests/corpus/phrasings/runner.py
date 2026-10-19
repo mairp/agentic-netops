@@ -70,6 +70,13 @@ def load_unsupported(root: Path = UNSUPPORTED_DIR) -> list[tuple[str, Adversaria
     """
     out: list[tuple[str, AdversarialCase]] = []
     for path in sorted(root.glob("*.yaml")):
+        if path.name.startswith("srv6_"):
+            # T006/T007: SRv6 phrasings carry their own runner — the interim
+            # refusal R1 names SRv6 (contracts/operator-phrasings.md §3), not
+            # a Go unsupported-property literal, so the generic
+            # "unsupported property: <name>" assertions below would mis-fire.
+            # tests/unit/test_phrasings_srv6.py owns them.
+            continue
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
         property_name = data["property"]
         assert property_name in EXPECTED_PROPERTIES, f"{path.name}: unknown property {property_name!r}"

@@ -1,0 +1,2 @@
+[evpn-srv6-suite] 172.31.0.21:8080: decapsulation asserted (decap_dscp_mode=uniform)
+[evpn-srv6-suite] 172.31.0.22:8080: decapsulation asserted (decap_dscp_mode=uniform)

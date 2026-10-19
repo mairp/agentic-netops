@@ -372,7 +372,12 @@ class TestDeployManifests:
         assert dep["spec"]["replicas"] == 1
         assert dep["spec"]["strategy"]["type"] == "Recreate"
         spec = dep["spec"]["template"]["spec"]
-        assert spec["automountServiceAccountToken"] is False
+        # Feature 004 (T467/T550): the supervisor mounts a token for exactly
+        # ONE scoped read — get on ConfigMap fabric-compat-pins in
+        # agentic-netops-system (namespace-rbac.yaml fabric-compat-reader) —
+        # the live capability read behind the SRv6 R4/R2/R9 gates. Still no
+        # write, no list, no watch (T038 otherwise holds).
+        assert spec["automountServiceAccountToken"] is True
         mounts = {m["name"]: m for m in spec["containers"][0]["volumeMounts"]}
         assert mounts["checkpoint"]["mountPath"] == "/state/supervisor-checkpoint"
         envs = {e["name"]: e.get("value") for e in spec["containers"][0]["env"]}

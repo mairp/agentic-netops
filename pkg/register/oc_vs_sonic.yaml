@@ -23,26 +23,14 @@ entries:
     prefer: sonic
     native_path: /sonic-bgp:sonic-bgp/BGP_GLOBALS
     justification: SONiC BGP global settings not fully covered by OpenConfig on pinned image
-  - path: /sonic-srv6:sonic-srv6/SRV6_GLOBAL
+  - path: /sonic-srv6:sonic-srv6/SRV6_MY_LOCATORS
     prefer: sonic
-    native_path: /sonic-srv6:sonic-srv6/SRV6_GLOBAL
-    justification: SRv6 gNMI paths are SONiC-native; no OpenConfig equivalent on pinned image
-  - path: /sonic-srv6:sonic-srv6/MYSID
+    native_path: /sonic-srv6:sonic-srv6/SRV6_MY_LOCATORS
+    justification: Locator rows (key loc-<node>, /48 prefix) are SONiC-native and bootstrap-owned (FR-006); no OpenConfig equivalent on pinned image
+  - path: /sonic-srv6:sonic-srv6/SRV6_MY_SIDS
     prefer: sonic
-    native_path: /sonic-srv6:sonic-srv6/MYSID
-    justification: SRv6 MySID entries use SONiC-native tables on pinned image
-  - path: /sonic-srv6:sonic-srv6/SID_LIST
-    prefer: sonic
-    native_path: /sonic-srv6:sonic-srv6/SID_LIST
-    justification: SRv6 steering SID lists are SONiC-native on pinned image
-  - path: /sonic-srv6:sonic-srv6/POLICY
-    prefer: sonic
-    native_path: /sonic-srv6:sonic-srv6/POLICY
-    justification: SRv6 steering policy configuration is SONiC-native on pinned image
-  - path: /sonic-srv6:sonic-srv6/BEHAVIORS
-    prefer: sonic
-    native_path: /sonic-srv6:sonic-srv6/BEHAVIORS
-    justification: SRv6 behaviors (H.Encaps.Red, End, End.DT46) are SONiC-native on pinned image
+    native_path: /sonic-srv6:sonic-srv6/SRV6_MY_SIDS
+    justification: Row key loc-<node>|<sid>/64 with action=uDT46 and decap_vrf; accepted by the image YANG but measured NOT to program the dataplane (spike-sid-write), so as-built uses kernel routes
   - path: /sonic-vlan:sonic-vlan/VLAN
     prefer: sonic
     native_path: /sonic-vlan:sonic-vlan/VLAN

@@ -1,0 +1,30 @@
+E       AssertionError: SRv6 phrasings must refuse terminally naming SRv6 and never map to a VXLAN construct (FR-003, SC-008):
+E           srv6-alias-001: mapper did not flag srv6Transport; unsupported=[] service_type=<ServiceType.IP_VRF: 'ip-vrf'>; SRv6 result is not terminal: missing_fields=['endpoints'] (a terminal unsupported result never also clarifies); refusal_reason None does not name SRv6; operator-facing refusal is not R1 (contracts/operator-phrasings.md §3: 'not provisioned as a VXLAN service')
+E           srv6-evpn-002: mapper did not flag srv6Transport; unsupported=[] service_type=<ServiceType.MAC_VRF: 'mac-vrf'>; refusal_reason None does not name SRv6; operator-facing refusal is not R1 (contracts/operator-phrasings.md §3: 'not provisioned as a VXLAN service')
+E           srv6-ipvrf-003: mapper did not flag srv6Transport; unsupported=[] service_type=<ServiceType.IP_VRF: 'ip-vrf'>; refusal_reason None does not name SRv6; operator-facing refusal is not R1 (contracts/operator-phrasings.md §3: 'not provisioned as a VXLAN service'); an interpretation was accepted for an SRv6 request (service_type='ip-vrf', pending_action='confirm_1'); the SRv6 phrasing mapped to the VXLAN construct 'ip-vrf'
+E           srv6-macvrf-004: mapper did not flag srv6Transport; unsupported=[] service_type=<ServiceType.MAC_VRF: 'mac-vrf'>; refusal_reason None does not name SRv6; operator-facing refusal is not R1 (contracts/operator-phrasings.md §3: 'not provisioned as a VXLAN service'); an interpretation was accepted for an SRv6 request (service_type='mac-vrf', pending_action='confirm_1'); the SRv6 phrasing mapped to the VXLAN construct 'mac-vrf'
+E           srv6-bare-005: mapper did not flag srv6Transport; unsupported=['constructs: vlan, mac-vrf, ip-vrf, acl'] service_type=<ServiceType.VLAN: 'vlan'>; refusal_reason None does not name SRv6; operator-facing refusal is not R1 (contracts/operator-phrasings.md §3: 'not provisioned as a VXLAN service')
+E       assert not ["srv6-alias-001: mapper did not flag srv6Transport; unsupported=[] service_type=<ServiceType.IP_VRF: 'ip-vrf'>; SRv6 ...me SRv6; operator-facing refusal is not R1 (contracts/operator-phrasings.md §3: 'not provisioned as a VXLAN service')"]
+
+tests/unit/test_phrasings_srv6.py:110: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[31mWarning: observe not initialized, make sure you call observe.init()
+[39m
+[31mWarning: observe not initialized, make sure you call observe.init()
+[39m
+[31mWarning: observe not initialized, make sure you call observe.init()
+[39m
+[31mWarning: observe not initialized, make sure you call observe.init()
+[39m
+[31mWarning: observe not initialized, make sure you call observe.init()
+[39m
+[31mWarning: observe not initialized, make sure you call observe.init()
+[39m
+[31mWarning: observe not initialized, make sure you call observe.init()
+[39m
+[31mWarning: observe not initialized, make sure you call observe.init()
+[39m
+[31mWarning: observe not initialized, make sure you call observe.init()
+[39m
+[31mWarning: observe not initialized, make sure you call observe.init()
+[39m

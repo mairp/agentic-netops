@@ -1,0 +1,45 @@
+# T040-T043 — spike-baseline-* re-recorded on the FRESH (T104) lab, factory/seed state
+# stored commands (identical to the originals):
+  spike-baseline-spine01.cmd: scripts/spike/baseline-capture.sh spine01
+  spike-baseline-spine02.cmd: scripts/spike/baseline-capture.sh spine02
+  spike-baseline-leaf01.cmd: scripts/spike/baseline-capture.sh leaf01
+  spike-baseline-leaf02.cmd: scripts/spike/baseline-capture.sh leaf02
+# per-node .out heads (state = seed fabric, NO locator rows, NO service state):
+---- spike-baseline-spine01.out (head) ----
+===== spine01: sonic running config (show runningconfig all) =====
+{
+    "AUTO_TECHSUPPORT": {
+        "GLOBAL": {
+            "available_mem_threshold": "10.0",
+            "max_core_limit": "5.0",
+            "max_techsupport_limit": "10.0",
+            "min_available_mem": "200",
+---- spike-baseline-spine02.out (head) ----
+===== spine02: sonic running config (show runningconfig all) =====
+{
+    "AUTO_TECHSUPPORT": {
+        "GLOBAL": {
+            "available_mem_threshold": "10.0",
+            "max_core_limit": "5.0",
+            "max_techsupport_limit": "10.0",
+            "min_available_mem": "200",
+---- spike-baseline-leaf01.out (head) ----
+===== leaf01: sonic running config (show runningconfig all) =====
+{
+    "AUTO_TECHSUPPORT": {
+        "GLOBAL": {
+            "available_mem_threshold": "10.0",
+            "max_core_limit": "5.0",
+            "max_techsupport_limit": "10.0",
+            "min_available_mem": "200",
+---- spike-baseline-leaf02.out (head) ----
+===== leaf02: sonic running config (show runningconfig all) =====
+{
+    "AUTO_TECHSUPPORT": {
+        "GLOBAL": {
+            "available_mem_threshold": "10.0",
+            "max_core_limit": "5.0",
+            "max_techsupport_limit": "10.0",
+            "min_available_mem": "200",
+# locator absence witness (leaf01 .out grep):
+0

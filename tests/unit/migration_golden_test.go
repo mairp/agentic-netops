@@ -11,6 +11,42 @@ import (
 
 func TestGolden_VPLS(t *testing.T) {}
 
+// US4 (T431-T433): an srv6 transport input renders exactly one SRv6Service —
+// a different kind, so these compare the WHOLE document, not just the spec.
+func TestGolden_SRV6(t *testing.T) {
+	t.Setenv("FABRIC_SPINE_NODES", "spine01,spine02")
+	cases := []struct{ file, gold string }{
+		{"srv6_ip_vrf_vpn.json", "srv6_ip_vrf_vpn.golden.yaml"},
+		{"srv6_ip_vrf_evpn.json", "srv6_ip_vrf_evpn.golden.yaml"},
+		{"srv6_mac_vrf_evpn.json", "srv6_mac_vrf_evpn.golden.yaml"},
+	}
+	for _, tc := range cases {
+		b, err := os.ReadFile(filepath.Join("testdata", "migration", tc.file))
+		if err != nil {
+			t.Fatal(err)
+		}
+		inputs, err := migration.ParseStrictBatch(b)
+		if err != nil {
+			t.Fatalf("parse %s: %v", tc.file, err)
+		}
+		outs, err := migration.RenderBatch(inputs)
+		if err != nil {
+			t.Fatalf("render %s: %s", tc.file, migration.MarshalError(err))
+		}
+		if len(outs) != 1 {
+			t.Fatalf("%s: expected 1 doc, got %d", tc.file, len(outs))
+		}
+		gold, err := os.ReadFile(filepath.Join("testdata", "migration", tc.gold))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.TrimSpace(outs[0]) != strings.TrimSpace(string(gold)) {
+			_ = os.WriteFile(filepath.Join(os.TempDir(), tc.file+".actual.yaml"), []byte(outs[0]), 0o644)
+			t.Fatalf("golden mismatch for %s (whole document)", tc.file)
+		}
+	}
+}
+
 // US3 (T051): a mac-vrf carrying an anycast gateway composes — the bridge
 // domain's irb points at the per-service router emitted in the same Network,
 // so the operator never names a separate routed service.

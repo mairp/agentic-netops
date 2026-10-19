@@ -1,0 +1,88 @@
+     1	#!/usr/bin/env bash
+     2	# ensure-fabric.sh — silent, idempotent fabric bootstrap (replay support for
+     3	# T105-T109). Sourced by vrf-apply.sh and vpn-setup.sh so that every recorded
+     4	# proof chain re-runs self-contained on a freshly provisioned lab (T104,
+     5	# factory state) with no manual bring-up steps between replay groups.
+     6	#
+     7	# FAST PATH: one probe script per node; when the underlay and locator state
+     8	# are already converged — identity fields present, the locator row in
+     9	# CONFIG_DB *and* the FRR locator table, all BGP sessions established (a leaf
+    10	# holds 2 neighbours per family, a spine 3), and on the leaves the SRv6
+    11	# kernel gates (seg6_enabled on the fabric port, vrf strict_mode) — it prints
+    12	# NOTHING and returns 0, so every existing recorded .out stays byte-identical.
+    13	#
+    14	# SLOW PATH (fresh lab only): re-runs the recorded bootstrap builders in the
+    15	# order they were first applied, with all output discarded:
+    16	#   identity-assert (DEVICE_METADATA field-level adds + loopbacks)
+    17	#   → underlay-apply (fabric addressing + BGP_NEIGHBOR; handles the fresh-lab
+    18	#     bgpd re-render restart internally)
+    19	#   → underlay-node (bounded per-family establishment waits)
+    20	#   → kernel-prereqs (seg6 gates, vrf module, strict_mode — leaves only;
+    21	#     spines never terminate the service)
+    22	#   → locator-node (the CONFIG_DB SRV6_MY_LOCATORS GCU write class, all nodes)
+    23	# Vrf1 and the service state are deliberately NOT this helper's business:
+    24	# vrf-apply.sh creates Vrf1 itself, and every replay chain runs vrf-apply
+    25	# before any vpn consumer.
+    26	set -u
+    27	_SPIKE_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+    28	
+    29	_ensure_fabric_probe() { # $1 node → prints 1 when converged, else 0
+    30	    local n=$1 c min_est
+    31	    c=$(container_of "$n")
+    32	    case "$n" in spine*) min_est=3 ;; *) min_est=2 ;; esac
+    33	    sed "s/@NODE@/$n/g; s/@MINEST@/$min_est/g" /tmp/.ensure_fabric_probe.sh \
+    34	        | node_run_i "$c" "cat > /tmp/.ensure_fabric_probe.$n.sh" >/dev/null 2>&1 || { echo 0; return; }
+    35	    node_run "$c" "bash /tmp/.ensure_fabric_probe.$n.sh" 2>/dev/null | tail -1
+    36	}
+    37	
+    38	# guest-side probe (admin shell; only redis needs sudo). Counting style is
+    39	# the proven underlay-apply invariant awk: neighbour lines start with the
+    40	# neighbour address, PfxRcd (col 10) numeric means Established.
+    41	cat > /tmp/.ensure_fabric_probe.sh <<'PROBE'
+    42	loc=$(sudo redis-cli -n 4 HGET 'SRV6_MY_LOCATORS|loc-@NODE@' prefix 2>/dev/null)
+    43	fr=$(vtysh -c 'show segment-routing srv6 locator' 2>/dev/null | grep -c "loc-@NODE@")
+    44	e4=$(vtysh -c 'show bgp ipv4 unicast summary' 2>/dev/null | awk '
+    45	/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+ / || /^[0-9a-f:]+ / {
+    46	  if ($10 ~ /^[0-9]+$/) e++; else o++
+    47	}
+    48	END { print e+0 }')
+    49	e6=$(vtysh -c 'show bgp ipv6 unicast summary' 2>/dev/null | awk '
+    50	/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+ / || /^[0-9a-f:]+ / {
+    51	  if ($10 ~ /^[0-9]+$/) e++; else o++
+    52	}
+    53	END { print e+0 }')
+    54	g=$(cat /proc/sys/net/ipv6/conf/Ethernet0/seg6_enabled 2>/dev/null || echo 0)
+    55	s=$(cat /proc/sys/net/vrf/strict_mode 2>/dev/null || echo 0)
+    56	ok=1
+    57	case "$loc" in fcbb:bbbb:*) ;; *) ok=0 ;; esac
+    58	[ "$fr" -ge 1 ] 2>/dev/null || ok=0
+    59	[ "$e4" -ge @MINEST@ ] 2>/dev/null || ok=0
+    60	[ "$e6" -ge @MINEST@ ] 2>/dev/null || ok=0
+    61	case "@NODE@" in leaf*) [ "$g" = 1 ] && [ "$s" = 1 ] || ok=0 ;; esac
+    62	echo "H-OK=$ok"
+    63	PROBE
+    64	
+    65	ensure_fabric() {
+    66	    local ok=1 n
+    67	    for n in leaf01 leaf02 spine01 spine02; do
+    68	        [ "$(_ensure_fabric_probe "$n" | tail -1)" = "H-OK=1" ] || ok=0
+    69	    done
+    70	    [ "$ok" = 1 ] && return 0
+    71	    # SLOW PATH — all output discarded; failures tolerated, the consuming
+    72	    # builders' read-backs are the real verdicts.
+    73	    for n in leaf01 leaf02 spine01 spine02; do
+    74	        bash "$_SPIKE_DIR/identity-assert.sh" "$n" >/dev/null 2>&1 || true
+    75	        bash "$_SPIKE_DIR/underlay-apply.sh" "$n" >/dev/null 2>&1 || true
+    76	    done
+    77	    for n in leaf01 leaf02 spine01 spine02; do
+    78	        bash "$_SPIKE_DIR/underlay-node.sh" v4 "$n" >/dev/null 2>&1 || true
+    79	        bash "$_SPIKE_DIR/underlay-node.sh" v6 "$n" >/dev/null 2>&1 || true
+    80	    done
+    81	    for n in leaf01 leaf02; do
+    82	        bash "$_SPIKE_DIR/kernel-prereqs.sh" "$n" >/dev/null 2>&1 || true
+    83	    done
+    84	    for n in leaf01 leaf02 spine01 spine02; do
+    85	        bash "$_SPIKE_DIR/locator-node.sh" "$n" >/dev/null 2>&1 || true
+    86	    done
+    87	    return 0
+    88	}

@@ -1,0 +1,28 @@
+apiVersion: agentic-netops.io/v1alpha1
+kind: SRv6Service
+metadata:
+  annotations:
+    agentic-netops.io/mapping-version: v0.1.0
+    agentic-netops.io/migration-input-hash: b9ff71da3faf19788c0525cbeb4b8be94c959c790edeb89b47b03a45d59e94b2
+    agentic-netops.io/service-type: ip-vrf
+    agentic-netops.io/tenant: acme
+    agentic-netops.io/translator: agentic-netops-migration-translator
+    agentic-netops.io/translator-version: v0.1.0
+    agentic-netops.io/transport: srv6
+  name: acme-routed-evpn
+  namespace: agentic-netops-intent
+spec:
+  attachments:
+  - gateway:
+    - 2001:db8:3::30/127
+    node: leaf01
+    port: wan1
+  - gateway:
+    - 2001:db8:4::40/127
+    node: leaf02
+    port: wan1
+  construct: ip-vrf
+  path:
+    preferredSpine: spine02
+  signalling: evpn
+  tenant: acme

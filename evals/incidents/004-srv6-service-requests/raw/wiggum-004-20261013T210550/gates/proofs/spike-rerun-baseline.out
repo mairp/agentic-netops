@@ -1,0 +1,7 @@
+ok spike-baseline-spine01
+differ: spike-baseline-spine02
+ok spike-baseline-leaf01
+ok spike-baseline-leaf02
+replay spike-baseline: 1 of 4 proof(s) differ
+
+[exit code: 1]

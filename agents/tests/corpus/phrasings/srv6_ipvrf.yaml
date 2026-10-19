@@ -1,0 +1,36 @@
+# T470 — ip-vrf over srv6 (routed, vpn signalling): contract §1 row 1.
+#
+# Every phrasing maps to construct ip-vrf, transport srv6, signalling vpn.
+# The variant ip-vrf/vpn IS in this lab's supported set, so the tier-level
+# run reaches the confirmation point (R2 does not fire). Endpoints use the
+# attachment points a probe client can verify on this lab (leaf0x/wan1).
+#
+# Loaded by tests/unit/test_phrasings_srv6.py; never replayed into
+# baseline_snapshot.json (SC-016).
+category: srv6_ipvrf
+construct: ip-vrf
+transport: srv6
+signalling: vpn
+tier: confirmed
+cases:
+  - id: srv6-ipvrf-basic
+    text: "give tenant acme an ip-vrf over srv6 carrying 2001:db8:3::30/127 and 2001:db8:4::40/127 between leaf01 wan1 and leaf02 wan1"
+    prefixes: ["2001:db8:3::30/127", "2001:db8:4::40/127"]
+
+  - id: srv6-ipvrf-v4
+    text: "give tenant blue an ip-vrf over srv6 carrying 10.50.0.0/24 between leaf01 wan1 and leaf02 wan1"
+    prefixes: ["10.50.0.0/24"]
+
+  - id: srv6-ipvrf-casing
+    text: "IP-VRF OVER SRV6 for tenant green carrying 2001:db8:7::/64 between leaf01 wan1 and leaf02 wan1"
+    prefixes: ["2001:db8:7::/64"]
+
+  - id: srv6-ipvrf-alias
+    # legacy routed-service name beside the SRv6 qualifier: the qualifier
+    # decides the transport, the alias only folds to ip-vrf (contract §1)
+    text: "SRv6 L3VPN for tenant acme carrying 10.60.0.0/24 between leaf01 wan1 and leaf02 wan1"
+    prefixes: ["10.60.0.0/24"]
+
+  - id: srv6-ipvrf-routed-service
+    text: "routed service over srv6 for tenant acme carrying 2001:db8:9::/64 between leaf01 wan1 and leaf02 wan1"
+    prefixes: ["2001:db8:9::/64"]

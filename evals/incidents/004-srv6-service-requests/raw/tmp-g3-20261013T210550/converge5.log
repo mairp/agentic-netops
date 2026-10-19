@@ -1,0 +1,7 @@
+=== ensure_fabric start 03:40:31 ===
+=== ensure_fabric done 03:45:47 ===
+leaf01: H-OK=1
+leaf02: H-OK=1
+spine01: H-OK=1
+spine02: H-OK=1
+CONVERGE5-RC=1

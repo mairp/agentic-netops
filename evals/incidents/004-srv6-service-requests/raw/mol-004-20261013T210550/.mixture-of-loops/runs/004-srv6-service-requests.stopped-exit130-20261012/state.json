@@ -1,0 +1,18 @@
+{
+  "contract_digest": "fe05f794b628d938db87f5237810050e4100bb7669e5e161c63d8812dafad6c5",
+  "exit_reason": "interrupted",
+  "last_stage": "run-004-srv6-service-requests",
+  "pipeline": "004-srv6-service-requests",
+  "stages": {
+    "run-004-srv6-service-requests": {
+      "child_exit_code": 130,
+      "finished_at": 1791750626,
+      "reason": "interrupted",
+      "started_at": 1791740818,
+      "status": "stopped"
+    }
+  },
+  "state": "stopped",
+  "superseded_contract_digest": null,
+  "updated_at": 1791750626
+}

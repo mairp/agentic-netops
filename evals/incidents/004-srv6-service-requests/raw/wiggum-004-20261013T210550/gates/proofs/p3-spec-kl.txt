@@ -1,0 +1,33 @@
+# spec.md KL-001..003 (T123, pass-10 not-achievable wording)
+     1	### Known Limitations *(mandatory)*
+     2	
+     3	KL-001 to KL-003 were provisional: the recipe spike (FR-001, phase 3 on the
+     4	pinned sonic-vm lab) has now measured them — verdicts in
+     5	`docs/SRV6_SERVICE_RECIPE.md` §6 and
+     6	`lab/profiles/sonic-vm/srv6-supported.yaml`. The entries below state the
+     7	measured outcome; the refusal behaviour stays for every non-proven variant.
+     8	
+     9	- **KL-001 (measured)**: Bridged EVPN over SRv6 (`mac-vrf`/`evpn`) → verdict
+    10	  **not achievable** on the as-built lab (owner decision 1 separately permits
+    11	  deferring it; the refusal handling is the same). L2VNI + Type-3 IMET
+    12	  signalling works
+    13	  (`spike-evpn2-state-leaf01/02`), but no MAC/Type-2 learning and no bridged
+    14	  forwarding on the as-built lab (`spike-evpn2-ping`: 0 MAC entries). A
+    15	  request is still refused by name on every entry point
+    16	  ("`mac-vrf over srv6` (bridged EVPN over SRv6) is not supported on this
+    17	  image"), with no identifier claimed. The refusal leads with the FR-013
+    18	  wording; the parenthesis is the one descriptive gloss allowed beside it and
+    19	  is registered with the vocabulary guard (FR-018).
+    20	- **KL-002 (measured)**: L3VPN over SRv6 (`ip-vrf`/`vpn`) → verdict **proven**
+    21	  (end-to-end client traffic, replay-stable proofs, clean rollback — §2 of the
+    22	  recipe): no longer refused. Routed EVPN over SRv6 (`ip-vrf`/`evpn`) →
+    23	  verdict **not achievable**: the zebra→bgpd L3VNI ZAPI handoff is broken and
+    24	  this bgpd has no vpnv4/vpnv6 address-families (`spike-evpn3-state-leaf01`,
+    25	  `spike-vpn-readback-leaf01`) → refused by name for as long as its verdict is
+    26	  not "proven". Preferred-spine steering → verdict **proven with a recorded
+    27	  SLO miss**: the pin, the failover switch and the return all work
+    28	  (`spike-steering-*`), but convergence is bounded at ≤10 lost 1 Hz probes —
+    29	  SC-007's ≤2-loss/5 s bound is NOT met (no BFD on the as-built lab).
+    30	- **KL-003**: Any SRv6 request before the SRv6 service is delivered → refused
+    31	  naming SRv6; never provisioned as a VXLAN construct (FR-015).
+    32	- **KL-004**: SRv6 on a profile whose gate has not proven the capability (today

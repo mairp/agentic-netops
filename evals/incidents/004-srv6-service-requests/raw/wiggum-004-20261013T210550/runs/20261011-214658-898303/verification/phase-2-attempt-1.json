@@ -1,0 +1,202 @@
+{
+  "buildArtifacts": [],
+  "commands": [
+    {
+      "args": [
+        "test",
+        "./..."
+      ],
+      "commandId": "CMD-c76234bfb569f321452a",
+      "cwd": "/root/agentic-netops",
+      "declaredId": null,
+      "durationMs": 1959,
+      "env": {},
+      "executable": "/usr/lib/go-1.24/bin/go",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "discovered",
+      "stderr": "",
+      "stdout": "?   \tgithub.com/mairp/agentic-netops/api/v1alpha1\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/cmd/intent-translator\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/cmd/migration-translator\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/controllers/sonicprovider\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/controllers/srv6service\t[no test files]\nok  \tgithub.com/mairp/agentic-netops/internal/lockfile\t(cached)\n?   \tgithub.com/mairp/agentic-netops/pkg/compat\t[no test files]\nok  \tgithub.com/mairp/agentic-netops/pkg/fabricplan\t(cached)\n?   \tgithub.com/mairp/agentic-netops/pkg/kubenet\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/pkg/migration\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/pkg/model\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/pkg/reasons\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/pkg/render\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/pkg/sdc\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/pkg/version\t[no test files]\nok  \tgithub.com/mairp/agentic-netops/tests/envtest\t(cached)\nok  \tgithub.com/mairp/agentic-netops/tests/unit\t(cached)\n"
+    },
+    {
+      "args": [
+        "scripts/proof.sh",
+        "selftest",
+        "--",
+        "true"
+      ],
+      "commandId": "CMD-d5862bced8d4a5f3bd5c",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p1-proof-recorder-selftest",
+      "durationMs": 64,
+      "env": {},
+      "executable": "/usr/bin/bash",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "",
+      "stdout": "proof recorded: selftest (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/selftest.out\n"
+    },
+    {
+      "args": [
+        "scripts/proof.sh",
+        "replay",
+        "selftest"
+      ],
+      "commandId": "CMD-800e05d736f2deb88bdc",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p1-proof-recorder-replay",
+      "durationMs": 58,
+      "env": {},
+      "executable": "/usr/bin/bash",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "",
+      "stdout": "ok selftest\nreplay selftest: 1 proof(s) checked, no difference (0 skipped)\n"
+    },
+    {
+      "args": [
+        "bash",
+        "-c",
+        "cd agents && pytest tests/unit/test_phrasings_baseline.py"
+      ],
+      "commandId": "CMD-1fed03d399a39b0d4410",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-phrasings-baseline-pytest",
+      "durationMs": 24,
+      "env": {},
+      "executable": "/usr/bin/bash",
+      "exitCode": 126,
+      "passed": false,
+      "signal": null,
+      "source": "declared",
+      "stderr": "/usr/bin/bash: /usr/bin/bash: cannot execute binary file\n",
+      "stdout": ""
+    },
+    {
+      "args": [
+        "bash",
+        "-c",
+        "cd agents && pytest tests/unit/test_phrasings_srv6.py"
+      ],
+      "commandId": "CMD-d894bfd196b7f37d5fbc",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-phrasings-srv6-pytest",
+      "durationMs": 18,
+      "env": {},
+      "executable": "/usr/bin/bash",
+      "exitCode": 126,
+      "passed": false,
+      "signal": null,
+      "source": "declared",
+      "stderr": "/usr/bin/bash: /usr/bin/bash: cannot execute binary file\n",
+      "stdout": ""
+    },
+    {
+      "args": [
+        "bash",
+        "-c",
+        "cd agents && pytest tests/unit/test_vocabulary_guard.py"
+      ],
+      "commandId": "CMD-f2bbb76148cce13e21ae",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-vocabulary-guard-pytest",
+      "durationMs": 30,
+      "env": {},
+      "executable": "/usr/bin/bash",
+      "exitCode": 126,
+      "passed": false,
+      "signal": null,
+      "source": "declared",
+      "stderr": "/usr/bin/bash: /usr/bin/bash: cannot execute binary file\n",
+      "stdout": ""
+    },
+    {
+      "args": [
+        "bash",
+        "-c",
+        "cd agents && pytest"
+      ],
+      "commandId": "CMD-663847aa5c10d247d478",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-agents-pytest-full",
+      "durationMs": 35,
+      "env": {},
+      "executable": "/usr/bin/bash",
+      "exitCode": 126,
+      "passed": false,
+      "signal": null,
+      "source": "declared",
+      "stderr": "/usr/bin/bash: /usr/bin/bash: cannot execute binary file\n",
+      "stdout": ""
+    },
+    {
+      "args": [
+        "build",
+        "./..."
+      ],
+      "commandId": "CMD-399e99a479e5ad109383",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-go-build",
+      "durationMs": 2737,
+      "env": {},
+      "executable": "/usr/lib/go-1.24/bin/go",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "args": [
+        "test-envtest"
+      ],
+      "commandId": "CMD-6da7226f40e273970f97",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-go-test-envtest",
+      "durationMs": 943,
+      "env": {},
+      "executable": "/usr/bin/make",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "",
+      "stdout": ">> envtest for SRv6Service CRD\n=== RUN   TestSRv6ServiceCRD_Envtest\n=== PAUSE TestSRv6ServiceCRD_Envtest\n=== CONT  TestSRv6ServiceCRD_Envtest\n    srv6service_crd_envtest_test.go:38: envtest assets not found; set KUBEBUILDER_ASSETS to run this test\n--- SKIP: TestSRv6ServiceCRD_Envtest (0.00s)\nPASS\nok  \tgithub.com/mairp/agentic-netops/tests/envtest\t(cached)\n"
+    },
+    {
+      "args": [
+        "verify-pins"
+      ],
+      "commandId": "CMD-5cf1458f42cf80f0a353",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-pins-verify",
+      "durationMs": 120,
+      "env": {},
+      "executable": "/usr/bin/make",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "[verify-pins] intent_tier: 5 images all pinned by immutable digest\n[verify-pins] versions.lock.yaml pins and compatibility are consistent\n",
+      "stdout": "[verify-pins] validating versions.lock.yaml\n"
+    }
+  ],
+  "gateId": "GATE-phase-2",
+  "passed": false,
+  "phase": 2,
+  "planHash": "35f650e23fbc093ca22d36262ab456180830e49192663133df82d48db2e9762c",
+  "planId": "verification-99fa5bc902894115a62b",
+  "sourceRevision": {
+    "available": true,
+    "capturedAt": 1791747017,
+    "revision": "89b497c71165684a6e204fc6f9b1fb9e460796a6",
+    "workingTreeDirty": true
+  },
+  "summary": "Verification gate GATE-phase-2 failed: CMD-1fed03d399a39b0d4410, CMD-d894bfd196b7f37d5fbc, CMD-f2bbb76148cce13e21ae, CMD-663847aa5c10d247d478"
+}

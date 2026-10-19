@@ -1,0 +1,100 @@
+===== remove service on both leaves =====
+-- leaf01 --
+Patch Applier: localhost: Patch application starting.
+Patch Applier: localhost: Patch: [{"op": "remove", "path": "/INTERFACE"}]
+Patch Applier: localhost getting current config db.
+Patch Applier: localhost: simulating the target full config after applying the patch.
+Patch Applier: localhost: validating all JsonPatch operations are permitted on the specified fields
+Patch Applier: localhost: validating target config does not have empty tables,
+                            since they do not show up in ConfigDb.
+Patch Applier: localhost: sorting patch updates.
+Patch Applier: The localhost patch was converted into 8 changes:
+Patch Applier: localhost: applying 8 changes in order:
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet0|10.1.0.1~131"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet0|2001:db8:1::2~1127"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet0"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet12|192.168.1.1~124"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet12"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet4|10.1.0.5~131"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet4|2001:db8:2::2~1127"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE"}]
+Patch Applier: localhost: verifying patch updates are reflected on ConfigDB.
+Patch Applier: localhost patch application completed.
+REMOVED /INTERFACE
+Patch Applier: localhost: Patch application starting.
+Patch Applier: localhost: Patch: [{"op": "remove", "path": "/VRF"}]
+Patch Applier: localhost getting current config db.
+Patch Applier: localhost: simulating the target full config after applying the patch.
+Patch Applier: localhost: validating all JsonPatch operations are permitted on the specified fields
+Patch Applier: localhost: validating target config does not have empty tables,
+                            since they do not show up in ConfigDb.
+Patch Applier: localhost: sorting patch updates.
+Patch Applier: The localhost patch was converted into 1 change:
+Patch Applier: localhost: applying 1 change in order:
+Patch Applier:   * [{"op": "remove", "path": "/VRF"}]
+Patch Applier: localhost: verifying patch updates are reflected on ConfigDB.
+Patch Applier: localhost patch application completed.
+REMOVED /VRF
+INTERFACE-RESTORED
+-- leaf02 --
+Patch Applier: localhost: Patch application starting.
+Patch Applier: localhost: Patch: [{"op": "remove", "path": "/INTERFACE"}]
+Patch Applier: localhost getting current config db.
+Patch Applier: localhost: simulating the target full config after applying the patch.
+Patch Applier: localhost: validating all JsonPatch operations are permitted on the specified fields
+Patch Applier: localhost: validating target config does not have empty tables,
+                            since they do not show up in ConfigDb.
+Patch Applier: localhost: sorting patch updates.
+Patch Applier: The localhost patch was converted into 8 changes:
+Patch Applier: localhost: applying 8 changes in order:
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet0|10.1.0.3~131"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet0|2001:db8:1::4~1127"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet0"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet12|192.168.2.1~124"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet12"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet4|10.1.0.7~131"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE/Ethernet4|2001:db8:2::4~1127"}]
+Patch Applier:   * [{"op": "remove", "path": "/INTERFACE"}]
+Patch Applier: localhost: verifying patch updates are reflected on ConfigDB.
+Patch Applier: localhost patch application completed.
+REMOVED /INTERFACE
+Patch Applier: localhost: Patch application starting.
+Patch Applier: localhost: Patch: [{"op": "remove", "path": "/VRF"}]
+Patch Applier: localhost getting current config db.
+Patch Applier: localhost: simulating the target full config after applying the patch.
+Patch Applier: localhost: validating all JsonPatch operations are permitted on the specified fields
+Patch Applier: localhost: validating target config does not have empty tables,
+                            since they do not show up in ConfigDb.
+Patch Applier: localhost: sorting patch updates.
+Patch Applier: The localhost patch was converted into 1 change:
+Patch Applier: localhost: applying 1 change in order:
+Patch Applier:   * [{"op": "remove", "path": "/VRF"}]
+Patch Applier: localhost: verifying patch updates are reflected on ConfigDB.
+Patch Applier: localhost patch application completed.
+REMOVED /VRF
+INTERFACE-RESTORED
+===== read back: nothing owned by the service remains =====
+-- leaf01 --
+VRF rows: none
+attachment rows: none
+SID rows: none
+Vrf1 device: gone
+seg6local routes: 0
+10.1.0.1/31
+-- leaf02 --
+VRF rows: none
+attachment rows: none
+SID rows: none
+Vrf1 device: gone
+seg6local routes: 0
+10.1.0.3/31
+-- clients flushed --
+client01 eth1: 
+client02 eth1: 
+===== locator untouched (bootstrap-owned) =====
+-- leaf01 --
+fcbb:bbbb:3::
+loc-leaf01                 1 fcbb:bbbb:3::/48         Up
+-- leaf02 --
+fcbb:bbbb:4::
+loc-leaf02                 1 fcbb:bbbb:4::/48         Up

@@ -1,0 +1,45 @@
+##### 04:05:57 START A-seed: bash scripts/spike/seed-restore.sh
+##### 04:10:41 RC A-seed=0
+##### 04:10:41 START A-b-spine01: scripts/proof.sh spike-baseline-spine01 -- scripts/spike/baseline-capture.sh spine01
+##### 04:10:45 RC A-b-spine01=0
+##### 04:10:45 START A-b-spine02: scripts/proof.sh spike-baseline-spine02 -- scripts/spike/baseline-capture.sh spine02
+##### 04:10:50 RC A-b-spine02=0
+##### 04:10:50 START A-b-leaf01: scripts/proof.sh spike-baseline-leaf01 -- scripts/spike/baseline-capture.sh leaf01
+##### 04:10:54 RC A-b-leaf01=0
+##### 04:10:54 START A-b-leaf02: scripts/proof.sh spike-baseline-leaf02 -- scripts/spike/baseline-capture.sh leaf02
+##### 04:10:58 RC A-b-leaf02=0
+##### 04:10:58 START A-dry: scripts/proof.sh replay spike-baseline
+##### 04:11:15 RC A-dry=1
+##### 04:11:15 PHASE A done (seed=0 dry=1)
+##### 04:11:15 START B-converge: bash -c . scripts/spike/spike-env.sh; . scripts/spike/ensure-fabric.sh; ensure_fabric; for n in leaf01 leaf02 spine01 spine02; do echo "$n: $(_ensure_fabric_probe "$n" | tail -1)"; done
+##### 04:16:55 RC B-converge=0
+##### 04:16:55 PHASE B done converge.rc=0
+##### 04:16:55 START C-1: scripts/proof.sh spike-vpn-state-leaf01 -- scripts/spike/vrf-apply.sh leaf01
+##### 04:17:13 RC C-1=0
+##### 04:17:13 START C-2: scripts/proof.sh spike-vpn-state-leaf02 -- scripts/spike/vrf-apply.sh leaf02
+##### 04:18:44 RC C-2=0
+##### 04:18:44 START C-3: scripts/proof.sh spike-vpn-ping -- scripts/spike/vpn-ping.sh
+##### 04:21:06 RC C-3=0
+##### 04:21:06 START C-4: scripts/proof.sh spike-vpn-capture -- scripts/spike/vpn-capture.sh
+##### 04:23:07 RC C-4=0
+##### 04:23:07 START C-5: scripts/proof.sh spike-vpn-readback-leaf01 -- bash scripts/spike/vpn-readback.sh leaf01
+##### 04:24:58 RC C-5=0
+##### 04:24:58 START C-6: scripts/proof.sh spike-vpn-readback-leaf02 -- bash scripts/spike/vpn-readback.sh leaf02
+##### 04:26:50 RC C-6=0
+##### 04:26:50 START C-7: scripts/proof.sh spike-vpn-clients -- bash scripts/spike/vpn-clients.sh
+##### 04:28:40 RC C-7=0
+##### 04:28:40 START C-8: scripts/proof.sh spike-vpn-rollback -- bash scripts/spike/vpn-rollback.sh
+##### 04:29:21 RC C-8=0
+##### 04:29:21 START spike-rerun-vpn: scripts/proof.sh spike-rerun-vpn -- scripts/proof.sh replay spike-vpn
+##### 04:55:34 RC spike-rerun-vpn=1
+##### 04:55:34 RECEIPT spike-rerun-vpn verdict=differ
+##### 04:55:34 PHASE C done
+##### 04:55:34 START D-1: scripts/proof.sh spike-steering-path -- bash scripts/spike/steering-path.sh
+##### 04:59:03 RC D-1=0
+##### 04:59:03 START D-2: scripts/proof.sh spike-steering-failover-launcher -- bash scripts/spike/steering-failover.sh launcher
+##### 05:08:31 RC D-2=0
+##### 05:08:31 START D-3: scripts/proof.sh spike-steering-failover-guest-if -- bash scripts/spike/steering-failover.sh guest
+##### 05:12:28 RC D-3=0
+##### 05:12:28 START D-4: scripts/proof.sh spike-steering-failover-bgp -- bash scripts/spike/steering-failover.sh bgp
+##### 05:16:25 RC D-4=0
+##### 05:16:25 START D-5: scripts/proof.sh spike-steering-return -- bash scripts/spike/steering-failover.sh return

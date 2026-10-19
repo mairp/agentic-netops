@@ -1,0 +1,33 @@
+# Sample: ip-vrf/evpn SRv6 service between leaf01 and leaf02 (variant evpn3).
+#
+# No identifier is typed here (contracts/srv6service-crd.md rule A12). The
+# sample is admission-valid (the CEL rules know nothing of recipes), but the
+# variant has NO proven recipe on the pinned sonic-vm image (the L3VNI
+# handoff zebra->bgpd is broken; docs/SRV6_SERVICE_RECIPE.md section 3):
+# admission accepts this object and the controller then refuses it by name
+# with the terminal UnsupportedVariant condition naming the supported set
+# (ip-vrf/vpn, steering). Deliberately kept: it is the Q5/Q6 "refused by
+# name, nothing claimed, nothing written" evidence object.
+#
+# The correlation-id label makes the claims deterministic across re-apply; the
+# controller falls back to the object UID without it.
+apiVersion: agentic-netops.io/v1alpha1
+kind: SRv6Service
+metadata:
+  name: srv6-ip-vrf-evpn
+  namespace: agentic-netops-intent
+  labels:
+    agentic-netops.io/correlation-id: srv6-ip-vrf-evpn
+spec:
+  tenant: acme
+  construct: ip-vrf
+  signalling: evpn
+  attachments:
+    - node: leaf01
+      port: wan1
+      gateway:
+        - 192.168.1.1/24
+    - node: leaf02
+      port: wan1
+      gateway:
+        - 192.168.2.1/24

@@ -495,12 +495,15 @@ func (s *Server) viewVxlan(p *Path) any {
 func (s *Server) viewSrv6(p *Path) any {
 	names := p.Names()
 	if len(names) == 0 {
-		// Root: summarize all SRv6 tables
+		// Root: summarize the SRv6 state this emulator keeps - the per-SID
+		// counters and the End/End.DT46 behaviors. The legacy CONFIG_DB tables the
+		// old path-existence probes assumed (global/locator/sid-list/policy/
+		// decapsulation) do not exist on the image, so they are not modeled here.
 		out := map[string]any{}
-		for _, t := range []string{"SRV6_GLOBAL", "SRV6_LOCATOR", "SRV6_END", "SRV6_END_DT46", "SRV6_SID_LIST", "SRV6_POLICY", "SRV6_DECAPSULATION"} {
+		for _, t := range []string{"SRV6_COUNTERS", "BEHAVIORS"} {
 			rows := []any{}
-			for _, key := range s.cfgTableKeys(t) {
-				h := s.cfgHash(key)
+			for _, key := range s.stateTableKeys(t) {
+				h := s.stateHash(key)
 				m := map[string]any{}
 				for k, v := range h {
 					m[k] = v
@@ -515,45 +518,6 @@ func (s *Server) viewSrv6(p *Path) any {
 	}
 	root := names[0]
 	switch root {
-	case "SRV6_GLOBAL":
-		h := s.cfgHash("SRV6_GLOBAL|default")
-		if len(h) == 0 {
-			return nil
-		}
-		row := map[string]any{"name": "default"}
-		for k, v := range h {
-			row[k] = v
-		}
-		if len(names) > 1 {
-			return map[string]any{"sonic-srv6": map[string]any{"SRV6_GLOBAL": map[string]any{"SRV6_GLOBAL_LIST": []any{row}}}}
-		}
-		return map[string]any{"sonic-srv6": map[string]any{"SRV6_GLOBAL": map[string]any{"SRV6_GLOBAL_LIST": []any{row}}}}
-	case "SRV6_LOCATOR", "SRV6_END", "SRV6_END_DT46", "SRV6_SID_LIST", "SID_LIST", "SRV6_POLICY", "POLICY", "SRV6_DECAPSULATION":
-		realTable := root
-		if root == "SID_LIST" {
-			realTable = "SRV6_SID_LIST"
-		}
-		if root == "POLICY" {
-			realTable = "SRV6_POLICY"
-		}
-		rows := []any{}
-		for _, key := range s.cfgTableKeys(realTable) {
-			h := s.cfgHash(key)
-			m := map[string]any{"name": strings.TrimPrefix(key, realTable+"|")}
-			for k, v := range h {
-				m[k] = v
-			}
-			if realTable == "SRV6_SID_LIST" && h["sids"] != "" {
-				var sids []string
-				_ = json.Unmarshal([]byte(h["sids"]), &sids)
-				m["sids"] = sids
-			}
-			rows = append(rows, m)
-		}
-		if len(rows) == 0 {
-			return nil
-		}
-		return map[string]any{"sonic-srv6": map[string]any{root: rows}}
 	case "SRV6_COUNTERS":
 		rows := []any{}
 		for _, key := range s.stateTableKeys("SRV6_COUNTERS") {
@@ -758,46 +722,7 @@ func (s *Server) applyUpdate(pathStr, raw string, isUpdate bool) error {
 
 func (s *Server) applySrv6(table string, v any) error {
 	switch table {
-	case "SRV6_GLOBAL":
-		m, ok := v.(map[string]any)
-		if !ok {
-			return fmt.Errorf("SRV6_GLOBAL expects object")
-		}
-		locator := scalarStr(m["locator-prefix"])
-		if locator == "" {
-			locator = scalarStr(m["locator"])
-		}
-		if locator == "" {
-			return fmt.Errorf("no locator-prefix")
-		}
-		return s.cfgc.HSet("SRV6_GLOBAL|default", map[string]string{"locator": locator})
-	case "MYSID":
-		list, ok := asList(v)
-		if !ok {
-			return fmt.Errorf("MYSID expects list")
-		}
-		for _, e := range list {
-			m, ok := e.(map[string]any)
-			if !ok {
-				continue
-			}
-			sid := scalarStr(m["sid"])
-			if sid == "" {
-				continue
-			}
-			behavior := scalarStr(m["behavior"])
-			vrf := scalarStr(m["vrf"])
-			if behavior == "End.DT46" {
-				_ = s.cfgc.HSet("SRV6_END_DT46|"+sid, map[string]string{"behavior": "End.DT46", "vrf": vrf})
-			} else {
-				_ = s.cfgc.HSet("SRV6_END|"+sid, map[string]string{"behavior": behavior, "vrf": vrf})
-			}
-			if vrf != "" {
-				_ = s.stc.HSet("BEHAVIORS|"+sid, map[string]string{"behavior": behavior, "vrf": vrf})
-			}
-		}
-		return nil
-	case "SRV6_LOCATOR", "SRV6_END", "SRV6_END_DT46", "SRV6_SID_LIST", "SRV6_POLICY", "SRV6_DECAPSULATION", "SRV6_COUNTERS":
+	case "SRV6_COUNTERS":
 		list, ok := asList(v)
 		if !ok {
 			if m, ok2 := v.(map[string]any); ok2 {

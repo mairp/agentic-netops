@@ -303,3 +303,134 @@ def test_a_standalone_acl_carries_its_rules_into_the_normalized_intent():
         }
     ]
     assert intent.validate_all_or_nothing() is None
+
+
+class _ZeroClaimKUID:
+    """A KUID client that records every allocate call — srv6 must claim no
+    VXLAN identifier (vlan/l2vni/l3vni/rdRt), and mac-vrf must claim nothing
+    at all."""
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def allocate_vlan(self, _correlation_id: str) -> int:
+        self.calls.append("vlan")
+        return 100
+
+    def allocate_l2vni(self, _correlation_id: str) -> int:
+        self.calls.append("l2vni")
+        return 10004
+
+    def allocate_l3vni(self, _correlation_id: str) -> int:
+        self.calls.append("l3vni")
+        return 10018
+
+    def allocate_rd_rt(self, _correlation_id: str) -> tuple[str, list[str], list[str]]:
+        self.calls.append("rd_rt")
+        return "65000:18", ["65000:18"], ["65000:18"]
+
+    def allocate_client_prefix(self, *, correlation_id: str, attachment: str) -> str:
+        self.calls.append(f"client_prefix:{attachment}")
+        raise AssertionError("this fake must not be asked for a client /24")
+
+
+class _ClaimingKUID(_ZeroClaimKUID):
+    """Serves the measured client /24s the lab pool hands out in order."""
+
+    def allocate_client_prefix(self, *, correlation_id: str, attachment: str) -> str:
+        self.calls.append(f"client_prefix:{attachment}")
+        return {
+            "leaf01-wan1": "192.168.1.0/24",
+            "leaf02-wan1": "192.168.2.0/24",
+        }[attachment]
+
+
+def _srv6_interpretation(service_type: str, **extra) -> Interpretation:
+    payload = {
+        "service_id": "svc-srv6",
+        "service_type": service_type,
+        "tenant": "acme",
+        "transport": "srv6",
+        "endpoints": [
+            {"site_or_node": "leaf01", "attachment": "wan1"},
+            {"site_or_node": "leaf02", "attachment": "wan1"},
+        ],
+    }
+    payload.update(extra)
+    return Interpretation.model_validate(payload)
+
+
+def test_srv6_ip_vrf_claims_no_vxlan_identifier_but_claims_client_prefixes():
+    """US4 ip-vrf claim profile: no VXLAN identifier is claimed, but each
+    attachment's gateway /24 IS (SRv6Service CRD rule A9 via intent-srv6.md §4:
+    endpoints[].prefixes → spec.attachments[].gateway).
+
+    srv6 identifiers are fabric-allocated: the intent carries type, tenant and
+    endpoints with no l2vni, no l3vni and no rdRt. The gateway prefixes are
+    claimed, never invented: one client /24 per attachment, keyed the way the
+    srv6-controller's claim name keys it (<node>-<port>), and the endpoint
+    carries the claimed subnet's first usable host — the x.y.z.1/n convention
+    (.1 the leaf SVI, .2 the client the data-path probe pings).
+    """
+
+    kuid = _ClaimingKUID()
+    intent = _allocator(kuid)._build_intent(
+        _srv6_interpretation("ip-vrf", ipv6_prefixes=["2001:db8:3::30/127"]), "c" * 32
+    )
+    assert sorted(kuid.calls) == [
+        "client_prefix:leaf01-wan1",
+        "client_prefix:leaf02-wan1",
+    ], f"expected exactly the two attachment /24 claims, got: {kuid.calls}"
+    assert intent.type == "ip-vrf"
+    assert intent.tenant == "acme"
+    assert len(intent.endpoints) == 2
+    assert intent.l2vni is None
+    assert intent.l3vni is None
+    assert intent.rdRt is None
+    assert intent.transport == "srv6"
+    assert intent.signalling == "vpn"
+    gateways = {ep.node: ep.prefixes for ep in intent.endpoints}
+    assert gateways == {
+        "leaf01": ["192.168.1.1/24"],
+        "leaf02": ["192.168.2.1/24"],
+    }, f"endpoints must carry the claimed gateway prefixes, got: {gateways}"
+    assert intent.validate_all_or_nothing() is None
+
+
+def test_srv6_mac_vrf_claims_nothing_and_carries_the_named_vlan():
+    kuid = _ZeroClaimKUID()
+    interp = _srv6_interpretation(
+        "mac-vrf", signalling="evpn", preferredSpine="spine01"
+    )
+    interp.endpoints[0].vlan = 300
+    interp.endpoints[1].vlan = 300
+    intent = _allocator(kuid)._build_intent(interp, "c" * 32)
+    assert kuid.calls == [], f"srv6 allocation claimed: {kuid.calls}"
+    assert intent.type == "mac-vrf"
+    assert intent.transport == "srv6"
+    assert intent.signalling == "evpn"
+    assert intent.preferredSpine == "spine01"
+    assert {ep.vlan for ep in intent.endpoints} == {300}, (
+        "the operator-named vlan must be carried through, never claimed"
+    )
+    assert intent.l2vni is None and intent.l3vni is None and intent.rdRt is None
+    assert intent.validate_all_or_nothing() is None
+
+
+def test_srv6_mac_vrf_without_a_named_vlan_still_claims_nothing():
+    """No vlan named means no vlan on the intent — never a KUID claim."""
+    kuid = _ZeroClaimKUID()
+    intent = _allocator(kuid)._build_intent(
+        _srv6_interpretation("mac-vrf", signalling="evpn"), "c" * 32
+    )
+    assert kuid.calls == []
+    assert all(ep.vlan is None for ep in intent.endpoints)
+
+
+def test_transport_none_still_claims_like_vxlan():
+    """An interpretation without a transport keeps the VXLAN claim profile."""
+    kuid = _ZeroClaimKUID()
+    intent = _allocator(kuid)._build_intent(_interpretation("ip-vrf"), "c" * 32)
+    assert sorted(kuid.calls) == ["l3vni", "rd_rt"]
+    assert intent.transport == "vxlan"
+    assert intent.l3vni is not None and intent.rdRt is not None

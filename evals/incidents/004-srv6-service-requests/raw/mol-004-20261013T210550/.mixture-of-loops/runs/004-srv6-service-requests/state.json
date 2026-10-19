@@ -1,0 +1,14 @@
+{
+  "contract_digest": "c585c86cbfc91d7bee271e528bb5e35bc34dd12ffd06a147988e14633a1dbdd7",
+  "last_stage": "run-004-srv6-service-requests",
+  "pipeline": "004-srv6-service-requests",
+  "stages": {
+    "run-004-srv6-service-requests": {
+      "started_at": 1791878560,
+      "status": "running"
+    }
+  },
+  "state": "running",
+  "superseded_contract_digest": "ef8350492694aaafbdfd5afe6394e7e598de9310d4d6f351bc63dcd444a697a7",
+  "updated_at": 1791878560
+}

@@ -1,0 +1,4 @@
+##### RECEIPT spike-rerun-vpn (replay spike-vpn) 02:54:56
+proof recorded: spike-rerun-vpn (exit 1) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-rerun-vpn.out
+##### RC-spike-rerun-vpn=1
+##### spike-rerun-vpn DIFFERS-ABORT

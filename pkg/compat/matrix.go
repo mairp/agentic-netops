@@ -49,15 +49,16 @@ func ValidateContracts(labels map[string]string) error {
 	return nil
 }
 
-// FullValidate runs pin checks plus optional capability gates.
-func FullValidate(set Set, labels map[string]string, discovered map[string]bool) error {
+// FullValidate runs pin checks plus optional capability gates, scoped to the
+// object kind under validation (T017).
+func FullValidate(set Set, labels map[string]string, kind ObjectKind, discovered map[string]bool) error {
 	if err := ValidatePins(set); err != nil {
 		return err
 	}
 	if err := ValidateContracts(labels); err != nil {
 		return err
 	}
-	if err := Validate(set, discovered); err != nil {
+	if err := Validate(set, kind, discovered); err != nil {
 		return err
 	}
 	return nil

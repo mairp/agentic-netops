@@ -1,0 +1,15 @@
+##### 11:27:27 START R-seed: bash scripts/spike/seed-restore.sh
+##### 11:31:09 RC R-seed=0
+##### 11:31:09 START R-b-spine01: scripts/proof.sh spike-baseline-spine01 -- scripts/spike/baseline-capture.sh spine01
+##### 11:31:13 RC R-b-spine01=0
+##### 11:31:13 START R-b-spine02: scripts/proof.sh spike-baseline-spine02 -- scripts/spike/baseline-capture.sh spine02
+##### 11:31:18 RC R-b-spine02=0
+##### 11:31:18 START R-b-leaf01: scripts/proof.sh spike-baseline-leaf01 -- scripts/spike/baseline-capture.sh leaf01
+##### 11:31:22 RC R-b-leaf01=0
+##### 11:31:22 START R-b-leaf02: scripts/proof.sh spike-baseline-leaf02 -- scripts/spike/baseline-capture.sh leaf02
+##### 11:31:27 RC R-b-leaf02=0
+##### 11:31:27 START R-dry: scripts/proof.sh replay spike-baseline
+##### 11:31:44 RC R-dry=0
+##### 11:31:44 START R-receipt: scripts/proof.sh spike-rerun-baseline -- scripts/proof.sh replay spike-baseline
+##### 11:32:02 RC R-receipt=1
+##### 11:32:02 REPAIR DONE — summary in /tmp/g3/repair.summary

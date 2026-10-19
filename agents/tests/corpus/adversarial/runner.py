@@ -67,6 +67,7 @@ from common.provisioning_states import NetworkProvisioningStatus
 from common.schemas.audit import AuditEvent
 from common.schemas.interpretation import Interpretation
 from common.schemas.normalized_intent import NormalizedServiceIntent
+from provisioning.mapper.agent import _detect_srv6, _parse_preferred_spine, srv6_mapping
 from supervisors.provisioning.graph.graph import (
     MAPPER_MARKER,
     ProvisioningGraph,
@@ -326,6 +327,40 @@ def _parse_gateway(low: str) -> tuple[dict[str, str] | None, bool]:
 def parse_service_request(text: str) -> dict | None:
     """Deterministic structural parse; None when the request shape is absent."""
     low = text.lower()
+    # Feature 004 (US4): the stub mapper mirrors the real mapper's SRv6
+    # mapping — literally the SAME code path
+    # (provisioning.mapper.agent.srv6_mapping), so stub and production cannot
+    # drift. An SRv6 request maps for real: the SRv6 qualifier decides the
+    # transport (never a VXLAN construct — SC-008), and what is missing or
+    # refused is named with the mapper's token vocabulary (the §2/§3
+    # clarification and refusal tokens; the supervisor renders the prose).
+    # Recognition runs before the construct-word scan below, mirroring the
+    # mapper's ordering.
+    if _detect_srv6(text):
+        f = srv6_mapping(text)
+        payload: dict[str, Any] = {
+            "service_id": "svc-srv6",
+            "service_type": f["service_type"].value,
+            "tenant": f["tenant"],
+            "endpoints": [ep.model_dump(mode="json") for ep in f["endpoints"]],
+        }
+        if f["ipv4_prefixes"]:
+            payload["ipv4_prefixes"] = list(f["ipv4_prefixes"])
+        if f["ipv6_prefixes"]:
+            payload["ipv6_prefixes"] = list(f["ipv6_prefixes"])
+        if f["transport"]:
+            payload["transport"] = f["transport"]
+        if f["signalling"]:
+            payload["signalling"] = f["signalling"]
+        if f["preferred_spine"]:
+            payload["preferred_spine"] = f["preferred_spine"]
+        if f["alternate_spine"]:
+            payload["alternate_spine"] = f["alternate_spine"]
+        if f["unsupported"]:
+            payload["unsupported_properties"] = list(f["unsupported"])
+        elif f["missing"]:
+            payload["missing_fields"] = list(f["missing"])
+        return payload
     service_type = None
     for word, t in _SERVICE_TYPE_WORDS:
         if re.search(rf"\b{re.escape(word)}\b", low):
@@ -384,6 +419,11 @@ def parse_service_request(text: str) -> dict | None:
         pfx = _PREFIX_RE.search(low)
         if pfx:
             payload["ipv4_prefixes"] = [pfx.group(1)]
+    # T487/R6 (contract §4): a preferred spine on a request that is NOT SRv6
+    # is traffic engineering — the same tePolicy flag the real mapper's
+    # legacy branch emits, so stub and production refuse alike.
+    if _parse_preferred_spine(text)[1]:
+        payload["unsupported_properties"] = ["tePolicy"]
     if missing:
         payload["missing_fields"] = missing
     return payload
@@ -411,6 +451,25 @@ def build_normalized_intent(interpretation: dict) -> dict:
         "type": st,
         "tenant": tenant,
     }
+    # US4 (contracts/intent-srv6.md §1/§3): an srv6 interpretation carries
+    # transport srv6, the signalling default, the optional preferred spine,
+    # and its prefixes on the attachments — and NO l2vni/l3vni/rdRt: the
+    # identifiers are fabric-allocated, supplying one is refused (V3).
+    if interpretation.get("transport") == "srv6":
+        base["transport"] = "srv6"
+        if interpretation.get("signalling"):
+            base["signalling"] = interpretation["signalling"]
+        if interpretation.get("preferred_spine"):
+            base["preferredSpine"] = interpretation["preferred_spine"]
+        base["endpoints"] = [
+            {
+                "node": e["site_or_node"],
+                "attachment": e["attachment"],
+                **({"prefixes": list(e["prefixes"])} if e.get("prefixes") else {}),
+            }
+            for e in interpretation["endpoints"]
+        ]
+        return base
     vlan = 10 + n % 3990
     eps = [
         {"node": e["site_or_node"], "attachment": e["attachment"]}
@@ -529,6 +588,12 @@ class StubClassifierLLM:
         for pattern in REDIRECT_PATTERNS:
             if pattern.search(text.lower()):
                 return "unsupported"
+        # T011 parity: the classifier prompt's decision-order rule 2 — a
+        # request naming SRv6 routes to the provisioning path (PROVISIONABLE)
+        # so the mapper's interim R1 refusal is what the operator sees, never
+        # the generic unsupported answer or an informational fallback.
+        if _detect_srv6(text):
+            return "provisionable"
         # A request the deterministic parser can interpret is provisionable
         # regardless of its leading verb — the corpora include verb-less
         # shapes ("IRB between ...") and "deploy ..." alongside "provision
@@ -628,7 +693,13 @@ class StubTransport:
         self.calls.append(("allocator", text))
         body = self._fenced_body(text)
         m = re.search(r"\{.*\}", body, re.DOTALL)
-        interp = Interpretation.model_validate_json(m.group(0))
+        # SC-010: the supervisor injects the thread's correlation id as an
+        # additive "correlationId" key inside the fenced payload; pop it before
+        # validating, exactly as the production allocator does.
+        payload = json.loads(m.group(0))
+        if isinstance(payload, dict):
+            payload.pop("correlationId", None)
+        interp = Interpretation.model_validate(payload)
         intent = NormalizedServiceIntent.model_validate(build_normalized_intent(interp.model_dump(mode="json")))
         intent.validate_all_or_nothing()
         if self.stage == "allocator":

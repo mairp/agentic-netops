@@ -1,0 +1,25 @@
+# p4-ipvrf-trial input (T201): the ip-vrf construct — a routed instance, a
+# VRF with an L3VNI and route targets. Attachments ride wan1 (Ethernet12, the
+# SRv6 client port) on both leaves.
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: p4-trial-ipvrf
+  namespace: agentic-netops-system
+spec:
+  routers:
+    - name: p4-trial-ipvrf
+      l3vni: 13518
+      rd: "65000:18"
+      routeTargets:
+        import: ["65000:18"]
+        export: ["65000:18"]
+      prefixes:
+        - "10.199.0.0/24"
+  attachments:
+    - node: leaf01
+      attachment: wan1
+      vrf: p4-trial-ipvrf
+    - node: leaf02
+      attachment: wan1
+      vrf: p4-trial-ipvrf

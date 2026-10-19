@@ -6,6 +6,18 @@ CTX="kind-${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}"
 require(){ command -v "$1" >/dev/null 2>&1 || { echo "missing $1" >&2; exit 1; }; }
 require kubectl
 
+# The manifests below name kuid-system and agentic-netops-intent (Role
+# objects bound inside those namespaces). They are created by the kubenet/SDC
+# installers that run AFTER this script, so a VIRGIN cluster (first provision,
+# e.g. after teardown_suite's --delete-kind case) must have them pre-created
+# here or every apply of a namespaced Role fails with NotFound and aborts the
+# provision (observed 2026-10-17 on the post-teardown reprovision). Idempotent
+# client-side dry-run + apply; existing namespaces are untouched.
+for ns in kuid-system agentic-netops-intent agentic-netops-system; do
+  kubectl --context "$CTX" create namespace "$ns" --dry-run=client -o yaml 2>/dev/null \
+    | kubectl --context "$CTX" apply -f - >/dev/null
+done
+
 kubectl --context "$CTX" apply -f "$ROOT/deploy/rbac/base.yaml"
 # Controller service accounts and cluster roles/bindings
 kubectl --context "$CTX" apply -f "$ROOT/config/rbac/service_account.yaml"

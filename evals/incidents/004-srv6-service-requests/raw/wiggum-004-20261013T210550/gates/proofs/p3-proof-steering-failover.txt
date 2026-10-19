@@ -1,0 +1,17 @@
+     1	===== FIB read-back before the failure action =====
+     2	fcbb:bbbb:4:11:: from :: via 2001:db8:1::3 dev Ethernet0 proto 196 src 2001:db8:1::2 metric 20 pref medium
+     3	===== failure action: BGP shutdown toward the preferred spine =====
+     4	-- the service pins are kernel state; BGP shutdown does not touch them --
+     5	fcbb:bbbb:4:11:: from :: via 2001:db8:1::3 dev Ethernet0 proto 196 src 2001:db8:1::2 metric 20 pref medium
+     6	PROBES: 20 at 1 Hz
+     7	LOSS-BOUNDED: yes (missed<=10, longest-run<=10)
+     8	===== steering removed; as-built asserts =====
+     9	-- no per-service /64 pins left on leaf01 --
+    10	LEFTOVER-PINS: 0
+    11	-- client traffic passes (8900-byte DF, both directions) --
+    12	3 packets transmitted, 3 received, 0% packet loss, time Xms
+    13	rtt min/avg/max/mdev = X ms
+    14	3 packets transmitted, 3 received, 0% packet loss, time Xms
+    15	rtt min/avg/max/mdev = X ms
+    16	
+    17	[exit code: 0]

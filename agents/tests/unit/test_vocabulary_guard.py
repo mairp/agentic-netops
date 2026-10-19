@@ -90,3 +90,45 @@ def test_no_retired_vocabulary_on_operator_surfaces():
         "alias/provenance contexts are permitted.\n"
         + "\n".join(offenders)
     )
+
+
+# ---------------------------------------------------------------------------
+# US4 — the SRv6 restatement forms (FR-013) and the one gloss refusal R2
+# allows ("(bridged EVPN over SRv6)", spec KL-001) must be allowed by the
+# guard as-is; the retired words must still be refused.
+# ---------------------------------------------------------------------------
+
+def test_fr013_restatement_forms_contain_no_retired_token():
+    """The only forms shown on operator surfaces pass the guard untouched."""
+    from supervisors.provisioning.prompts.system import (
+        CLASSIFIER_PROMPT,
+        PROVISIONABLE_CLASSIFICATION_PROMPT,
+        UNSUPPORTED_CLASSIFICATION_PROMPT,
+    )
+
+    allowed = [
+        "ip-vrf over srv6",
+        "ip-vrf over srv6 with evpn signalling",
+        "mac-vrf over srv6",
+        "`mac-vrf over srv6` (bridged EVPN over SRv6) is not supported on this image.",
+        # classifier prompts gained the qualifier and must stay clean
+        PROVISIONABLE_CLASSIFICATION_PROMPT,
+        UNSUPPORTED_CLASSIFICATION_PROMPT,
+        CLASSIFIER_PROMPT,
+    ]
+    for text in allowed:
+        assert not RETIRED.search(text), f"retired token in restated form: {text!r}"
+
+
+def test_retired_vocabulary_is_still_refused():
+    for word in ("VPLS", "VPWS", "e-line", "L3VPN", "L2L3-IRB", "vpls"):
+        assert RETIRED.search(f"provision a {word} service"), word
+
+
+def test_srv6_l3vpn_alias_still_trips_the_guard():
+    '"SRv6 L3VPN" is an input alias (migration alias): scanned operator '
+    "surfaces must still red unless the line carries the migration marker."
+    line = "SRv6 L3VPN is accepted on input"
+    assert RETIRED.search(line)
+    assert not _is_marked(line)
+    assert _is_marked("SRv6 L3VPN is accepted on input (migration alias).")

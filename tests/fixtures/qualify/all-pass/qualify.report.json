@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {"name": "Capabilities", "status": "pass"},
+    {"name": "Get", "status": "pass"},
+    {"name": "Set", "status": "pass"},
+    {"name": "Subscribe", "status": "pass"},
+    {"name": "persistent", "status": "pass"},
+    {"name": "EVPN-Session-Established-MACIP", "status": "pass"},
+    {"name": "EVPN-Session-Established-IMET", "status": "pass"},
+    {"name": "EVPN-Session-Established-JSONRIB", "status": "pass"},
+    {"name": "SRv6-Underlay", "status": "pass"},
+    {"name": "H.Encaps.Red", "status": "pass"},
+    {"name": "End", "status": "pass"},
+    {"name": "End.DT46", "status": "pass"},
+    {"name": "SID-list", "status": "pass"},
+    {"name": "Decapsulation", "status": "pass"},
+    {"name": "Counters", "status": "pass"},
+    {"name": "YANG-Paths", "status": "pass"}
+  ],
+  "totals": {"passed": 16, "failed": 0, "skipped": 0},
+  "result": "pass"
+}

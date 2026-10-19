@@ -1,0 +1,200 @@
+     1	#!/usr/bin/env bash
+     2	# proof.sh — record and replay acceptance proofs for feature 004.
+     3	#
+     4	# Record:   scripts/proof.sh [--destructive] <name> -- <command...>
+     5	#   Runs <command...>, writes the exact command line to <name>.cmd and its
+     6	#   combined output plus an exit-code line to <name>.out under
+     7	#   .wiggum/features/004-srv6-service-requests/gates/proofs/ (created if
+     8	#   missing). Re-running the stored <name>.cmd line must regenerate <name>.out
+     9	#   (FR-039, SC-015), so neither file carries a timestamp.
+    10	#   --destructive records a proof that changes lab or device state; it also
+    11	#   writes an empty <name>.destructive marker. proof.sh exits with the
+    12	#   recorded command's exit code.
+    13	#
+    14	# Replay:   scripts/proof.sh replay <prefix> [--all]
+    15	#   Re-runs every stored <prefix>*.cmd in the order it was recorded (the
+    16	#   per-proof record order is kept in .record-order), renders output the same
+    17	#   way, compares with the stored <name>.out and prints the names that differ.
+    18	#   Exits non-zero when any compared proof differs. Destructive proofs (those
+    19	#   with a <name>.destructive marker) are skipped unless --all is given.
+    20	#
+    21	# Both subcommands expect the repo root as the working directory, so the
+    22	# recorded commands can use repo-relative paths (tasks.md "Path Conventions").
+    23	#
+    24	# PROOF_DIR overrides the proof directory (used by tests/unit/proof_sh_test.sh
+    25	# to stay out of the real gates tree); the default is the feature 004 path.
+    26	set -u
+    27	set -o pipefail
+    28	
+    29	usage() {
+    30	    cat >&2 <<'EOF'
+    31	usage:
+    32	  scripts/proof.sh [--destructive] <name> -- <command...>
+    33	  scripts/proof.sh replay <prefix> [--all]
+    34	EOF
+    35	    exit 2
+    36	}
+    37	
+    38	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    39	REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    40	PROOF_DIR="${PROOF_DIR:-$REPO_ROOT/.wiggum/features/004-srv6-service-requests/gates/proofs}"
+    41	ORDER_FILE="$PROOF_DIR/.record-order"
+    42	
+    43	# Proof names are file names; keep them to a safe single-path-component shape.
+    44	valid_name() {
+    45	    [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+    46	}
+    47	
+    48	# render_out <exit-code> <combined-output-file>: print the raw output,
+    49	# newline-terminated, followed by the exit-code line.
+    50	render_out() {
+    51	    local exit_code="$1" out_file="$2"
+    52	    if [[ -s "$out_file" ]]; then
+    53	        cat "$out_file"
+    54	        [[ "$(tail -c 1 "$out_file")" == $'\n' ]] || printf '\n'
+    55	    fi
+    56	    printf '[exit code: %s]\n' "$exit_code"
+    57	}
+    58	
+    59	cmd_record() {
+    60	    local name="$1"
+    61	    shift
+    62	    local destructive=0
+    63	    if [[ "$name" == "--destructive" ]]; then
+    64	        destructive=1
+    65	        name="$1"
+    66	        shift
+    67	    fi
+    68	    [[ $# -ge 2 && "$1" == "--" ]] || usage
+    69	    shift
+    70	    [[ $# -ge 1 ]] || usage
+    71	    valid_name "$name" || { echo "proof.sh: invalid proof name '$name'" >&2; exit 2; }
+    72	
+    73	    local cmdline cap_tmp
+    74	    printf -v cmdline '%q ' "$@"
+    75	    cmdline="${cmdline% }"
+    76	
+    77	    mkdir -p "$PROOF_DIR"
+    78	    cap_tmp="$(mktemp "$PROOF_DIR/.tmp.cap.XXXXXX")"
+    79	
+    80	    bash -c "$cmdline" > "$cap_tmp" 2>&1
+    81	    local exit_code=$?
+    82	
+    83	    printf '%s\n' "$cmdline" > "$PROOF_DIR/.tmp.$name.cmd"
+    84	    render_out "$exit_code" "$cap_tmp" > "$PROOF_DIR/.tmp.$name.out"
+    85	    rm -f "$cap_tmp"
+    86	    mv -f "$PROOF_DIR/.tmp.$name.cmd" "$PROOF_DIR/$name.cmd"
+    87	    mv -f "$PROOF_DIR/.tmp.$name.out" "$PROOF_DIR/$name.out"
+    88	    if [[ "$destructive" == 1 ]]; then
+    89	        : > "$PROOF_DIR/$name.destructive"
+    90	    fi
+    91	
+    92	    # Remember the record order: drop any earlier position, then append, so a
+    93	    # re-recorded proof takes its latest recording position.
+    94	    if [[ -f "$ORDER_FILE" ]]; then
+    95	        grep -Fvx -- "$name" "$ORDER_FILE" > "$ORDER_FILE.next" || true
+    96	        mv -f "$ORDER_FILE.next" "$ORDER_FILE"
+    97	    fi
+    98	    printf '%s\n' "$name" >> "$ORDER_FILE"
+    99	
+   100	    echo "proof recorded: $name (exit $exit_code) -> $PROOF_DIR/$name.out"
+   101	    return "$exit_code"
+   102	}
+   103	
+   104	# ordered_names <prefix>: proof names whose <name>.cmd exists, in the order
+   105	# they were recorded (.record-order, a re-record takes its latest position),
+   106	# then any not yet indexed in ascending mtime order.
+   107	ordered_names() {
+   108	    local prefix="$1" name f base
+   109	    local -a indexed=()
+   110	    local -A known=()
+   111	    if [[ -f "$ORDER_FILE" ]]; then
+   112	        while IFS= read -r name; do
+   113	            [[ -n "$name" && "$name" == "$prefix"* && -f "$PROOF_DIR/$name.cmd" ]] || continue
+   114	            indexed+=("$name")
+   115	            known["$name"]=1
+   116	        done < "$ORDER_FILE"
+   117	    fi
+   118	    # Emit each indexed name at its LAST occurrence in the order file.
+   119	    local i j dup
+   120	    for ((i = 0; i < ${#indexed[@]}; i++)); do
+   121	        dup=0
+   122	        for ((j = i + 1; j < ${#indexed[@]}; j++)); do
+   123	            if [[ "${indexed[i]}" == "${indexed[j]}" ]]; then dup=1; break; fi
+   124	        done
+   125	        if [[ "$dup" == 0 ]]; then printf '%s\n' "${indexed[i]}"; fi
+   126	    done
+   127	    # Proofs not in the index: order by mtime, oldest first.
+   128	    while IFS= read -r f; do
+   129	        [[ -n "$f" ]] || continue
+   130	        base="$(basename "$f" .cmd)"
+   131	        [[ -n "${known[$base]:-}" ]] && continue
+   132	        known["$base"]=1
+   133	        printf '%s\n' "$base"
+   134	    done < <(ls -tr "$PROOF_DIR/$prefix"*.cmd 2>/dev/null || true)
+   135	}
+   136	
+   137	cmd_replay() {
+   138	    local prefix="$1" all=0
+   139	    shift
+   140	    if [[ "${1:-}" == "--all" ]]; then
+   141	        all=1
+   142	        shift
+   143	    fi
+   144	    [[ $# -eq 0 ]] || usage
+   145	
+   146	    local -a names=()
+   147	    mapfile -t names < <(ordered_names "$prefix")
+   148	    if [[ ${#names[@]} -eq 0 ]]; then
+   149	        echo "replay $prefix: no stored proofs match" >&2
+   150	        exit 2
+   151	    fi
+   152	
+   153	    local name exit_code differ=0 compared=0 skipped=0 cap_tmp
+   154	    cap_tmp="$(mktemp "${TMPDIR:-/tmp}/proof.replay.XXXXXX")"
+   155	
+   156	    for name in "${names[@]}"; do
+   157	        if [[ -f "$PROOF_DIR/$name.destructive" && "$all" != 1 ]]; then
+   158	            echo "skip $name (destructive; replay --all to include)"
+   159	            skipped=$((skipped + 1))
+   160	            continue
+   161	        fi
+   162	        bash -c "$(cat "$PROOF_DIR/$name.cmd")" > "$cap_tmp" 2>&1
+   163	        exit_code=$?
+   164	        if render_out "$exit_code" "$cap_tmp" | cmp -s - "$PROOF_DIR/$name.out"; then
+   165	            echo "ok $name"
+   166	        else
+   167	            echo "differ: $name"
+   168	            differ=$((differ + 1))
+   169	        fi
+   170	        compared=$((compared + 1))
+   171	    done
+   172	    rm -f "$cap_tmp"
+   173	
+   174	    if [[ "$differ" -gt 0 ]]; then
+   175	        echo "replay $prefix: $differ of $compared proof(s) differ" >&2
+   176	        return 1
+   177	    fi
+   178	    if [[ "$compared" -eq 0 ]]; then
+   179	        echo "replay $prefix: nothing to replay (all $skipped skipped); use --all" >&2
+   180	        exit 2
+   181	    fi
+   182	    echo "replay $prefix: $compared proof(s) checked, no difference ($skipped skipped)"
+   183	}
+   184	
+   185	if [[ $# -lt 1 ]]; then
+   186	    usage
+   187	fi
+   188	case "$1" in
+   189	    replay)
+   190	        [[ $# -ge 2 ]] || usage
+   191	        shift
+   192	        cmd_replay "$@"
+   193	        ;;
+   194	    -h|--help)
+   195	        usage
+   196	        ;;
+   197	    *)
+   198	        cmd_record "$@"
+   199	        ;;
+   200	esac

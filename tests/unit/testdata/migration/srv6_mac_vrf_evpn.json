@@ -1,0 +1,12 @@
+{
+  "serviceId": "acme-bridged",
+  "type": "mac-vrf",
+  "transport": "srv6",
+  "signalling": "evpn",
+  "tenant": "acme",
+  "endpoints": [
+    {"node": "leaf01", "attachment": "wan1", "vlan": 150},
+    {"node": "leaf02", "attachment": "wan1", "vlan": 150}
+  ],
+  "preferredSpine": "spine01"
+}

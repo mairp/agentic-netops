@@ -1,0 +1,10 @@
+--- current value (file exists only once the vrf module is loaded) ---
+1
+--- set: sudo sh -c 'echo 1 > /proc/sys/net/vrf/strict_mode' (no sysctl binary) ---
+1
+--- read-back across a later read ---
+1
+--- sysctl binary presence ---
+no sysctl binary; /proc/sys is the write path
+
+[exit code: 0]

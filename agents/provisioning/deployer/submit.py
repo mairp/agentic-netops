@@ -294,6 +294,13 @@ class KubernetesIntentClient:
         return body if isinstance(body, dict) else None
 
     def list_by_correlation(self, correlation_id: str) -> list[dict[str, Any]]:
+        """The service listing behind the status answer (US6/T543).
+
+        Every allow-listed kind is queried — ``SRv6Service`` as well as
+        ``Network`` — so a fabric carrying both transports resolves from one
+        correlation id. A 404 on a collection (the CRD not installed) means
+        "none of that kind", never a failed read.
+        """
         found: list[dict[str, Any]] = []
         selector = f"{CORRELATION_LABEL}={correlation_id}"
         for api_version, kind in sorted(RESOURCE_PATHS):

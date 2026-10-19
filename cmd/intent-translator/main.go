@@ -41,9 +41,12 @@ const (
 	translatorID = "intent-translator"
 )
 
-// translateResponse is the 200 body (contracts/translator-api.md).
+// translateResponse is the 200 body (contracts/translator-api.md). Kinds
+// names the kind of each manifest, in the same input order ("Network" or
+// "SRv6Service").
 type translateResponse struct {
 	Manifests []map[string]any `json:"manifests"`
+	Kinds     []string         `json:"kinds"`
 	YAML      string           `json:"yaml"`
 }
 
@@ -118,7 +121,7 @@ func handleTranslate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Translate in order; the YAML stream uses the CLI's "---\n" separator.
-	resp := translateResponse{Manifests: []map[string]any{}}
+	resp := translateResponse{Manifests: []map[string]any{}, Kinds: []string{}}
 	var yamls []string
 	for i := range inputs {
 		in := inputs[i]
@@ -133,6 +136,7 @@ func handleTranslate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		resp.Manifests = append(resp.Manifests, manifest)
+		resp.Kinds = append(resp.Kinds, bundle.Kind)
 		yamls = append(yamls, bundle.NetworkYAML)
 	}
 	resp.YAML = strings.Join(yamls, "---\n")

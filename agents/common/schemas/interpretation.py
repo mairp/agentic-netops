@@ -15,7 +15,7 @@ import re
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_serializer, model_validator
 
 # RFC 1123 label: DNS-label rules for the tenant name (FR-010: required,
 # never defaulted).
@@ -79,6 +79,18 @@ class EndpointIntent(BaseModel):
     site_or_node: str = Field(min_length=1)
     attachment: str = Field(min_length=1)
     vlan: int | None = Field(default=None, ge=1, le=4094)
+    # SRv6 (US4): the routed prefixes the attachment carries
+    # (contracts/intent-srv6.md §2). VXLAN endpoints never set this; an unset
+    # value is left out of the dump entirely (serializer below) so legacy
+    # endpoint shapes stay byte-identical (SC-016).
+    prefixes: list[str] | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_unset_prefixes(self, handler) -> dict:
+        data = handler(self)
+        if data.get("prefixes") is None:
+            data.pop("prefixes", None)
+        return data
 
 
 class ACLRule(BaseModel):
@@ -143,7 +155,7 @@ class Interpretation(BaseModel):
       clarification request or a rejection, never both (T067).
     """
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     # FR-009 minimum — required, no defaults (FR-010: tenant never defaulted)
     service_id: str = Field(min_length=1, max_length=15)
@@ -166,9 +178,39 @@ class Interpretation(BaseModel):
     # mac-vrf anycast gateway (US3 T055): refused on every other construct
     anycast_gateway: AnycastGatewayIntent | None = None
 
+    # SRv6 transport (US4, contracts/intent-srv6.md §1). Wire names on the
+    # published schema: the alias carries `preferredSpine`. All default None —
+    # None means vxlan (the supervisor treats it so, mirroring the Go side's
+    # empty Transport) and keeps legacy interpretation dumps byte-identical
+    # (SC-016: the baseline snapshot is never regenerated). These never make
+    # an interpretation incomplete — is_complete reads only the terminal
+    # flags.
+    transport: Literal["vxlan", "srv6"] | None = None
+    signalling: Literal["vpn", "evpn"] | None = None
+    preferred_spine: str | None = Field(default=None, alias="preferredSpine")
+    # The fail-over spine (T487, contract §4: "preferring spine01 with spine02
+    # as alternate" — same; the alternate is VALIDATED, not stored): parsed so
+    # the tier can answer R7 on it, and never persisted past validation — the
+    # allocator copies only preferred_spine, and the CRD spec's
+    # path.alternateSpine is the operator's own field.
+    alternate_spine: str | None = Field(default=None, alias="alternateSpine")
+
     # Terminal flags — mutually exclusive with each other (see class docstring)
     missing_fields: list[str] = Field(default_factory=list)
     unsupported_properties: list[str] = Field(default_factory=list)
+
+    @model_serializer(mode="wrap")
+    def _omit_unset_srv6_fields(self, handler) -> dict:
+        """Absent, not null: an unset transport/signalling/preferred_spine is
+        left out of the dump entirely, so legacy interpretation dumps are
+        byte-identical to the pre-US4 baseline (SC-016) and downstream
+        consumers keep reading "absent" as vxlan, like the Go side's empty
+        Transport."""
+        data = handler(self)
+        for key in ("transport", "signalling", "preferred_spine", "alternate_spine"):
+            if data.get(key) is None:
+                data.pop(key, None)
+        return data
 
     @field_validator("tenant")
     @classmethod

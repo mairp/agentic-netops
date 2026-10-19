@@ -1,0 +1,15 @@
+APPLIED
+--- hostname (redis DEVICE_METADATA) ---
+spine01
+--- asn / router-id / lo-prefix knob ---
+65000
+10.0.0.11
+true
+--- loopback addresses in the kernel ---
+Loopback0        UNKNOWN        10.0.0.11/32 2001:db8:ff::11/128 fe80::a490:b3ff:feed:64bd/64 
+--- bgpd identity (live FRR) ---
+hostname spine01
+ bgp router-id 10.0.0.11
+ bgp log-neighbor-changes
+
+[exit code: 0]

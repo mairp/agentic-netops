@@ -1,0 +1,12 @@
+proof recorded: spike-vpn-readback-leaf01 (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-vpn-readback-leaf01.out
+##### RC-readback01=0
+proof recorded: spike-vpn-readback-leaf02 (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-vpn-readback-leaf02.out
+##### RC-readback02=0
+proof recorded: spike-vpn-clients (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-vpn-clients.out
+##### RC-clients=0
+proof recorded: spike-vpn-rollback (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-vpn-rollback.out
+##### RC-rollback=0
+IFINDEX-CLEAN-PROCEED
+proof recorded: spike-rerun-vpn (exit 1) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-rerun-vpn.out
+RERUN-VPN-RC=1
+RERUN-VPN-DIFFER-ABORT

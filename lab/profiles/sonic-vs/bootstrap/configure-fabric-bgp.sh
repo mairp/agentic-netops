@@ -261,8 +261,15 @@ generate_frr_conf() {
     v6nbrs+="  neighbor $pip6 activate\n"
   done
   unset IFS
-  conf+=" !\n address-family ipv4 unicast\n  redistribute connected\n$v4nbrs exit-address-family\n"
-  conf+=" !\n address-family ipv6 unicast\n  redistribute connected\n$v6nbrs exit-address-family\n"
+  # maximum-paths 2: the fabric's declared intent is ECMP across each leaf's
+  # two uplinks (data-model §7, eight links). Without it bgpd's eBGP default
+  # is a single best path, so zebra installs ONE kernel nexthop even though
+  # the RIB holds both — measured live 2026-10-15 (sonic-vm leg, same FRR
+  # build): the ECMP distribution check saw 100% of a multi-flow burst on one
+  # uplink until maximum-paths 2 was applied, which immediately installed
+  # both kernel nexthops.
+  conf+=" !\n address-family ipv4 unicast\n  maximum-paths 2\n  redistribute connected\n$v4nbrs exit-address-family\n"
+  conf+=" !\n address-family ipv6 unicast\n  maximum-paths 2\n  redistribute connected\n$v6nbrs exit-address-family\n"
   conf+=" !\n address-family l2vpn evpn\n$v4nbrs"
   # advertise-all-vni is what makes zebra hand its VNIs (L2VNI + L3VNI) to bgpd;
   # without it `show evpn vni` stays empty and no Type-2/3/5 route is originated.
@@ -518,6 +525,7 @@ install_boot_hook() {
     echo "LO4='$lo4'"
     echo "LO6='$lo6'"
     echo "PEERS='$peers'"
+    echo "PEER_VTEP='$( [[ "$role" == leaf ]] && peer_leaf_lo4 "$node" )'"
     cat <<'EOS'
 # 0) IPv6 forwarding: OFF by default in this container while IPv4 forwarding is on,
 #    and a sysctl does not survive a restart -- so it must be re-applied here or the
@@ -538,6 +546,12 @@ for i in $(seq 1 60); do
     supervisorctl status fpmsyncd 2>/dev/null | grep -q RUNNING && break
   sleep 2
 done
+# zebra can lose the boot race on this image (observed 2026-10-15: after the
+# persistence restart both leaves came up with zebra EXITED; without a restart
+# FRR never classifies the VNIs and EVPN stays dark while every daemon
+# reports RUNNING)
+supervisorctl status zebra 2>/dev/null | grep -q RUNNING || \
+  supervisorctl start zebra >/dev/null 2>&1 || true
 # 3) leaves: the tenant VRF device must exist before bgpd loads its vrf stanza
 if [ "$ROLE" = leaf ]; then
   for i in $(seq 1 45); do
@@ -659,6 +673,11 @@ if [ "$ROLE" = leaf ]; then
   if [ -n "$VTEP_L2_DEV" ] && ip link show Bridge >/dev/null 2>&1; then
     master=$(ip -d link show "$VTEP_L2_DEV" 2>/dev/null | grep -oE 'master [a-zA-Z0-9_]+' | cut -d' ' -f2)
     [ "$master" = "Bridge" ] || ip link set "$VTEP_L2_DEV" master Bridge 2>/dev/null || true
+    # vxlanmgrd may (re)create this vtep after step 6c ran; assert the jumbo
+    # MTU alongside the topology reasserts so a late recreate cannot hand the
+    # L2 VNI back at MTU 1500 (measured 2026-10-15: leaf02 lost exactly this
+    # race and the 8900-byte DF ping went 100% loss one direction only).
+    ip link set "$VTEP_L2_DEV" mtu 9100 2>/dev/null || true
     bridge vlan add dev "$VTEP_L2_DEV" vid "${L2VLAN#Vlan}" pvid untagged 2>/dev/null || true
     ip link set "$VTEP_L2_DEV" up 2>/dev/null || true
   else
@@ -695,6 +714,7 @@ if [ "$ROLE" = leaf ]; then
       if [ -n "${VTEP_DEV:-}" ]; then
         ip link set "$L3VLAN" master "$TENANT_VRF" 2>/dev/null || true
         ip link set "$VTEP_DEV" master Bridge 2>/dev/null || true
+        ip link set "$VTEP_DEV" mtu 9100 2>/dev/null || true
         bridge vlan add dev "$VTEP_DEV" vid "${L3VLAN#Vlan}" pvid untagged 2>/dev/null || true
         vtysh -c 'configure terminal' -c "vrf $TENANT_VRF" -c "vni $L3VNI" -c 'end' >/dev/null 2>&1 || true
       fi
@@ -718,6 +738,62 @@ if [ "$ROLE" = leaf ]; then
   [ "$adopted_l2" -eq 1 ] && [ "$adopted_l3" -eq 1 ] || \
     log "WARN: bgpd VNI adoption incomplete after recovery (L2=$adopted_l2 L3=$adopted_l3)"
 fi
+# 6c) jumbo MTU (data-model §7: the fabric links carry MTU 9216; the overlay
+#     devices cap below the encap overhead). Docker defaults every veth and
+#     vxlanmgrd creates the vteps at MTU 1500, which caps this profile's
+#     overlay at standard frames — measured 2026-10-15: an 8900-byte DF ping
+#     was 100% loss until the raw links and eth0 went 9216 and the
+#     bridge/vteps 9100 (the outer leaf-to-leaf path rides eth0/management,
+#     which the provision creates at the topology-declared 9216). Re-applied
+#     on every boot: kernel MTUs are not part of config_db.json.
+#     Assert-and-stabilize: vxlanmgrd creates (and can re-create) the vteps
+#     asynchronously at MTU 1500, so a single set can be undone seconds later
+#     (measured 2026-10-15: a provision whose jumbo pass had logged clean still
+#     read a late-recreated vtep at 1500 at receipt time, and the 8900-byte DF
+#     ping went 100% loss while warm small-frame probes stayed green). Re-set
+#     and re-read until every device holds its floor for two consecutive reads,
+#     bounded to ~60 s; fall through either way — the boot must not fail on
+#     MTU bookkeeping.
+jumbo_stable=0
+for round in $(seq 1 15); do
+  for d in eth0 eth1 eth2 "$ACCESS_IFACE"; do
+    ip link show "$d" >/dev/null 2>&1 && ip link set "$d" mtu 9216 2>/dev/null || true
+  done
+  ip link show Bridge >/dev/null 2>&1 && ip link set Bridge mtu 9100 2>/dev/null || true
+  for d in /sys/class/net/vtep*; do
+    [ -e "$d" ] || continue
+    ip link set "$(basename "$d")" mtu 9100 2>/dev/null || true
+  done
+  jumbo_low=0
+  for d in eth0 eth1 eth2 "$ACCESS_IFACE"; do
+    if [ -e "/sys/class/net/$d/mtu" ] && [ "$(cat "/sys/class/net/$d/mtu")" -lt 9216 ]; then
+      jumbo_low=1
+    fi
+  done
+  if [ -e /sys/class/net/Bridge/mtu ] && [ "$(cat /sys/class/net/Bridge/mtu)" -lt 9100 ]; then
+    jumbo_low=1
+  fi
+  for d in /sys/class/net/vtep*; do
+    if [ -e "$d/mtu" ] && [ "$(cat "$d/mtu")" -lt 9100 ]; then
+      jumbo_low=1
+    fi
+  done
+  if [ "$jumbo_low" -eq 0 ]; then jumbo_stable=$((jumbo_stable+1)); else jumbo_stable=0; fi
+  if [ "$jumbo_stable" -ge 2 ]; then break; fi
+  sleep 2
+done
+if [ "$jumbo_stable" -lt 2 ]; then
+  log "WARN: jumbo MTU did not stabilize (a device kept dropping below its floor)"
+fi
+# 6d) NO leaf ECMP flow split here (owner amendment 2026-10-16): the floor
+#     suite must run on a bootstrap WITHOUT any port- or mark-keyed flow
+#     split. The kernel-vxlan encap route lookup carries no L4 fields, so
+#     hash policy 1 alone leaves every encapped flow on one uplink (measured
+#     live 2026-10-16) — the ECMP floor in tests/integration/mtu_ecmp.sh is
+#     expected to fail honestly, with the failure recorded live and the
+#     peer-VTEP-over-mgmt route cited as its cause; ECMP on this profile is
+#     deferred until the VTEP path is kept off mgmt and the lab hashes
+#     encapsulated traffic.
 # 7) nudge peers past connect backoff once, late in the boot window
 sleep 10
 vtysh -c 'clear bgp *' >/dev/null 2>&1 || true
@@ -741,6 +817,128 @@ EOS
   log "$node: boot hook installed (role=$role)"
 }
 
+# peer_leaf_lo4 <node> — the other leaf's VTEP loopback (the encap destination
+# the fabric's BGP carriers announce). Scans the FABRIC table (node|asn|lo4|...).
+peer_leaf_lo4() {
+  local node=$1
+  while IFS='|' read -r n _ lo4 _ _ _; do
+    [[ -z "$n" || "$n" == "$node" ]] && continue
+    if [[ "$(node_role "$n")" == leaf ]]; then echo "$lo4"; return; fi
+  done <<<"$FABRIC"
+}
+
+# NO flow_split_pass_node here (owner amendment 2026-10-16): the earlier
+# leaf ECMP flow split (ebtables AGNT_ECMP dport-half marks + fwmark rules
+# pinning tables 4001/4002 to each uplink) is REMOVED — the floor suite must
+# run on a bootstrap WITHOUT any port- or mark-keyed flow split. The
+# kernel-vxlan encap route lookup carries no L4 fields, so hash policy 1
+# alone pins EVERY encapped flow to one multipath bucket (measured live
+# 2026-10-16): the ECMP floor in tests/integration/mtu_ecmp.sh fails
+# honestly, the failure is recorded live, and the peer-VTEP route learned
+# over mgmt (eth0) is cited as its cause.
+
+# Jumbo MTU authority (host side): the boot hook's 6c re-applies the same
+# values on every container restart; pass 3 and the --jumbo mode below are the
+# re-run/restore paths.
+# The same hook also asserts the kernel multipath hash policy (L4): on this
+# profile the uplink ECMP decision is the container kernel's FIB, and its
+# default policy 0 hashes on L3 only — for VXLAN-encapped traffic the outer
+# tuple (leaf VTEP -> remote VTEP, proto UDP) is CONSTANT across flows, so
+# every flow deterministically lands on one uplink. Measured 2026-10-16 00:56
+# on the sonic-vm default lab (same kernel default): a 1,280,000-byte
+# 32-flow burst crossed 100% on one uplink (delta 1,297,628 vs the peer's
+# tick-only 1,416) while the route table showed BOTH nexthops installed —
+# policy 0, not a missing path. Policy 1 (L4) lets the per-flow outer UDP
+# source port participate and is what makes "ECMP hashing" testable here at
+# all (tests/integration/mtu_ecmp.sh asserts each uplink moves >= 25% of the
+# burst). Container restarts can reset it, so it rides the same re-assert
+# hook as the jumbo MTUs.
+jumbo_pass_node() {
+  local c=$1
+  docker exec "$c" bash -c "for d in eth0 eth1 eth2 '$ACCESS_IFACE'; do ip link show \"\$d\" >/dev/null 2>&1 && ip link set \"\$d\" mtu 9216 2>/dev/null || true; done; ip link show Bridge >/dev/null 2>&1 && ip link set Bridge mtu 9100 2>/dev/null || true; for d in /sys/class/net/vtep*; do [ -e \"\$d\" ] && ip link set \"\$(basename \"\$d\")\" mtu 9100 2>/dev/null || true; done; echo 1 > /proc/sys/net/ipv4/fib_multipath_hash_policy 2>/dev/null || true; true" \
+    >/dev/null 2>&1
+}
+
+# read-only per-node census: "<dev>=<mtu> ..." for the jumbo-relevant devices
+jumbo_census_node() {
+  local c=$1
+  docker exec "$c" bash -c "
+    for d in eth0 eth1 eth2 '$ACCESS_IFACE' Bridge; do
+      [ -e \"/sys/class/net/\$d/mtu\" ] && printf '%s=%s ' \"\$d\" \"\$(cat \"/sys/class/net/\$d/mtu\")\"
+    done
+    for d in /sys/class/net/vtep*; do
+      [ -e \"\$d/mtu\" ] && printf '%s=%s ' \"\$(basename \"\$d\")\" \"\$(cat \"\$d/mtu\")\"
+    done
+    true"
+}
+
+# read-only per-node floor check: prints "LOW <dev>=<mtu>" per offending
+# device and exits 1 if any jumbo-relevant device sits below its floor
+jumbo_floor_node() {
+  local c=$1
+  docker exec "$c" bash -c "
+    rc=0
+    for d in eth0 eth1 eth2 '$ACCESS_IFACE'; do
+      if [ -e \"/sys/class/net/\$d/mtu\" ] && [ \"\$(cat \"/sys/class/net/\$d/mtu\")\" -lt 9216 ]; then
+        echo \"LOW \$d=\$(cat \"/sys/class/net/\$d/mtu\")\"; rc=1
+      fi
+    done
+    if [ -e /sys/class/net/Bridge/mtu ] && [ \"\$(cat /sys/class/net/Bridge/mtu)\" -lt 9100 ]; then
+      echo \"LOW Bridge=\$(cat /sys/class/net/Bridge/mtu)\"; rc=1
+    fi
+    for d in /sys/class/net/vtep*; do
+      [ -e \"\$d/mtu\" ] || continue
+      if [ \"\$(cat \"\$d/mtu\")\" -lt 9100 ]; then
+        echo \"LOW \$(basename \"\$d\")=\$(cat \"\$d/mtu\")\"; rc=1
+      fi
+    done
+    exit \$rc"
+}
+
+# --jumbo: idempotent post-qualification re-assert. vxlanmgrd creates (and can
+# re-create) the vteps asynchronously at MTU 1500, and a vtep (or vlanmgrd's
+# Bridge) can be re-created AFTER this script's own pass 3 — measured
+# 2026-10-15: a fresh provision whose bootstrap jumbo pass had logged clean
+# still served the 8900-byte DF ping 100% loss at receipt time (warm
+# small-frame probes stay green on a capped path, so only the jumbo probe
+# sees it). Run the pass over the live containers, then read the floors back;
+# repeat until they hold (bounded) and FAIL CLOSED if they never do — the
+# provision must not report complete on a capped overlay path. The census
+# lands in the provision/chain log and doubles as the MTU diagnosis.
+jumbo_reassert() {
+  local node c rc=0 round lows
+  for round in $(seq 1 10); do
+    rc=0
+    while IFS='|' read -r node _ _ _ _ _; do
+      [[ -z "$node" ]] && continue
+      c="${CLAB_PREFIX}${node}"
+      docker ps --format '{{.Names}}' | grep -qx "$c" || { log "skip $node (not running)"; continue; }
+      jumbo_pass_node "$c" || log "WARN: jumbo MTU pass failed on $node"
+      # no ECMP flow split re-assert (owner amendment 2026-10-16): none is
+      # installed; the ECMP floor fails honestly instead
+    done <<<"$FABRIC"
+    while IFS='|' read -r node _ _ _ _ _; do
+      [[ -z "$node" ]] && continue
+      c="${CLAB_PREFIX}${node}"
+      docker ps --format '{{.Names}}' | grep -qx "$c" || continue
+      if lows=$(jumbo_floor_node "$c" 2>/dev/null); then
+        log "$node mtu ok: $(jumbo_census_node "$c")"
+      else
+        log "$node mtu LOW: $(tr '\n' ' ' <<<"$lows")census: $(jumbo_census_node "$c")"
+        rc=1
+      fi
+    done <<<"$FABRIC"
+    if [[ $rc -eq 0 ]]; then
+      log "jumbo re-assert verified (round $round): fabric links >= 9216, Bridge/vteps >= 9100"
+      return 0
+    fi
+    log "jumbo floors violated (round $round) — re-asserting"
+    sleep 2
+  done
+  log "ERROR: jumbo MTU floors still violated after $round rounds — a device is being re-created below its floor"
+  return 1
+}
+
 main() {
   local node asn lo4 lo6 svi4 peers c role
   # pass 1 — daemons, interfaces, overlay tables, CONFIG_DB intent, boot hook
@@ -754,6 +952,11 @@ main() {
     configure_interfaces "$c" "$lo4" "$lo6" "$svi4" "$peers"
     [[ "$role" == leaf ]] && configure_overlay "$c" "$lo4" "$svi4"
     configure_config_db "$c" "$lo4" "$lo6" "$svi4" "$peers" "$role"
+    # declared identity (the managed-path witness the drift suite reads over
+    # native gNMI CONFIG_DB, matching the sonic-vm bootstrap's
+    # identity_reassert): hostname + BGP AS + router id straight from the plan
+    docker exec "$c" redis-cli -n 4 hset "DEVICE_METADATA|localhost" \
+      hostname "$node" bgp_asn "$asn" bgp_router_id "$lo4" >/dev/null
     install_boot_hook "$c" "$node" "$role" "$lo4" "$lo6" "$svi4" "$peers"
   done <<<"$FABRIC"
 
@@ -798,6 +1001,15 @@ main() {
   done
   (( established == 1 )) || log "WARN: underlay did not fully converge; fabric_verify.sh will report the detail"
 
+  # pass 3 — jumbo MTU for the live containers (the boot hook's 6c re-applies
+  # the same values on every restart; this is the re-run/restore path)
+  while IFS='|' read -r node _ _ _ _ peers; do
+    [[ -z "$node" ]] && continue
+    c="${CLAB_PREFIX}${node}"
+    docker ps --format '{{.Names}}' | grep -qx "$c" || continue
+    jumbo_pass_node "$c" || log "WARN: jumbo MTU pass failed on $node"
+  done <<<"$FABRIC"
+
   # persist the declared CONFIG_DB intent to /etc/sonic/config_db.json so the
   # full fabric intent (BGP neighbors, loopbacks, VLAN/VTEP/VRF, interfaces)
   # reloads on every subsequent container start
@@ -809,5 +1021,17 @@ main() {
   done <<<"$FABRIC"
   return 0
 }
+
+# --jumbo: standalone post-qualification re-assert + fail-closed census, run
+# after `provision.sh --profile sonic-vs` finishes (the capability gate's
+# persistence witness restarts every SONiC container AFTER this script's own
+# pass 3, so pass 3 alone cannot guarantee receipt-time MTU — the sonic-vm
+# profile solves the same ordering problem with provision.sh's --reassert
+# block, which this profile must not reuse: its gate hardcodes sonic-vm
+# expectations)
+if [[ "${1:-}" == "--jumbo" ]]; then
+  jumbo_reassert || exit 1
+  exit 0
+fi
 
 main "$@"

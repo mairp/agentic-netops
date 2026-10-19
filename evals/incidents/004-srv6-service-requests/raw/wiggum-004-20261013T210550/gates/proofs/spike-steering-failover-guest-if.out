@@ -1,0 +1,17 @@
+===== FIB read-back before the failure action =====
+fcbb:bbbb:4:11:: from :: via 2001:db8:1::3 dev Ethernet0 proto 196 src 2001:db8:1::2 metric 20 pref medium
+===== failure action: interface down in the guest (Ethernet0) =====
+-- FIB read-back while the preferred leg was down (backup engaged) --
+zebra withdraws the dead-leg static and installs the distance-20 backup in the kernel FIB
+PROBES: 20 at 1 Hz
+LOSS-BOUNDED: NO (exceeds the 10-probe bound)
+===== steering removed; as-built asserts =====
+-- no per-service /64 pins left on leaf01 --
+LEFTOVER-PINS: 0
+-- client traffic passes (8900-byte DF, both directions) --
+3 packets transmitted, 0 received, +3 errors, 100% packet loss, time Xms
+
+3 packets transmitted, 0 received, 100% packet loss, time Xms
+
+
+[exit code: 0]

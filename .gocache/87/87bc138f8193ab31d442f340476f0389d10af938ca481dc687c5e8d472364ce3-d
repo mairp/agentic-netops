@@ -1,8 +1,0 @@
-./acl.go
-./bgp.go
-./canon.go
-./evpn_advanced.go
-./interfaces.go
-./network.go
-./srv6.go
-./vlan.go

@@ -1,0 +1,50 @@
+     1	########## leaf01 ##########
+     2	===== EVPN session fabric (l2vpn evpn summary json) =====
+     3	peer 10.1.0.0 state Established pfxRcd 0
+     4	peer 10.1.0.4 state Established pfxRcd 0
+     5	peer fcbb:bbbb:4::1 state Established pfxRcd 0
+     6	===== L2VPN EVPN table =====
+     7	No prefixes displayed, 0 exist
+     8	===== bgpd VNI view (Type-5 generation precondition) =====
+     9	Advertise Gateway Macip: Disabled
+    10	Advertise SVI Macip: Disabled
+    11	Advertise All VNI flag: Enabled
+    12	BUM flooding: Head-end replication
+    13	VXLAN flooding: Enabled
+    14	Number of L2 VNIs: 0
+    15	Number of L3 VNIs: 0
+    16	Flags: * - Kernel
+    17	===== zebra VNI view (L3VNI tenant binding) =====
+    18	VNI        Type VxLAN IF              # MACs   # ARPs   # Remote VTEPs  Tenant VRF                           
+    19	1001       L3   vxlan-1001            0        0        n/a             Vrf1                                 
+    20	===== per-VRF export knobs (running config) =====
+    21	router bgp 65101 vrf Vrf1
+    22	 !
+    23	 address-family ipv4 unicast
+    24	  network 192.168.1.0/24
+    25	  sid vpn export auto
+    26	  rd vpn export 65101:100
+    27	  rt vpn both 65101:100
+    28	  export vpn
+    29	  import vpn
+    30	 exit-address-family
+    31	exit
+    32	===== EVPN AF knobs (running config, l2vpn evpn sections only) =====
+    33	 address-family l2vpn evpn
+    34	  neighbor 10.1.0.0 activate
+    35	  neighbor 10.1.0.4 activate
+    36	  neighbor fcbb:bbbb:4::1 activate
+    37	  advertise-all-vni
+    38	  advertise ipv4 unicast
+    39	  advertise ipv6 unicast
+    40	 exit-address-family
+    41	===== L3VNI kernel device (id/local/flags only; MAC is random) =====
+    42	<BROADCAST,MULTICAST,UP,LOWER_UP>
+    43	vxlan id 1001
+    44	local 10.0.0.21
+    45	===== Vrf1 own client network in the VRF AF (connected, deterministic) =====
+    46	 *>  192.168.1.0/24   0.0.0.0                  0         32768 i
+    47	===== knob side effect: client subnets leaked into the DEFAULT table =====
+    48	LEAKED-SUBNETS-IN-DEFAULT
+    49	
+    50	[exit code: 0]

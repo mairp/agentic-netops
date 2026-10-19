@@ -1,0 +1,56 @@
+##### 19:33:29 START H2-clean: clean_steering
+##### 19:33:31 RC H2-clean=0
+##### 19:33:31 START H2-conv: converge
+##### 19:33:39 RC H2-conv=0
+##### 19:33:39 START H2-canary: canary
+##### 19:34:11 RC H2-canary=0
+##### 19:34:11 PHASE H2 done: lab healthy (clean + converge + canary; recovery used if canary failed once)
+##### 19:34:11 START spike-rerun-vpn: scripts/proof.sh spike-rerun-vpn -- scripts/proof.sh replay spike-vpn
+##### 19:37:15 RC spike-rerun-vpn=0
+##### 19:37:15 RECEIPT spike-rerun-vpn verdict=clean
+##### 19:37:15 PHASE C done
+##### 19:37:15 START D-1: scripts/proof.sh spike-steering-path -- bash scripts/spike/steering-path.sh
+##### 19:46:17 RC D-1=1
+##### 19:46:17 D-1 rc!=0 — converge + one bounded retry
+##### 19:46:17 START D-1-conv: converge
+##### 19:46:24 RC D-1-conv=0
+##### 19:46:24 START D-1-r2: scripts/proof.sh spike-steering-path -- bash scripts/spike/steering-path.sh
+##### 19:59:11 RC D-1-r2=1
+##### 19:59:11 START D-2: scripts/proof.sh spike-steering-failover-launcher -- bash scripts/spike/steering-failover.sh launcher
+##### 20:12:00 RC D-2=1
+##### 20:12:00 D-2 rc!=0 — converge + one bounded retry
+##### 20:12:00 START D-2-conv: converge
+##### 20:12:08 RC D-2-conv=0
+##### 20:12:08 START D-2-r2: scripts/proof.sh spike-steering-failover-launcher -- bash scripts/spike/steering-failover.sh launcher
+##### 20:25:02 RC D-2-r2=1
+##### 20:25:02 START D-3: scripts/proof.sh spike-steering-failover-guest-if -- bash scripts/spike/steering-failover.sh guest
+##### 20:37:26 RC D-3=1
+##### 20:37:26 D-3 rc!=0 — converge + one bounded retry
+##### 20:37:26 START D-3-conv: converge
+##### 20:37:34 RC D-3-conv=0
+##### 20:37:34 START D-3-r2: scripts/proof.sh spike-steering-failover-guest-if -- bash scripts/spike/steering-failover.sh guest
+##### 20:38:50 RC D-3-r2=0
+##### 20:38:50 START D-4: scripts/proof.sh spike-steering-failover-bgp -- bash scripts/spike/steering-failover.sh bgp
+##### 20:39:39 RC D-4=0
+##### 20:39:39 START D-5: scripts/proof.sh spike-steering-return -- bash scripts/spike/steering-failover.sh return
+##### 20:40:34 RC D-5=0
+##### 20:40:34 START spike-rerun-steering: scripts/proof.sh spike-rerun-steering -- scripts/proof.sh replay spike-steering
+##### 20:44:38 RC spike-rerun-steering=1
+##### 20:44:38 RECEIPT spike-rerun-steering verdict=differ
+##### 20:44:38 PHASE D done
+##### 20:44:38 START spike-rerun-evpn3: scripts/proof.sh spike-rerun-evpn3 -- scripts/proof.sh replay spike-evpn3
+##### 20:57:22 RC spike-rerun-evpn3=1
+##### 20:57:22 RECEIPT spike-rerun-evpn3 verdict=differ
+##### 20:57:22 START FG-spike-evpn3-canary: canary
+##### 20:57:56 RC FG-spike-evpn3-canary=0
+##### 20:57:56 START R3-1: scripts/proof.sh spike-evpn3-ping -- bash scripts/spike/evpn3-ping.sh
+##### 20:58:59 RC R3-1=0
+##### 20:58:59 START R3-2: scripts/proof.sh spike-evpn3-capture -- bash scripts/spike/evpn3-capture.sh
+##### 21:00:12 RC R3-2=0
+##### 21:00:12 START R3-3: scripts/proof.sh spike-evpn3-kl006 -- bash scripts/spike/evpn3-kl006.sh
+##### 21:00:52 RC R3-3=0
+##### 21:00:52 START R3-4: scripts/proof.sh spike-evpn3-rollback -- bash scripts/spike/evpn3-rollback.sh
+##### 21:01:41 RC R3-4=0
+##### 21:01:41 START R3-5: scripts/proof.sh spike-evpn3-state-leaf01 -- bash scripts/spike/evpn3-state.sh leaf01
+##### 21:02:16 RC R3-5=0
+##### 21:02:16 START R3-6: scripts/proof.sh spike-evpn3-state-leaf02 -- bash scripts/spike/evpn3-state.sh leaf02

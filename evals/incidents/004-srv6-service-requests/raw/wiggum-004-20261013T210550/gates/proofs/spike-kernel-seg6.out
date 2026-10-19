@@ -1,0 +1,16 @@
+===== leaf02: enable seg6_enabled + vrf strict_mode (factory knobs are 0) =====
+===== leaf02: seg6_enabled knobs =====
+all=1
+default=1
+Ethernet0=1
+Ethernet4=1
+Loopback0=1
+===== leaf02: service side (TGT on lo + table 1002 + End.DT46 SID) =====
+fcbb:bbbb:4::1 dev lo metric 5 pref medium
+local fcbb:bbbb:4::2 from :: dev lo table local proto kernel src fcbb:bbbb:4::2 metric 0 pref medium
+===== leaf01: steer TGT through SID over the fabric =====
+fcbb:bbbb:4::1  encap seg6 mode encap segs 1 [ fcbb:bbbb:4::2 ] dev Ethernet0 metric 1024 pref medium
+===== decap dependency (leaf02 seg6_enabled 1 vs 0) =====
+DECAP-DEPENDENCY seg6=1:PASS seg6=0:FAIL
+
+[exit code: 0]

@@ -24,6 +24,12 @@ preflight::host_resources() {
   local min_cpu=${AGENTIC_NETOPS_MIN_CPU:-4}
   local min_mem_mb=${AGENTIC_NETOPS_MIN_MEM_MB:-8192}
   local min_disk_mb=${AGENTIC_NETOPS_MIN_DISK_MB:-20480}
+  # sonic-vm runs four QEMU guests (vrnetlab) beside the kind cluster: the
+  # guest images plus their disks want 40 GB free (T177). An explicit
+  # AGENTIC_NETOPS_MIN_DISK_MB override still wins (CI).
+  if [[ -z "${AGENTIC_NETOPS_MIN_DISK_MB:-}" && "${AGENTIC_NETOPS_PROFILE:-sonic-vs}" == "sonic-vm" ]]; then
+    min_disk_mb=40960
+  fi
   # Best-effort checks; platform-specific commands may vary
   local cores mem_kb avail_kb
   cores=$(getconf _NPROCESSORS_ONLN || echo 1)
@@ -32,6 +38,7 @@ preflight::host_resources() {
   (( cores >= min_cpu )) || preflight::die "CPU cores $cores < required $min_cpu"
   (( mem_kb/1024 >= min_mem_mb )) || preflight::die "Memory $((${mem_kb}/1024))MB < required ${min_mem_mb}MB"
   (( avail_kb >= min_disk_mb )) || preflight::die "Disk ${avail_kb}MB free < required ${min_disk_mb}MB"
+  echo "[preflight] host resources ok (profile ${AGENTIC_NETOPS_PROFILE:-sonic-vs}: CPU ${cores}>=${min_cpu}, Mem $((mem_kb/1024))>=${min_mem_mb} MB, Disk free ${avail_kb}>=${min_disk_mb} MB)" >&2
 }
 
 # Phase 10 — additional headroom checks when installing the intent tier.
@@ -46,6 +53,11 @@ preflight::intent_tier_headroom() {
   local base_cpu=${AGENTIC_NETOPS_MIN_CPU:-4}
   local base_mem_mb=${AGENTIC_NETOPS_MIN_MEM_MB:-8192}
   local base_disk_mb=${AGENTIC_NETOPS_MIN_DISK_MB:-20480}
+  # The intent tier's PVCs sit on top of the profile's own disk floor, so
+  # sonic-vm starts from its 40 GB floor (T177), not the generic 20 GB.
+  if [[ -z "${AGENTIC_NETOPS_MIN_DISK_MB:-}" && "${AGENTIC_NETOPS_PROFILE:-sonic-vs}" == "sonic-vm" ]]; then
+    base_disk_mb=40960
+  fi
   local add_cpu=${AGENTIC_NETOPS_INTENT_TIER_CPU_HEADROOM_CORES:-2}
   local add_mem_mb=${AGENTIC_NETOPS_INTENT_TIER_MEM_HEADROOM_MB:-4096}
   local add_pvc_mb=${AGENTIC_NETOPS_INTENT_TIER_PVC_TOTAL_MB:-6144}
@@ -116,10 +128,28 @@ preflight::mtu() {
 }
 
 preflight::kvm_check() {
-  local profile=${AGENTIC_NETOPS_PROFILE:-sonic-vs}
+  local profile=${AGENTIC_NETOPS_PROFILE:-sonic-vm}
   if [[ "$profile" == "sonic-vm" ]]; then
     # Require KVM when sonic-vm profile selected
     [[ -e /dev/kvm ]] || preflight::die "/dev/kvm not present for sonic-vm profile"
+    # The executor reaches the guests over SSH (T176): the host ssh client is
+    # part of the sonic-vm bring-up contract.
+    command -v ssh >/dev/null 2>&1 || preflight::die "ssh client not found (required for the sonic-vm profile)"
+    # T251: the guest image is operator-built (vrnetlab), not pulled from a
+    # registry, so its absence is a common first-run failure. Read the image
+    # name from the sonic-vm topology (single source of truth); warn and print
+    # the build command instead of dying — the operator may legitimately run
+    # --profile sonic-vs until the image is built.
+    if command -v docker >/dev/null 2>&1; then
+      local topo vm_image
+      topo="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/lab/topology.sonic-vm.clab.yml"
+      vm_image=$(awk '/^[[:space:]]*image:[[:space:]]*local\/sonic-vm:/ {print $2; exit}' "$topo" 2>/dev/null)
+      vm_image=${vm_image:-local/sonic-vm:202505}
+      if ! docker image inspect "$vm_image" >/dev/null 2>&1; then
+        preflight::warn "sonic-vm guest image $vm_image not present locally; containerlab will fail to start the guests"
+        echo "[preflight] build it with: scripts/build-sonic-vm.sh --image-url <sonic-vs.img.gz URL>" >&2
+      fi
+    fi
   fi
 }
 

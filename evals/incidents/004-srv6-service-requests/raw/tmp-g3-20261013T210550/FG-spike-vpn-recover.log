@@ -1,0 +1,6 @@
+##### 16:29:36 START PROV: ./scripts/provision.sh --profile sonic-vm
+##### 16:42:39 RC PROV=1
+##### 16:44:09 START R-conv: converge
+##### 16:55:37 RC R-conv=0
+##### 16:55:37 START R-canary: canary
+##### 16:56:32 RC R-canary=0

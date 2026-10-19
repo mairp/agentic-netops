@@ -1,0 +1,25 @@
+##### RECORD spike-vpn-state-leaf01 -- scripts/spike/vrf-apply.sh leaf01
+proof recorded: spike-vpn-state-leaf01 (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-vpn-state-leaf01.out
+##### RC-spike-vpn-state-leaf01=0
+##### RECORD spike-vpn-state-leaf02 -- scripts/spike/vrf-apply.sh leaf02
+proof recorded: spike-vpn-state-leaf02 (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-vpn-state-leaf02.out
+##### RC-spike-vpn-state-leaf02=0
+##### RECORD spike-vpn-ping -- scripts/spike/vpn-ping.sh
+proof recorded: spike-vpn-ping (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-vpn-ping.out
+##### RC-spike-vpn-ping=0
+##### RECORD spike-vpn-capture -- scripts/spike/vpn-capture.sh
+proof recorded: spike-vpn-capture (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-vpn-capture.out
+##### RC-spike-vpn-capture=0
+##### RECORD spike-vpn-readback-leaf01 -- bash scripts/spike/vpn-readback.sh leaf01
+proof recorded: spike-vpn-readback-leaf01 (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-vpn-readback-leaf01.out
+##### RC-spike-vpn-readback-leaf01=0
+##### RECORD spike-vpn-readback-leaf02 -- bash scripts/spike/vpn-readback.sh leaf02
+proof recorded: spike-vpn-readback-leaf02 (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-vpn-readback-leaf02.out
+##### RC-spike-vpn-readback-leaf02=0
+##### RECORD spike-vpn-clients -- bash scripts/spike/vpn-clients.sh
+proof recorded: spike-vpn-clients (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-vpn-clients.out
+##### RC-spike-vpn-clients=0
+##### RECORD spike-vpn-rollback -- bash scripts/spike/vpn-rollback.sh
+proof recorded: spike-vpn-rollback (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/spike-vpn-rollback.out
+##### RC-spike-vpn-rollback=0
+VPN-RERECORD-DONE

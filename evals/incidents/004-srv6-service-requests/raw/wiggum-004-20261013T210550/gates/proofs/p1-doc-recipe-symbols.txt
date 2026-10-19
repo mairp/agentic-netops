@@ -1,0 +1,159 @@
+     1	# SRv6 Service Recipe (feature 004)
+     2	
+     3	**Status: skeleton. Nothing in this file is proven.** The Phase 0 spike fills it
+     4	on the live sonic-vm lab; until then every verdict cell below is empty.
+     5	
+     6	This file records the device recipe for one SRv6 VPN service on the pinned
+     7	SONiC image, per the spike task (`specs/004-srv6-service-requests/tasks.md`,
+     8	plan 0-02) and the evidence base `roadmap/srv6-enablement-research.md`.
+     9	
+    10	## How this file is used
+    11	
+    12	- Each section below starts with an **Approaches to try** list that is written
+    13	  **before the first attempt**, so the spike tests candidates instead of
+    14	  rationalising whatever happened. Approaches are candidates to confirm or
+    15	  refute; none is a proven device command. Device commands and read-backs are
+    16	  recorded only from the live lab, never invented.
+    17	- A verdict is `proven` or `not achievable` (spec SC-001). A `proven` verdict
+    18	  must be reproducible by replaying the recorded commands alone on a freshly
+    19	  brought-up lab (`scripts/proof.sh replay <prefix>`).
+    20	- `proofs` cites proofs by name, as recorded by
+    21	  `scripts/proof.sh <name> -- <command>` under
+    22	  `.wiggum/features/004-srv6-service-requests/gates/proofs/` (FR-039, SC-015).
+    23	- The supported set this file decides is what
+    24	  `lab/profiles/sonic-vm/srv6-supported.yaml` may declare; an item without a
+    25	  `proven` verdict is refused by name, never half-delivered (spec FR-005,
+    26	  tasks rule on `(V:x)` tags).
+    27	- A service never creates, changes or removes a node locator (FR-006); the
+    28	  locator work below belongs to the bootstrap, not to any service.
+    29	
+    30	Verdict vocabulary for the tables: `proven`, `not achievable`, `deferred`
+    31	(owner decision 1 allows deferring bridged EVPN; requests for a deferred or
+    32	unproven item are refused by name).
+    33	
+    34	## 1. Underlay and locators
+    35	
+    36	**Status: empty — no attempt recorded.**
+    37	
+    38	Approaches to try (written before the first attempt):
+    39	
+    40	- Per-node identity at boot first: per-node IPv4 and IPv6 loopbacks, the ASNs
+    41	  already in the topology labels (65000 spines, 65101/65102 leaves), router
+    42	  ids, IPv6 addressing or unnumbered peering on the four fabric links, and
+    43	  underlay BGP for IPv4 and IPv6 unicast — replacing the image default where
+    44	  every guest boots as `Loopback0 10.1.0.1/32`, AS 65100 (research addendum,
+    45	  item 4). No locator is reachable until this holds (SC-002).
+    46	- One locator per node from a common block, uSID style
+    47	  (`fcbb:bbbb:<node>::/48` as the candidate block), matching the `uN`/`uDT46`
+    48	  rows the gate already writes through GCU; owned by the bootstrap and
+    49	  advertised into the IPv6 underlay (research addendum, item 6).
+    50	- Locator rows written via GCU `config apply-patch` over SSH — the write path
+    51	  the 202505 YANG already accepts — then read back over TLS gNMI, as the gate
+    52	  does today; not gNMI Set.
+    53	- FRR `segment-routing srv6` locator configured per node so
+    54	  `show segment-routing srv6 locator` lists it (FRR answers with an empty
+    55	  table today; the daemon supports SRv6 and nothing is configured).
+    56	- `seg6_enabled=1` on the fabric interfaces
+    57	  (`net.ipv6.conf.all.seg6_enabled` is 0 on the guest today), and
+    58	  `net.vrf.strict_mode=1` if `End.DT46` needs it — a kernel requirement stated
+    59	  from general knowledge, to confirm or refute in the spike (data-model §8.8).
+    60	- Classic (non-uSID) `End`/`End.DT46` behaviour as a fallback if uSID rows
+    61	  accept but do not forward.
+    62	- Kernel seg6 lwtunnel witness installed on a real interface (`Loopback0`),
+    63	  never on `dev lo`: on the guest `dev lo` returns 0 but silently drops the
+    64	  encap, which is the false negative that made the gate record two skips as
+    65	  passes (research addendum).
+    66	
+    67	| item | verdict | proofs | note |
+    68	| --- | --- | --- | --- |
+    69	|  |  |  |  |
+    70	
+    71	## 2. `ip-vrf` / `vpn` (L3VPN over SRv6)
+    72	
+    73	**Status: empty — no attempt recorded.**
+    74	
+    75	Approaches to try (written before the first attempt):
+    76	
+    77	- Per-VRF `End.DT46` SID with `decap_vrf` set to the customer VRF (the gate
+    78	  writes `decap_vrf: default` today; a non-default `decap_vrf` is not yet
+    79	  exercised anywhere).
+    80	- Per-service SID function value allocated from the node locator's function
+    81	  block; VRF name derived from the service id — the identifier candidates in
+    82	  data-model §8.1, to be confirmed with real ranges.
+    83	- BGP signals the per-VRF SRv6 SID to the remote PE (L3VPN over SRv6
+    84	  signalling in FRR on 202505 — presence and shape to be confirmed by the
+    85	  spike; nothing here is verified).
+    86	- Encapsulation by the ingress leaf toward the remote locator's `uN` SID: with
+    87	  ASIC `vs`, the Linux kernel is the forwarding plane, so a kernel `seg6`
+    88	  route encapsulation is the dataplane candidate (research addendum).
+    89	- Client attachment: `srv6-client01` on `leaf01` and `srv6-client02` on
+    90	  `leaf02` (the `eth4` attachments the research names) placed in the customer
+    91	  VRF; client-to-client traffic is the acceptance bar (owner decision 2,
+    92	  SC-005).
+    93	
+    94	| item | verdict | proofs | note |
+    95	| --- | --- | --- | --- |
+    96	|  |  |  |  |
+    97	
+    98	## 3. `ip-vrf` / `evpn` (routed EVPN over SRv6)
+    99	
+   100	**Status: empty — no attempt recorded.**
+   101	
+   102	Approaches to try (written before the first attempt):
+   103	
+   104	- EVPN Type-5 (IP-prefix) routes carrying the per-VRF SRv6 SID, reusing the
+   105	  iBGP L2VPN EVPN AF session the gate already reaches Established across
+   106	  leaf-spine-leaf; the session today asserts no route of any type.
+   107	- Per-VRF `End.DT46` decapsulation as in §2, with the SID learnt through EVPN
+   108	  signalling instead of VPN signalling.
+   109	- Ingress encapsulation as in §2 (kernel `seg6` on the `vs` ASIC).
+   110	- Same client attachment and traffic bar as §2, so the two routed variants
+   111	  differ only in signalling.
+   112	
+   113	| item | verdict | proofs | note |
+   114	| --- | --- | --- | --- |
+   115	|  |  |  |  |
+   116	
+   117	## 4. `mac-vrf` / `evpn` (bridged EVPN over SRv6)
+   118	
+   119	**Status: empty — no attempt recorded.** The owner allows deferring this
+   120	variant (owner decision 1); if deferred or unproven, requests are refused by
+   121	name.
+   122	
+   123	Approaches to try (written before the first attempt):
+   124	
+   125	- EVPN Type-2/3 MAC/IP routes over SRv6 with a per-EVI or per-(EVI, VLAN)
+   126	  End.DX2-style SID — the SRv6 equivalent of the VXLAN bridged service; SID
+   127	  scope per EVI or per VLAN is a spike question.
+   128	- The operator-supplied VLAN tag (as in feature 003) carried on the attachment
+   129	  ports, bridged into the EVI.
+   130	- Kernel bridging plus `seg6` encapsulation on the `vs` ASIC as the dataplane
+   131	  candidate, as in §2.
+   132	
+   133	| item | verdict | proofs | note |
+   134	| --- | --- | --- | --- |
+   135	|  |  |  |  |
+   136	
+   137	## 5. Steering
+   138	
+   139	**Status: empty — no attempt recorded.**
+   140	
+   141	Approaches to try (written before the first attempt):
+   142	
+   143	- Two spines give two equal paths; preference expressed on the ingress leaf
+   144	  only (the renderer never emits ops for a spine —
+   145	  `specs/004-srv6-service-requests/contracts/fabricplan-srv6.md` §1), by
+   146	  either an explicit SID list through the preferred spine or a lower path
+   147	  preference/metric — which of the two the image supports is a spike question.
+   148	- Failover to the alternate spine and return on restoration, bounded by 5
+   149	  seconds with at most 2 consecutive losses after the switch (SC-007,
+   150	  FR-026a); measured with 1 Hz probes from the client attachments, as
+   151	  `tests/integration/srv6_failover_path_change.sh` does today.
+   152	- Detection via BFD or fast BGP timers if passive convergence misses the 5 s
+   153	  bound (timers are a data-model §8.8 baseline question).
+   154	- The read-back that shows the active path (data-model §8.6), recorded as the
+   155	  per-node check that backs any steering verdict.
+   156	
+   157	| item | verdict | proofs | note |
+   158	| --- | --- | --- | --- |
+   159	|  |  |  |  |

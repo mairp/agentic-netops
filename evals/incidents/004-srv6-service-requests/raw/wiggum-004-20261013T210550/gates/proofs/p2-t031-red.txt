@@ -1,0 +1,15 @@
+tests/unit/capability_derive_test.sh: line 15: /root/agentic-netops/scripts/lib/capability.sh: No such file or directory
+tests/unit/capability_derive_test.sh: line 23: capability::derive: command not found
+FAIL all-pass + proven variants: expected cap-sai-srv6=true srv6-supported=ip-vrf/vpn,steering, got cap-sai-srv6=<unset> srv6-supported=<unset>
+tests/unit/capability_derive_test.sh: line 23: capability::derive: command not found
+FAIL one-skip is not proven: expected cap-sai-srv6=false srv6-supported=false, got cap-sai-srv6=<unset> srv6-supported=<unset>
+tests/unit/capability_derive_test.sh: line 23: capability::derive: command not found
+FAIL one-fail is not proven: expected cap-sai-srv6=false srv6-supported=false, got cap-sai-srv6=<unset> srv6-supported=<unset>
+tests/unit/capability_derive_test.sh: line 23: capability::derive: command not found
+FAIL missing verdict file: expected cap-sai-srv6=false srv6-supported=false, got cap-sai-srv6=<unset> srv6-supported=<unset>
+tests/unit/capability_derive_test.sh: line 55: capability::derive: command not found
+FAIL no-yaml profile: expected false/false, got cap=<unset> supported=<unset>
+tests/unit/capability_derive_test.sh: line 67: capability::default_report_path: command not found
+FAIL: default report path diverges from qualify.sh --print-report-path
+capability_derive_test: 6 failure(s)
+exit: 1

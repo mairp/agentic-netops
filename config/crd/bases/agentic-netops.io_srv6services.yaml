@@ -1,143 +1,495 @@
+---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: srv6services.agentic-netops.io
 spec:
   group: agentic-netops.io
-  scope: Namespaced
   names:
     kind: SRv6Service
     listKind: SRv6ServiceList
     plural: srv6services
+    shortNames:
+    - srv6svc
     singular: srv6service
-    shortNames: [srv6svc]
+  scope: Namespaced
   versions:
-  - name: v1alpha1
-    served: true
-    storage: true
-    subresources:
-      status: {}
-    additionalPrinterColumns:
-    - name: Ready
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
       type: string
-      jsonPath: .status.conditions[?(@.type=="Ready")].status
-    - name: Degraded
+    - jsonPath: .spec.construct
+      name: Construct
       type: string
-      jsonPath: .status.conditions[?(@.type=="Degraded")].status
-    - name: Age
+    - jsonPath: .spec.signalling
+      name: Signalling
+      type: string
+    - jsonPath: .status.activePath
+      name: Path
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
       type: date
-      jsonPath: .metadata.creationTimestamp
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        type: object
+        description: |-
+          Admission rules (contracts/srv6service-crd.md §2, A1-A11; A12 is the
+          structural schema itself). Every rule is TOTAL: a field the rule reads is
+          has()-guarded, because field access on a structured object without that
+          field is a CEL evaluation error ("no such key") rather than a clean
+          rejection — measured live 2026-10-16 when the pre-004 stub object (no
+          tenant/construct/vlan) hit every unguarded rule at once. Absent required
+          fields still fail the structural schema; the rules below decide only the
+          present-and-invalid case.
         properties:
           apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
           spec:
-            type: object
-            required: [attachments, topologyRef, locatorPrefix, vrf, path, client, server, servicePrefix, underlay]
+            description: |-
+              SRv6ServiceSpec is the desired service intent: identifiers are allocated,
+              not typed. There is no locator, SID or VRF field here.
             properties:
               attachments:
-                type: array
-                minItems: 2
-                maxItems: 2
+                description: |-
+                  attachments names exactly two distinct fabric leaves and the ports the
+                  service attaches to (A5, A6).
                 items:
-                  type: object
-                  required: [node, interface]
+                  description: Attachment names one leaf port the service attaches
+                    to.
                   properties:
+                    gateway:
+                      description: |-
+                        gateway holds the leaf-side prefixes of the attachment for an ip-vrf
+                        (A9 requires at least one on both attachments for ip-vrf). A7 checks
+                        the prefix format. An update may change them (US3 scenario 9): the
+                        controller re-renders from status.appliedSpec, and the claimed
+                        identifiers stay. The GatewayPrefix element type bounds each prefix so
+                        the A7 CEL cost estimate stays inside the API-server budget (a full
+                        IPv6 prefix with /128 is 43 characters).
+                      items:
+                        description: |-
+                          GatewayPrefix is one leaf-side gateway prefix of an attachment. The bounds
+                          here are what keep the A7 admission rule's CEL cost estimate (a regex
+                          match over each element) inside the API server's per-rule budget.
+                        maxLength: 45
+                        minLength: 3
+                        type: string
+                      maxItems: 4
+                      minItems: 1
+                      type: array
                     node:
-                      type: string
+                      description: |-
+                        node is the fabric leaf the attachment sits on (C1 validates it is a
+                        leaf of the fabric).
                       minLength: 1
-                    interface:
                       type: string
+                    port:
+                      description: |-
+                        port is the attachment port name as the site port map writes it
+                        (e.g. wan1; C2 resolves it through the site port map).
                       minLength: 1
-              topologyRef:
-                type: string
-                minLength: 1
-              locatorPrefix:
-                type: string
-                pattern: ^([0-9a-fA-F:]+)/[0-9]+$
-              vrf:
-                type: string
-                minLength: 1
-              path:
-                type: object
-                required: [primary]
-                properties:
-                  primary:
-                    type: string
-                    minLength: 1
-                  alternate:
-                    type: string
-              client:
-                type: object
-                required: [name, ip]
-                properties:
-                  name:
-                    type: string
-                  ip:
-                    type: string
-                    pattern: ^([0-9a-fA-F:]+)/[0-9]+$
-              server:
-                type: object
-                required: [name, ip]
-                properties:
-                  name:
-                    type: string
-                  ip:
-                    type: string
-                    pattern: ^([0-9a-fA-F:]+)/[0-9]+$
-              servicePrefix:
-                type: string
-                pattern: ^([0-9a-fA-F:]+)/[0-9]+$
-              transitWaypoints:
-                type: array
-                items:
-                  type: string
-              underlay:
-                type: string
-                enum: [ipv6]
-            x-kubernetes-validations:
-            - rule: "self.client.name != self.server.name"
-              message: client and server endpoints must be distinct
-            - rule: "size(self.attachments) == 2"
-              message: exactly two attachments are required
-            - rule: "self.attachments[0].node != self.attachments[1].node"
-              message: attachments must be unique by node
-            - rule: "int(self.locatorPrefix.split('/')[1]) >= 48 && int(self.locatorPrefix.split('/')[1]) <= 64"
-              message: locator length must be /48-/64
-            - rule: "int(self.servicePrefix.split('/')[1]) >= 64 && int(self.servicePrefix.split('/')[1]) <= 96"
-              message: service prefix must be /64-/96
-          status:
-            type: object
-            properties:
-              observedGeneration:
-                type: integer
-                format: int64
-              conditions:
-                type: array
-                items:
+                      type: string
+                  required:
+                  - node
+                  - port
                   type: object
-                  required: [type, status, lastTransitionTime, reason]
+                maxItems: 2
+                minItems: 2
+                type: array
+              construct:
+                description: |-
+                  construct selects the service construct: ip-vrf or mac-vrf (A2).
+                  Immutable (A11).
+                type: string
+              path:
+                description: path optionally pins a preferred spine with an alternate
+                  (A10).
+                properties:
+                  alternateSpine:
+                    description: |-
+                      alternateSpine is the spine used when the preferred one fails (A10:
+                      must differ from preferredSpine).
+                    minLength: 1
+                    type: string
+                  preferredSpine:
+                    description: |-
+                      preferredSpine is the spine the service prefers (C3 validates it is a
+                      spine of the fabric).
+                    minLength: 1
+                    type: string
+                type: object
+              signalling:
+                description: |-
+                  signalling selects vpn or evpn (A3); when omitted the controller
+                  defaults it (vpn for ip-vrf, evpn for mac-vrf). mac-vrf with vpn is
+                  refused at admission (A4). Immutable (A11).
+                minLength: 1
+                type: string
+              tenant:
+                description: |-
+                  tenant is the operator's tenant name as an RFC 1123 label (A1). It is
+                  immutable (A11).
+                maxLength: 63
+                minLength: 1
+                type: string
+              vlan:
+                description: |-
+                  vlan is the operator-named tag carried on the attachment ports
+                  (mac-vrf only; A8). The controller reserves it in the allocation
+                  authority under the service's correlation id before any device write.
+                format: int64
+                maximum: 4094
+                minimum: 1
+                type: integer
+            required:
+            - attachments
+            - construct
+            - tenant
+            type: object
+          status:
+            description: SRv6ServiceStatus is the observed state (data-model.md §2).
+            properties:
+              activePath:
+                description: activePath names the spine in use (preferred or alternate).
+                minLength: 1
+                type: string
+              allocations:
+                description: |-
+                  allocations lists every identifier the controller claimed for this
+                  service, each traceable to a claim carrying status.correlationId.
+                properties:
+                  clientPrefixes:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      clientPrefixes maps attachment node to the claimed per-attachment
+                      client /24 the client container sits in.
+                    maxProperties: 4
+                    minProperties: 1
+                    type: object
+                  serviceId:
+                    description: |-
+                      serviceID is the claimed generic identifier; the VRF name is built as
+                      Vrf<ServiceID>.
+                    format: int64
+                    minimum: 1
+                    type: integer
+                  vlan:
+                    description: |-
+                      vlan, for a mac-vrf, is the operator-named value reserved under the
+                      correlation id (kept in the schema for the mac-vrf profile; its EVPN
+                      recipe is not achievable and the controller refuses the variant).
+                    format: int64
+                    type: integer
+                  vrf:
+                    description: vrf is the rendered VRF name (Vrf<ServiceID>).
+                    minLength: 1
+                    type: string
+                type: object
+              appliedSpec:
+                description: |-
+                  appliedSpec is the spec the currently applied plan was rendered from;
+                  updates re-render it to compute what must be removed per node.
+                properties:
+                  attachments:
+                    description: |-
+                      attachments names exactly two distinct fabric leaves and the ports the
+                      service attaches to (A5, A6).
+                    items:
+                      description: Attachment names one leaf port the service attaches
+                        to.
+                      properties:
+                        gateway:
+                          description: |-
+                            gateway holds the leaf-side prefixes of the attachment for an ip-vrf
+                            (A9 requires at least one on both attachments for ip-vrf). A7 checks
+                            the prefix format. An update may change them (US3 scenario 9): the
+                            controller re-renders from status.appliedSpec, and the claimed
+                            identifiers stay. The GatewayPrefix element type bounds each prefix so
+                            the A7 CEL cost estimate stays inside the API-server budget (a full
+                            IPv6 prefix with /128 is 43 characters).
+                          items:
+                            description: |-
+                              GatewayPrefix is one leaf-side gateway prefix of an attachment. The bounds
+                              here are what keep the A7 admission rule's CEL cost estimate (a regex
+                              match over each element) inside the API server's per-rule budget.
+                            maxLength: 45
+                            minLength: 3
+                            type: string
+                          maxItems: 4
+                          minItems: 1
+                          type: array
+                        node:
+                          description: |-
+                            node is the fabric leaf the attachment sits on (C1 validates it is a
+                            leaf of the fabric).
+                          minLength: 1
+                          type: string
+                        port:
+                          description: |-
+                            port is the attachment port name as the site port map writes it
+                            (e.g. wan1; C2 resolves it through the site port map).
+                          minLength: 1
+                          type: string
+                      required:
+                      - node
+                      - port
+                      type: object
+                    maxItems: 2
+                    minItems: 2
+                    type: array
+                  construct:
+                    description: |-
+                      construct selects the service construct: ip-vrf or mac-vrf (A2).
+                      Immutable (A11).
+                    type: string
+                  path:
+                    description: path optionally pins a preferred spine with an alternate
+                      (A10).
+                    properties:
+                      alternateSpine:
+                        description: |-
+                          alternateSpine is the spine used when the preferred one fails (A10:
+                          must differ from preferredSpine).
+                        minLength: 1
+                        type: string
+                      preferredSpine:
+                        description: |-
+                          preferredSpine is the spine the service prefers (C3 validates it is a
+                          spine of the fabric).
+                        minLength: 1
+                        type: string
+                    type: object
+                  signalling:
+                    description: |-
+                      signalling selects vpn or evpn (A3); when omitted the controller
+                      defaults it (vpn for ip-vrf, evpn for mac-vrf). mac-vrf with vpn is
+                      refused at admission (A4). Immutable (A11).
+                    minLength: 1
+                    type: string
+                  tenant:
+                    description: |-
+                      tenant is the operator's tenant name as an RFC 1123 label (A1). It is
+                      immutable (A11).
+                    maxLength: 63
+                    minLength: 1
+                    type: string
+                  vlan:
+                    description: |-
+                      vlan is the operator-named tag carried on the attachment ports
+                      (mac-vrf only; A8). The controller reserves it in the allocation
+                      authority under the service's correlation id before any device write.
+                    format: int64
+                    maximum: 4094
+                    minimum: 1
+                    type: integer
+                required:
+                - attachments
+                - construct
+                - tenant
+                type: object
+              conditions:
+                description: conditions carry Ready and the terminal refusal conditions.
+                items:
+                  description: "Condition contains details for one aspect of the current
+                    state of this API Resource.\n---\nThis struct is intended for
+                    direct use as an array at the field path .status.conditions.  For
+                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
+                    observations of a foo's current state.\n\t    // Known .status.conditions.type
+                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
+                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
+                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
+                    \   // other fields\n\t}"
                   properties:
-                    type:
-                      type: string
-                    status:
-                      type: string
                     lastTransitionTime:
-                      type: string
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
                       format: date-time
-                    reason:
                       type: string
                     message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
                       type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        ---
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
+                        useful (see .node.status.conditions), the ability to deconflict is important.
+                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                maxItems: 32
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               configHashes:
-                type: object
                 additionalProperties:
                   type: string
-              activePath:
+                description: |-
+                  configHashes maps node name to the rendered plan hash; an unchanged
+                  re-apply matches it and produces zero device writes.
+                type: object
+              correlationId:
+                description: |-
+                  correlationId identifies every claim this service holds: the value of
+                  the deployer's agentic-netops.io/correlation-id label, else the object
+                  UID.
+                minLength: 1
                 type: string
+              dataPath:
+                description: dataPath is the client-to-client check result at first
+                  activation.
+                properties:
+                  checkedAt:
+                    description: |-
+                      checkedAt is when the probe ran; it is never later than the Ready
+                      transition for the generation it belongs to.
+                    format: date-time
+                    type: string
+                  result:
+                    description: result is pass or fail (the probe-ping outcome).
+                    enum:
+                    - pass
+                    - fail
+                    type: string
+                required:
+                - result
+                type: object
+              nodes:
+                description: nodes is the per-attachment-node apply/verify state.
+                items:
+                  description: NodeStatus is the apply/verify state of one attachment
+                    node.
+                  properties:
+                    applied:
+                      description: applied reports the executor accepted the node's
+                        plan.
+                      type: boolean
+                    failedCheck:
+                      description: failedCheck names the check that failed on this
+                        node, when one did.
+                      minLength: 1
+                      type: string
+                    node:
+                      description: node is the fabric node this state describes.
+                      minLength: 1
+                      type: string
+                    verified:
+                      description: verified reports every per-node check passed on
+                        device-observed state.
+                      type: boolean
+                  required:
+                  - applied
+                  - node
+                  - verified
+                  type: object
+                maxItems: 4
+                type: array
+              observedGeneration:
+                description: observedGeneration is the generation the conditions describe.
+                format: int64
+                type: integer
+            type: object
+        type: object
+        x-kubernetes-validations:
+        - message: tenant must be a DNS label
+          rule: '!has(self.spec.tenant) || self.spec.tenant.matches(''^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'')'
+        - message: construct must be ip-vrf or mac-vrf
+          rule: '!has(self.spec.construct) || self.spec.construct == ''ip-vrf'' ||
+            self.spec.construct == ''mac-vrf'''
+        - message: signalling must be vpn or evpn
+          rule: '!has(self.spec.signalling) || self.spec.signalling == ''vpn'' ||
+            self.spec.signalling == ''evpn'''
+        - message: mac-vrf over srv6 uses evpn signalling
+          rule: '!has(self.spec.construct) || !(self.spec.construct == ''mac-vrf''
+            && has(self.spec.signalling) && self.spec.signalling == ''vpn'')'
+        - message: exactly two attachments are required
+          rule: has(self.spec.attachments) && size(self.spec.attachments) == 2
+        - message: attachments must be on distinct nodes
+          rule: '!has(self.spec.attachments) || size(self.spec.attachments) != 2 ||
+            self.spec.attachments[0].node != self.spec.attachments[1].node'
+        - message: gateway must be an IP prefix
+          rule: '!has(self.spec.attachments) || self.spec.attachments.all(a, !has(a.gateway)
+            || a.gateway.all(g, g.matches(''^[0-9a-fA-F:.]+/[0-9]{1,3}$'')))'
+        - message: vlan is required for mac-vrf and not allowed for ip-vrf
+          rule: (has(self.spec.vlan) && self.spec.vlan >= 1 && self.spec.vlan <= 4094)
+            == (has(self.spec.construct) && self.spec.construct == 'mac-vrf')
+        - message: ip-vrf attachments need a gateway prefix
+          rule: '!has(self.spec.construct) || self.spec.construct != ''ip-vrf'' ||
+            (has(self.spec.attachments) && size(self.spec.attachments) == 2 && has(self.spec.attachments[0].gateway)
+            && has(self.spec.attachments[1].gateway) && size(self.spec.attachments[0].gateway)
+            > 0 && size(self.spec.attachments[1].gateway) > 0)'
+        - message: preferred and alternate spine must differ
+          rule: '!has(self.spec.path) || !has(self.spec.path.preferredSpine) || !has(self.spec.path.alternateSpine)
+            || self.spec.path.preferredSpine != self.spec.path.alternateSpine'
+        - message: tenant is immutable
+          rule: (!has(self.spec.tenant) && !has(oldSelf.spec.tenant)) || (has(self.spec.tenant)
+            && has(oldSelf.spec.tenant) && self.spec.tenant == oldSelf.spec.tenant)
+        - message: construct is immutable
+          rule: (!has(self.spec.construct) && !has(oldSelf.spec.construct)) || (has(self.spec.construct)
+            && has(oldSelf.spec.construct) && self.spec.construct == oldSelf.spec.construct)
+        - message: signalling is immutable
+          rule: (!has(self.spec.signalling) && !has(oldSelf.spec.signalling)) || self.spec.signalling
+            == oldSelf.spec.signalling
+    served: true
+    storage: true
+    subresources:
+      status: {}

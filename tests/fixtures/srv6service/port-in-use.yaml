@@ -1,0 +1,24 @@
+# Fixture for Q9 (q9-port-in-use): the leaf01/wan1 port is already held by the
+# sample service (config/samples/srv6service-ip-vrf-vpn.yaml). Admission
+# accepts it; the controller ends it at terminal PortInUse naming the holder
+# (rules C4/C7).
+apiVersion: agentic-netops.io/v1alpha1
+kind: SRv6Service
+metadata:
+  name: srv6-port-in-use
+  namespace: agentic-netops-intent
+  labels:
+    agentic-netops.io/correlation-id: srv6-port-in-use
+spec:
+  tenant: acme
+  construct: ip-vrf
+  signalling: vpn
+  attachments:
+    - node: leaf01
+      port: wan1
+      gateway:
+        - 192.168.1.1/24
+    - node: leaf02
+      port: wan1
+      gateway:
+        - 192.168.2.1/24

@@ -4,8 +4,8 @@
 # H.Encaps.Red, End, End.DT46, ordered SID-list steering, decapsulation, and counter capability tests
 #
 # Schema reality (docs/SRV6_GNMI_CAPABILITY_FINDINGS.md §6): SONiC 202605 models exactly two
-# SRv6 CONFIG_DB tables (SRV6_MY_LOCATORS, SRV6_MY_SIDS). Tables like SRV6_GLOBAL/SRV6_POLICY/
-# SRV6_LOCATOR/SRV6_SID_LIST do not exist, and the OpenConfig translib paths are not mapped in
+# SRv6 CONFIG_DB tables (SRV6_MY_LOCATORS, SRV6_MY_SIDS). The legacy global/policy/
+# locator/sid-list tables do not exist, and the OpenConfig translib paths are not mapped in
 # this sonic-gnmi build, so the old path-existence probes were vacuous (§5). Per the approved
 # D2/D3 decisions each criterion is now witnessed by something that exists:
 #   - gNMI content read-back of SRV6_MY_LOCATORS / SRV6_MY_SIDS (written through GCU),
@@ -68,7 +68,7 @@ node_for_ip() {
 
 gcu_apply() {
   local c=$1 patch=$2
-  printf '%s' "$patch" | node_run_i "$c" 'cat > /tmp/.gate_patch.json && sudo config apply-patch -f CONFIGDB -p /tmp/.gate_patch.json 2>/dev/null >/dev/null'
+  printf '%s' "$patch" | node_run_i "$c" "cat > /tmp/.gate_patch.json && $(node_sudo "$c") config apply-patch -f CONFIGDB -p /tmp/.gate_patch.json 2>/dev/null >/dev/null"
   return $?
 }
 
@@ -79,7 +79,7 @@ gcu_apply() {
 # itself still goes through GCU apply/remove patches.
 srv6_force_clean() {
   local c=$1
-  node_run "$c" 'redis-cli -n 4 --scan --pattern "SRV6_MY_LOCATORS*" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern "SRV6_MY_SIDS*" | xargs -r redis-cli -n 4 del >/dev/null; sudo config save -y >/dev/null 2>&1'
+  node_run "$c" "redis-cli -n 4 --scan --pattern \"SRV6_MY_LOCATORS*\" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern \"SRV6_MY_SIDS*\" | xargs -r redis-cli -n 4 del >/dev/null; $(node_sudo "$c") config save -y >/dev/null 2>&1"
 }
 
 
@@ -199,39 +199,87 @@ trap cleanup_trap EXIT
 
 # --- dataplane witnesses (kernel seg6 / FRR) -----------------------------------
 
+# T027/T028 — the suite's kernel seg6 probe: install a seg6 route, read it
+# back, delete it. The probe output is the single source of truth for "can
+# this node host a kernel seg6 lwtunnel route" (seg6_witness) and for the
+# probe selftest below. SEG6_PROBE_DEV is the device the probe binds:
+# T028 moves it to a REAL interface (Loopback0) — live-verified on the
+# sonic-vm guest, `dev lo` installs the route but the kernel silently DROPS
+# the encap (`ip -6 route show` lists the route WITHOUT encap), while
+# `dev Loopback0` programs and shows `encap seg6 ... dev Loopback0`.
+# The fallback to `lo` keeps the sonic-vs profile (no Loopback0 in some
+# container builds) working: there the host kernel honors seg6 on any device.
+SEG6_PROBE_PREFIX="2001:db8:7fff:ffff::/64"
+# T028: the probe (and every witness install) binds Loopback0 — the real
+# interface every SONiC node carries — falling back to `lo` only when the
+# node has no Loopback0 (some sonic-vs container builds). Overridable via
+# SEG6_PROBE_DEV for targeted debugging.
+seg6_probe_dev() {
+  if [[ -n "${SEG6_PROBE_DEV:-}" ]]; then
+    printf '%s\n' "$SEG6_PROBE_DEV"
+  else
+    node_run "$1" "ip -6 link show Loopback0 >/dev/null 2>&1 && echo Loopback0 || echo lo" 2>/dev/null | tail -n1
+  fi
+}
+seg6_probe_out() {
+  local node=$1 dev
+  dev=$(seg6_probe_dev "$node")
+  node_run "$node" "sudo ip -6 route replace ${SEG6_PROBE_PREFIX} encap seg6 mode encap segs fc00::1 dev ${dev} && sudo ip -6 route show ${SEG6_PROBE_PREFIX}; rc=\$?; sudo ip -6 route del ${SEG6_PROBE_PREFIX} >/dev/null 2>&1 || true; exit \$rc" 2>/dev/null || true
+}
+
+# T027 — probe selftest: install a seg6 route with the suite's own probe and
+# assert the installed route is VISIBLE with its encap. This is the guard that
+# keeps seg6_witness honest: a probe that installs-but-drops (the sonic-vm
+# `dev lo` behavior before T028) must fail HERE, not silently skip witnesses.
+seg6_probe_selftest() {
+  local node out dev
+  IFS=',' read -ra tgts <<<"$TARGETS"
+  node=$(node_for_ip "${tgts[0]%%:*}")
+  [[ -n "$node" ]] || die "seg6-probe-selftest: cannot resolve containerlab node for ${tgts[0]%%:*}"
+  dev=$(seg6_probe_dev "$node")
+  out=$(seg6_probe_out "$node")
+  grep -q 'encap seg6' <<<"$out" \
+    || die "seg6 probe selftest: the probe's route is not visible with its encap on ${dev} (probe output: ${out:-<none>})"
+  note "seg6 probe selftest: route installed on ${dev} and visible with encap (${out})"
+}
+
 # For each target node, verify kernel SRv6 encap state with exact ordered content
 seg6_witness() {
   local mode=$1 segs=$2 expect=$3 label=$4
   IFS=',' read -ra tgts <<<"$TARGETS"
+  local dev
+  dev=$(seg6_probe_dev "$(node_for_ip "${tgts[0]%%:*}")")
   for t in "${tgts[@]}"; do
     local node probe out
     node=$(node_for_ip "${t%%:*}")
     [[ -n "$node" ]] || die "$label: cannot resolve containerlab node for $t"
-    # Kernel seg6 lwtunnel is required for this witness. The sonic-vs image
-    # runs on the container host kernel (supports seg6); the sonic-vm guest
-    # runs the SONiC Debian kernel where LWTUNNEL/seg6 is disabled — "ip
-    # route ... encap seg6" is silently accepted but the encap is dropped.
-    # Probe once and skip the kernel witness with an explicit note when the
-    # node kernel cannot host it (the gNMI CONFIG_DB SRv6 witnesses above
-    # still cover SRv6 control-plane state on both profiles).
+    # Kernel seg6 lwtunnel is required for this witness. Per the research
+    # addendum (feature 004, verified on this lab): seg6 IS built into the
+    # sonic-vm guest kernel; the earlier "kernel has seg6 disabled" reading
+    # was an artifact of probing on `dev lo`, which silently drops the route.
+    # The probe therefore binds to the real `Loopback0` (T028), and only a
+    # genuinely non-programmable node falls out below. Probe once; when the
+    # node cannot host the witness the check exits SKIP (77) so the gate
+    # counts it as skipped, never passed (T029) — the gNMI CONFIG_DB SRv6
+    # witnesses still cover SRv6 control-plane state on both profiles.
     if [[ -z "${SEG6_KERNEL_OK:-}" ]]; then
       local probe_out
-      probe_out=$(node_run "$node" "sudo ip -6 route replace 2001:db8:7fff:ffff::/64 encap seg6 mode encap segs fc00::1 dev lo 2>/dev/null && sudo ip -6 route show 2001:db8:7fff:ffff::/64; sudo ip -6 route del 2001:db8:7fff:ffff::/64 >/dev/null 2>&1" 2>/dev/null || true)
+      probe_out=$(seg6_probe_out "$node")
       if grep -q 'encap seg6' <<<"$probe_out"; then
         SEG6_KERNEL_OK=1
       else
         SEG6_KERNEL_OK=0
-        note "$t: kernel seg6 lwtunnel unavailable — skipping $label kernel witness (control-plane SRv6 state asserted via gNMI)"
-        continue
+        note "$t: kernel seg6 lwtunnel unavailable — $label exits SKIP (77); control-plane SRv6 state is still asserted via gNMI"
+        exit 77
       fi
     elif [[ "$SEG6_KERNEL_OK" == "0" ]]; then
-      continue
+      exit 77
     fi
     # WITNESS_TAG is a decimal epoch; fold it into a valid 16-bit hextet
     local tag_hex
     tag_hex=$(printf '%04x' $(( WITNESS_TAG % 65536 )))
     probe="2001:db8:7f:${tag_hex}::/64"
-    node_run "$node" "sudo ip -6 route replace '$probe' encap seg6 mode '$mode' segs '$segs' dev lo" \
+    node_run "$node" "sudo ip -6 route replace '$probe' encap seg6 mode '$mode' segs '$segs' dev ${dev}" \
       || die "$label $t: kernel rejected seg6 $mode encap route"
     out=$(node_run "$node" "sudo ip -6 route show '$probe'")
     node_run "$node" "sudo ip -6 route del '$probe'" >/dev/null 2>&1 || true
@@ -348,23 +396,63 @@ evpn_wait_established() {
 # the kernel martian-drops packets carrying it as source.
 evpn_session_up_vm() {
   local na=$1 nb=$2 ns n
-  ns=$(docker ps --format '{{.Names}}' | grep "^${CLAB_PREFIX}" | grep spine | head -n1)
+  # Resolve the spine BY NAME: the addressing below is bound to the topology
+  # links (spine01:eth1 -> leaf01:eth1, spine01:eth2 -> leaf02:eth1,
+  # lab/topology.sonic-vm.clab.yml). `docker ps | grep spine | head` is
+  # creation-order dependent: on the 18:23 redeploy it returned spine02 first,
+  # so 10.2.0.2/30 landed on spine02:eth1 (cabled to leaf01:eth2) and
+  # 10.2.0.5/30 on spine02:eth2 (cabled to leaf02:eth2) — the leaves' eth1
+  # pings then had no ARP responder on their actual cables (measured 19:1x:
+  # leaf02 neigh 10.2.0.5 INCOMPLETE with 10.2.0.5 on spine02:eth2). Fall back
+  # to the first spine in sorted order only if spine01 does not exist.
+  if ! docker inspect "${CLAB_PREFIX}spine01" >/dev/null 2>&1; then
+    ns=$(docker ps --format '{{.Names}}' | grep "^${CLAB_PREFIX}" | grep spine | sort | head -n1)
+  else
+    ns="${CLAB_PREFIX}spine01"
+  fi
   [[ -n "$ns" ]] || die "EVPN-VM: cannot resolve spine node"
   node_run "$ns" "sudo ip addr replace 10.2.0.2/30 dev eth1 2>/dev/null || true; sudo ip addr replace 10.2.0.5/30 dev eth2 2>/dev/null || true; sudo ip link set eth1 up; sudo ip link set eth2 up" || true
-  node_run "$na" "sudo ip addr replace 10.2.0.1/30 dev eth1; sudo ip link set eth1 up" || true
-  node_run "$nb" "sudo ip addr replace 10.2.0.6/30 dev eth1; sudo ip link set eth1 up" || true
-  node_run "$na" 'ping -q -c1 -W2 10.2.0.2 >/dev/null' || die "EVPN-VM: leaf01 cannot reach spine over eth1"
-  node_run "$nb" 'ping -q -c1 -W2 10.2.0.5 >/dev/null' || die "EVPN-VM: leaf02 cannot reach spine over eth1"
+  # The gate's own persistence check reloads every guest seconds before this
+  # check runs; swss/syncd restarts leave the dataplane ports flapping and can
+  # swallow a bring-up write while the guest services return (measured
+  # 2026-10-14: leaf01 -> spine01 over eth1 died in that exact window, then
+  # passed unchanged on the settled lab). Bring-up is idempotent, so the
+  # kernel assertions below retry bring-up + ping inside the same bounded
+  # budget the rest of this flavour already uses (bgpd 30x2s, Established
+  # 20x4s). The assertions themselves are unchanged.
+  local attempt ok1=0 ok2=0 ok3=0
+  for attempt in $(seq 1 15); do
+    node_run "$ns" "sudo ip addr replace 10.2.0.2/30 dev eth1 2>/dev/null || true; sudo ip addr replace 10.2.0.5/30 dev eth2 2>/dev/null || true; sudo ip link set eth1 up; sudo ip link set eth2 up" || true
+    node_run "$na" "sudo ip addr replace 10.2.0.1/30 dev eth1; sudo ip link set eth1 up" || true
+    node_run "$nb" "sudo ip addr replace 10.2.0.6/30 dev eth1; sudo ip link set eth1 up" || true
+    if [[ $ok1 -eq 0 ]] && node_run "$na" 'ping -q -c1 -W2 10.2.0.2 >/dev/null'; then ok1=1; fi
+    if [[ $ok2 -eq 0 ]] && node_run "$nb" 'ping -q -c1 -W2 10.2.0.5 >/dev/null'; then ok2=1; fi
+    [[ $ok1 -eq 1 && $ok2 -eq 1 ]] && break
+    sleep 2
+  done
+  [[ $ok1 -eq 1 ]] || die "EVPN-VM: leaf01 cannot reach spine over eth1"
+  [[ $ok2 -eq 1 ]] || die "EVPN-VM: leaf02 cannot reach spine over eth1"
   # static routes so the leaves can reach each other's peering subnet via the spine
   node_run "$na" 'sudo ip route replace 10.2.0.4/30 via 10.2.0.2 dev eth1' || true
   node_run "$nb" 'sudo ip route replace 10.2.0.0/30 via 10.2.0.5 dev eth1' || true
-  node_run "$nb" 'ping -q -c1 -W3 10.2.0.1 >/dev/null' || die "EVPN-VM: leaf02 cannot route to leaf01 via spine"
+  for attempt in $(seq 1 5); do
+    if node_run "$nb" 'ping -q -c1 -W3 10.2.0.1 >/dev/null'; then ok3=1; break; fi
+    node_run "$na" 'sudo ip route replace 10.2.0.4/30 via 10.2.0.2 dev eth1' || true
+    node_run "$nb" 'sudo ip route replace 10.2.0.0/30 via 10.2.0.5 dev eth1' || true
+    sleep 3
+  done
+  [[ $ok3 -eq 1 ]] || die "EVPN-VM: leaf02 cannot route to leaf01 via spine"
   for n in "$na" "$nb"; do
     node_run "$n" 'sudo systemctl start bgp >/dev/null 2>&1' || true
   done
-  # The image boots bgpd with AS 65100 and router-id 10.1.0.1 (Loopback0) on EVERY
-  # node — peering must reuse the running AS (iBGP) and set distinct router-ids or
-  # the OPEN clash fails with Bad BGP Identifier.
+  # The image boots bgpd with router-id 10.1.0.1 (Loopback0) on EVERY node —
+  # peering must set distinct router-ids or the OPEN clash fails with Bad BGP
+  # Identifier. AS 65100 was the FACTORY default; the as-built bootstrap
+  # re-identifies the leaves (leaf01=65101, leaf02=65102 from fabric.yaml),
+  # and `router bgp 65100` is then refused ("BGP instance is already running;
+  # AS is 65101", measured 2026-10-14 19:2x). Read each leaf's RUNNING AS and
+  # peer with the other leaf's real AS — the assertion is unchanged: the
+  # session must negotiate L2VPN EVPN and reach Established.
   # wait for the bgpd to exist inside each guest's bgp container
   local i up=0
   for i in $(seq 1 30); do
@@ -376,9 +464,26 @@ evpn_session_up_vm() {
     sleep 2
   done
   [[ $up -eq 1 ]] || die "EVPN-VM: bgpd did not come up on $na/$nb"
-  node_run "$na" "sudo vtysh -c 'configure terminal' -c 'router bgp 65100' -c 'bgp router-id 10.2.0.1' -c 'neighbor 10.2.0.6 remote-as 65100' -c 'address-family l2vpn evpn' -c 'neighbor 10.2.0.6 activate'" >/dev/null 2>&1 \
+  local as_a as_b
+  as_a=$(node_run "$na" 'vtysh -c "show running-config" 2>/dev/null | grep -m1 "^router bgp " | awk "{print \$3}"' | tr -d '\r[:space:]')
+  as_b=$(node_run "$nb" 'vtysh -c "show running-config" 2>/dev/null | grep -m1 "^router bgp " | awk "{print \$3}"' | tr -d '\r[:space:]')
+  [[ "$as_a" =~ ^[0-9]+$ ]] || as_a=65100
+  [[ "$as_b" =~ ^[0-9]+$ ]] || as_b=65100
+  # With distinct leaf ASNs (as-built) the peering is eBGP, and the peering
+  # TCP is L3-forwarded by the spine — a 2-hop path. eBGP defaults to TTL 1
+  # and a connected-check, so the SYN dies on the spine ("From 10.2.0.2 Time
+  # to live exceeded", measured 2026-10-14 19:3x) and the session sticks in
+  # Active. ebgp-multihop 2 is the standard remedy; it is only valid for eBGP
+  # peers, so apply it only when the ASNs differ (factory iBGP case keeps the
+  # plain form).
+  local mh_a="" mh_b=""
+  if [[ "$as_a" != "$as_b" ]]; then
+    mh_a=" -c 'neighbor 10.2.0.6 ebgp-multihop 2'"
+    mh_b=" -c 'neighbor 10.2.0.1 ebgp-multihop 2'"
+  fi
+  node_run "$na" "sudo vtysh -c 'configure terminal' -c 'router bgp $as_a' -c 'bgp router-id 10.2.0.1' -c 'neighbor 10.2.0.6 remote-as $as_b'$mh_a -c 'address-family l2vpn evpn' -c 'neighbor 10.2.0.6 activate'" >/dev/null 2>&1 \
     || die "EVPN-VM: bgpd on $na rejected EVPN AF configuration"
-  node_run "$nb" "sudo vtysh -c 'configure terminal' -c 'router bgp 65100' -c 'bgp router-id 10.2.0.6' -c 'neighbor 10.2.0.1 remote-as 65100' -c 'address-family l2vpn evpn' -c 'neighbor 10.2.0.1 activate'" >/dev/null 2>&1 \
+  node_run "$nb" "sudo vtysh -c 'configure terminal' -c 'router bgp $as_b' -c 'bgp router-id 10.2.0.6' -c 'neighbor 10.2.0.1 remote-as $as_a'$mh_b -c 'address-family l2vpn evpn' -c 'neighbor 10.2.0.1 activate'" >/dev/null 2>&1 \
     || die "EVPN-VM: bgpd on $nb rejected EVPN AF configuration"
   for i in $(seq 1 20); do
     if node_run "$na" 'vtysh -c "show bgp l2vpn evpn summary json"' 2>/dev/null | grep -q '"state":"Established"'; then
@@ -403,36 +508,40 @@ assert_evpn_established() {
   note "$node: $label asserted (L2VPN EVPN session Established with $peer)"
 }
 
-EVPN_Type2() {
+# T567: these three checks assert ONLY that the L2VPN EVPN session reaches
+# Established (plus, for the JSON-RIB one, that the RIB answers as JSON) —
+# no MAC/IP (Type-2), IMET (Type-3) or IP-prefix (Type-5) route content is
+# asserted — so their names say what is asserted, not what is not.
+EVPN_Session_Established_MACIP() {
   evpn_session_up
   IFS=',' read -ra tgts <<<"$TARGETS"
-  assert_evpn_established "EVPN-Type2 (MAC/IP advertisement AF)" "$(node_for_ip "${tgts[0]%%:*}")" "${tgts[1]%%:*}"
+  assert_evpn_established "EVPN-Session-Established-MACIP (session Established only; no MAC/IP route content asserted)" "$(node_for_ip "${tgts[0]%%:*}")" "${tgts[1]%%:*}"
 }
 
-EVPN_Type3() {
+EVPN_Session_Established_IMET() {
   evpn_session_up
   IFS=',' read -ra tgts <<<"$TARGETS"
-  assert_evpn_established "EVPN-Type3 (inclusive multicast AF)" "$(node_for_ip "${tgts[1]%%:*}")" "${tgts[0]%%:*}"
+  assert_evpn_established "EVPN-Session-Established-IMET (session Established only; no IMET route content asserted)" "$(node_for_ip "${tgts[1]%%:*}")" "${tgts[0]%%:*}"
 }
 
-EVPN_Type5() {
+EVPN_Session_Established_JSONRIB() {
   evpn_session_up
   IFS=',' read -ra tgts <<<"$TARGETS"
-  # Type-5 (IP prefix): this FRR build has no per-route-type walk command, so
-  # assert the EVPN RIB answers as structured JSON (route-type filtering lives
-  # in the table dump the way SONiC's bgpd exposes it)
+  # What this check adds over the two above: the EVPN RIB answers as
+  # structured JSON (route-type filtering lives in the table dump the way
+  # SONiC's bgpd exposes it). No Type-5 route content is asserted.
   local node out
   node=$(node_for_ip "${tgts[0]%%:*}")
   out=$(node_run "$node" 'vtysh -c "show bgp l2vpn evpn json"' 2>&1)
-  jq -e . >/dev/null 2>&1 <<<"$out" || die "EVPN-Type5: EVPN RIB not parsable as JSON: $out"
-  assert_evpn_established "EVPN-Type5 (IP prefix AF)" "$node" "${tgts[1]%%:*}"
+  jq -e . >/dev/null 2>&1 <<<"$out" || die "EVPN-Session-Established-JSONRIB: EVPN RIB not parsable as JSON: $out"
+  assert_evpn_established "EVPN-Session-Established-JSONRIB (session Established, RIB parses as JSON; no prefix route content asserted)" "$node" "${tgts[1]%%:*}"
 }
 
 main() {
   case "$1" in
-    EVPN-Type2) EVPN_Type2 ;;
-    EVPN-Type3) EVPN_Type3 ;;
-    EVPN-Type5) EVPN_Type5 ;;
+    EVPN-Session-Established-MACIP) EVPN_Session_Established_MACIP ;;
+    EVPN-Session-Established-IMET) EVPN_Session_Established_IMET ;;
+    EVPN-Session-Established-JSONRIB) EVPN_Session_Established_JSONRIB ;;
     SRv6-Underlay) SRv6_Underlay ;;
     H.Encaps.Red) H_Encaps_Red ;;
     End) End ;;
@@ -440,6 +549,7 @@ main() {
     SID-list) SID_list_steering ;;
     Decapsulation) Decapsulation ;;
     Counters) Counters ;;
+    seg6-probe-selftest) seg6_probe_selftest ;;
     *) echo "unknown test $1" >&2; exit 2 ;;
   esac
 }

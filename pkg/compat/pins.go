@@ -50,6 +50,13 @@ var shortKeyToAnnotation = map[string]string{
 	"topology-label-contract":  ContractTopologyLabel,
 	"telemetry-label-contract": ContractTelemetryLabel,
 	"cap-sai-srv6":             "agentic-netops.dev/cap.sai.srv6",
+	// T026 (contracts/capability-record.md §2/§5): srv6-supported is the
+	// derived transport-support assertion (profile declares an SRv6-capable
+	// variant proven by the gate) — a sibling of cap.* so it rides the same
+	// label routing. lab-profile is informational provenance: which lab
+	// profile this generation served.
+	"srv6-supported": "agentic-netops.dev/cap.srv6.supported",
+	"lab-profile":    "agentic-netops.dev/lab-profile",
 }
 
 // AnnotationFor returns the pin/contract name a ConfigMap key feeds.

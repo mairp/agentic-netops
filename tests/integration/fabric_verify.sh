@@ -15,14 +15,19 @@ LEAVES=${LEAVES:-"172.31.0.21:8080,172.31.0.22:8080"}
 SPINES=${SPINES:-"172.31.0.11:8080,172.31.0.12:8080"}
 CLAB_PREFIX=${CLAB_PREFIX:-clab-agentic-netops-fabric-}
 # Node names parallel to LEAVES/SPINES. BGP session state is FRR state, not
-# CONFIG_DB state, so it is read through vtysh over docker exec — the same route
-# evpn_srv6_suite.sh and mtu_ecmp.sh already use.
+# CONFIG_DB state, so it is read through vtysh on the node itself. Node-side
+# dispatch goes through node_run (T219): docker exec into the switch on
+# sonic-vs, SSH into the guest on sonic-vm — client containers keep docker exec.
 LEAF_NODES=${LEAF_NODES:-"${CLAB_PREFIX}leaf01,${CLAB_PREFIX}leaf02"}
 # L2 VNI carrying the bridged tenant VLAN. Used by both the peer-arrival
 # assertion in verify_evpn_overlay and the convergence wait in
 # drive_client_traffic (previously hardcoded as 100 in the latter).
 L2VNI=${L2VNI:-100}
 SPINE_NODES=${SPINE_NODES:-"${CLAB_PREFIX}spine01,${CLAB_PREFIX}spine02"}
+
+# node-side op dispatch (docker exec vs SSH-into-guest for sonic-vm)
+# shellcheck source=lib/node_exec.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/node_exec.sh"
 AGENTIC_NETOPS_CLUSTER_NAME=${AGENTIC_NETOPS_CLUSTER_NAME:-agentic-netops}
 KUBE_CTX=${KUBE_CTX:-kind-${AGENTIC_NETOPS_CLUSTER_NAME}}
 
@@ -239,12 +244,12 @@ assert_sdb_entries() {
 vtysh_json() {
   # vtysh_json <node> <command> -> FRR JSON, or QUERY_FAILED when bgpd is absent.
   local n=$1 cmd=$2 out
-  if ! docker exec "$n" bash -c 'pgrep -x bgpd >/dev/null' 2>/dev/null; then
+  if ! node_run "$n" 'pgrep -x bgpd >/dev/null' 2>/dev/null; then
     printf 'QUERY_FAILED'
     return 0
   fi
   set +e
-  out=$(docker exec "$n" vtysh -c "$cmd" 2>&1)
+  out=$(node_run "$n" "vtysh -c $(printf %q "$cmd")" 2>&1)
   set -e
   printf '%s' "$out"
 }
@@ -360,7 +365,7 @@ verify_evpn_overlay() {
     # structurally dead overlay produced a passing route section and a failing
     # ping with no explanation connecting them.
     local vni_out remote_vteps
-    vni_out=$(docker exec "$n" vtysh -c 'show evpn vni' 2>/dev/null || true)
+    vni_out=$(node_run "$n" 'vtysh -c "show evpn vni"' 2>/dev/null || true)
     if [[ -z "$vni_out" ]] || ! grep -qE "^${L2VNI}[[:space:]]" <<<"$vni_out"; then
       echo "[$n] ASSERTION FAILED: L2 VNI ${L2VNI} not present in 'show evpn vni' — bgpd/zebra never adopted the VNI, so the overlay cannot forward" >&2
       rc=1
@@ -413,8 +418,8 @@ drive_client_traffic() {
   for i in $(seq 1 60); do
     # Remote VTEPs column ≥ 1 for vni 100 means the peer IMET arrived
     ok1=0; ok2=0
-    docker exec "$n1" vtysh -c 'show evpn vni' 2>/dev/null | grep -E '^100 .*[1-9][0-9]*\s+default' >/dev/null && ok1=1
-    docker exec "$n2" vtysh -c 'show evpn vni' 2>/dev/null | grep -E '^100 .*[1-9][0-9]*\s+default' >/dev/null && ok2=1
+    node_run "$n1" 'vtysh -c "show evpn vni"' 2>/dev/null | grep -E '^100 .*[1-9][0-9]*\s+default' >/dev/null && ok1=1
+    node_run "$n2" 'vtysh -c "show evpn vni"' 2>/dev/null | grep -E '^100 .*[1-9][0-9]*\s+default' >/dev/null && ok2=1
     if [[ "$ok1" -eq 1 && "$ok2" -eq 1 ]]; then
       wait_ok=1
       break
@@ -483,7 +488,7 @@ verify_loopback_reachability() {
       # Verified 2026-09-03 on a live lab. Loopback0 IPv6 reachability is what
       # this assertion is for, and it is only meaningful against the address the
       # underlay advertises.
-      out=$(docker exec "$src" ping -6 -c 3 -W 2 "$dst_addr" 2>&1) || true
+      out=$(node_run "$src" "ping -6 -c 3 -W 2 $dst_addr" 2>&1) || true
       if grep -q " 0% packet loss" <<<"$out"; then ok=1; break; fi
       sleep 5
     done
@@ -508,7 +513,7 @@ verify_ipv6_waypoint_reachability() {
     local dst_v6
     dst_v6=$(_fetch_loopback_v6 "${LEAVES##*,}") || true
     if [[ -n "${dst_v6:-}" ]]; then
-      docker exec "$src" bash -lc "traceroute -6 -n -q1 -m 10 ${dst_v6} || true"
+      node_run "$src" "traceroute -6 -n -q1 -m 10 ${dst_v6} || true"
       echo "IPv6 waypoint reachability" # keyword for proof grepping
     else
       echo "[fabric-verify] WARN: no waypoint or dst loopback; skipping" >&2
@@ -516,7 +521,7 @@ verify_ipv6_waypoint_reachability() {
     fi
   else
     for wp in $waypoints; do
-      docker exec "$src" bash -lc "traceroute -6 -n -q1 -m 10 ${wp} || true"
+      node_run "$src" "traceroute -6 -n -q1 -m 10 ${wp} || true"
     done
     echo "IPv6 waypoint reachability"
   fi

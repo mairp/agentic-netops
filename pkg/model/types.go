@@ -80,29 +80,33 @@ type MySID struct {
 	VRF      string // for End.DT46/VRF
 }
 
-// SIDList represents an ordered list of SIDs for steering.
-type SIDList struct {
-	Name string
-	SIDs []string
+// SRv6MyLocator models one SRV6_MY_LOCATORS row on a node. Bootstrap-owned
+// (FR-006): a service reads the locator and never writes it.
+type SRv6MyLocator struct {
+	Node   string // node identifier; CONFIG_DB row key becomes loc-<node>
+	Prefix string // node locator IPv6 /48, e.g. fcbb:bbbb:1::/48
 }
 
-// SRPolicy represents a steering policy.
-type SRPolicy struct {
-	Name       string
-	Selector   string // match expression or interface
-	SIDListRef string
+// SRv6MySid models one SRV6_MY_SIDS row for a service decap SID. Measured on
+// the pinned image: the row is YANG-accepted but does not program the
+// dataplane (proof spike-sid-write); the as-built plan uses kernel routes.
+type SRv6MySid struct {
+	Node     string // locator owner; row key becomes loc-<node>|<prefix>
+	Prefix   string // SID /64, e.g. fcbb:bbbb:1:11::/64
+	Action   string // e.g. uDT46
+	DecapVRF string // decap_vrf field for uDT46
 }
 
 // ACL represents an access-list table with rules.
 // Kept minimal for renderer/register coverage; not used by fabric planner.
 type ACL struct {
-	Name        string
-	Stage       string // ingress | egress
-	Type        string // l3 | l3v6
-	Ports       []string
-	PolicyDesc  string
+	Name          string
+	Stage         string // ingress | egress
+	Type          string // l3 | l3v6
+	Ports         []string
+	PolicyDesc    string
 	DefaultAction string
-	Rules       []ACLRule
+	Rules         []ACLRule
 }
 
 // ACLRule is one match/action entry in an ACL table.

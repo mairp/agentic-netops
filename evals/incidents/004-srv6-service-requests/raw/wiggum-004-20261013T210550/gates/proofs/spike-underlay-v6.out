@@ -1,0 +1,71 @@
+===== spine01: BGP v6 sessions (timers normalized) =====
+% Unknown command: show ipv6 bgp summary
+===== spine01: BGP-learned v6 routes =====
+B>* 2001:db8:ff::12/128 [20/0] via fe80::UPTIME:eff:feeb:a3f0, Ethernet4, rmapsrc 2001:db8:ff::11, weight 1, UPTIME
+B>* 2001:db8:ff::21/128 [20/0] via fe80::20bc:dcff:fee7:dd3c, Ethernet0, rmapsrc 2001:db8:ff::11, weight 1, UPTIME
+B>* 2001:db8:ff::22/128 [20/0] via fe80::UPTIME:eff:feeb:a3f0, Ethernet4, rmapsrc 2001:db8:ff::11, weight 1, UPTIME
+===== spine01: v6 loopback reachability (sourced from own loopback) =====
+-- spine01 -> spine02 (2001:db8:ff::12): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- spine01 -> leaf01 (2001:db8:ff::21): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- spine01 -> leaf02 (2001:db8:ff::22): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+REACHABILITY spine01 v6: 3/3
+===== spine02: BGP v6 sessions (timers normalized) =====
+% Unknown command: show ipv6 bgp summary
+===== spine02: BGP-learned v6 routes =====
+B>* 2001:db8:ff::11/128 [20/0] via fe80::UPTIME:eff:feeb:a3f0, Ethernet4, rmapsrc 2001:db8:ff::12, weight 1, UPTIME
+B>* 2001:db8:ff::21/128 [20/0] via fe80::20bc:dcff:fee7:dd3c, Ethernet0, rmapsrc 2001:db8:ff::12, weight 1, UPTIME
+B>* 2001:db8:ff::22/128 [20/0] via fe80::UPTIME:eff:feeb:a3f0, Ethernet4, rmapsrc 2001:db8:ff::12, weight 1, UPTIME
+===== spine02: v6 loopback reachability (sourced from own loopback) =====
+-- spine02 -> spine01 (2001:db8:ff::11): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- spine02 -> leaf01 (2001:db8:ff::21): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- spine02 -> leaf02 (2001:db8:ff::22): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+REACHABILITY spine02 v6: 3/3
+===== leaf01: BGP v6 sessions (timers normalized) =====
+% Unknown command: show ipv6 bgp summary
+===== leaf01: BGP-learned v6 routes =====
+B>* 2001:db8:ff::11/128 [20/0] via 2001:db8:1::3, Ethernet0, rmapsrc 2001:db8:ff::21, weight 1, UPTIME
+B>* 2001:db8:ff::12/128 [20/0] via 2001:db8:2::3, Ethernet4, rmapsrc 2001:db8:ff::21, weight 1, UPTIME
+B>* 2001:db8:ff::22/128 [20/0] via 2001:db8:1::3, Ethernet0, rmapsrc 2001:db8:ff::21, weight 1, UPTIME
+===== leaf01: v6 loopback reachability (sourced from own loopback) =====
+-- leaf01 -> spine01 (2001:db8:ff::11): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- leaf01 -> spine02 (2001:db8:ff::12): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- leaf01 -> leaf02 (2001:db8:ff::22): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+REACHABILITY leaf01 v6: 3/3
+===== leaf02: BGP v6 sessions (timers normalized) =====
+% Unknown command: show ipv6 bgp summary
+===== leaf02: BGP-learned v6 routes =====
+B>* 2001:db8:ff::11/128 [20/0] via 2001:db8:1::5, Ethernet0, rmapsrc 2001:db8:ff::22, weight 1, UPTIME
+B>* 2001:db8:ff::12/128 [20/0] via 2001:db8:2::5, Ethernet4, rmapsrc 2001:db8:ff::22, weight 1, UPTIME
+B>* 2001:db8:ff::21/128 [20/0] via 2001:db8:1::5, Ethernet0, rmapsrc 2001:db8:ff::22, weight 1, UPTIME
+===== leaf02: v6 loopback reachability (sourced from own loopback) =====
+-- leaf02 -> spine01 (2001:db8:ff::11): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- leaf02 -> spine02 (2001:db8:ff::12): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+-- leaf02 -> leaf01 (2001:db8:ff::21): OK
+2 packets transmitted, 2 received, 0% packet loss, time Xms
+rtt min/avg/max/mdev = X ms
+REACHABILITY leaf02 v6: 3/3
+TOTAL REACHABILITY v6: 12/12
+
+[exit code: 0]

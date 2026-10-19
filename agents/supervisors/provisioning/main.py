@@ -126,7 +126,23 @@ async def handle_stream_prompt(request: PromptRequest):
     chunk carries ``correlation_id`` and a ``status`` drawn only from
     NetworkProvisioningStatus; a failure names the responsible stage
     (FR-034). Never hangs: the graph is bounded (FR-004)."""
-    correlation_id = uuid.uuid4().hex  # 32-hex, the W3C trace id of the root span
+    # SC-010 claims traceability: the correlation id must be STABLE across the
+    # thread. Allocation happens on one stream (the allocator claims identifiers
+    # keyed by this id), submission on the next (the deployer stamps the same id
+    # onto the created objects), and release on decline/delete (releaseAll looks
+    # claims up by it) — minting a fresh id per stream orphans every claim the
+    # moment the next turn starts. A continuing thread therefore reuses the id
+    # already recorded in its checkpointed state; only a NEW thread mints one.
+    correlation_id = ""
+    if request.thread_id:
+        try:
+            snap = await get_graph().aget_state(
+                {"configurable": {"thread_id": request.thread_id}}
+            )
+            correlation_id = (snap.values or {}).get("correlation_id") or ""
+        except Exception:
+            correlation_id = ""
+    correlation_id = correlation_id or uuid.uuid4().hex  # 32-hex, the W3C trace id of the root span
     thread_id = request.thread_id or str(uuid.uuid4())
     principal = request.principal or "operator"
 

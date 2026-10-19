@@ -1,0 +1,14 @@
+===== stage 1: kernel cleanup + verified table removals (all nodes) =====
+--- spine01
+--- spine02
+--- leaf01
+Error: Validate json patch: [{"op": "remove", "path": "/VRF"}] failed due to:Data Loading Failed
+Leafref "/sonic-vrf:sonic-vrf/sonic-vrf:VRF/sonic-vrf:VRF_LIST/sonic-vrf:name" of value "Vrf1" points to a non-existing leaf.
+sonic_yang(3):Data Loading Failed:Leafref "/sonic-vrf:sonic-vrf/sonic-vrf:VRF/sonic-vrf:VRF_LIST/sonic-vrf:name" of value "Vrf1" points to a non-existing leaf.
+FAIL: leaf01 /VRF removal did not take (keys now: 1)
+--- leaf02
+Error: Validate json patch: [{"op": "remove", "path": "/VRF"}] failed due to:Data Loading Failed
+Leafref "/sonic-vrf:sonic-vrf/sonic-vrf:VRF/sonic-vrf:VRF_LIST/sonic-vrf:name" of value "Vrf1" points to a non-existing leaf.
+sonic_yang(3):Data Loading Failed:Leafref "/sonic-vrf:sonic-vrf/sonic-vrf:VRF/sonic-vrf:VRF_LIST/sonic-vrf:name" of value "Vrf1" points to a non-existing leaf.
+FAIL: leaf02 /VRF removal did not take (keys now: 1)
+stage 1 FAILED — CONFIG_DB not clean; refusing to fake a seed

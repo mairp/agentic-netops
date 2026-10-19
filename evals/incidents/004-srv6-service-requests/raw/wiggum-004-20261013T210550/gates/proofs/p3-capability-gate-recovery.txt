@@ -1,0 +1,22 @@
+# Capability gate after pass-15 recovery redeploy (provision3 rc=1, provision4 rc=1 —
+# gate raced the qualify persistence-stage config reload; lab then verified warm and
+# the full 10-test gate re-executed standalone, qualify order, all rc=0):
+#
+# provision3.log: [evpn-srv6-suite] FAIL: EVPN-VM: leaf01 cannot reach spine over eth1 / PROVISION-RC=1
+# provision4.log: [evpn-srv6-suite] FAIL: EVPN-VM: leaf01 cannot reach spine over eth1 / PROVISION-RC=1
+# wire check leaf01 10.2.0.1/30 -> spine01 10.2.0.2/30: 2/2 received
+#
+# tests/integration/evpn_srv6_suite.sh --run <t> per scripts/lib/qualify.sh:88-91:
+#   EVPN-Type2: rc=0
+#   EVPN-Type3: rc=0
+#   EVPN-Type5: rc=0
+#   SRv6-Underlay: rc=0
+#   H.Encaps.Red: rc=0
+#   End: rc=0
+#   End.DT46: rc=0
+#   SID-list: rc=0
+#   Decapsulation: rc=0
+#   Counters: rc=0
+#
+# tail of the EVPN-Type2 run (gate-evpn2b.log):
+     1	[evpn-srv6-suite] clab-agentic-netops-fabric-leaf01: EVPN-Type2 (MAC/IP advertisement AF) asserted (L2VPN EVPN session Established with 172.31.0.22)

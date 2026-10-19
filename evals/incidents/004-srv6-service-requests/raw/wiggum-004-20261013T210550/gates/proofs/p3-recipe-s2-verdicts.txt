@@ -1,0 +1,41 @@
+# docs/SRV6_SERVICE_RECIPE.md — verdict vocabulary + §4/§6 verdict rows (pass-10)
+18:  refute; none is a proven device command. Device commands and read-backs are
+20:- A verdict is `proven` or `not achievable` (spec SC-001). A `proven` verdict
+28:  `proven` verdict is refused by name, never half-delivered (spec FR-005,
+33:Verdict vocabulary for the tables: `proven` or `not achievable` — the two
+35:deferring bridged EVPN; the deferral is recorded as `not achievable` here
+37:the as-built lab), and requests for any unproven item are refused by name.
+41:**Status: proven on the pinned sonic-vm lab.** The underlay (per-node
+77:| per-node identity (loopbacks v4/v6, ASN, router-id) | proven | `spike-identity-spine01`, `spike-identity-spine02`, `spike-identity-leaf01`, `spike-identity-leaf02` | replaces the image default (Loopback0 10.1.0.1/32, AS 65100); idempotent re-assert |
+78:| fabric link addressing (/31 v4 + /127 v6, 4 links) | proven | `spike-underlay-v4`, `spike-underlay-v6`, `spike-underlay-v4-leaf01` … per node | measured addresses match §7 of data-model.md |
+79:| underlay BGP IPv4 + IPv6 unicast established | proven | `spike-underlay-apply-leaf01` … per node, `spike-underlay-v4`, `spike-underlay-v6` | 2 sessions per family per leaf, 3 per spine; loopback reachability both families |
+80:| one locator per node via GCU (CONFIG_DB) + FRR | proven | `spike-locator-spine01`, `spike-locator-spine02`, `spike-locator-leaf01`, `spike-locator-leaf02` | `fcbb:bbbb:<node>::/48`, `loc-<node>` Up in the FRR locator table and in CONFIG_DB |
+81:| locator end-to-end reachability | proven | `spike-locator-reach` | 12/12 ordered pairs pass (test address inside each /48) |
+82:| `seg6_enabled` + `net.vrf.strict_mode` | proven | `spike-kernel-seg6`, `spike-kernel-strict-mode` | knobs are 0 on the factory image; write path is `/proc/sys` (no sysctl binary on the guest) |
+83:| `vrf` kernel module | proven | `spike-kernel-vrf-module` | not loaded on a fresh boot; auto-loads on first VRF device |
+84:| seg6 lwtunnel witness on a real interface | proven | `spike-kernel-seg6` | `Loopback0` works; `dev lo` silently drops the encap (false negative confirmed) |
+85:| guest port map (EthernetN ↔ launcher iface) | proven | `spike-portmap-leaf01`, `spike-portmap-spine01`, `spike-portmap-spine02`, `spike-portmap-leaf02` | recorded for captures and failure actions |
+130:| Vrf1 create + client-port attach (CONFIG_DB) | proven | `spike-vrf-apply-leaf01`, `spike-vpn-state-leaf02` | field-level GCU adds; a whole-table `/INTERFACE` replace WIPES the fabric links (measured) — never remove what the service does not own |
+131:| per-service End.DT46 decap | proven | `spike-vpn-state-leaf01`, `spike-vpn-state-leaf02`, `spike-vpn-readback-leaf01` | kernel route `fcbb:bbbb:<n>:11::/64 encap seg6local action End.DT46 vrftable 1001 dev Vrf1 metric 1024` |
+132:| ingress encapsulation toward the peer SID | proven | `spike-vpn-capture`, `spike-steering-path` | kernel route in Vrf1: `<peer-subnet> encap seg6 mode encap segs 1 [ fcbb:bbbb:<peer>:11:: ] dev Ethernet0` |
+133:| wire format witness (SRH on the fabric) | proven | `spike-vpn-capture` | tcpdump shows IPv6 + Routing header dst = the peer service SID; decap witnessed on the egress leaf's kernel route |
+134:| client-to-client traffic (acceptance bar) | proven | `spike-vpn-ping`, `spike-vpn-clients` | 0% loss both directions at default size AND 8900-byte payload DF |
+135:| BGP-signalled service SID (vpnv4/vpnv6) | not achievable | `spike-vpn-readback-leaf01`, `spike-vpn-readback-leaf02` | this bgpd build does not carry the `address-family vpnv4/vpnv6 unicast` commands at all; the dataplane is the as-built kernel encap |
+136:| CONFIG_DB `SRV6_MY_SIDS` write class | proven — accepted, then reverted (not used as-built) | `spike-sid-write` | see §2c; the image YANG accepts a YANG-valid row and its `decap_vrf` leafref enforces integrity, but a bounded reproduction of its programming effect did not reproduce → not relied on |
+137:| rollback to factory service state | proven | `spike-vpn-rollback` | routes, `/INTERFACE` attach, `/VRF` row removed (own-process GCU removes); CONFIG_DB read-back shows no VRF/attach/SID rows, 0 seg6local routes, clients flushed; locator untouched |
+138:| persistence across `config reload -y` | not achievable | `spike-persistence` | locator survives; every piece of service kernel state is lost; rebuild = re-run the builder (see §1a caveat) |
+202:  class is proven + reverted in the same proof.
+206:**Status: not achievable on this image.** The EVPN control-plane session
+224:| L2VPN EVPN AF session across leaf-spine-leaf | proven (session only) | `spike-evpn3-state-leaf01`, `spike-evpn2-state-leaf01` | 3/3 peers Established — but pfxRcd 0 for any L3VNI attempt |
+225:| L3VNI → bgpd handoff (Type-5 precondition) | not achievable | `spike-evpn3-state-leaf01`, `spike-evpn3-state-leaf02` | zebra knows the kernel L3VNI (`vxlan-1001`, tenant Vrf1) but bgpd's VNI view reports `Number of L3 VNIs: 0` — the zebra→bgpd VNI ZAPI handoff never delivers the L3VNI, so no Type-5 route can be generated |
+226:| IPv6 Type-5 export knobs in `vrf Vrf1` AF6 | not achievable | `spike-evpn3-kl006` | `sid vpn export auto` / `rd vpn export` / `rt vpn both` stick, but `network <prefix>` is `% Unknown command` inside the VRF IPv6 AF; the EVPN table stays empty (KL-006 recorded as upstream-moot here) |
+227:| dataplane without BGP state (RT-leak attempt) | not achievable | `spike-evpn3-ping` | 100% loss both with only leaked default-table state and with ONLY EVPN signalling standing (knobs removed); the leaked subnets are a config smell the honest attempt also exposes |
+228:| restore of the §2 as-built after the attempts | proven | `spike-evpn3-ping` (leg C), `spike-evpn3-rollback` | steering routes + decap back, client traffic 0% loss again |
+229:| verdict for the renderer | **not achievable** | all of the above | `srv6-supported.yaml` refuses `ip-vrf`+`evpn` by name |
+233:**Status: not achievable on the as-built lab (owner decision 1 separately
+250:| L2VNI + Type-3 IMET signalling | proven (signalling only) | `spike-evpn2-state-leaf01`, `spike-evpn2-state-leaf02` | kernel+zebra see `vxlan-100` (L2) and `vxlan-1001` (L3); the EVPN table exchanges exactly the 2 expected IMETs (`Displayed 2 out of 4 total prefixes`) |
+251:| bridged dataplane (MAC learning, L2 forwarding) | not achievable on the as-built lab | `spike-evpn2-ping` | 0 MAC entries learnt after client traffic; no Type-2 routes; client traffic only passes via the §2 routed encap, not any bridged path |
+252:| rollback of the L2VNI attempt | proven | `spike-evpn2-rollback` | full EVPN teardown re-uses the evpn3 rollback; §2 as-built restored |
+253:| verdict for the renderer | **not achievable** (owner decision 1 separately permits deferral) | all of the above | `srv6-supported.yaml` declares it not-achievable; requests are refused by name |
+257:**Status: proven for an explicit pinned path; the SC-007 failover SLO
+280:| explicit per-service path pin through a chosen spine | proven | `spike-steering-path` | kernel FIB on leaf01: `fcbb:bbbb:4:11:: from :: via 2001:db8:1::3 dev Ethernet0 proto 196 metric 20` (spine01 leg); SRH packets seen ONLY on the preferred leg's uplink, 0 on the alternate |

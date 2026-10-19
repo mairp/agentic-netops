@@ -1,0 +1,18 @@
+# T020/T021 — versions.lock one-form sonic_vm pin + verify-pins: 2026-10-11T19:14:28Z
+$ grep -A2 "^  sonic_vm:" versions.lock.yaml
+  sonic_vm:
+    # T020 (FR-009): one image form — image@sha256:<digest> on one line; the
+    # digest read from `docker image inspect local/sonic-vm:202505` (.Id).
+    image: local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+
+$ grep -n "sonic_vm\|sonic-vm" scripts/lib/verify_pins.sh | head
+131:    sec && $1=="sonic_vm:" {vm=1; next}
+137:  # T021 (FR-009): sonic_vm is pinned in the ONE image form — a single
+140:  [[ -n "$svm_img" ]] || fail "sonic_vm image required"
+141:  [[ "$svm_img" =~ ^local/sonic-vm@sha256:[0-9a-f]{64}$ ]] || fail "sonic_vm image must be local/sonic-vm@sha256:<digest> on one line"
+159:  grep -F "image: ${svm_full}" "$LOCK_FILE" >/dev/null || fail "compatibility missing sonic_vm image ${svm_full}"
+
+$ make verify-pins
+[verify-pins] validating versions.lock.yaml
+[verify-pins] intent_tier: 5 images all pinned by immutable digest
+[verify-pins] versions.lock.yaml pins and compatibility are consistent

@@ -1,0 +1,17 @@
+?   	github.com/mairp/agentic-netops/api/v1alpha1	[no test files]
+?   	github.com/mairp/agentic-netops/cmd/intent-translator	[no test files]
+?   	github.com/mairp/agentic-netops/cmd/migration-translator	[no test files]
+?   	github.com/mairp/agentic-netops/controllers/sonicprovider	[no test files]
+?   	github.com/mairp/agentic-netops/controllers/srv6service	[no test files]
+ok  	github.com/mairp/agentic-netops/internal/lockfile	0.471s
+?   	github.com/mairp/agentic-netops/pkg/compat	[no test files]
+ok  	github.com/mairp/agentic-netops/pkg/fabricplan	(cached)
+?   	github.com/mairp/agentic-netops/pkg/kubenet	[no test files]
+?   	github.com/mairp/agentic-netops/pkg/migration	[no test files]
+?   	github.com/mairp/agentic-netops/pkg/model	[no test files]
+?   	github.com/mairp/agentic-netops/pkg/reasons	[no test files]
+?   	github.com/mairp/agentic-netops/pkg/render	[no test files]
+?   	github.com/mairp/agentic-netops/pkg/sdc	[no test files]
+?   	github.com/mairp/agentic-netops/pkg/version	[no test files]
+ok  	github.com/mairp/agentic-netops/tests/envtest	(cached)
+ok  	github.com/mairp/agentic-netops/tests/unit	(cached)

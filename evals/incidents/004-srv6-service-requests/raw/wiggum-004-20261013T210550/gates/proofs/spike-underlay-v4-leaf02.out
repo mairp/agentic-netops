@@ -1,0 +1,11 @@
+===== leaf02: fabric-link v4 addresses =====
+Ethernet0        UNKNOWN        10.1.0.3/31 
+Ethernet4        UNKNOWN        10.1.0.7/31 
+===== leaf02: BGP v4 sessions =====
+Neighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc
+10.1.0.2        4      65000        C C C C C UPTIME            3        4 N/A
+10.1.0.6        4      65000        C C C C C UPTIME            3        4 N/A
+===== leaf02: session state invariant =====
+v4 ESTABLISHED=2 OTHER=0
+
+[exit code: 0]

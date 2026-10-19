@@ -26,20 +26,20 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
@@ -52,15 +52,22 @@ const (
 
 // ---- wire types -------------------------------------------------------------
 
+type ApplyOp struct {
+	GCU     []map[string]any `json:"gcu,omitempty"`
+	Redis   []string         `json:"redis,omitempty"`
+	Shell   []string         `json:"shell,omitempty"`
+	VTYSh   []string         `json:"vtysh,omitempty"`
+	FRRConf []string         `json:"frrconf,omitempty"`
+	// OnClient scopes the op to the probe client container registered for
+	// the "<node>/<port>" attachment (FABRIC_PROBE_MAP): docker exec only,
+	// sh -c (busybox clients, data-model.md §8.7) — the client-addressing
+	// item of contracts/fabricplan-srv6.md §3.1.
+	OnClient string `json:"onClient,omitempty"`
+}
+
 type ApplyRequest struct {
-	Node string `json:"node"`
-	Ops  []struct {
-		GCU     []map[string]any `json:"gcu,omitempty"`
-		Redis   []string         `json:"redis,omitempty"`
-		Shell   []string         `json:"shell,omitempty"`
-		VTYSh   []string         `json:"vtysh,omitempty"`
-		FRRConf []string         `json:"frrconf,omitempty"`
-	} `json:"ops"`
+	Node string    `json:"node"`
+	Ops  []ApplyOp `json:"ops"`
 }
 
 type OpResult struct {
@@ -76,24 +83,31 @@ type ApplyResponse struct {
 	Results []OpResult `json:"results"`
 }
 
+type VerifyCheck struct {
+	Type        string            `json:"type"`
+	RedisKey    string            `json:"redisKey,omitempty"`
+	RedisField  string            `json:"redisField,omitempty"`
+	RedisDB     string            `json:"redisDB,omitempty"`
+	MatchFields map[string]string `json:"matchFields,omitempty"`
+	MinCount    int               `json:"minCount,omitempty"`
+	Iface       string            `json:"iface,omitempty"`
+	Master      string            `json:"master,omitempty"`
+	Addr        string            `json:"addr,omitempty"`
+	Vid         int64             `json:"vid,omitempty"`
+	Path        string            `json:"path,omitempty"`
+	Line        string            `json:"line,omitempty"`
+	Command     string            `json:"command,omitempty"`
+	Expect      string            `json:"expect,omitempty"`
+	ProbeFrom   string            `json:"probeFrom,omitempty"`
+	ProbeTo     string            `json:"probeTo,omitempty"`
+	Size        int               `json:"size,omitempty"`
+	Count       int               `json:"count,omitempty"`
+	OnClient    string            `json:"onClient,omitempty"`
+}
+
 type VerifyRequest struct {
-	Node   string `json:"node"`
-	Checks []struct {
-		Type        string            `json:"type"`
-		RedisKey    string            `json:"redisKey,omitempty"`
-		RedisField  string            `json:"redisField,omitempty"`
-		RedisDB     string            `json:"redisDB,omitempty"`
-		MatchFields map[string]string `json:"matchFields,omitempty"`
-		MinCount    int               `json:"minCount,omitempty"`
-		Iface       string            `json:"iface,omitempty"`
-		Master      string            `json:"master,omitempty"`
-		Addr        string            `json:"addr,omitempty"`
-		Vid         int64             `json:"vid,omitempty"`
-		Path        string            `json:"path,omitempty"`
-		Line        string            `json:"line,omitempty"`
-		Command     string            `json:"command,omitempty"`
-		Expect      string            `json:"expect,omitempty"`
-	} `json:"checks"`
+	Node   string        `json:"node"`
+	Checks []VerifyCheck `json:"checks"`
 }
 
 type VerifyResult struct {
@@ -113,6 +127,19 @@ type VerifyResponse struct {
 
 type server struct {
 	nodeMap map[string]string // logical -> container name
+	trans   map[string]transport
+}
+
+// mux builds the route table; main() and the tests share it.
+func (s *server) mux() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
+	mux.HandleFunc("/readyz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
+	mux.HandleFunc("/v1/nodes", s.handleNodes)
+	mux.HandleFunc("/v1/node/apply", s.handleApply)
+	mux.HandleFunc("/v1/node/verify", s.handleVerify)
+	mux.Handle("/metrics", promhttp.Handler())
+	return mux
 }
 
 func main() {
@@ -126,34 +153,87 @@ func main() {
 		fmt.Fprintf(os.Stderr, "FABRIC_NODE_MAP invalid: %v\n", err)
 		os.Exit(1)
 	}
-	srv := &server{nodeMap: nm}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
-	mux.HandleFunc("/readyz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
-	mux.HandleFunc("/v1/nodes", srv.handleNodes)
-	mux.HandleFunc("/v1/node/apply", srv.handleApply)
-	mux.HandleFunc("/v1/node/verify", srv.handleVerify)
+	cfg, err := loadTransportConfig(os.Getenv)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "transport config refused: %v\n", err)
+		os.Exit(1)
+	}
+	if err := initProbeMap(os.Getenv("FABRIC_PROBE_MAP")); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	// contracts/executor-transport.md §4: the executor owns the probe table
+	// and says out loud which attachments it can verify a data path from.
+	keys := make([]string, 0, len(probeHosts))
+	for k := range probeHosts {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		fmt.Fprintf(os.Stderr, "probe attachment %s -> %s\n", k, probeHosts[k])
+	}
+	srv := &server{nodeMap: nm, trans: map[string]transport{}}
+	for node := range nm {
+		if sp, ok := cfg.spec(node); ok && sp.Kind == "ssh" {
+			srv.trans[node] = &sshTransport{
+				node:       node,
+				spec:       sp,
+				keyPath:    cfg.sshKey,
+				knownHosts: cfg.knownHosts,
+				// FABRIC_SSH_CONTROL_PATH (optional) isolates the mux socket
+				// per executor instance: a second executor on the same host
+				// must not ride the first one's ControlMaster, or it would
+				// skip its own host-key verification (q3-transport T182).
+				controlPath: os.Getenv("FABRIC_SSH_CONTROL_PATH"),
+			}
+		} else {
+			srv.trans[node] = &dockerTransport{container: nm[node]}
+		}
+	}
 
 	addr := os.Getenv("FABRIC_EXECUTOR_BIND")
 	if addr == "" {
 		addr = ":8084"
 	}
 	fmt.Printf("fabric-executor listening on %s with %d node(s)\n", addr, len(nm))
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	for _, node := range ssorted(nm) {
+		// The per-node kind in the log is the documented write path made
+		// visible (FR-012): docker exec for sonic-vs, SSH into the guest for
+		// sonic-vm; checked against /v1/nodes by the live transport suite.
+		extra := ""
+		if sp, ok := cfg.spec(node); ok && sp.Kind == "ssh" {
+			extra = fmt.Sprintf(" addr=%s user=%s", sp.Addr, sp.User)
+		}
+		fmt.Printf("node %s kind=%s%s\n", node, srv.trans[node].kind(), extra)
+	}
+	if err := http.ListenAndServe(addr, srv.mux()); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func (s *server) handleNodes(w http.ResponseWriter, _ *http.Request) {
-	names := make([]string, 0, len(s.nodeMap))
-	for k := range s.nodeMap {
+// ssorted returns the map keys sorted (helper for deterministic startup logs).
+func ssorted(m map[string]string) []string {
+	names := make([]string, 0, len(m))
+	for k := range m {
 		names = append(names, k)
 	}
 	sortStrings(names)
+	return names
+}
+
+func (s *server) handleNodes(w http.ResponseWriter, _ *http.Request) {
+	names := ssorted(s.nodeMap)
+	entries := make([]map[string]string, 0, len(names))
+	for _, n := range names {
+		kind := "docker"
+		if t := s.trans[n]; t != nil {
+			kind = t.kind()
+		}
+		entries = append(entries, map[string]string{"name": n, "kind": kind})
+	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"nodes": names})
+	_ = json.NewEncoder(w).Encode(map[string]any{"nodes": entries})
 }
 
 func sortStrings(s []string) {
@@ -170,26 +250,36 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-func (s *server) containerFor(node string) (string, bool) {
+// nodeFor resolves a request node to the canonical site-map key. Case and
+// separators are spelling, not intent: "Leaf01" and "leaf01" name the same
+// device. An unknown node is still refused — this only unifies spellings of a
+// node the site map already declares. Sorted so a map that spells one node two
+// ways resolves deterministically.
+func (s *server) nodeFor(node string) (string, bool) {
 	if c, ok := s.nodeMap[node]; ok && c != "" {
-		return c, true
+		return node, true
 	}
-	// Case and separators are spelling, not intent: "Leaf01" and "leaf01" name
-	// the same device. An unknown node is still refused — this only unifies
-	// spellings of a node the site map already declares. Sorted so a map that
-	// spells one node two ways resolves deterministically.
-	names := make([]string, 0, len(s.nodeMap))
-	for k := range s.nodeMap {
-		names = append(names, k)
-	}
-	sortStrings(names)
+	names := ssorted(s.nodeMap)
 	want := normalizeNodeName(node)
 	for _, k := range names {
 		if normalizeNodeName(k) == want && s.nodeMap[k] != "" {
-			return s.nodeMap[k], true
+			return k, true
 		}
 	}
 	return "", false
+}
+
+// execNode routes one command through the node's transport, applying the
+// per-kind profile (privilege wrap) first. No caller knows which transport it
+// got (contracts/executor-transport.md §1).
+func (s *server) execNode(ctx context.Context, node string, argv []string, stdin []byte) (string, string, error) {
+	t := s.trans[node]
+	if t == nil {
+		// No transport table (tests, or a map built before the refactor):
+		// behave exactly as the pre-transport executor did — docker exec.
+		t = &dockerTransport{container: s.nodeMap[node]}
+	}
+	return t.run(ctx, wrapPrivilege(argv, profileFor(t.kind())), stdin)
 }
 
 func normalizeNodeName(s string) string {
@@ -215,7 +305,7 @@ func (s *server) handleApply(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 400, map[string]string{"error": fmt.Sprintf("bad request: %v", err)})
 		return
 	}
-	container, ok := s.containerFor(req.Node)
+	node, ok := s.nodeFor(req.Node)
 	if !ok {
 		writeJSON(w, 400, map[string]string{"error": fmt.Sprintf("node %q not in site map", req.Node)})
 		return
@@ -227,8 +317,12 @@ func (s *server) handleApply(w http.ResponseWriter, r *http.Request) {
 	resp := ApplyResponse{Node: req.Node, OK: true}
 	for i, op := range req.Ops {
 		switch {
+		case op.OnClient != "":
+			res := s.applyClient(ctx, op)
+			res.Kind = fmt.Sprintf("ops[%d].client[%s]", i, op.OnClient)
+			resp.Results = append(resp.Results, res)
 		case len(op.GCU) > 0:
-			res := s.applyGCU(ctx, container, op.GCU)
+			res := s.applyGCU(ctx, node, op.GCU)
 			res.Kind = fmt.Sprintf("ops[%d].gcu", i)
 			resp.Results = append(resp.Results, res)
 		case len(op.Redis) > 0:
@@ -240,29 +334,34 @@ func (s *server) handleApply(w http.ResponseWriter, r *http.Request) {
 			for j, c := range op.Redis {
 				redisCmds[j] = fmt.Sprintf("redis-cli -n %s %s", redisDB, c)
 			}
-			res := s.applyShell(ctx, container, redisCmds, false)
+			res := s.applyShell(ctx, node, redisCmds, false)
 			res.Kind = fmt.Sprintf("ops[%d].redis", i)
 			resp.Results = append(resp.Results, res)
 		case len(op.Shell) > 0:
-			res := s.applyShell(ctx, container, op.Shell, false)
+			res := s.applyShell(ctx, node, op.Shell, false)
 			res.Kind = fmt.Sprintf("ops[%d].shell", i)
 			resp.Results = append(resp.Results, res)
 		case len(op.VTYSh) > 0:
-			res := s.applyVTYSh(ctx, container, op.VTYSh)
+			res := s.applyVTYSh(ctx, node, op.VTYSh)
 			res.Kind = fmt.Sprintf("ops[%d].vtysh", i)
 			resp.Results = append(resp.Results, res)
 		case len(op.FRRConf) > 0:
-			res := s.applyFRRConf(ctx, container, op.FRRConf)
+			res := s.applyFRRConf(ctx, node, op.FRRConf)
 			res.Kind = fmt.Sprintf("ops[%d].frrconf", i)
 			resp.Results = append(resp.Results, res)
 		default:
 			resp.Results = append(resp.Results, OpResult{Kind: fmt.Sprintf("ops[%d]", i), OK: false, Error: "empty op"})
 		}
-		if n := len(resp.Results); n > 0 && !resp.Results[n-1].OK {
-			// An empty op is a plan bug; a failed op may be a no-op retry. Either
-			// way, report and stop: partial application is surfaced truthfully.
-			resp.OK = false
-			break
+		if n := len(resp.Results); n > 0 {
+			last := resp.Results[n-1]
+			if last.OK {
+				opsApplied.Inc() // writes counted; verify is never counted
+			} else {
+				// An empty op is a plan bug; a failed op may be a no-op retry. Either
+				// way, report and stop: partial application is surfaced truthfully.
+				resp.OK = false
+				break
+			}
 		}
 	}
 	writeJSON(w, http.StatusOK, resp)
@@ -277,7 +376,7 @@ func maxInt(a, b int) int {
 
 // applyGCU validates the whole CONFIG_DB through the generic config updater.
 // Per-key adds are promoted to whole-table adds when the table is absent.
-func (s *server) applyGCU(ctx context.Context, container string, patch []map[string]any) OpResult {
+func (s *server) applyGCU(ctx context.Context, node string, patch []map[string]any) OpResult {
 	patchJSON, err := json.Marshal(patch)
 	if err != nil {
 		return OpResult{OK: false, Error: fmt.Sprintf("marshal patch: %v", err)}
@@ -296,7 +395,7 @@ func (s *server) applyGCU(ctx context.Context, container string, patch []map[str
 		if splits < 2 {
 			continue // whole-table op already
 		}
-		out, _, err := s.exec(ctx, container, []string{"bash", "-c", fmt.Sprintf("redis-cli -n %s --scan --pattern '%s|*' | head -n1", redisDB, table)})
+		out, _, err := s.execNode(ctx, node, []string{"bash", "-c", fmt.Sprintf("redis-cli -n %s --scan --pattern '%s|*' | head -n1", redisDB, table)}, nil)
 		if err != nil {
 			return OpResult{OK: false, Error: fmt.Sprintf("table existence check %q: %v", table, err), Output: out}
 		}
@@ -383,20 +482,52 @@ for op in patch:
         if got != to_text(op.get("value")):
             fail("%s|%s.%s = %r, want %r" % (parts[0], parts[1], parts[2], got, to_text(op.get("value"))))
 print("gcu applied with daemon race; end-state confirmed:", len(patch), "op(s)")`
-	b64Patch := base64.StdEncoding.EncodeToString(patchJSON)
+	// The patch travels as the command's stdin payload (contract §3: docker
+	// exec -i versus ssh stdin) — it never crosses a command line. The script
+	// is still delivered base64-encoded (a fixed, non-secret blob) and reads
+	// the patch from stdin (`json.load(sys.stdin)`).
 	b64Script := base64.StdEncoding.EncodeToString([]byte(gcuScript))
-	cmd := fmt.Sprintf("echo %s | base64 -d > /tmp/fx-patch.json && echo %s | base64 -d > /tmp/fx-gcu.py && python3 /tmp/fx-gcu.py < /tmp/fx-patch.json", b64Patch, b64Script)
-	out, stderr, err := s.exec(ctx, container, []string{"bash", "-c", cmd})
+	cmd := fmt.Sprintf("echo %s | base64 -d > /tmp/fx-gcu.py && python3 /tmp/fx-gcu.py", b64Script)
+	out, stderr, err := s.execNode(ctx, node, []string{"bash", "-c", cmd}, patchJSON)
 	if err != nil {
 		return OpResult{OK: false, Error: err.Error(), Output: out + stderr}
 	}
 	return OpResult{OK: true, Output: strings.TrimSpace(out)}
 }
 
-func (s *server) applyShell(ctx context.Context, container string, cmds []string, _ bool) OpResult {
+// applyClient runs a client-scoped op inside the probe client container
+// registered for the attachment: docker exec with sh -c only, never SSH (the
+// clients are busybox-style containers, data-model.md §8.7;
+// executor-transport.md §4). An attachment absent from FABRIC_PROBE_MAP is
+// refused with the same message probe-ping uses.
+func (s *server) applyClient(ctx context.Context, op ApplyOp) OpResult {
+	host, err := probeHost(op.OnClient)
+	if err != nil {
+		return OpResult{OK: false, Error: err.Error()}
+	}
+	if len(op.Shell) == 0 {
+		return OpResult{OK: false, Error: fmt.Sprintf("client op for %q must carry shell commands", op.OnClient)}
+	}
+	var log bytes.Buffer
+	t := &dockerTransport{container: host}
+	for _, c := range op.Shell {
+		out, stderr, err := t.run(ctx, []string{"sh", "-c", c}, nil)
+		log.WriteString("> " + oneLine(c) + "\n" + strings.TrimSpace(out))
+		if strings.TrimSpace(stderr) != "" {
+			log.WriteString("\n[stderr] " + strings.TrimSpace(stderr))
+		}
+		log.WriteString("\n")
+		if err != nil {
+			return OpResult{OK: false, Error: firstErr(err, stderr).Error(), Output: log.String()}
+		}
+	}
+	return OpResult{OK: true, Output: log.String()}
+}
+
+func (s *server) applyShell(ctx context.Context, node string, cmds []string, _ bool) OpResult {
 	var log bytes.Buffer
 	for _, c := range cmds {
-		out, stderr, err := s.exec(ctx, container, []string{"bash", "-c", c})
+		out, stderr, err := s.execNode(ctx, node, []string{"bash", "-c", c}, nil)
 		log.WriteString("> " + oneLine(c) + "\n" + strings.TrimSpace(out))
 		if strings.TrimSpace(stderr) != "" {
 			log.WriteString("\n[stderr] " + strings.TrimSpace(stderr))
@@ -409,21 +540,21 @@ func (s *server) applyShell(ctx context.Context, container string, cmds []string
 	return OpResult{OK: true, Output: log.String()}
 }
 
-func (s *server) applyVTYSh(ctx context.Context, container string, cmds []string) OpResult {
+func (s *server) applyVTYSh(ctx context.Context, node string, cmds []string) OpResult {
 	// vtysh -c per argument, chained; failures are reported but the caller
 	// treats FRR as best-effort (D-A2), so the reconciler downgrades to Degraded.
 	args := []string{"vtysh"}
 	for _, c := range cmds {
 		args = append(args, "-c", c)
 	}
-	out, stderr, err := s.exec(ctx, container, args)
+	out, stderr, err := s.execNode(ctx, node, args, nil)
 	if err != nil {
 		return OpResult{OK: false, Error: err.Error(), Output: out + stderr}
 	}
 	return OpResult{OK: true, Output: strings.TrimSpace(out)}
 }
 
-func (s *server) applyFRRConf(ctx context.Context, container string, lines []string) OpResult {
+func (s *server) applyFRRConf(ctx context.Context, node string, lines []string) OpResult {
 	block := strings.Join(lines, "\n")
 	sum := sha256.Sum256([]byte(block))
 	marker := fmt.Sprintf("! agentic-netops managed block %x", sum[:8])
@@ -434,8 +565,14 @@ func (s *server) applyFRRConf(ctx context.Context, container string, lines []str
 	// that as the marker made later commands (notably Type-5 origination) appear
 	// durable while the old block remained unchanged. vtysh has already applied
 	// the same commands to running state, so appending here does not restart bgpd.
-	cmd := fmt.Sprintf("grep -qF %q /etc/frr/bgpd.conf 2>/dev/null || { echo %s | base64 -d >> /etc/frr/bgpd.conf; printf '\\n!\\n' >> /etc/frr/bgpd.conf; echo appended; }", marker, b64)
-	out, stderr, err := s.exec(ctx, container, []string{"bash", "-c", cmd})
+	// The durable FRR file is per kind (contract §3): /etc/frr/bgpd.conf in the
+	// sonic-vs container; the sonic-vm guest keeps it under /etc/sonic/frr/.
+	frrPath := profileFor("docker").frrConfPath
+	if t := s.trans[node]; t != nil {
+		frrPath = profileFor(t.kind()).frrConfPath
+	}
+	cmd := fmt.Sprintf("grep -qF %q %s 2>/dev/null || { echo %s | base64 -d >> %s; printf '\\n!\\n' >> %s; echo appended; }", marker, frrPath, b64, frrPath, frrPath)
+	out, stderr, err := s.execNode(ctx, node, []string{"bash", "-c", cmd}, nil)
 	if err != nil {
 		return OpResult{OK: false, Error: err.Error(), Output: out + stderr}
 	}
@@ -456,7 +593,7 @@ func (s *server) handleVerify(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 400, map[string]string{"error": fmt.Sprintf("bad request: %v", err)})
 		return
 	}
-	container, ok := s.containerFor(req.Node)
+	node, ok := s.nodeFor(req.Node)
 	if !ok {
 		writeJSON(w, 400, map[string]string{"error": fmt.Sprintf("node %q not in site map", req.Node)})
 		return
@@ -466,7 +603,7 @@ func (s *server) handleVerify(w http.ResponseWriter, r *http.Request) {
 
 	resp := VerifyResponse{Node: req.Node, OK: true}
 	for i, ck := range req.Checks {
-		res := s.verifyOne(ctx, container, ck)
+		res := s.verifyOne(ctx, node, ck)
 		res.Check = fmt.Sprintf("checks[%d].%s", i, ck.Type)
 		resp.Results = append(resp.Results, res)
 		if !res.OK {
@@ -476,25 +613,24 @@ func (s *server) handleVerify(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (s *server) verifyOne(ctx context.Context, container string, ck struct {
-	Type        string            `json:"type"`
-	RedisKey    string            `json:"redisKey,omitempty"`
-	RedisField  string            `json:"redisField,omitempty"`
-	RedisDB     string            `json:"redisDB,omitempty"`
-	MatchFields map[string]string `json:"matchFields,omitempty"`
-	MinCount    int               `json:"minCount,omitempty"`
-	Iface       string            `json:"iface,omitempty"`
-	Master      string            `json:"master,omitempty"`
-	Addr        string            `json:"addr,omitempty"`
-	Vid         int64             `json:"vid,omitempty"`
-	Path        string            `json:"path,omitempty"`
-	Line        string            `json:"line,omitempty"`
-	Command     string            `json:"command,omitempty"`
-	Expect      string            `json:"expect,omitempty"`
-}) VerifyResult {
+func (s *server) verifyOne(ctx context.Context, node string, ck VerifyCheck) VerifyResult {
 	run := func(cmd string) (string, error) {
-		out, stderr, err := s.exec(ctx, container, []string{"bash", "-c", cmd})
+		out, stderr, err := s.execNode(ctx, node, []string{"bash", "-c", cmd}, nil)
 		return strings.TrimSpace(out), firstErr(err, stderr)
+	}
+	// OnClient scopes the check into the probe client container registered
+	// for the attachment (client-addressing check, contracts/fabricplan-srv6.md
+	// §3.1): docker exec with sh -c only, never SSH (data-model.md §8.7).
+	if ck.OnClient != "" {
+		host, herr := probeHost(ck.OnClient)
+		if herr != nil {
+			return VerifyResult{OK: false, Error: herr.Error()}
+		}
+		t := &dockerTransport{container: host}
+		run = func(cmd string) (string, error) {
+			out, stderr, err := t.run(ctx, []string{"sh", "-c", cmd}, nil)
+			return strings.TrimSpace(out), firstErr(err, stderr)
+		}
 	}
 	// default redis DB
 	db := ck.RedisDB
@@ -597,6 +733,28 @@ func (s *server) verifyOne(ctx context.Context, container string, ck struct {
 			msg = fmt.Sprintf("expected at least %d object(s) matching %v; enumerated %d, matched %d", min, ck.MatchFields, len(keys), matched)
 		}
 		return VerifyResult{OK: ok, Actual: fmt.Sprintf("keys=%d matched=%d", len(keys), matched), Error: msg}
+	case "command":
+		// contracts/fabricplan-srv6.md §2: a read-only shell command whose
+		// output must contain Expect (e.g. `ip -6 route show` kernel-route
+		// read-backs). Run like the other shell-backed checks.
+		got, err := run(ck.Command)
+		if err != nil {
+			return VerifyResult{OK: false, Error: err.Error(), Actual: got}
+		}
+		ok := strings.Contains(got, ck.Expect)
+		return VerifyResult{OK: ok, Actual: got, Error: neqContainsMsg(got, ck.Expect)}
+	case "probe-ping":
+		// contracts/executor-transport.md §4: docker exec, fixed ping argv,
+		// only into a client container registered in FABRIC_PROBE_MAP.
+		host, err := probeHost(ck.ProbeFrom)
+		if err != nil {
+			return VerifyResult{OK: false, Error: err.Error()}
+		}
+		out, err := runProbePing(ctx, host, ck.Addr, ck.Size, ck.Count)
+		if err != nil {
+			return VerifyResult{OK: false, Error: err.Error(), Actual: out}
+		}
+		return VerifyResult{OK: true, Actual: out}
 	default:
 		return VerifyResult{OK: false, Error: "unknown check type " + ck.Type}
 	}
@@ -630,7 +788,10 @@ func firstErr(err error, stderr string) error {
 // every key=value pair in match.
 func satisfiesAll(valsRaw string, match map[string]string) bool {
 	if len(match) == 0 {
-		return false
+		// An empty matchFields makes redis-keys-match a count-only check: every
+		// enumerated object counts toward MinCount (the applied ACL_ENTRY check
+		// asserts presence/count, not attributes). Evidence: p4-acl-trial.
+		return true
 	}
 	// hgetall prints alternating key and value tokens, one per line.
 	lines := strings.Split(strings.TrimSpace(valsRaw), "\n")
@@ -643,7 +804,22 @@ func satisfiesAll(valsRaw string, match map[string]string) bool {
 		}
 	}
 	for k, want := range match {
-		if got, ok := pairs[k]; !ok || got != want {
+		got, ok := pairs[k]
+		if !ok {
+			return false
+		}
+		// A leading "~" requests contains semantics: some applied views render
+		// list-valued attributes (sonic-vm writes SAI ACL bind points as
+		// "2:SAI_ACL_BIND_POINT_TYPE_PORT,SAI_ACL_BIND_POINT_TYPE_LAG"), where
+		// an exact match would pin the element count and ordering.
+		// Evidence: p4-acl-trial.
+		if strings.HasPrefix(want, "~") {
+			if !strings.Contains(got, strings.TrimPrefix(want, "~")) {
+				return false
+			}
+			continue
+		}
+		if got != want {
 			return false
 		}
 	}
@@ -656,161 +832,6 @@ func satisfiesAll(valsRaw string, match map[string]string) bool {
 type execResult struct {
 	stdout string
 	stderr string
-}
-
-// exec creates and runs a docker exec, returning (stdout, stderr, error) where
-// error is non-nil iff the command exited non-zero or the API call failed.
-func (s *server) exec(ctx context.Context, container string, cmd []string) (string, string, error) {
-	spec := map[string]any{
-		"AttachStdout": true,
-		"AttachStderr": true,
-		"AttachStdin":  false,
-		"Tty":          false,
-		"Cmd":          cmd,
-	}
-	body, err := json.Marshal(spec)
-	if err != nil {
-		return "", "", err
-	}
-	resp, err := s.dockerHTTP(ctx, http.MethodPost, dockerAPI+"/containers/"+container+"/exec", bytes.NewReader(body))
-	if err != nil {
-		return "", "", fmt.Errorf("exec create: %w", err)
-	}
-	var created struct {
-		ID string `json:"Id"`
-	}
-	if err := json.Unmarshal(resp, &created); err != nil || created.ID == "" {
-		return "", "", fmt.Errorf("exec create response %q: %v", truncate(string(resp), 300), err)
-	}
-
-	startBody := strings.NewReader(`{"Detach": false, "Tty": false}`)
-	respStream, err := s.dockerStream(ctx, http.MethodPost, dockerAPI+"/exec/"+created.ID+"/start", startBody)
-	if err != nil {
-		return "", "", fmt.Errorf("exec start: %w", err)
-	}
-	stdout, stderr := demuxStream(respStream)
-	_ = respStream.Close()
-
-	// Exit status via inspect (small retry while Running settles).
-	var exitCode int64 = -1
-	for i := 0; i < 20; i++ {
-		insp, err := s.dockerHTTP(ctx, http.MethodGet, dockerAPI+"/exec/"+created.ID+"/json", nil)
-		if err == nil {
-			var st struct {
-				Running  bool  `json:"Running"`
-				ExitCode int64 `json:"ExitCode"`
-			}
-			if json.Unmarshal(insp, &st) == nil && !st.Running {
-				exitCode = st.ExitCode
-				break
-			}
-		}
-		select {
-		case <-ctx.Done():
-			return stdout, stderr, fmt.Errorf("exec inspect timeout")
-		case <-time.After(200 * time.Millisecond):
-		}
-	}
-	if exitCode != 0 {
-		return stdout, stderr, fmt.Errorf("exit code %d", exitCode)
-	}
-	return stdout, stderr, nil
-}
-
-func (s *server) dockerHTTP(ctx context.Context, method, url string, body io.Reader) ([]byte, error) {
-	resp, cleanup, err := s.dockerDo(ctx, method, url, body, false)
-	if err != nil {
-		return nil, err
-	}
-	defer cleanup()
-	return io.ReadAll(io.LimitReader(resp, maxBodyBytes))
-}
-
-func (s *server) dockerStream(ctx context.Context, method, url string, body io.Reader) (io.ReadCloser, error) {
-	resp, cleanup, err := s.dockerDo(ctx, method, url, body, true)
-	if err != nil {
-		return nil, err
-	}
-	_ = cleanup // stream owner closes the body itself
-	return resp, nil
-}
-
-// One transport and client for the whole process. A fresh http.Transport per
-// call (the previous shape) parks every finished connection in a pool that is
-// never closed, so each docker API call leaked one unix socket; the daemon hit
-// its 524k descriptor cap after ~14 h on 2026-09-06 and every docker command
-// on the host hung. Hijacked exec streams are closed by their owner; plain
-// responses return to this pool and are reused.
-var (
-	dockerTransport = &http.Transport{
-		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-			return net.DialTimeout("unix", dockerSock, 5*time.Second)
-		},
-		MaxIdleConns:        8,
-		MaxIdleConnsPerHost: 8,
-		IdleConnTimeout:     60 * time.Second,
-	}
-	dockerClient = &http.Client{Transport: dockerTransport, Timeout: execTimeout}
-)
-
-func (s *server) dockerDo(ctx context.Context, method, url string, body io.Reader, stream bool) (io.ReadCloser, func(), error) {
-	client := dockerClient
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
-	if err != nil {
-		return nil, nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	hc, err := client.Do(req)
-	if err != nil {
-		return nil, nil, err
-	}
-	if hc.StatusCode >= 300 {
-		b, _ := io.ReadAll(io.LimitReader(hc.Body, 1024))
-		hc.Body.Close()
-		return nil, nil, fmt.Errorf("docker api %s %s: %d %s", method, url, hc.StatusCode, truncate(string(b), 200))
-	}
-	if stream {
-		return hc.Body, func() {}, nil
-	}
-	return hc.Body, func() { hc.Body.Close() }, nil
-}
-
-// demuxStream splits docker's stdio multiplexing: 8-byte header
-// [streamType, 0, 0, 0, payloadSize uint32 BE] then the payload.
-func demuxStream(r io.Reader) (string, string) {
-	var stdout, stderr bytes.Buffer
-	br := bufio.NewReader(r)
-	header := make([]byte, 8)
-	for {
-		if _, err := io.ReadFull(br, header); err != nil {
-			break
-		}
-		size := binary.BigEndian.Uint32(header[4:8])
-		var dst *bytes.Buffer
-		switch header[0] {
-		case 1:
-			dst = &stdout
-		case 2:
-			dst = &stderr
-		default:
-			dst = nil
-		}
-		if _, err := io.CopyN(writeFn(dst), br, int64(size)); err != nil {
-			break
-		}
-	}
-	return stdout.String(), stderr.String()
-}
-
-type fnWriter func(p []byte) (int, error)
-
-func (f fnWriter) Write(p []byte) (int, error) { return f(p) }
-
-func writeFn(dst *bytes.Buffer) io.Writer {
-	if dst == nil {
-		return fnWriter(func(p []byte) (int, error) { return len(p), nil })
-	}
-	return dst
 }
 
 func truncate(s string, n int) string {

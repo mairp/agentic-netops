@@ -42,6 +42,19 @@ data:
         - job_name: 'otel-collector'
           static_configs:
             - targets: ['otel-collector.agentic-netops-system.svc.cluster.local:9464']
+        # The fabric-executor is a HOST service, not a pod: it holds the lab's
+        # SSH keys for its node transports, so it runs on the container host
+        # and there is no pod annotation to discover. Scrape it through the
+        # `kind` docker-network gateway address — the one host vantage pods
+        # can reach (the executor binds :8084 on every interface; the gateway
+        # of the kind bridge is the host itself). T560: this job is the only
+        # source of the kernel per-SID counters (T560,
+        # fabric_executor_srv6_sid_packets_total) the SRv6 Service Path
+        # dashboard plots — without it the panel has no series.
+        - job_name: 'fabric-executor'
+          scrape_interval: 15s
+          static_configs:
+            - targets: ['172.30.0.1:8084']
         - job_name: 'controllers'
           kubernetes_sd_configs:
             - role: pod
@@ -53,15 +66,48 @@ data:
               action: replace
               target_label: __metrics_path__
               regex: (.+)
-            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+            # Address = <pod IP>:<annotation port>. An earlier shape replaced
+            # __address__ with the port alone (target "http://8081:80/metrics"
+            # — DNS lookup of "8081"), which took the whole controllers job
+            # down; the pod IP is the address, the annotated port is the port.
+            - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_annotation_prometheus_io_port]
               action: replace
-              regex: (\d+)
               target_label: __address__
-              replacement: $1
+              regex: (.+);(\d+)
+              replacement: $1:$2
             - action: labelmap
               regex: __meta_kubernetes_pod_label_(.+)
       rule_files:
         - /etc/prometheus/rules/*.rules.yml
+---
+# Prometheus runs as the namespace-default ServiceAccount and discovers scrape
+# targets through the Kubernetes API (role: pod). Without this grant the API
+# answers Forbidden, the `controllers` job discovers nothing and every
+# controller gauge the SRv6 dashboard plots goes stale. Bridged live-only
+# during phase 10 attempt 2; in the repo since the same phase's attempt 3
+# (the per-SID panel made "every dashboard expression returns series" a live
+# gate this phase owns end to end — see the suite's 5d check).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-prometheus-pod-reader
+rules:
+  - apiGroups: [""]
+    resources: [pods, services, endpoints]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: monitoring-prometheus-pod-reader
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: monitoring-prometheus-pod-reader
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -89,6 +135,13 @@ data:
               annotations:
                 summary: Agentic NetOps controller target missing
                 description: Prometheus scrape discovered no controller metrics endpoints.
+            - alert: FabricExecutorDown
+              expr: up{job="fabric-executor"} == 0
+              for: 2m
+              labels: { severity: warning }
+              annotations:
+                summary: fabric-executor target down
+                description: Prometheus cannot scrape the host-side fabric-executor /metrics — the kernel per-SID and VRF forwarding counters (T560) go stale while it is down.
     agentic-netops.rules.yml: |
       groups:
         - name: agentic-netops.alerts.include

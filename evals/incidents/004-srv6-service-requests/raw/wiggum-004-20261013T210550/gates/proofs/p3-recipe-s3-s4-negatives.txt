@@ -1,0 +1,50 @@
+   202	## 3. `ip-vrf` / `evpn` (routed EVPN over SRv6)
+   203	
+   204	**Status: not achievable on this image.** The EVPN control-plane session
+   205	forms and EVPN AF configuration is accepted, but no EVPN-derived forwarding
+   206	state can be produced for a L3VNI service, and every honest attempt at an
+   207	EVPN-signalled dataplane shows 100% client loss.
+   208	
+   209	Approaches to try (written before the first attempt):
+   210	
+   211	- EVPN Type-5 (IP-prefix) routes carrying the per-VRF SRv6 SID, reusing the
+   212	  iBGP L2VPN EVPN AF session the gate already reaches Established across
+   213	  leaf-spine-leaf; the session today asserts no route of any type.
+   214	- Per-VRF `End.DT46` decapsulation as in §2, with the SID learnt through EVPN
+   215	  signalling instead of VPN signalling.
+   216	- Ingress encapsulation as in §2 (kernel `seg6` on the `vs` ASIC).
+   217	- Same client attachment and traffic bar as §2, so the two routed variants
+   218	  differ only in signalling.
+   219	
+   220	| item | verdict | proofs | note |
+   221	| --- | --- | --- | --- |
+   222	| L2VPN EVPN AF session across leaf-spine-leaf | proven (session only) | `spike-evpn3-state-leaf01`, `spike-evpn2-state-leaf01` | 3/3 peers Established — but pfxRcd 0 for any L3VNI attempt |
+   223	| L3VNI → bgpd handoff (Type-5 precondition) | not achievable | `spike-evpn3-state-leaf01`, `spike-evpn3-state-leaf02` | zebra knows the kernel L3VNI (`vxlan-1001`, tenant Vrf1) but bgpd's VNI view reports `Number of L3 VNIs: 0` — the zebra→bgpd VNI ZAPI handoff never delivers the L3VNI, so no Type-5 route can be generated |
+   224	| IPv6 Type-5 export knobs in `vrf Vrf1` AF6 | not achievable | `spike-evpn3-kl006` | `sid vpn export auto` / `rd vpn export` / `rt vpn both` stick, but `network <prefix>` is `% Unknown command` inside the VRF IPv6 AF; the EVPN table stays empty (KL-006 recorded as upstream-moot here) |
+   225	| dataplane without BGP state (RT-leak attempt) | not achievable | `spike-evpn3-ping` | 100% loss both with only leaked default-table state and with ONLY EVPN signalling standing (knobs removed); the leaked subnets are a config smell the honest attempt also exposes |
+   226	| restore of the §2 as-built after the attempts | proven | `spike-evpn3-ping` (leg C), `spike-evpn3-rollback` | steering routes + decap back, client traffic 0% loss again |
+   227	| verdict for the renderer | **not achievable** | all of the above | `srv6-supported.yaml` refuses `ip-vrf`+`evpn` by name |
+   228	
+   229	## 4. `mac-vrf` / `evpn` (bridged EVPN over SRv6)
+   230	
+   231	**Status: deferred by owner decision 1; the measured attempts are recorded
+   232	here anyway.** Bridged (L2VNI) signalling between the leaves works; the
+   233	bridged service itself is not deliverable on the as-built lab.
+   234	
+   235	Approaches to try (written before the first attempt):
+   236	
+   237	- EVPN Type-2/3 MAC/IP routes over SRv6 with a per-EVI or per-(EVI, VLAN)
+   238	  End.DX2-style SID — the SRv6 equivalent of the VXLAN bridged service; SID
+   239	  scope per EVI or per VLAN is a spike question.
+   240	- The operator-supplied VLAN tag (as in feature 003) carried on the attachment
+   241	  ports, bridged into the EVI.
+   242	- Kernel bridging plus `seg6` encapsulation on the `vs` ASIC as the dataplane
+   243	  candidate, as in §2.
+   244	
+   245	| item | verdict | proofs | note |
+   246	| --- | --- | --- | --- |
+   247	| L2VNI + Type-3 IMET signalling | proven (signalling only) | `spike-evpn2-state-leaf01`, `spike-evpn2-state-leaf02` | kernel+zebra see `vxlan-100` (L2) and `vxlan-1001` (L3); the EVPN table exchanges exactly the 2 expected IMETs (`Displayed 2 out of 4 total prefixes`) |
+   248	| bridged dataplane (MAC learning, L2 forwarding) | not achievable on the as-built lab | `spike-evpn2-ping` | 0 MAC entries learnt after client traffic; no Type-2 routes; client traffic only passes via the §2 routed encap, not any bridged path |
+   249	| rollback of the L2VNI attempt | proven | `spike-evpn2-rollback` | full EVPN teardown re-uses the evpn3 rollback; §2 as-built restored |
+   250	| verdict for the renderer | **deferred** (owner decision 1) | all of the above | `srv6-supported.yaml` declares it deferred; requests are refused by name |
+   251	

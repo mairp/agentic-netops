@@ -1,0 +1,12 @@
+{
+  "tests": [
+    {"name": "SRv6-Underlay", "status": "pass"},
+    {"name": "H.Encaps.Red", "status": "pass"},
+    {"name": "End", "status": "pass"},
+    {"name": "End.DT46", "status": "fail", "reason": "uDT46 SID not readable"},
+    {"name": "SID-list", "status": "pass"},
+    {"name": "Decapsulation", "status": "pass"}
+  ],
+  "totals": {"passed": 5, "failed": 1, "skipped": 0},
+  "result": "fail"
+}

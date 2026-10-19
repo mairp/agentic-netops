@@ -1,0 +1,12 @@
+--- module state before ---
+vrf                    36864  0
+--- how it is set on this guest: sudo modprobe vrf ---
+modprobe vrf: ok
+vrf                    36864  0
+--- proof the module serves VRF devices: create + delete a scratch VRF ---
+51: .spike_vrf: <NOARP,MASTER> mtu 65575 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+scratch VRF ok
+--- persistence: module is autoloaded on demand (no boot entry needed) ---
+no modules-load entry; kernel auto-loads vrf on first VRF device
+
+[exit code: 0]

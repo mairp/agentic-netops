@@ -8,7 +8,7 @@ srv6_force_clean() {
   local c=$1
   # shellcheck source=../../tests/integration/lib/node_exec.sh
   source "$(dirname -- "${BASH_SOURCE[0]}")/../../tests/integration/lib/node_exec.sh"
-  node_run "$c" 'redis-cli -n 4 --scan --pattern "SRV6_MY_LOCATORS*" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern "SRV6_MY_SIDS*" | xargs -r redis-cli -n 4 del >/dev/null; sudo config save -y >/dev/null 2>&1'
+  node_run "$c" "redis-cli -n 4 --scan --pattern \"SRV6_MY_LOCATORS*\" | xargs -r redis-cli -n 4 del >/dev/null; redis-cli -n 4 --scan --pattern \"SRV6_MY_SIDS*\" | xargs -r redis-cli -n 4 del >/dev/null; $(node_sudo "$c") config save -y >/dev/null 2>&1"
 }
 
 # Persistence qualification helper: program a value, restart SONiC containers,
@@ -22,6 +22,9 @@ set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$ROOT_DIR"
+# node-side op dispatch (docker exec vs SSH-into-guest for sonic-vm)
+# shellcheck source=../../tests/integration/lib/node_exec.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/../../tests/integration/lib/node_exec.sh"
 TARGETS=${TARGETS:-"172.31.0.21:8080,172.31.0.22:8080"}
 GNMIC_BIN=${GNMIC_BIN:-gnmic}
 GNMI_USER=${GNMI_USER:-admin}
@@ -59,7 +62,7 @@ node_for_ip() {
 
 gcu_apply() {
   local c=$1 patch=$2
-  printf '%s' "$patch" | node_run_i "$c" 'cat > /tmp/.persist_patch.json && sudo config apply-patch -f CONFIGDB -p /tmp/.persist_patch.json 2>/dev/null >/dev/null'
+  printf '%s' "$patch" | node_run_i "$c" "cat > /tmp/.persist_patch.json && $(node_sudo "$c") config apply-patch -f CONFIGDB -p /tmp/.persist_patch.json 2>/dev/null >/dev/null"
 }
 
 gcu_write() {
@@ -77,7 +80,7 @@ PY
   # Persist to /etc/sonic/config_db.json: start.sh reloads CONFIG_DB from the file
   # on every boot (configdb-load.sh), so a redis-only write would be lost — the
   # persisted file is exactly what T014 is about ("Ensure /etc/sonic persists").
-  node_run "$node" 'sudo config save -y >/dev/null 2>&1' || die "config save failed on $node"
+  node_run "$node" "$(node_sudo "$node") config save -y >/dev/null 2>&1" || die "config save failed on $node"
 }
 
 gcu_delete() {
@@ -88,7 +91,7 @@ gcu_delete() {
   {"op":"remove","path":"/SRV6_MY_LOCATORS"}
 ]'
   gcu_apply "$node" "$patch" || note "cleanup patch failed on $node (leftover ${LOC_NAME} tolerable)"
-  node_run "$node" 'sudo config save -y >/dev/null 2>&1' || true
+  node_run "$node" "$(node_sudo "$node") config save -y >/dev/null 2>&1" || true
 }
 
 gnmi_get() {

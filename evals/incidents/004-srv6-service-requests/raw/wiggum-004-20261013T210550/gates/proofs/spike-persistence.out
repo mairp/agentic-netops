@@ -1,0 +1,24 @@
+===== snapshot BEFORE config reload =====
+LOCATOR-VTYSH: 1
+KERNEL-DECAP: 1
+KERNEL-STEERING: 1
+KERNEL-PIN-48: 1
+===== config reload -y (wait for frr to answer again) =====
+===== snapshot AFTER config reload (before rebuild) =====
+LOCATOR-VTYSH: 1
+KERNEL-DECAP: 0
+KERNEL-STEERING: 0
+KERNEL-PIN-48: 0
+===== rebuild with the as-built builder (vpn-setup.sh) =====
+===== snapshot AFTER rebuild =====
+LOCATOR-VTYSH: 1
+KERNEL-DECAP: 0
+KERNEL-STEERING: 0
+KERNEL-PIN-48: 0
+===== client traffic passes again (8900-byte DF, both directions) =====
+3 packets transmitted, 0 received, +2 errors, 100% packet loss, time Xms
+pipe 2
+3 packets transmitted, 0 received, 100% packet loss, time Xms
+
+
+[exit code: 0]

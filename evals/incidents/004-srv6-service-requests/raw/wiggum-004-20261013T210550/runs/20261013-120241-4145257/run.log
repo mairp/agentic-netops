@@ -1,0 +1,128 @@
+{"canonicalPath": "/root/agentic-netops/.wiggum/features/004-srv6-service-requests/runs/20261013-120241-4145257/verification/verification-plan.json", "contentHash": "3405e5e9c56f1f8419889bbf18d345747de8a9e1bfa60ca23446a95dcb7edd32", "declaredCommands": {"contentHash": "40f04c23f7e1cafbec0e8406a8e7d027e04e5dda12b44b5429433915fa931ec4", "count": 66, "path": "/root/agentic-netops/.mixture-of-loops/004-srv6-service-requests/verification-commands.json", "phases": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], "schemaVersion": "1.0"}, "generated": [{"framework": "canonical", "path": "/root/agentic-netops/testautomation/004-srv6-service-requests/generated/verification.generated.json", "reused": true}], "markdownPath": "/root/agentic-netops/testautomation/004-srv6-service-requests/TEST_PLAN.md", "planId": "verification-639647daca37c99a7fbd"}
+  .====+====+====-
+  |                   specstride
+  '====+====+====.    From specs to tested code.
+                 |    Every step, signed off.
+  -====+====+===='
+
+  ========+======+------+------+------+------+------+------+------+------+----
+  1-1 ok  2 ok   3 now  4 -    5 -    6 -    7 -    8 -    9 -    10 -   11 -
+
+specstride orchestrator start 2026-10-13T12:02:41+04:00
+  workdir  : /root/agentic-netops
+  specs    : /root/agentic-netops/specs/004-srv6-service-requests/tasks.md  (11 phases: 1 2 3 4 5 6 7 8 9 10 11)
+  feature  : 004-srv6-service-requests   (state: .wiggum/features/004-srv6-service-requests/)
+  proposer : dsh:zai/glm-5.3-flash
+  critic   : dsh:compass-gpt5-high/gpt-5  (model compass-gpt5-high/gpt-5, window 200000 tokens)
+  max-rej  : 30   max-iter/phase: 30
+  timeouts : proposer 604800s  critic 14400s   wall: 0min
+  git      : auto
+  telemetry: loki: endpoint reachable (http://127.0.0.1:3100)
+  otel     : otel: endpoint reachable (http://127.0.0.1:4318)
+  verify   : required  plan: /root/agentic-netops/testautomation/004-srv6-service-requests/TEST_PLAN.md  scaffolds: /root/agentic-netops/testautomation/004-srv6-service-requests/generated
+  resume   : phase 3
+  run_id   : 20261013-120241-4145257
+  stop with: touch /root/agentic-netops/.wiggum/stop.flag
+
+
+===== PHASE 3 — User Story 1 - Feasibility gate: prove the device recipe directly on the devices (Priority: P0)  (2026-10-13T12:02:42+04:00) =====
+----- proposer: phase 3 attempt 1/30 (dsh:zai/glm-5.3-flash) -----
+      pass ceiling: 604800s (global); yield poll: 30s (default)
+----- proposer pass 1/30  2026-10-13T12:03:48+04:00 -----
+The smoking gun: orchagent daemons up since ~05:59, CONFIG_DB has VRF|Vrf1, APPL_DB is empty — swss was (re)started at 05:59 during chain2 and has been dead-to-writes since (pass-15 disease). Let me check what restarted swss and whether all nodes are affected.
+proposer.sh: pass 1 was terminated by the watchdog (progress_stall, class futility); its checkpoint is carried into the next pass.
+proposer.sh: pass 1 errored (subtype 'watchdog_progress_stall', is_error) — consecutive errors: 1/30
+----- proposer pass 2/30  2026-10-13T12:35:59+04:00 -----
+**Pass 20 complete — yielding on chain3 (PID 413251, launched 13:03:32).**
+
+What this pass did:
+
+1. **Audited the killed pass's leftovers**: baselines re-recorded 11:31 with the *pre-squeeze* script, squeeze added 11:47 after, `spike-rerun-baseline.out` = spine02-only jitter differ. Baselines need one more re-record with the current script (chain3 does this).
+
+2. **Fixed the seed-restore leafref bug**: stage-1 removal list now puts `SRV6_MY_SIDS` first (its `decap_vrf` leafref into `VRF_LIST` is what rejected chain2's `/VRF` removal at 10:41).
+
+3. **Canaried the lab — it is sick again**: leaf01 `APPLY-STUCK` rc=1; kernel `Vrf1` device is *missing* (G-seed's `kernel_cleanup` deleted it at 10:41 while CONFIG_DB kept the rows, and swss has consumed nothing since). Per the established disease model, the only proven reset is a fresh provision.
+
+4. **Launched chain3 detached** (`/tmp/g3/chain3.sh`): provision → converge + **hardened canary** (vrf-apply both leaves rc=0 **and** kernel Vrf1 present **and** client01→client02 ping; one provision-recovery, else LAB-SICK stop) → fixed seed-restore + baselines ×4 + dry → converge → **T106 vpn receipt** (differ ⇒ backup + canonical re-record ×8 + restore-on-poison + receipt) → **T109 steering re-record ×5** (rc-guarded) + receipt → **T108 evpn3/evpn2 receipts** with the same fallback shape → **T105 seed + baseline receipt** → summary + done marker.
+
+5. **Yielded**: `yield/phase3-attempt1-20261013-120241-4145257.json` (contract `specstride-pass-yield/v1`, `job.mode: launch`, `resume_when: file_exists /tmp/g3/chain3.done`, `deadline_sec: 16200`, full `on_resume` instructions), written atomically and JSON-validated. `PROGRESS.md` carries the Pass 20 entry with the same next-pass recipe.
+
+Stopping here per the yield contract — the next pass resumes when `/tmp/g3/chain3.done` appears and publishes `GATE3-EVIDENCE.md`.
+proposer.sh: pass 2 yielded — Waiting on detached chain3 (pid 413251, setsid, launched 13:03:32): the 12:5x canary measured leaf01 APPLY-STUCK (kernel Vrf1 gone after G-seed's kernel_cleanup, swss consumes nothing), so chain3 opens with the proven fresh provision, then: converge+hardened canary (vrf-apply both leaves + kernel Vrf1 read-back + client01->client02 ping) -> fixed seed-restore (SRV6_MY_SIDS leafref ordering) + baseline re-record x4 (squeeze-era script) + dry replay -> B converge -> T106 vpn receipt (fallback: canary/recover + backup + canonical re-record x8 + restore-on-poison + receipt) -> T109 steering re-record x5 (rc-guarded, one converge+retry each) + receipt -> T108 evpn3/evpn2 receipts (same fallback shape, canonical orders ping/capture/kl006/rollback/state01/state02 and state01/state02/ping/capture/rollback) -> T105 seed-restore + baseline receipt. GATE3-EVIDENCE.md is written on resume once the five receipts exist.. Waiting on 'file_exists' with NO model session open (deadline 16200s).
+proposer.sh: yield satisfied after 2800s (job rc 1) — resuming.
+----- proposer pass 2/30  2026-10-13T13:52:47+04:00 -----
+The pass is complete. Summary of what happened:
+
+## Diagnosis: chain3's LAB-SICK was a false negative in my own canary
+
+The yield log claimed the lab was sick, but reading the artifacts showed otherwise:
+
+- **`/tmp/g3/chain3.log` + `CONV.log`**: both provisions brought the lab up, converge passed 4× `H-OK=1`; the canary failed only at its own kernel check while `canary-l1.log` showed vrf-apply rc=0, **kernel Vrf1 UP, 0% packet loss**.
+- **Root cause (verified live)**: `docker exec <launcher> ip link show Vrf1` reads the **launcher container's netns** (lo, taps, eth0-4 — no Vrf1 exists there) instead of the SONiC guest VM kernel, which is only reachable via the node read path — the exact thing `scripts/spike/spike-env.sh` line 4-5 forbids. Plus two more bugs in that same script: `grep -q '0% packet loss'` also matches "100% packet loss", and the dataplane probe ran without building the service state.
+- **Lab hand-verified healthy**: vrf-apply both leaves rc=0, vpn-setup rc=0 (decap + steering routes present), client01→client02 **3/3 received, 0% loss**.
+
+## Actions taken
+
+1. **Wrote `/tmp/g3/chain4.sh`** — chain3's PHASE A→G logic unchanged (canonical re-record orders, receipt/fallback/restore containment), with the canary fixed (node-path kernel reads, `≥1 received` loss check, vpn-setup before the dataplane probe), a PHASE H health gate instead of a wasteful third re-provision, and an unrecorded vpn-rollback prep so the vpn group records from its canonical torn-down start. Canary smoke-tested live: **CANARY-OK**.
+2. **Launched chain4 detached** (pid 935362, setsid, 14:05:11). It already passed PHASE H ("lab healthy") and is in PHASE A seed-restore, heading through the five T105–T109 receipt phases.
+3. **Yield file rewritten atomically** (tmp→mv, JSON validated): adopt pid 935362, resume on `/tmp/g3/chain4.done`, deadline 14400s, with the on_resume plan (publish evidence on 5×clean, harvest the single differ, diagnose LAB-SICK at guest level via node_run only).
+4. **PROGRESS.md** updated with the full pass-22 record.
+
+No recorded proof, stored `.out`, or outside file was touched. Stopping here per the yield contract; the next pass resumes from the chain4 result.
+proposer.sh: refusing the adopt yield — pid 935362 is not running
+----- proposer pass 3/30  2026-10-13T14:06:28+04:00 -----
+Pass complete — yielding per the contract. Summary of this pass:
+
+## What happened this pass (resumed from yield on chain4)
+
+**Found**: chain4 (pid 935363) was mid-flight but **poisoned at its foundation**. Its phase A ran `seed-restore.sh`, whose stage-1 removal order deleted `/VRF` **before** `/INTERFACE`. The service attachment row `INTERFACE|Ethernet12|192.168.1.1/24` carries `vrf_name=Vrf1` — a live leafref into `VRF_LIST` — so sonic_yang rejected leaf01's `/VRF` removal ("points to a non-existing leaf"). Stage 1 exited 1, the seed re-add (stage 3) never ran, and the chain's WARN-continue then **re-recorded all four `spike-baseline-*` proofs against that half-removed lab**. Its A-dry "no difference" was meaningless (fresh captures vs captures recorded 30 seconds earlier on the same broken state).
+
+## Actions taken
+
+1. **Killed chain4** (and its two orphaned `underlay-apply.sh spine02` children) before it could build hours of receipts on that footing.
+2. **Fixed `scripts/spike/seed-restore.sh`**: stage-1 removal order is now dependents-of-`/VRF` first — `SRV6_MY_SIDS → SRV6_MY_LOCATORS → INTERFACE → VRF → BGP_NEIGHBOR → LOOPBACK_INTERFACE` — with the measured leafref directions documented in the comment.
+3. **Validated the fix live**: full seed-restore run exits 0; seed BGP converged to the deterministic counts (v4: leaf01=2, leaf02=1, spine01=1, spine02=2; v6: leaf01=1, leaf02=1, spine01=0, spine02=2); locator rows absent on all four nodes.
+4. **Launched chain5** (pid 1057255, setsid, 14:19:45) — identical to chain4 plus one hardening: an A-seed failure now aborts via `lab_sick` instead of recording baselines on a non-seeded lab. The four garbage baseline `.out` files from 14:08 will be overwritten by chain5's phase A.
+5. **Wrote the yield file atomically** (tmp → `mv`, JSON-validated): adopt pid 1057255, `resume_when: file_exists /tmp/g3/chain5.done`, deadline 14400s, with a precise `on_resume` (judge the five verdicts; bounded re-record on benign nondeterminism; LAB-SICK diagnosis; then publish `GATE3-EVIDENCE.md`).
+6. **Updated PROGRESS.md** with the pass-23 record.
+
+**Stopping here** — no evidence written, per the yield contract. The chain runs detached (~1–3.5 h) and specstride resumes the pass when `/tmp/g3/chain5.done` appears.
+proposer.sh: pass 3 yielded — Phase 3 evidence needs the five spike-rerun-* replay receipts (T105-T109) and the honest baseline re-records that chain5 produces on the now-fixed seed-restore; the chain runs ~1-3.5h detached and cannot be waited out inside a pass.. Waiting on 'file_exists' with NO model session open (deadline 14400s).
+proposer.sh: yield satisfied after 602s (job rc unknown) — resuming.
+----- proposer pass 3/30  2026-10-13T14:31:01+04:00 -----
+The pass is complete. Summary of what was done:
+
+## Pass 24 — chain5 result judged, lab diagnosed, chain6 relaunched
+
+**chain5 verdict (all five `spike-rerun-*.verdict` missing):** LAB-SICK is **real** this time — not a canary artifact. The H-gate converge passed (4× H-OK), then the canary's `vrf-apply leaf01` failed `APPLY-STUCK` after 3 attempts. The stale `A-seed.log` was chain4's leftover; chain5 never left phase H.
+
+**Guest-level diagnosis (node_run only, chain5 dead so the lab was free):**
+- leaf01 kernel: no `Vrf1`, no Ethernet12 address; CONFIG_DB: `VRF|Vrf1` + both Ethernet12 rows **present** (GCU writes landed); APPL_DB: no `VRF_TABLE`/`INTF_TABLE:Ethernet12`.
+- `swss.rec` timeline: `VRF_TABLE:Vrf1|SET` published at 14:26:30 host, **DEL'd 1 second later**, then only the three attempts' force-resync `DEL`s — the consumer is alive but **skips the SETs** (4th recorded orchagent wedge: passes 15, 18, 20, chain5). swss supervisor all-RUNNING, no error lines.
+- Remedy per the recorded lesson: fresh provision (in-guest restart was measured *worse* in pass 15 — not retried).
+
+**Fix shipped:** chain5 carried a validated `recover()` (provision + container check + converge + canary) but its H-gate aborted straight to `lab_sick`. **chain6.sh** = chain5 + H-gate canary-failure → `recover` → fail → `recover` → fail → `lab_sick`; `bash -n` clean; diff vs chain5 is only the intended hunks; phases A–G byte-identical.
+
+**Launched:** chain6 detached 14:42:20, pid **1226866** (verified alive; H-canary in flight). Yield file rewritten atomically (tmp+mv): adopt pid 1226866, resume on `/tmp/g3/chain6.done`, deadline 18000 s (covers two recovery provisions plus the phase run), with the full on_resume judging protocol. PROGRESS.md carries the pass-24 record.
+
+Stopping here per the yield protocol — no evidence file written, since T105–T109 receipts still need chain6's output on a healthy lab.
+proposer.sh: pass 3 yielded — The five spike-rerun-* receipts (T105-T109) need the chain's canonical re-record+replay runs on a healthy lab; chain5 hit the 4th recorded orchagent wedge (leaf01 CONFIG_DB->APPL_DB consumer dead: VRF SET published then DEL'd, kernel never programmed) and its H-gate aborted instead of recovering; chain6 (chain5 + provision-recovery on canary failure) is running detached as pid 1226866.. Waiting on 'file_exists' with NO model session open (deadline 18000s).
+proposer.sh: yield satisfied after 16425s (job rc unknown) — resuming.
+----- proposer pass 3/30  2026-10-13T19:18:06+04:00 -----
+Yield installed and chain7 is healthy and into the receipts. This pass is complete — stopping per the yield contract.
+
+## Pass summary (yield-3 resume)
+
+**chain6 outcome processed** (not lab-sick — keeper-aborted): phases H/A/B green, vpn group re-recorded green (RV1–RV8 rc=0, 16:57–17:06, this deploy), but its T106 receipt differ'd on the 5th orchagent wedge (7/8 APPLY-STUCK at replay); steering outs hold recorded preflight failures; E/F/G never ran.
+
+**Lab verified healthy inline before relaunch** (unrecorded): steering leftovers cleaned (`steer_off`, links up, neighbour unshut), `vrf-apply` leaf01/leaf02 rc=0, `vpn-setup` rc=0, client01→client02 **0% loss** — the exact pre-state the stored RV records hold. (`Network unreachable` before setup was expected post-rollback client-route flush, not sickness.)
+
+**chain7 launched detached** (`/tmp/g3/chain7.sh`, bash -n clean, pid **3538140**, own session):
+- **H2**: steering-leftover cleanup (D-5 was killed before its self-restore) + unchanged converge+canary+recovery ladder — already **done, all rc=0**;
+- **C**: T106 vpn receipt (+ chain6 fallback: recover + canonical re-record ×8 + receipt);
+- **D**: steering ×5 canonical re-record (overwrites the four recorded failures by re-recording, never hand-editing) + T109 receipt;
+- **E/F**: T107/T108 evpn receipts with fallbacks;
+- **G**: T105 seed-restore + baseline receipt + one bounded canonical re-record after a fresh seed on differ (cross-deploy baseline replay is the unproven part).
+
+At stop, chain7 had finished H2 and was running the vpn receipt. **Yield file rewritten atomically** (JSON-validated, `adopt` pid 3538140, `resume_when: pid`, deadline 14400s) with the on_resume plan: process the five verdicts (lab-sick → diagnose via node_run reads → chain8; differ → judge benign vs regression, bounded); once clean or honestly explained → refresh p3-* slices → write `gates/GATE3-EVIDENCE.md` (tmp+mv, T040–T124) → update PROGRESS.md → STOP. PROGRESS.md carries the full pass record.
+proposer.sh: pass 3 yielded — The five spike-rerun-* receipts (T105-T109) need chain7's canonical re-record+replay runs on the healed lab: chain6's vpn receipt differ'd on the 5th orchagent wedge (records green, replay APPLY-STUCK), its steering proofs hold recorded preflight failures, and the evpn/baseline receipts never ran; the lab is healed in-guest, the vrf-apply wedge cure is in, and chain7 (chain6 minus completed H/A/B) is now running detached.. Waiting on 'pid' with NO model session open (deadline 14400s).

@@ -21,22 +21,29 @@ LABEL_OWNER=${AGENTIC_NETOPS_OWNER_LABEL:-agentic-netops}
 # the wrong (auto-assigned) subnet as long as nothing is attached to it.
 kind::ensure_mgmt_network() {
   require docker
+  # The topology declares the management network jumbo (lab/topology.clab.yml
+  # mgmt.mtu: 9216); docker defaults a network to 1500, which silently caps
+  # the sonic-vs overlay's VTEP outer path (leaf↔leaf outer traffic rides
+  # this network on the vs profile) and fails an 8900-byte DF ping —
+  # measured live 2026-10-15. Honor the declared MTU at creation.
+  local mtu=${AGENTIC_NETOPS_MGMT_MTU:-9216}
   if docker network inspect "${MGMT_NET}" >/dev/null 2>&1; then
-    local cur attached
+    local cur attached cur_mtu
     cur=$(docker network inspect "${MGMT_NET}" -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null || true)
-    if [[ "${cur}" == "${MGMT_SUBNET}" ]]; then
+    cur_mtu=$(docker network inspect "${MGMT_NET}" -f '{{index .Options "com.docker.network.driver.mtu"}}' 2>/dev/null || true)
+    if [[ "${cur}" == "${MGMT_SUBNET}" && "${cur_mtu}" == "${mtu}" ]]; then
       return 0
     fi
     attached=$(docker network inspect "${MGMT_NET}" -f '{{len .Containers}}' 2>/dev/null || echo 1)
     if [[ "${attached}" == "0" ]]; then
-      echo "[net] ${MGMT_NET} has subnet '${cur}' (need ${MGMT_SUBNET}); recreating (no attached containers)" >&2
+      echo "[net] ${MGMT_NET} has subnet '${cur}' mtu '${cur_mtu:-<default>}' (need ${MGMT_SUBNET} mtu ${mtu}); recreating (no attached containers)" >&2
       docker network rm "${MGMT_NET}" >/dev/null
     else
-      echo "[net] ERROR: ${MGMT_NET} subnet '${cur}' != ${MGMT_SUBNET} and ${attached} container(s) attached; detach them or remove the network manually" >&2
+      echo "[net] ERROR: ${MGMT_NET} subnet '${cur}' mtu '${cur_mtu:-<default>}' != ${MGMT_SUBNET}/mtu ${mtu} and ${attached} container(s) attached; detach them or remove the network manually" >&2
       return 1
     fi
   fi
-  docker network create --label agentic-netops.owner="${LABEL_OWNER}" --subnet "${MGMT_SUBNET}" "${MGMT_NET}" >/dev/null
+  docker network create --label agentic-netops.owner="${LABEL_OWNER}" --subnet "${MGMT_SUBNET}" --opt com.docker.network.driver.mtu="${mtu}" "${MGMT_NET}" >/dev/null
 }
 # Extract the pinned Kind node image from the `kind:` block. The value itself
 # contains a colon (registry/image@sha256:digest), so we must strip only the

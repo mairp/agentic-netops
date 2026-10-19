@@ -1,0 +1,194 @@
+{
+  "buildArtifacts": [],
+  "commands": [
+    {
+      "args": [
+        "test",
+        "./..."
+      ],
+      "commandId": "CMD-c76234bfb569f321452a",
+      "cwd": "/root/agentic-netops",
+      "declaredId": null,
+      "durationMs": 2797,
+      "env": {},
+      "executable": "/usr/lib/go-1.24/bin/go",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "discovered",
+      "stderr": "",
+      "stdout": "?   \tgithub.com/mairp/agentic-netops/api/v1alpha1\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/cmd/intent-translator\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/cmd/migration-translator\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/controllers/sonicprovider\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/controllers/srv6service\t[no test files]\nok  \tgithub.com/mairp/agentic-netops/internal/lockfile\t0.279s\n?   \tgithub.com/mairp/agentic-netops/pkg/compat\t[no test files]\nok  \tgithub.com/mairp/agentic-netops/pkg/fabricplan\t(cached)\n?   \tgithub.com/mairp/agentic-netops/pkg/kubenet\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/pkg/migration\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/pkg/model\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/pkg/reasons\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/pkg/render\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/pkg/sdc\t[no test files]\n?   \tgithub.com/mairp/agentic-netops/pkg/version\t[no test files]\nok  \tgithub.com/mairp/agentic-netops/tests/envtest\t(cached)\nok  \tgithub.com/mairp/agentic-netops/tests/unit\t(cached)\n"
+    },
+    {
+      "args": [
+        "scripts/proof.sh",
+        "selftest",
+        "--",
+        "true"
+      ],
+      "commandId": "CMD-d5862bced8d4a5f3bd5c",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p1-proof-recorder-selftest",
+      "durationMs": 57,
+      "env": {},
+      "executable": "/usr/bin/bash",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "",
+      "stdout": "proof recorded: selftest (exit 0) -> /root/agentic-netops/.wiggum/features/004-srv6-service-requests/gates/proofs/selftest.out\n"
+    },
+    {
+      "args": [
+        "scripts/proof.sh",
+        "replay",
+        "selftest"
+      ],
+      "commandId": "CMD-800e05d736f2deb88bdc",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p1-proof-recorder-replay",
+      "durationMs": 57,
+      "env": {},
+      "executable": "/usr/bin/bash",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "",
+      "stdout": "ok selftest\nreplay selftest: 1 proof(s) checked, no difference (0 skipped)\n"
+    },
+    {
+      "args": [
+        "scripts/proofs/run-q10-baseline.sh"
+      ],
+      "commandId": "CMD-090f2b6b93edecf217a6",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-phrasings-baseline-pytest",
+      "durationMs": 4864,
+      "env": {},
+      "executable": "/usr/bin/bash",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "",
+      "stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0\nrootdir: /root/agentic-netops/agents\nconfigfile: pyproject.toml\nplugins: langsmith-0.8.5, anyio-4.14.2, asyncio-1.4.0, vcr-1.0.2, cov-7.1.0\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 1 item\n\ntests/unit/test_phrasings_baseline.py .                                  [100%]\n\n============================== 1 passed in 2.78s ===============================\n"
+    },
+    {
+      "args": [
+        "scripts/proofs/run-q10-srv6.sh"
+      ],
+      "commandId": "CMD-e868f047075e4a0f2923",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-phrasings-srv6-pytest",
+      "durationMs": 9635,
+      "env": {},
+      "executable": "/usr/bin/bash",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "",
+      "stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0\nrootdir: /root/agentic-netops/agents\nconfigfile: pyproject.toml\nplugins: langsmith-0.8.5, anyio-4.14.2, asyncio-1.4.0, vcr-1.0.2, cov-7.1.0\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 1 item\n\ntests/unit/test_phrasings_srv6.py .                                      [100%]\n\n============================== 1 passed in 6.85s ===============================\n"
+    },
+    {
+      "args": [
+        "scripts/proofs/run-q10-guard.sh"
+      ],
+      "commandId": "CMD-f2493183e8f12a040533",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-vocabulary-guard-pytest",
+      "durationMs": 1433,
+      "env": {},
+      "executable": "/usr/bin/bash",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "",
+      "stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0\nrootdir: /root/agentic-netops/agents\nconfigfile: pyproject.toml\nplugins: langsmith-0.8.5, anyio-4.14.2, asyncio-1.4.0, vcr-1.0.2, cov-7.1.0\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 1 item\n\ntests/unit/test_vocabulary_guard.py .                                    [100%]\n\n============================== 1 passed in 0.07s ===============================\n"
+    },
+    {
+      "args": [
+        "scripts/proofs/run-p1-agents.sh"
+      ],
+      "commandId": "CMD-892719405184958a9d84",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-agents-pytest-full",
+      "durationMs": 28824,
+      "env": {},
+      "executable": "/usr/bin/bash",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "",
+      "stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0\nrootdir: /root/agentic-netops/agents\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: langsmith-0.8.5, anyio-4.14.2, asyncio-1.4.0, vcr-1.0.2, cov-7.1.0\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 313 items / 5 deselected / 308 selected\n\ntests/e2e/test_decline.py ...                                            [  0%]\ntests/e2e/test_golden_equivalence.py ......                              [  2%]\ntests/e2e/test_operator_journey.py ..                                    [  3%]\ntests/e2e/test_restart_midrequest.py ..                                  [  4%]\ntests/e2e/test_sc010_join.py ..                                          [  4%]\ntests/e2e/test_service_lifecycle.py ...                                  [  5%]\ntests/e2e/test_stage_failures.py ...                                     [  6%]\ntests/e2e/test_telemetry_fanout.py ...                                   [  7%]\ntests/e2e/test_worker_down.py ..                                         [  8%]\ntests/test_package_skeleton.py .....                                     [ 10%]\ntests/unit/test_adversarial_corpus.py .                                  [ 10%]\ntests/unit/test_allocator_agent.py ..........                            [ 13%]\ntests/unit/test_deployment_transaction.py .............................. [ 23%]\n......................                                                   [ 30%]\ntests/unit/test_graph_routing.py ....                                    [ 31%]\ntests/unit/test_kuid_client.py ..........                                [ 35%]\ntests/unit/test_mapper_agent.py .                                        [ 35%]\ntests/unit/test_phrasings_baseline.py .                                  [ 35%]\ntests/unit/test_phrasings_positive.py .                                  [ 36%]\ntests/unit/test_phrasings_srv6.py .                                      [ 36%]\ntests/unit/test_refusal_paths.py ....................................... [ 49%]\n.....                                                                    [ 50%]\ntests/unit/test_schemas.py ................................              [ 61%]\ntests/unit/test_service_status_resolution.py ....................        [ 67%]\ntests/unit/test_suggested_prompts_map.py ......ssss.....                 [ 72%]\ntests/unit/test_suggested_prompts_ports_constructs.py .......            [ 74%]\ntests/unit/test_suggested_prompts_runnable.py .......................... [ 83%]\n........                                                                 [ 85%]\ntests/unit/test_supervisor_stream.py .......                             [ 87%]\ntests/unit/test_us3_transport.py ....................................    [ 99%]\ntests/unit/test_vocabulary_guard.py .                                    [100%]\n\n=============================== warnings summary ===============================\ntests/unit/test_deployment_transaction.py: 4 warnings\ntests/unit/test_mapper_agent.py: 4 warnings\ntests/unit/test_phrasings_baseline.py: 259 warnings\ntests/unit/test_phrasings_srv6.py: 18 warnings\ntests/unit/test_service_status_resolution.py: 1 warning\ntests/unit/test_suggested_prompts_map.py: 40 warnings\n  /root/agentic-netops/agents/.venv/lib/python3.13/site-packages/ioa_observe/sdk/decorators/util.py:57: PydanticDeprecatedSince211: Accessing the 'model_computed_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.\n    and hasattr(obj, attr_name)\n\ntests/unit/test_deployment_transaction.py: 4 warnings\ntests/unit/test_mapper_agent.py: 4 warnings\ntests/unit/test_phrasings_baseline.py: 259 warnings\ntests/unit/test_phrasings_srv6.py: 18 warnings\ntests/unit/test_service_status_resolution.py: 1 warning\ntests/unit/test_suggested_prompts_map.py: 40 warnings\n  /root/agentic-netops/agents/.venv/lib/python3.13/site-packages/ioa_observe/sdk/decorators/util.py:60: PydanticDeprecatedSince211: Accessing the 'model_computed_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.\n    attr_value = getattr(obj, attr_name)\n\ntests/unit/test_deployment_transaction.py: 4 warnings\ntests/unit/test_mapper_agent.py: 4 warnings\ntests/unit/test_phrasings_baseline.py: 259 warnings\ntests/unit/test_phrasings_srv6.py: 18 warnings\ntests/unit/test_service_status_resolution.py: 1 warning\ntests/unit/test_suggested_prompts_map.py: 40 warnings\n  /root/agentic-netops/agents/.venv/lib/python3.13/site-packages/ioa_observe/sdk/decorators/util.py:57: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.\n    and hasattr(obj, attr_name)\n\ntests/unit/test_deployment_transaction.py: 4 warnings\ntests/unit/test_mapper_agent.py: 4 warnings\ntests/unit/test_phrasings_baseline.py: 259 warnings\ntests/unit/test_phrasings_srv6.py: 18 warnings\ntests/unit/test_service_status_resolution.py: 1 warning\ntests/unit/test_suggested_prompts_map.py: 40 warnings\n  /root/agentic-netops/agents/.venv/lib/python3.13/site-packages/ioa_observe/sdk/decorators/util.py:60: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.\n    attr_value = getattr(obj, attr_name)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nSKIPPED [4] tests/unit/test_suggested_prompts_map.py:97: prompt asks for no filter\n========= 304 passed, 4 skipped, 5 deselected, 1304 warnings in 24.49s =========\n"
+    },
+    {
+      "args": [
+        "build",
+        "./..."
+      ],
+      "commandId": "CMD-399e99a479e5ad109383",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-go-build",
+      "durationMs": 2686,
+      "env": {},
+      "executable": "/usr/lib/go-1.24/bin/go",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "args": [
+        "test-envtest"
+      ],
+      "commandId": "CMD-6da7226f40e273970f97",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-go-test-envtest",
+      "durationMs": 1195,
+      "env": {},
+      "executable": "/usr/bin/make",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "",
+      "stdout": ">> envtest for SRv6Service CRD\n=== RUN   TestSRv6ServiceCRD_Envtest\n=== PAUSE TestSRv6ServiceCRD_Envtest\n=== CONT  TestSRv6ServiceCRD_Envtest\n    srv6service_crd_envtest_test.go:38: envtest assets not found; set KUBEBUILDER_ASSETS to run this test\n--- SKIP: TestSRv6ServiceCRD_Envtest (0.00s)\nPASS\nok  \tgithub.com/mairp/agentic-netops/tests/envtest\t(cached)\n"
+    },
+    {
+      "args": [
+        "verify-pins"
+      ],
+      "commandId": "CMD-5cf1458f42cf80f0a353",
+      "cwd": "/root/agentic-netops",
+      "declaredId": "p2-pins-verify",
+      "durationMs": 109,
+      "env": {},
+      "executable": "/usr/bin/make",
+      "exitCode": 0,
+      "passed": true,
+      "signal": null,
+      "source": "declared",
+      "stderr": "[verify-pins] intent_tier: 5 images all pinned by immutable digest\n[verify-pins] versions.lock.yaml pins and compatibility are consistent\n",
+      "stdout": "[verify-pins] validating versions.lock.yaml\n"
+    }
+  ],
+  "gateId": "GATE-phase-2",
+  "passed": true,
+  "phase": 2,
+  "planHash": "b5446cb07eb159c47207ba307da8b8b2b03550b2445c292cc7e988321fd03a36",
+  "planId": "verification-0304bc4d682c2f771503",
+  "sourceRevision": {
+    "available": true,
+    "capturedAt": 1791771195,
+    "revision": "89b497c71165684a6e204fc6f9b1fb9e460796a6",
+    "workingTreeDirty": true
+  },
+  "summary": "Verification gate GATE-phase-2 passed 10 command(s)"
+}

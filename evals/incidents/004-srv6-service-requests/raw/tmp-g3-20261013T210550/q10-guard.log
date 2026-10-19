@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /root/agentic-netops/agents
+configfile: pyproject.toml
+plugins: langsmith-0.8.5, anyio-4.14.2, asyncio-1.4.0, vcr-1.0.2, cov-7.1.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 1 item
+
+tests/unit/test_vocabulary_guard.py .                                    [100%]
+
+============================== 1 passed in 0.08s ===============================

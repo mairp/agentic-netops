@@ -28,6 +28,7 @@ worker transport are harness stand-ins.
 from __future__ import annotations
 
 import inspect
+import json
 import sys
 
 import pytest
@@ -37,6 +38,7 @@ from langchain_core.runnables import RunnableLambda
 from common.audit import reset_audit_sink
 from common.provisioning_states import NetworkProvisioningStatus
 from common.schemas.normalized_intent import NormalizedServiceIntent
+from supervisors.provisioning.capability import SRv6Capability
 from supervisors.provisioning.graph import graph as graph_mod
 from supervisors.provisioning.graph.graph import (
     ProvisioningGraph,
@@ -321,6 +323,335 @@ class TestDirectActionRefusal:
         msg = _last_ai(state)
         assert any(x in msg for x in ["mac-vrf", "ip-vrf"])
         assert transport.calls == []
+
+
+# ---------------------------------------------------------------------------
+# US4 feature 004 — the SRv6 capability gate and the R2..R9 refusals.
+# ---------------------------------------------------------------------------
+# The capability the SRv6 tests read through the graph seam: proven here,
+# both supported variants, both probe attachments verifiable.
+_CAP = SRv6Capability(
+    available=True,
+    supported=("ip-vrf/vpn", "mac-vrf/evpn"),
+    verifiable_attachments=("leaf01/wan1", "leaf02/wan1"),
+)
+
+R4_TEXT = "SRv6 is not available on this lab profile: the capability has not been proven here."
+R3_TEXT = "The request names both SRv6 and VXLAN. A service uses one transport; say which."
+R5_TEXT = "SRv6 applies to ip-vrf and mac-vrf. A vlan or an acl has no transport."
+
+SRV6_IPVRF_REQUEST = (
+    "give tenant acme an ip-vrf over srv6 carrying 10.50.0.0/24 "
+    "between leaf01 wan1 and leaf02 wan1"
+)
+
+
+def _srv6_interpretation(**over):
+    payload = {
+        "service_id": "svc-srv6001",
+        "service_type": "ip-vrf",
+        "tenant": "acme",
+        "endpoints": [
+            {"site_or_node": "leaf01", "attachment": "wan1"},
+            {"site_or_node": "leaf02", "attachment": "wan1"},
+        ],
+        "transport": "srv6",
+        "signalling": "vpn",
+    }
+    payload.update(over)
+    return payload
+
+
+class TestSRv6Recognition:
+    """§1 recognition — exactly the five SRv6 namings; bare "segment
+    routing" does NOT name SRv6."""
+
+    @pytest.mark.parametrize("text", [
+        "srv6 service for tenant acme",
+        "SRv6 ip-vrf between leaf01 and leaf02",
+        "segment routing v6 between leaf01 wan1 and leaf02 wan1",
+        "segment routing over ipv6 for tenant acme",
+        "segment-routing v6 service",
+        "segment-routing over ipv6 service",
+    ])
+    def test_names_srv6(self, text):
+        assert graph_mod.names_srv6(text) is True
+
+    @pytest.mark.parametrize("text", [
+        "extend vlan 100 as a mac-vrf for tenant acme",
+        "a segment routing policy for tenant acme",
+        "provision ldp segment routing between leaf01 and leaf02",
+        "",
+    ])
+    def test_does_not_name_srv6(self, text):
+        assert graph_mod.names_srv6(text) is False
+
+
+class TestSRv6CapabilityRefusal:
+    """T550/T549 — R4 fires BEFORE the mapper maps anything, from the live
+    capability read through the graph seam; nothing is claimed."""
+
+    @pytest.mark.asyncio
+    async def test_srv6_request_refused_r4_before_mapper(self, monkeypatch):
+        monkeypatch.setattr(
+            graph_mod,
+            "read_srv6_capability",
+            lambda: SRv6Capability(available=False, supported=(), verifiable_attachments=()),
+        )
+        llm = FixedWordLLM("provisionable")
+        transport = StubTransport()
+        reset_audit_sink()
+        state = await _run(SRV6_IPVRF_REQUEST, llm, transport)
+        assert state.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
+        assert state.get("refusal_reason") == R4_TEXT
+        msg = _last_ai(state)
+        assert R4_TEXT in msg
+        assert REFUSAL_EXPLANATION in msg
+        # BEFORE the mapper runs: zero worker calls, nothing claimed
+        assert transport.calls == []
+        assert not state.get("mapped_parameters")
+        assert state.get("pending_action") in (None, "")
+        from common.audit import get_audit_sink
+
+        assert _refuses(get_audit_sink().events)
+
+    @pytest.mark.asyncio
+    async def test_default_read_fails_closed_out_of_cluster(self, monkeypatch):
+        # No token override, no mounted ServiceAccount token: the reader
+        # cannot prove the capability, so the gate refuses (never enables).
+        monkeypatch.delenv("AGENTIC_NETOPS_BEARER_TOKEN", raising=False)
+        llm = FixedWordLLM("provisionable")
+        state = await _run(SRV6_IPVRF_REQUEST, llm, StubTransport())
+        assert state.get("refusal_reason") == R4_TEXT
+
+    @pytest.mark.asyncio
+    async def test_bare_srv6_request_not_diverted_to_informational(self, monkeypatch):
+        monkeypatch.setattr(
+            graph_mod,
+            "read_srv6_capability",
+            lambda: SRv6Capability(available=False, supported=(), verifiable_attachments=()),
+        )
+        llm = FixedWordLLM("provisionable")
+        state = await _run("provision an SRv6 service for tenant acme", llm, StubTransport())
+        assert state.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
+        assert state.get("refusal_reason") == R4_TEXT
+        assert state.get("pending_action") in (None, "")
+
+    def test_classifier_prompt_routes_srv6_to_provisioning(self):
+        """T011 — the production classifier prompt carries the SRv6 rule
+        (route a request naming SRv6 to the provisioning path so the
+        supervisor's SRv6 refusal is what the operator sees)."""
+        from supervisors.provisioning.prompts.system import CLASSIFIER_PROMPT
+
+        low = CLASSIFIER_PROMPT.lower()
+        assert "srv6" in low
+        assert "provisionable" in low
+
+
+class TestSRv6Refusals:
+    """R2/R3/R5/R6/R7/R8/R9 — each terminal, zero allocator or deployer
+    calls, nothing claimed. The canned mapper payloads carry the transport
+    and the unsupported-property tokens the mapper emits
+    (contracts/operator-phrasings.md §3); ``graph.read_srv6_capability`` and
+    ``_srv6_port_holder`` are the injected seams."""
+
+    async def _refuse_case(self, monkeypatch, mapper_payload, text=SRV6_IPVRF_REQUEST, cap=_CAP):
+        monkeypatch.setattr(graph_mod, "read_srv6_capability", lambda: cap)
+        llm = FixedWordLLM("provisionable")
+        transport = _FixedPayloadTransport(mapper_payload=mapper_payload)
+        reset_audit_sink()
+        state = await _run(text, llm, transport)
+        return state, transport
+
+    def _assert_no_claim(self, state, transport, reason_contains):
+        assert state.get("workflow_status") == NetworkProvisioningStatus.FAILED.value
+        assert reason_contains in (state.get("refusal_reason") or "")
+        assert state.get("pending_action") in (None, "")
+        assert not state.get("mapped_parameters")
+        # zero allocator or deployer calls on EVERY refusal here
+        assert [stage for stage, _ in transport.calls if stage != "mapper"] == []
+        from common.audit import get_audit_sink
+
+        assert _refuses(get_audit_sink().events)
+
+    async def test_r3_srv6_with_vxlan_refused(self, monkeypatch):
+        state, transport = await self._refuse_case(
+            monkeypatch, _srv6_interpretation(unsupported_properties=["srv6TransportConflict"])
+        )
+        self._assert_no_claim(state, transport, R3_TEXT)
+        assert state["refusal_reason"] == R3_TEXT
+
+    async def test_r5_srv6_with_vlan_or_acl_refused(self, monkeypatch):
+        state, transport = await self._refuse_case(
+            monkeypatch, _srv6_interpretation(unsupported_properties=["srv6UnsupportedConstruct"])
+        )
+        self._assert_no_claim(state, transport, R5_TEXT)
+        assert state["refusal_reason"] == R5_TEXT
+
+    async def test_r2_variant_outside_supported_set_bridged_gloss(self, monkeypatch):
+        cap = SRv6Capability(
+            available=True, supported=("ip-vrf/vpn",), verifiable_attachments=_CAP.verifiable_attachments
+        )
+        state, transport = await self._refuse_case(
+            monkeypatch,
+            _srv6_interpretation(service_type="mac-vrf", signalling="evpn"),
+            cap=cap,
+        )
+        self._assert_no_claim(
+            state, transport, "`mac-vrf over srv6` (bridged EVPN over SRv6) is not supported on this image."
+        )
+
+    async def test_r2_variant_outside_supported_set_lists_the_set(self, monkeypatch):
+        cap = SRv6Capability(
+            available=True, supported=("mac-vrf/evpn",), verifiable_attachments=_CAP.verifiable_attachments
+        )
+        state, transport = await self._refuse_case(
+            monkeypatch, _srv6_interpretation(signalling="evpn"), cap=cap
+        )
+        self._assert_no_claim(
+            state,
+            transport,
+            "`ip-vrf over srv6 with evpn signalling` is not supported on this image. "
+            "Supported SRv6 services: `mac-vrf over srv6`.",
+        )
+
+    async def test_r7_unknown_node_lists_valid_nodes(self, monkeypatch):
+        monkeypatch.setenv("FABRIC_NODE_MAP", '{"leaf01":"n1","leaf02":"n2"}')
+        monkeypatch.setenv("FABRIC_PORT_MAP", '{"wan1":"eth4"}')
+        monkeypatch.setenv("FABRIC_SPINE_NODES", "spine01,spine02")
+        state, transport = await self._refuse_case(
+            monkeypatch,
+            _srv6_interpretation(
+                endpoints=[
+                    {"site_or_node": "leaf09", "attachment": "wan1"},
+                    {"site_or_node": "leaf02", "attachment": "wan1"},
+                ]
+            ),
+        )
+        self._assert_no_claim(
+            state,
+            transport,
+            'endpoints[0].node: "leaf09" is not a node at this site (site has: leaf01, leaf02)',
+        )
+
+    async def test_r7_unknown_spine_lists_site_spines(self, monkeypatch):
+        monkeypatch.setenv("FABRIC_NODE_MAP", '{"leaf01":"n1","leaf02":"n2"}')
+        monkeypatch.setenv("FABRIC_PORT_MAP", '{"wan1":"eth4"}')
+        monkeypatch.setenv("FABRIC_SPINE_NODES", "spine01,spine02")
+        state, transport = await self._refuse_case(
+            monkeypatch, _srv6_interpretation(preferredSpine="spine09")
+        )
+        self._assert_no_claim(
+            state, transport, 'preferredSpine: unknown "spine09" (site has: spine01, spine02)'
+        )
+
+    async def test_r9_no_verifiable_probe_host_fail_closed(self, monkeypatch):
+        cap = SRv6Capability(available=True, supported=_CAP.supported, verifiable_attachments=())
+        state, transport = await self._refuse_case(monkeypatch, _srv6_interpretation(), cap=cap)
+        self._assert_no_claim(
+            state,
+            transport,
+            "`wan1` on `leaf01` has no client to verify traffic from, so an SRv6 service there "
+            "cannot reach Ready. Attachments that can be verified: `none`.",
+        )
+
+    async def test_r9_attachment_outside_verified_set(self, monkeypatch):
+        cap = SRv6Capability(
+            available=True,
+            supported=_CAP.supported,
+            verifiable_attachments=("leaf01/wan1", "leaf02/wan1"),
+        )
+        state, transport = await self._refuse_case(
+            monkeypatch,
+            _srv6_interpretation(
+                endpoints=[
+                    {"site_or_node": "leaf01", "attachment": "ethernet1"},
+                    {"site_or_node": "leaf02", "attachment": "wan1"},
+                ]
+            ),
+            cap=cap,
+        )
+        self._assert_no_claim(state, transport, "`ethernet1` on `leaf01` has no client to verify traffic from")
+        assert "Attachments that can be verified: `leaf01/wan1, leaf02/wan1`." in (
+            state.get("refusal_reason") or ""
+        )
+
+    async def test_r8_port_held_by_another_service(self, monkeypatch):
+        monkeypatch.setattr(
+            graph_mod.ProvisioningGraph,
+            "_srv6_port_holder",
+            lambda self, node, port: "svc-held",
+            raising=True,
+        )
+        state, transport = await self._refuse_case(monkeypatch, _srv6_interpretation())
+        self._assert_no_claim(
+            state, transport, "`wan1` on `leaf01` already belongs to `svc-held`."
+        )
+
+    async def test_r6_te_policy_refusal_unchanged(self, monkeypatch):
+        """T492 — the EXISTING tePolicy refusal still refuses an SRv6
+        request that asks for explicit traffic engineering; zero claims."""
+        monkeypatch.setattr(graph_mod, "read_srv6_capability", lambda: _CAP)
+        llm = FixedWordLLM("provisionable")
+        transport = StubTransport()
+        state = await _run(
+            SRV6_IPVRF_REQUEST + " with a traffic engineering policy", llm, transport
+        )
+        self._assert_no_claim(state, transport, "tePolicy")
+
+    # ------------------------------------------------------------------
+    # T525 — the preferred-spine EXCEPTION and the remaining §4 R6
+    # phrasings (contracts/operator-phrasings.md §4, quickstart q11's
+    # `-k te` selection).
+    # ------------------------------------------------------------------
+    async def test_te_exception_preferred_spine_provisionable(self, monkeypatch):
+        """Naming a PREFERRED SPINE on an SRv6 request is path steering, NOT
+        a TE policy: with the site knowing its spines, the request —
+        preferred spine AND named alternate — reaches the confirmation point
+        with both carried for validation and nothing claimed beyond the
+        mapper."""
+        monkeypatch.setattr(graph_mod, "read_srv6_capability", lambda: _CAP)
+        monkeypatch.setenv("FABRIC_SPINE_NODES", "spine01,spine02")
+        llm = FixedWordLLM("provisionable")
+        transport = StubTransport()
+        state = await _run(
+            SRV6_IPVRF_REQUEST + " preferring spine01 with spine02 as alternate",
+            llm,
+            transport,
+        )
+        assert state.get("workflow_status") == NetworkProvisioningStatus.MAPPED.value
+        assert state.get("pending_action") == "confirm_1"
+        assert not state.get("refusal_reason")
+        assert state.get("awaiting_confirmation")
+        mapped = json.loads(state["mapped_parameters"]) if state.get("mapped_parameters") else {}
+        assert mapped.get("preferred_spine") == "spine01"
+        # The alternate is validated (R7 knows spine02), never refused — and
+        # it rides the interpretation only as far as validation.
+        assert mapped.get("alternate_spine") == "spine02"
+        # Nothing claimed: the mapper is the only worker called.
+        assert [stage for stage, _ in transport.calls] == ["mapper"]
+
+    async def _assert_r6_refused(self, monkeypatch, phrase: str):
+        monkeypatch.setattr(graph_mod, "read_srv6_capability", lambda: _CAP)
+        llm = FixedWordLLM("provisionable")
+        transport = StubTransport()
+        state = await _run(SRV6_IPVRF_REQUEST + " " + phrase, llm, transport)
+        self._assert_no_claim(state, transport, "tePolicy")
+
+    async def test_r6_te_explicit_path_still_refused(self, monkeypatch):
+        """T525 — '... explicit path' on an SRv6 request is R6 (contract
+        §4): the same tePolicy refusal, zero claims."""
+        await self._assert_r6_refused(monkeypatch, "with an explicit path through spine01")
+
+    async def test_r6_te_sid_list_still_refused(self, monkeypatch):
+        """T525 — '... SID list ...' on an SRv6 request is R6 (contract
+        §4): the same tePolicy refusal, zero claims."""
+        await self._assert_r6_refused(monkeypatch, "with a SID list through spine01")
+
+    async def test_r6_te_pin_the_flow_still_refused(self, monkeypatch):
+        """T525 — '... pin the flow ...' on an SRv6 request is R6 (contract
+        §4): the same tePolicy refusal, zero claims."""
+        await self._assert_r6_refused(monkeypatch, "and pin the flow through spine01")
 
 
 # ---------------------------------------------------------------------------

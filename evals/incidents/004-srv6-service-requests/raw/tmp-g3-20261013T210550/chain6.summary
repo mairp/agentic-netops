@@ -1,0 +1,24 @@
+chain6 ABORTED by harness keeper 2026-10-13 19:17 (+04), not lab-sick anymore — READ ALL:
+At abort time chain6 was doomed: the 5th orchagent wedge (leaf01+leaf02 CONFIG_DB
+rows present, APPL_DB VRF_TABLE empty, kernel never programmed) had every steering
+step failing preflight since 18:08, its per-group provision-recovery ladder was
+exhausted, and the phase-3 yield deadline (18000s from ~14:44) could not cover the
+remaining ~2h15 of D/E/F/G work. Keeper killed the process group (pid 1226866).
+VERDICTS AT ABORT: spike-rerun-vpn=differ (7 of 8 proofs APPLY-STUCK at replay,
+stale .got in /tmp/proof-got-spike-vpn-*.txt); the other four spike-rerun-*.verdict
+were never reached (chain died in D).
+KEEPER FIXES SINCE ABORT (all done 19:15-19:22, lab verified healthy):
+1. Lab HEALED in-guest on both leaves: systemctl reset-failed + start of
+   swss/syncd/bgp (NOT docker restart swss — that trips start-limit-hit and
+   leaves swss.service failed). Verified: units active, APPL_DB VRF_TABLE
+   repopulated, kernel Vrf1 present on leaf01+leaf02. ~3 min vs 25-min provision.
+2. scripts/spike/vrf-apply.sh upgraded with a wedge cure: when the probe fails
+   AND the wedge signature is present (CONFIG_DB VRF|Vrf1 exists, APPL_DB
+   VRF_TABLE empty), it runs the same reset-failed+start cure and waits up to
+   90s for APPL_DB consumption before the apply dance. Silent on success —
+   recorded bytes unchanged. bash -n clean. Probe-first (pass 20) logic intact.
+ON-RESUME GUIDANCE: take branch (1) from the yield file — but the lab is already
+fixed and the script cure is already in, so diagnosis should be short: relaunch
+the canonical re-record+replay chain as chain7 (chain6.sh minus the phases that
+completed: A/B/C are DONE and green except the vpn replay receipt), re-yield with
+a deadline that covers it (>=9000s). Do NOT re-provision a healthy lab.

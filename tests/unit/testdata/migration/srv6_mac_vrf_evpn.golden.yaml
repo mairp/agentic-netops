@@ -1,0 +1,25 @@
+apiVersion: agentic-netops.io/v1alpha1
+kind: SRv6Service
+metadata:
+  annotations:
+    agentic-netops.io/mapping-version: v0.1.0
+    agentic-netops.io/migration-input-hash: aeb96bd0a06788e13b23511e8fbaa6306e9408d24d6615ebe631a89086834da8
+    agentic-netops.io/service-type: mac-vrf
+    agentic-netops.io/tenant: acme
+    agentic-netops.io/translator: agentic-netops-migration-translator
+    agentic-netops.io/translator-version: v0.1.0
+    agentic-netops.io/transport: srv6
+  name: acme-bridged
+  namespace: agentic-netops-intent
+spec:
+  attachments:
+  - node: leaf01
+    port: wan1
+  - node: leaf02
+    port: wan1
+  construct: mac-vrf
+  path:
+    preferredSpine: spine01
+  signalling: evpn
+  tenant: acme
+  vlan: 150

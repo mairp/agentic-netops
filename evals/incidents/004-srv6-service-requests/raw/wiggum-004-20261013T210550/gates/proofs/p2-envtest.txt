@@ -1,0 +1,9 @@
+# make test-envtest: 2026-10-11T19:21:16Z
+>> envtest for SRv6Service CRD
+=== RUN   TestSRv6ServiceCRD_Envtest
+=== PAUSE TestSRv6ServiceCRD_Envtest
+=== CONT  TestSRv6ServiceCRD_Envtest
+    srv6service_crd_envtest_test.go:38: envtest assets not found; set KUBEBUILDER_ASSETS to run this test
+--- SKIP: TestSRv6ServiceCRD_Envtest (0.00s)
+PASS
+ok  	github.com/mairp/agentic-netops/tests/envtest	0.023s

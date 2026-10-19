@@ -1,0 +1,43 @@
+===== leaf01: containerlab links (topology.sonic-vm.clab.yml) and launcher ifs =====
+eth0             UP             0c:00:ad:0a:85:00 <BROADCAST,MULTICAST,UP,LOWER_UP> 
+eth1             UP             aa:c1:ab:fd:da:d9 <BROADCAST,MULTICAST,PROMISC,UP,LOWER_UP> 
+eth2             UP             aa:c1:ab:cb:d9:ba <BROADCAST,MULTICAST,PROMISC,UP,LOWER_UP> 
+eth3             UP             aa:c1:ab:c9:0a:77 <BROADCAST,MULTICAST,PROMISC,UP,LOWER_UP> 
+eth4             UP             aa:c1:ab:f9:df:db <BROADCAST,MULTICAST,PROMISC,UP,LOWER_UP> 
+===== leaf01 link via launcher eth1: capture while the peer pings =====
+-- capture (echo packets only, id/seq normalized, unique lines) --
+eth1  M   IP6 fe80::209f:dbff:fe4e:65f9 > ff02::1: ICMP6, echo request, length 64
+eth1  Out IP6 fe80::20bc:dcff:fee7:dd3c > fe80::209f:dbff:fe4e:65f9: ICMP6, echo reply, length 64
+eth1  Out IP6 fe80::a8c1:abff:fefd:dad9 > fe80::209f:dbff:fe4e:65f9: ICMP6, echo reply, length 64
+Ethernet0 M   IP6 fe80::209f:dbff:fe4e:65f9 > ff02::1: ICMP6, echo request, length 64
+Ethernet0 Out IP6 fe80::20bc:dcff:fee7:dd3c > fe80::209f:dbff:fe4e:65f9: ICMP6, echo reply, length 64
+Ethernet0 P   IP6 fe80::a8c1:abff:fefd:dad9 > fe80::209f:dbff:fe4e:65f9: ICMP6, echo reply, length 64
+===== leaf01 link via launcher eth2: capture while the peer pings =====
+-- capture (echo packets only, id/seq normalized, unique lines) --
+eth2  M   IP6 fe80::209a:2aff:fe73:e529 > ff02::1: ICMP6, echo request, length 64
+eth2  Out IP6 fe80::20bc:dcff:fee7:dd3c > fe80::209a:2aff:fe73:e529: ICMP6, echo reply, length 64
+eth2  Out IP6 fe80::a8c1:abff:fecb:d9ba > fe80::209a:2aff:fe73:e529: ICMP6, echo reply, length 64
+Ethernet4 M   IP6 fe80::209a:2aff:fe73:e529 > ff02::1: ICMP6, echo request, length 64
+Ethernet4 Out IP6 fe80::20bc:dcff:fee7:dd3c > fe80::209a:2aff:fe73:e529: ICMP6, echo reply, length 64
+Ethernet4 P   IP6 fe80::a8c1:abff:fecb:d9ba > fe80::209a:2aff:fe73:e529: ICMP6, echo reply, length 64
+===== leaf01 link via launcher eth3: capture while the peer pings =====
+-- capture (echo packets only, id/seq normalized, unique lines) --
+eth3  M   IP6 fe80::a8c1:abff:fefa:fe75 > ff02::1: ICMP6, echo request, length 64
+eth3  Out IP6 fe80::20bc:dcff:fee7:dd3c > fe80::a8c1:abff:fefa:fe75: ICMP6, echo reply, length 64
+eth3  Out IP6 fe80::a8c1:abff:fec9:a77 > fe80::a8c1:abff:fefa:fe75: ICMP6, echo reply, length 64
+Ethernet8 M   IP6 fe80::a8c1:abff:fefa:fe75 > ff02::1: ICMP6, echo request, length 64
+Ethernet8 Out IP6 fe80::20bc:dcff:fee7:dd3c > fe80::a8c1:abff:fefa:fe75: ICMP6, echo reply, length 64
+Ethernet8 P   IP6 fe80::a8c1:abff:fec9:a77 > fe80::a8c1:abff:fefa:fe75: ICMP6, echo reply, length 64
+===== leaf01 link via launcher eth4: capture while the peer pings =====
+-- capture (echo packets only, id/seq normalized, unique lines) --
+eth4  M   IP6 fe80::a8c1:abff:fecf:b93a > ff02::1: ICMP6, echo request, length 64
+eth4  Out IP6 fe80::20bc:dcff:fee7:dd3c > fe80::a8c1:abff:fecf:b93a: ICMP6, echo reply, length 64
+eth4  Out IP6 fe80::a8c1:abff:fef9:dfdb > fe80::a8c1:abff:fecf:b93a: ICMP6, echo reply, length 64
+Ethernet12 M   IP6 fe80::a8c1:abff:fecf:b93a > ff02::1: ICMP6, echo request, length 64
+Ethernet12 Out IP6 fe80::20bc:dcff:fee7:dd3c > fe80::a8c1:abff:fecf:b93a: ICMP6, echo reply, length 64
+Ethernet12 P   IP6 fe80::a8c1:abff:fef9:dfdb > fe80::a8c1:abff:fecf:b93a: ICMP6, echo reply, length 64
+===== leaf01: resulting map (launcher-if -> guest NIC -> SONiC port) =====
+record the observed arrivals above; launcher ethN of leaf01 maps to the raw NIC
+(ethX) that received each link's packets and to the SONiC port that forwarded them
+
+[exit code: 0]

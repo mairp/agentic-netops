@@ -2,6 +2,7 @@
 package migration
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -71,11 +72,14 @@ type KubenetNetwork struct {
 }
 
 // OutputBundle captures deterministic artifacts and provenance for audit.
+// Kind names the kind the YAML document carries: "Network" for the vxlan
+// underlay, "SRv6Service" for an srv6 transport service.
 type OutputBundle struct {
 	Translator  string            `json:"translator"`
 	Version     string            `json:"version"`
 	Mapping     string            `json:"mapping"`
 	InputHash   string            `json:"inputHash"`
+	Kind        string            `json:"kind,omitempty"`
 	Annotations map[string]string `json:"annotations"`
 	NetworkYAML string            `json:"networkYAML"`
 }
@@ -89,6 +93,12 @@ func Translate(in *ServiceInput) (*OutputBundle, error) {
 	hash, err := in.CanonicalHash()
 	if err != nil {
 		return nil, err
+	}
+
+	// An srv6 transport service becomes exactly one SRv6Service and never also
+	// a Network (srv6 contract §4).
+	if in.Transport == TransportSRv6 {
+		return translateSRv6(in, hash)
 	}
 
 	name := fmt.Sprintf("migr-%s", in.ServiceID)
@@ -197,10 +207,117 @@ func Translate(in *ServiceInput) (*OutputBundle, error) {
 		Version:     TranslatorVersion,
 		Mapping:     MappingVersion,
 		InputHash:   hash,
+		Kind:        "Network",
 		Annotations: metadata["annotations"].(map[string]string),
 		NetworkYAML: yml,
 	}
 	return out, nil
+}
+
+// SRv6Attachment is one attachment of an SRv6Service: the node, the port the
+// attachment lands on, and the routed prefixes terminated there.
+type SRv6Attachment struct {
+	Node    string   `json:"node"`
+	Port    string   `json:"port"`
+	Gateway []string `json:"gateway,omitempty"`
+}
+
+// SRv6Path is the underlay path constraint of an SRv6Service.
+type SRv6Path struct {
+	PreferredSpine string `json:"preferredSpine,omitempty"`
+}
+
+// SRv6ServiceSpec is the spec of one SRv6Service. Field order is
+// deterministic: sigs.k8s.io/yaml (via jsonToYAML) emits map keys sorted.
+type SRv6ServiceSpec struct {
+	Tenant      string           `json:"tenant"`
+	Construct   string           `json:"construct"`
+	Signalling  string           `json:"signalling"`
+	VLAN        int              `json:"vlan,omitempty"` // mac-vrf only (A8: vlan required for mac-vrf)
+	Attachments []SRv6Attachment `json:"attachments"`
+	Path        *SRv6Path        `json:"path,omitempty"`
+}
+
+// SRv6Service is the CRD the translator emits for transport srv6
+// (agentic-netops.io/v1alpha1, namespace agentic-netops-intent). Exactly one
+// is emitted per srv6 input and never a Network for the same input.
+type SRv6Service struct {
+	APIVersion string          `json:"apiVersion"`
+	Kind       string          `json:"kind"`
+	Metadata   map[string]any  `json:"metadata"`
+	Spec       SRv6ServiceSpec `json:"spec"`
+}
+
+// translateSRv6 renders one deterministic SRv6Service for a transport srv6
+// input. It assumes ValidateAllOrNothing has already passed for 'in'.
+func translateSRv6(in *ServiceInput, hash string) (*OutputBundle, error) {
+	// Signalling defaults by construct (srv6 contract §4): vpn for ip-vrf,
+	// evpn for mac-vrf — filled in the output, never rewritten on the input.
+	signalling := in.Signalling
+	if signalling == "" {
+		signalling = SignallingVPN
+		if in.Type == ServiceMACVRF {
+			signalling = SignallingEVPN
+		}
+	}
+	attachments := make([]SRv6Attachment, 0, len(in.Endpoints))
+	for _, ep := range in.Endpoints {
+		attachments = append(attachments, SRv6Attachment{
+			Node:    ep.Node,
+			Port:    ep.Attachment,
+			Gateway: ep.Prefixes,
+		})
+	}
+	spec := SRv6ServiceSpec{
+		Tenant:      in.Tenant,
+		Construct:   string(in.Type),
+		Signalling:  signalling,
+		Attachments: attachments,
+	}
+	if in.Type == ServiceMACVRF {
+		// The SRv6Service CRD's A8 rule requires a vlan for mac-vrf; the
+		// intent's endpoint vlan rides along.
+		spec.VLAN = endpointVLAN(in.Endpoints)
+	}
+	if in.PreferredSpine != "" {
+		spec.Path = &SRv6Path{PreferredSpine: in.PreferredSpine}
+	}
+	svc := SRv6Service{
+		APIVersion: "agentic-netops.io/v1alpha1",
+		Kind:       "SRv6Service",
+		Metadata: map[string]any{
+			"name":      in.ServiceID, // the mapping row names metadata.name = serviceId
+			"namespace": "agentic-netops-intent",
+			"annotations": map[string]string{
+				"agentic-netops.io/translator":           TranslatorName,
+				"agentic-netops.io/translator-version":   TranslatorVersion,
+				"agentic-netops.io/mapping-version":      MappingVersion,
+				"agentic-netops.io/migration-input-hash": hash,
+				"agentic-netops.io/tenant":               in.Tenant,
+				"agentic-netops.io/service-type":         string(in.Type),
+				"agentic-netops.io/transport":            TransportSRv6,
+			},
+		},
+		Spec: spec,
+	}
+	// Same deterministic YAML path as the Network kind.
+	j, err := json.Marshal(svc)
+	if err != nil {
+		return nil, err
+	}
+	y, err := jsonToYAML(j)
+	if err != nil {
+		return nil, err
+	}
+	return &OutputBundle{
+		Translator:  TranslatorName,
+		Version:     TranslatorVersion,
+		Mapping:     MappingVersion,
+		InputHash:   hash,
+		Kind:        "SRv6Service",
+		Annotations: svc.Metadata["annotations"].(map[string]string),
+		NetworkYAML: string(y),
+	}, nil
 }
 
 func buildYAML(n *KubenetNetwork) string {

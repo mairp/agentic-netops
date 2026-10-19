@@ -1,3 +1,17 @@
+# RBAC for the SRv6Service controller (feature 004, contracts/srv6service-crd.md §6):
+#   - update on srv6services/finalizers
+#   - get on the ConfigMap fabric-compat-pins (capability rule C5)
+#   - get, list, watch, create, delete on the claim resources of the pools in
+#     data-model.md §8.1 (genid.be.kuid.dev genidclaims for the service id,
+#     ipam.be.kuid.dev ipclaims for the per-attachment client /24) and of the
+#     named-value reservation of §4 (vlan.be.kuid.dev vlanclaims, the
+#     operator-named VLAN of a mac-vrf), and on
+#     leases in kuid-system (the Lease fallback) — the same verb set the
+#     tier's claimer has, deliberately NO update or patch
+#   - get, list, watch on networks.network.kubenet.dev for rule C4
+#   - create on events
+# The *.be.kuid.dev groups are served by the aggregated kuid-server; the main
+# API server authorizes them through this RBAC.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -9,6 +23,15 @@ rules:
 - apiGroups: ["agentic-netops.io"]
   resources: ["srv6services", "srv6services/status"]
   verbs: ["get", "list", "watch", "update", "patch"]
+# Finalizer only: removed by the controller after confirmed rollback and
+# released claims (contracts/srv6service-crd.md §5).
+- apiGroups: ["agentic-netops.io"]
+  resources: ["srv6services/finalizers"]
+  verbs: ["update"]
+# Rule C4: a port held by another resource is found on Network objects.
+- apiGroups: ["network.kubenet.dev"]
+  resources: ["networks"]
+  verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -18,6 +41,125 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: agentic-netops-srv6-controller-crd
+subjects:
+- kind: ServiceAccount
+  name: agentic-netops-srv6-controller
+  namespace: agentic-netops-system
+---
+# Capability gate C5: the pinned record is a ConfigMap in agentic-netops-system.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agentic-netops-srv6-controller-pins
+  namespace: agentic-netops-system
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["fabric-compat-pins"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agentic-netops-srv6-controller-pins
+  namespace: agentic-netops-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agentic-netops-srv6-controller-pins
+subjects:
+- kind: ServiceAccount
+  name: agentic-netops-srv6-controller
+  namespace: agentic-netops-system
+---
+# Allocation and the Lease fallback, both confined to kuid-system. No update
+# or patch: a claim is created and waited on, never edited; fallback leases
+# are immutable (they are deleted on release).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agentic-netops-srv6-controller-claims
+  namespace: kuid-system
+rules:
+- apiGroups: ["genid.be.kuid.dev"]
+  resources: ["genidclaims"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: ["ipam.be.kuid.dev"]
+  resources: ["ipclaims"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: ["vlan.be.kuid.dev"]
+  resources: ["vlanclaims"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agentic-netops-srv6-controller-claims
+  namespace: kuid-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agentic-netops-srv6-controller-claims
+subjects:
+- kind: ServiceAccount
+  name: agentic-netops-srv6-controller
+  namespace: agentic-netops-system
+---
+# Leader election (cmd/srv6-controller --leader-elect): the manager takes its
+# Lease in its OWN namespace (agentic-netops-system). base.yaml's leases Role
+# binds only the agentic-netops-controller SA, so this controller needs its
+# own grant or it never acquires the lease and never reconciles ("cannot get
+# resource leases ... in the namespace agentic-netops-system").
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agentic-netops-srv6-controller-leaderelection
+  namespace: agentic-netops-system
+rules:
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agentic-netops-srv6-controller-leaderelection
+  namespace: agentic-netops-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agentic-netops-srv6-controller-leaderelection
+subjects:
+- kind: ServiceAccount
+  name: agentic-netops-srv6-controller
+  namespace: agentic-netops-system
+---
+# Terminal refusals and state transitions are recorded as Events on the
+# service objects in the intent namespace. patch/update: controller-runtime's
+# event broadcaster deduplicates through patch (aggregated events); create
+# alone leaves every second occurrence of a reason unrecorded.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agentic-netops-srv6-controller-events
+  namespace: agentic-netops-intent
+rules:
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agentic-netops-srv6-controller-events
+  namespace: agentic-netops-intent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agentic-netops-srv6-controller-events
 subjects:
 - kind: ServiceAccount
   name: agentic-netops-srv6-controller

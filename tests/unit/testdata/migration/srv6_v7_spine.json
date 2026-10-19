@@ -1,0 +1,12 @@
+{
+  "serviceId": "srv6_v7",
+  "type": "ip-vrf",
+  "transport": "srv6",
+  "signalling": "vpn",
+  "tenant": "acme",
+  "endpoints": [
+    {"node": "leaf01", "attachment": "wan1", "prefixes": ["2001:db8:3::30/127"]},
+    {"node": "leaf02", "attachment": "wan1", "prefixes": ["2001:db8:4::40/127"]}
+  ],
+  "preferredSpine": "spine99"
+}

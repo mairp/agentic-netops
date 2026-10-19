@@ -2,8 +2,6 @@
 package render
 
 import (
-	"sort"
-
 	"github.com/mairp/agentic-netops/pkg/model"
 )
 
@@ -32,33 +30,5 @@ func RenderIRB(vrf model.NetworkInstance, vlan int, irb model.IRB) map[string]an
 		"vlan":    vlan,
 		"gateway": map[string]any{"ipv4": irb.GatewayIPv4, "ipv6": irb.GatewayIPv6},
 	}
-	return res
-}
-
-// RenderSRv6Behaviors renders SRv6 behaviors including H.Encaps.Red, End, and End.DT46.
-func RenderSRv6Behaviors(behaviors []string) map[string]any {
-	res := map[string]any{}
-	list := append([]string{}, behaviors...)
-	sort.Strings(list)
-	res["/sonic-srv6:sonic-srv6/BEHAVIORS"] = list
-	return res
-}
-
-// RenderSIDList renders an ordered SID list for steering.
-func RenderSIDList(name string, sids []string) map[string]any {
-	res := map[string]any{}
-	ordered := append([]string{}, sids...)
-	res["/sonic-srv6:sonic-srv6/SID_LIST"] = []map[string]any{{"name": name, "sids": ordered}}
-	return res
-}
-
-// RenderSRPolicy renders a steering policy referencing a SID list.
-func RenderSRPolicy(pol model.SRPolicy) map[string]any {
-	res := map[string]any{}
-	res["/sonic-srv6:sonic-srv6/POLICY"] = []map[string]any{{
-		"name":     pol.Name,
-		"selector": pol.Selector,
-		"sid-list": pol.SIDListRef,
-	}}
 	return res
 }

@@ -1,0 +1,33 @@
+# T211 update: same service, gateway moved to 10.202.3.1/24.
+# VRF with an L3VNI).
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: p4-svc-mgw
+  namespace: agentic-netops-intent
+spec:
+  bridgeDomains:
+    - name: p4-svc-mgw
+      vlan: 3602
+      l2vni: 13513
+      irb:
+        vrf: p4-svc-mgw
+        gatewayIPv4: "10.202.3.1/24"
+      evpn:
+        routeTargets:
+          import: ["65000:13513"]
+          export: ["65000:13513"]
+  routers:
+    - name: p4-svc-mgw
+      l3vni: 13522
+      rd: "65000:22"
+      routeTargets:
+        import: ["65000:22"]
+        export: ["65000:22"]
+  attachments:
+    - node: leaf01
+      attachment: eth3
+      vlan: 3602
+    - node: leaf02
+      attachment: eth3
+      vlan: 3602

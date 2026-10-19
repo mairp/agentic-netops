@@ -1,0 +1,40 @@
+== 1. live worktree mapper state (reported honestly) ==
+live: git diff --quiet -- agents/provisioning/mapper -> MODIFIED (exit 1)
+      (T008 SRv6 recognition is a deliberate phase-2 mapper change, so the
+       guard's clean-diff precondition is reconstructed below, in a
+       throwaway checkout of the phase-1 approved tree — never in place)
+== 2. throwaway checkout: git archive 89b497c7 + live test/corpus files ==
+throwaway HEAD: 6247bda phase-1 approved tree (89b497c7) — T005 guard baseline
+cases in the live snapshot: 67
+== 3. guard precondition, checked immediately before regeneration ==
+git diff --quiet -- agents/provisioning/mapper -> clean (exit 0): mapper is the phase-1 approved mapper
+== 4. Done-when first: the LIVE snapshot replays green against the unmodified mapper (no flag) ==
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tmp/t005-guard/agents
+configfile: pyproject.toml
+plugins: langsmith-0.8.5, anyio-4.14.2, asyncio-1.4.0, vcr-1.0.2, cov-7.1.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 1 item
+
+tests/unit/test_phrasings_baseline.py .                                  [100%]
+
+============================== 1 passed in ELAPSED ===============================
+== 5. regenerate with UPDATE_BASELINE=1 (only now that the diff is proven clean) ==
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tmp/t005-guard/agents
+configfile: pyproject.toml
+plugins: langsmith-0.8.5, anyio-4.14.2, asyncio-1.4.0, vcr-1.0.2, cov-7.1.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 1 item
+
+tests/unit/test_phrasings_baseline.py .                                  [100%]
+
+============================== 1 passed in ELAPSED ===============================
+== 6. regenerated snapshot vs live snapshot ==
+regenerated sha256: bb70f285eafe6d08da0881a9cf2c4e597f5f0989ba05195c1b5c317a9602658b
+live        sha256: bb70f285eafe6d08da0881a9cf2c4e597f5f0989ba05195c1b5c317a9602658b
+RESULT: byte-IDENTICAL — baseline_snapshot.json is exactly what the unmodified mapper regenerates with UPDATE_BASELINE=1
+
+[exit code: 0]

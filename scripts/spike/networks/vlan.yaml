@@ -1,0 +1,20 @@
+# p4-vlan-trial input (T189): the vlan construct — a local broadcast domain,
+# a VLAN and the ports in it, no overlay. Ports are the sonic-vm guest's
+# client access ports (eth3 -> Ethernet8 per the profile port map); never the
+# fabric underlay ports (eth1/eth2).
+apiVersion: network.kubenet.dev/v1alpha1
+kind: Network
+metadata:
+  name: p4-trial-vlan
+  namespace: agentic-netops-system
+spec:
+  vlans:
+    - name: p4-trial-vlan
+      vlan: 3500
+  attachments:
+    - node: leaf01
+      attachment: eth3
+      vlan: 3500
+    - node: leaf02
+      attachment: eth3
+      vlan: 3500

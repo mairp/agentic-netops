@@ -1,0 +1,31 @@
+# Sample: ip-vrf/vpn SRv6 service between leaf01 and leaf02 (the one variant
+# with a proven recipe on the sonic-vm profile).
+#
+# No identifier is typed here (contracts/srv6service-crd.md rule A12): the
+# controller claims the service id (VRF name Vrf<service-id>) and the
+# per-attachment client /24 from deploy/kubenet/srv6-pools.yaml. The gateway
+# prefixes are the leaf-side attachment addressing the lab measured
+# (192.168.1.1/24 leaf01, 192.168.2.1/24 leaf02; clients hold .2).
+#
+# The correlation-id label makes the claims deterministic across re-apply; the
+# controller falls back to the object UID without it.
+apiVersion: agentic-netops.io/v1alpha1
+kind: SRv6Service
+metadata:
+  name: srv6-ip-vrf-vpn
+  namespace: agentic-netops-intent
+  labels:
+    agentic-netops.io/correlation-id: srv6-ip-vrf-vpn
+spec:
+  tenant: acme
+  construct: ip-vrf
+  signalling: vpn
+  attachments:
+    - node: leaf01
+      port: wan1
+      gateway:
+        - 192.168.1.1/24
+    - node: leaf02
+      port: wan1
+      gateway:
+        - 192.168.2.1/24

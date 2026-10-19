@@ -8,6 +8,11 @@
 set -u
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+# T252: no CI job may depend on the profile default. The caller names the lab
+# explicitly (Makefile's `suites` target passes PROF through), so this runner
+# refuses to guess.
+: "${AGENTIC_NETOPS_PROFILE:?run_suites.sh: set AGENTIC_NETOPS_PROFILE explicitly (sonic-vm or sonic-vs); no job may depend on the profile default}"
+export AGENTIC_NETOPS_PROFILE
 PROOFS_DIR="$ROOT_DIR/.wiggum/features/001-agentic-netops-sonic-evpn-fabric/gates/proofs"
 mkdir -p "$PROOFS_DIR"
 SUMMARY="$PROOFS_DIR/tests.summary.txt"

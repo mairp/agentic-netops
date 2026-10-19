@@ -1,0 +1,7 @@
+configmap.data["sonic-image"]: local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+configmap.data["lab-profile"]: sonic-vm
+versions.lock.yaml sonic_vm.image: local/sonic-vm@sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+docker local/sonic-vm:202505 image ID: sha256:5f3b6c503d67d0b166beba1aedc9e2ccd46b5723f4f932b9a64d8accdb76edd2
+MATCH: ConfigMap sonic-image == sonic-vm lock pin == local/sonic-vm:202505 image ID
+
+[exit code: 0]

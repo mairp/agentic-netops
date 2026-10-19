@@ -11,27 +11,28 @@ body { margin: 0; min-width: 320px; min-height: 100vh; overflow: hidden; }
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 
-/* NVIDIA palette, the same tokens mairp.ai uses: flat black/white ground,
-   hairline borders, one green accent, black label text on green. Amber and
-   red survive only as status colours. */
+/* Teal palette, the tokens mairp.ai uses today: green-tinted dark ground,
+   hairline borders, one teal accent with a cyan second accent, dark label
+   text on teal, 8px corners. Amber and red survive only as status colours. */
 .app-shell {
-  --page: #000000;
-  --panel: #121212;
-  --panel-strong: #1b1b1b;
-  --panel-soft: #242424;
-  --border: rgba(255, 255, 255, .13);
-  --border-soft: rgba(255, 255, 255, .08);
-  --dot: rgba(255, 255, 255, .085);
+  --page: #0f1512;
+  --panel: #121917;
+  --panel-strong: #161d1a;
+  --panel-soft: #1d2622;
+  --border: #2c3a35;
+  --border-soft: rgba(44, 58, 53, .55);
+  --dot: rgba(220, 255, 250, .09);
   --text: #ffffff;
-  --muted: #8f8f8f;
-  --faint: #6a6a6a;
-  --accent: #76b900;
-  --accent-dim: #5f9400;
-  --accent-soft: #142000;
-  --on-accent: #000000;
-  --teal: #76b900;
-  --amber: #ffb01f;
-  --danger: #ff5c5c;
+  --muted: #93a5a0;
+  --faint: rgba(147, 165, 160, .62);
+  --accent: #00b3a4;
+  --accent-dim: #008f84;
+  --accent-soft: #06211f;
+  --on-accent: #04211d;
+  --teal: #22d3ee;
+  --amber: #f5b342;
+  --danger: #ff6b6b;
+  --radius: 8px;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
@@ -40,23 +41,23 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 .app-shell[data-theme='light'] {
-  --page: #ffffff;
-  --panel: #fbfbfb;
-  --panel-strong: #f4f4f4;
-  --panel-soft: #ececec;
-  --border: rgba(0, 0, 0, .12);
-  --border-soft: rgba(0, 0, 0, .07);
-  --dot: rgba(0, 0, 0, .13);
-  --text: #000000;
-  --muted: #5a5a5a;
-  --faint: #8a8a8a;
-  --accent: #5c9400;
-  --accent-dim: #4a7500;
-  --accent-soft: #e9f3d6;
-  --on-accent: #000000;
-  --teal: #5c9400;
-  --amber: #b07000;
-  --danger: #cc3b3b;
+  --page: #fafaf7;
+  --panel: #ffffff;
+  --panel-strong: #f2f4f2;
+  --panel-soft: #eef2f0;
+  --border: #d6ddd9;
+  --border-soft: rgba(214, 221, 217, .6);
+  --dot: rgba(0, 60, 50, .13);
+  --text: #242b28;
+  --muted: #52605b;
+  --faint: rgba(82, 96, 91, .65);
+  --accent: #0a7d70;
+  --accent-dim: #086257;
+  --accent-soft: #d8f5f1;
+  --on-accent: #ffffff;
+  --teal: #0e7490;
+  --amber: #774700;
+  --danger: #c42b2b;
 }
 
 .topbar {
@@ -139,7 +140,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .graph-viewport { width: 100%; min-width: 0; flex: 1; min-height: 0; position: relative; overflow: auto; background: var(--page); cursor: grab; touch-action: none; user-select: none; }
 .graph-viewport.dragging { cursor: grabbing; }
 .graph-viewport.dragging .graph-scale { transition: none; }
-.dot-grid { position: absolute; inset: 0; background-image: radial-gradient(var(--dot) 1px, transparent 1.6px); background-size: 22px 22px; pointer-events: none; }
+.dot-grid { position: absolute; inset: 0; background-image: radial-gradient(var(--dot) 1px, transparent 1.6px); background-size: 12px 12px; pointer-events: none; }
 .graph-scale { width: 100%; min-width: 760px; min-height: 510px; display: grid; place-items: center; transform-origin: center center; transition: transform 160ms ease; }
 .topology-flow { width: 720px; display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
 .graph-node { width: 202px; min-height: 66px; display: grid; grid-template-columns: 36px 1fr; align-items: center; gap: 9px; padding: 10px 44px 10px 10px; background: var(--panel-strong); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 10px 28px rgb(0 0 0 / 12%); position: relative; z-index: 2; }
@@ -263,10 +264,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .composer button:disabled { color: var(--faint); background: var(--panel-soft); cursor: not-allowed; }
 .spin { animation: spin 1s linear infinite; }
 
-/* --- NVIDIA flattening layer: square edges and no soft drop shadows. The
-   green glows of the SLIM live-traffic effects stay (they are signal, the
-   bounded exception mairp.ai also makes). --- */
-.app-shell *, .app-shell *::before, .app-shell *::after { border-radius: 0 !important; }
+/* --- mairp.ai form layer: 8px corners everywhere (the site's --radius), no
+   black drop shadows. The teal glows of the SLIM live-traffic effects stay
+   (they are signal, the bounded exception mairp.ai also makes). --- */
+.app-shell *, .app-shell *::before, .app-shell *::after { border-radius: var(--radius, 8px); }
+.app-shell .status-dot, .app-shell .workflow-state > span, .app-shell .node-state.active::before, .app-shell .vertical-link.active span, .app-shell .control-link.active span, .app-shell .rail-pulse, .app-shell .worker-connectors i.live::after { border-radius: 50%; }
+.app-shell .selected-nav-item { border-radius: 0 8px 8px 0; }
 .graph-node, .composer { box-shadow: none; }
 .composer:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 12%, transparent); }
 .graph-node.active { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }

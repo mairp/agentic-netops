@@ -1,0 +1,38 @@
+===== spine01: kernel IPv6 forwarding (asserted 1; sonic-vs measured 0 at boot) =====
+1
+===== spine01: GCU apply (factory cleanup + identity + underlay) =====
+APPLIED spine01 asn=65000 lo4=10.0.0.11 lo6=2001:db8:ff::11 ifaces=6 nbrs=6
+===== spine01: bgpcfgd re-render (bgp container restart for /128 knob) =====
+===== spine01: wait for bgpd neighbors (want 6) =====
+===== spine01: vtysh allowas-in + iBGP update-source =====
+8
+===== spine01: DEVICE_METADATA read-back (hostname bgp_asn bgp_router_id switch_type) =====
+spine01
+65000
+10.0.0.11
+npu
+===== spine01: CONFIG_DB row read-back =====
+-- INTERFACE --
+INTERFACE|Ethernet0
+INTERFACE|Ethernet0|10.1.0.0/31
+INTERFACE|Ethernet0|2001:db8:1::3/127
+INTERFACE|Ethernet4
+INTERFACE|Ethernet4|10.1.0.2/31
+INTERFACE|Ethernet4|2001:db8:1::5/127
+-- LOOPBACK_INTERFACE --
+LOOPBACK_INTERFACE|Loopback0
+LOOPBACK_INTERFACE|Loopback0|10.0.0.11/32
+LOOPBACK_INTERFACE|Loopback0|2001:db8:ff::11/128
+-- BGP_NEIGHBOR --
+BGP_NEIGHBOR|10.0.0.12
+BGP_NEIGHBOR|10.1.0.1
+BGP_NEIGHBOR|10.1.0.3
+BGP_NEIGHBOR|2001:db8:1::2
+BGP_NEIGHBOR|2001:db8:1::4
+BGP_NEIGHBOR|2001:db8:ff::12
+===== spine01: kernel address read-back =====
+Ethernet0        UNKNOWN        10.1.0.0/31 2001:db8:1::3/127 fe80::209f:dbff:fe4e:65f9/64 
+Ethernet4        UNKNOWN        10.1.0.2/31 2001:db8:1::5/127 fe80::209f:dbff:fe4e:65f9/64 
+Loopback0        UNKNOWN        10.0.0.11/32 2001:db8:ff::11/128 fe80::d07e:1dff:fef3:3e36/64 
+
+[exit code: 0]

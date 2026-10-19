@@ -1,0 +1,92 @@
+# T023 slice A — lab/topology.sonic-vm.clab.yml references the sonic-vm image by TAG
+## lab/topology.sonic-vm.clab.yml lines 22-60 (comment + all four sonic-vm nodes)
+    22	# The image is operator-built via scripts/build-sonic-vm.sh (vrnetlab) and
+    23	# pinned by digest in versions.lock.yaml; this file references the local tag
+    24	# the build script produces.
+    25	
+    26	topology:
+    27	  defaults:
+    28	    labels:
+    29	      agentic-netops.owner: agentic-netops
+    30	      agentic-netops.topology: sonic-evpn
+    31	
+    32	  nodes:
+    33	    spine01:
+    34	      kind: sonic-vm
+    35	      image: local/sonic-vm:202505
+    36	      mgmt-ipv4: 172.31.0.11
+    37	      labels:
+    38	        role: spine
+    39	        asn: "65000"
+    40	    spine02:
+    41	      kind: sonic-vm
+    42	      image: local/sonic-vm:202505
+    43	      mgmt-ipv4: 172.31.0.12
+    44	      labels:
+    45	        role: spine
+    46	        asn: "65000"
+    47	    leaf01:
+    48	      kind: sonic-vm
+    49	      image: local/sonic-vm:202505
+    50	      mgmt-ipv4: 172.31.0.21
+    51	      labels:
+    52	        role: leaf
+    53	        asn: "65101"
+    54	    leaf02:
+    55	      kind: sonic-vm
+    56	      image: local/sonic-vm:202505
+    57	      mgmt-ipv4: 172.31.0.22
+    58	      labels:
+    59	        role: leaf
+    60	        asn: "65102"
+
+## grep -n "image: local/sonic-vm" lab/topology.sonic-vm.clab.yml (all sonic-vm node refs, every one a TAG, none a digest)
+35:      image: local/sonic-vm:202505
+42:      image: local/sonic-vm:202505
+49:      image: local/sonic-vm:202505
+56:      image: local/sonic-vm:202505
+
+# T023 slice B — scripts/provision.sh: the pre-deploy assertion and its control flow
+## scripts/provision.sh lines 81-116 (awk pin parse -> one-form guard exit 1 ->
+## missing-image exit 1 -> MISMATCH exit 1 (line 108) -> pin-verified echo -> WARN -> deploy)
+    81	# T023/T598 (FR-009): the sonic-vm topology names its image by TAG because
+    82	# containerlab cannot resolve a local image by digest without a registry
+    83	# (proof p1-image-by-digest: clab normalizes name@sha256:<digest> to a
+    84	# registry reference and pulls). So the sonic-vm bring-up asserts, BEFORE
+    85	# deploy, that the tagged image's ID equals the digest pinned in
+    86	# versions.lock.yaml (sonic_vm, one image@sha256:<digest> line) and fails
+    87	# otherwise — the tag is the known exception, the digest is still the pin.
+    88	if [[ "${AGENTIC_NETOPS_PROFILE}" == "sonic-vm" ]]; then
+    89	  pinned_svm=$(awk '
+    90	    $1=="sonic_images:" {sec=1; next}
+    91	    sec && /^[^[:space:]]/ {exit}
+    92	    sec && $1=="sonic_vm:" {vm=1; next}
+    93	    sec && vm && /^[^[:space:]]/ {vm=0}
+    94	    sec && vm && $1=="image:" {print $2; exit}
+    95	  ' "${REPO_ROOT}/versions.lock.yaml")
+    96	  if [[ ! "$pinned_svm" =~ ^local/sonic-vm@sha256:[0-9a-f]{64}$ ]]; then
+    97	    echo "[provision] versions.lock.yaml sonic_vm must pin one line local/sonic-vm@sha256:<digest>; got: ${pinned_svm:-<missing>}" >&2
+    98	    exit 1
+    99	  fi
+   100	  pinned_svm_digest=${pinned_svm##*@}
+   101	  live_svm_id=$(docker image inspect local/sonic-vm:202505 --format '{{.Id}}' 2>/dev/null || true)
+   102	  if [[ -z "$live_svm_id" ]]; then
+   103	    echo "[provision] local image local/sonic-vm:202505 not found; build it per lab/profiles/sonic-vm/README.md before provisioning this profile" >&2
+   104	    exit 1
+   105	  fi
+   106	  if [[ "$live_svm_id" != "$pinned_svm_digest" ]]; then
+   107	    echo "[provision] local/sonic-vm:202505 image ID ${live_svm_id} != pinned ${pinned_svm_digest} (versions.lock.yaml sonic_vm); refusing to bring up the sonic-vm lab against an unpinned image" >&2
+   108	    exit 1
+   109	  fi
+   110	  echo "[provision] sonic-vm image pin verified: local/sonic-vm:202505 == ${pinned_svm}"
+   111	  echo "[provision] WARN: known exception to the one-form image rule: lab/topology.sonic-vm.clab.yml names the image by TAG (local/sonic-vm:202505) because containerlab cannot resolve a local image by digest without a registry (proof p1-image-by-digest); asserted this bring-up against ${pinned_svm}" >&2
+   112	fi
+   113	
+   114	# Deploy lab topology with containerlab
+   115	if [[ -x "${LIB_DIR}/containerlab.sh" ]]; then
+   116	  "${LIB_DIR}/containerlab.sh" deploy || { echo "[provision] containerlab deploy failed" >&2; exit 1; }
+
+## grep -n "exit 1" inside the assertion block (the bring-up-fails paths)
+11:    98	    exit 1
+17:   104	    exit 1
+21:   108	    exit 1

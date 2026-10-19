@@ -1,0 +1,11 @@
+P-provision=1
+Q-converge=0
+Q-canary=0
+A-seed=1
+A-dry=0
+B-converge=0
+spike-rerun-vpn=differ
+spike-rerun-steering=clean
+spike-rerun-evpn3=differ
+spike-rerun-evpn2=differ
+spike-rerun-baseline=differ

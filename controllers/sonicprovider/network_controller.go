@@ -16,18 +16,15 @@
 package sonicprovider
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/mairp/agentic-netops/pkg/compat"
+	"github.com/mairp/agentic-netops/pkg/executorclient"
 	"github.com/mairp/agentic-netops/pkg/fabricplan"
 	"github.com/mairp/agentic-netops/pkg/kubenet"
 	"github.com/mairp/agentic-netops/pkg/reasons"
@@ -61,6 +58,14 @@ func PortMapFromEnv() fabricplan.PortMapper {
 	return m
 }
 
+// NodeKindFromEnv reads FABRIC_NODE_KIND: the deployed lab profile whose guests
+// the plans target ("sonic-vm" or "sonic-vs"). Empty means sonic-vs, matching
+// fabricplan's default, so an un-provisioned controller keeps rendering exactly
+// what it rendered before this knob existed.
+func NodeKindFromEnv() string {
+	return os.Getenv("FABRIC_NODE_KIND")
+}
+
 type NetworkReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
@@ -69,32 +74,28 @@ type NetworkReconciler struct {
 	// APIReader, when set, is used for the site pins ConfigMap: uncached,
 	// so a broken shared ConfigMap informer cannot starve pin resolution.
 	APIReader compat.PinReader
-	http      *http.Client
+	// executor lazily wraps the fabric-executor HTTP API (pkg/executorclient).
+	executor *executorclient.Client
 
 	applyCounter prometheus.Counter
 }
 
-// executorApplyResult mirrors fabric-executor's ApplyResponse.
-type executorApplyResult struct {
-	Node    string `json:"node"`
-	OK      bool   `json:"ok"`
-	Results []struct {
-		Kind   string `json:"kind"`
-		OK     bool   `json:"ok"`
-		Output string `json:"output,omitempty"`
-		Error  string `json:"error,omitempty"`
-	} `json:"results"`
+// ExecutorClient returns the lazily constructed executor HTTP client. The
+// URL is read at first use so a test that sets FABRIC_EXECUTOR_URL after
+// struct construction still takes effect (same as the pre-extraction code).
+func (r *NetworkReconciler) ExecutorClient() *executorclient.Client {
+	if r.executor == nil {
+		r.executor = executorclient.New(ExecutorURL(), nil)
+	}
+	return r.executor
 }
 
-type executorVerifyResult struct {
-	Node    string `json:"node"`
-	OK      bool   `json:"ok"`
-	Results []struct {
-		Check  string `json:"check"`
-		OK     bool   `json:"ok"`
-		Actual string `json:"actual,omitempty"`
-		Error  string `json:"error,omitempty"`
-	} `json:"results"`
+func (r *NetworkReconciler) executorApply(ctx context.Context, node string, ops []fabricplan.Op) (*executorclient.ApplyResult, error) {
+	return r.ExecutorClient().Apply(ctx, node, ops)
+}
+
+func (r *NetworkReconciler) executorVerify(ctx context.Context, node string, checks []fabricplan.Check) (*executorclient.VerifyResult, error) {
+	return r.ExecutorClient().Verify(ctx, node, checks)
 }
 
 func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -107,14 +108,14 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Deletion: roll back owned device state (best-effort), then release.
 	if !net.DeletionTimestamp.IsZero() {
 		log.Info("rolling back network on device")
-		plan, err := fabricplan.ForNetwork(&net, fabricplan.Options{Ports: PortMapFromEnv()})
+		plan, err := fabricplan.ForNetwork(&net, fabricplan.Options{Ports: PortMapFromEnv(), NodeKind: NodeKindFromEnv()})
 		if err == nil {
 			for _, nodeName := range sortedNodeNames(plan) {
 				np := plan.Nodes[nodeName]
 				if len(np.Rollback) > 0 {
 					res, err := r.executorApply(ctx, nodeName, np.Rollback)
 					if err != nil {
-						if isPermanentExecutorError(err) {
+						if executorclient.IsPermanent(err) {
 							// The site does not have this node, so nothing was
 							// ever applied on it and nothing can be rolled
 							// back. Holding the finalizer for a node that
@@ -155,6 +156,9 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// Compatibility gate against the site pins (versions.lock defaults, object
 	// annotations override). Failures are truthful SchemaMismatch, not guesses.
+	// T018: the Network kind — the SRv6 capability is NOT required here
+	// (FR-007): a lab that honestly reports cap-sai-srv6=false still
+	// provisions VXLAN services.
 	pinReader := compat.PinReader(r.Client)
 	if r.APIReader != nil {
 		pinReader = r.APIReader
@@ -162,12 +166,12 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	pins := compat.ResolveSitePins(ctx, pinReader, net.Annotations, net.Labels)
 	set := compat.FromAnnotations(pins.Annotations)
 	discovered := map[string]bool{"sai.srv6": pins.Labels["agentic-netops.dev/cap.sai.srv6"] == "true"}
-	if err := compat.FullValidate(set, pins.Labels, discovered); err != nil {
+	if err := compat.FullValidate(set, pins.Labels, compat.KindNetwork, discovered); err != nil {
 		r.setConditions(ctx, &net, false, compat.ReasonFor(err), err.Error()+" ("+pins.Provenance()+")", false)
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	plan, err := fabricplan.ForNetwork(&net, fabricplan.Options{Ports: PortMapFromEnv()})
+	plan, err := fabricplan.ForNetwork(&net, fabricplan.Options{Ports: PortMapFromEnv(), NodeKind: NodeKindFromEnv()})
 	if err != nil {
 		// Rendering failures are intent-shape problems, not transients.
 		r.setConditions(ctx, &net, false, reasons.ReasonSchemaMismatch, err.Error(), false)
@@ -260,74 +264,6 @@ func sortedNodeNames(plan *fabricplan.Plan) []string {
 		}
 	}
 	return names
-}
-
-func (r *NetworkReconciler) clientHTTP() *http.Client {
-	if r.http == nil {
-		r.http = &http.Client{Timeout: 120 * time.Second}
-	}
-	return r.http
-}
-
-func (r *NetworkReconciler) executorApply(ctx context.Context, node string, ops []fabricplan.Op) (*executorApplyResult, error) {
-	payload, err := json.Marshal(map[string]any{"node": node, "ops": ops})
-	if err != nil {
-		return nil, err
-	}
-	return postJSON[executorApplyResult](r.clientHTTP(), ctx, ExecutorURL()+"/v1/node/apply", payload)
-}
-
-func (r *NetworkReconciler) executorVerify(ctx context.Context, node string, checks []fabricplan.Check) (*executorVerifyResult, error) {
-	payload, err := json.Marshal(map[string]any{"node": node, "checks": checks})
-	if err != nil {
-		return nil, err
-	}
-	return postJSON[executorVerifyResult](r.clientHTTP(), ctx, ExecutorURL()+"/v1/node/verify", payload)
-}
-
-func postJSON[T any](hc *http.Client, ctx context.Context, url string, body []byte) (*T, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := hc.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	raw, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode >= 300 {
-		err := fmt.Errorf("executor %s: %d %s", url, resp.StatusCode, truncateStr(string(raw), 200))
-		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-			// The executor understood and refused: the request itself is wrong
-			// (an unknown node, a malformed op). Retrying cannot change that,
-			// and the caller needs to tell it apart from an outage.
-			return nil, &permanentExecutorError{err: err}
-		}
-		return nil, err
-	}
-	var out T
-	if err := json.Unmarshal(raw, &out); err != nil {
-		return nil, fmt.Errorf("executor response: %v", err)
-	}
-	return &out, nil
-}
-
-// permanentExecutorError marks a refusal the executor will give every time —
-// a node the site does not have, a request it cannot parse. A transport
-// failure is NOT one of these: the executor may simply be restarting.
-type permanentExecutorError struct{ err error }
-
-func (e *permanentExecutorError) Error() string { return e.err.Error() }
-func (e *permanentExecutorError) Unwrap() error { return e.err }
-
-func isPermanentExecutorError(err error) bool {
-	var perm *permanentExecutorError
-	return errors.As(err, &perm)
 }
 
 func truncateStr(s string, n int) string {

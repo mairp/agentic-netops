@@ -1,0 +1,116 @@
+     1	#!/usr/bin/env bash
+     2	# Unit tests for scripts/proof.sh (feature 004, tasks T001 and T632).
+     3	# Runs entirely in a temporary PROOF_DIR; no lab and no network needed.
+     4	#   bash tests/unit/proof_sh_test.sh
+     5	set -u
+     6	
+     7	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+     8	REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+     9	PROOF_SH="$REPO_ROOT/scripts/proof.sh"
+    10	
+    11	PASS=0
+    12	FAIL=0
+    13	WORK="$(mktemp -d)"
+    14	trap 'rm -rf "$WORK"' EXIT
+    15	
+    16	# run_proof <expected-rc> <args...>: run proof.sh with an isolated PROOF_DIR.
+    17	run_proof() {
+    18	    local expect="$1"
+    19	    shift
+    20	    local out rc
+    21	    out="$(PROOF_DIR="$WORK/proofs" bash "$PROOF_SH" "$@" 2>&1)"
+    22	    rc=$?
+    23	    printf '%s' "$out" > "$WORK/last-output"
+    24	    LAST_RC="$rc"
+    25	    if [[ "$rc" != "$expect" ]]; then
+    26	        echo "FAIL: proof.sh $* -> exit $rc (expected $expect)" >&2
+    27	        echo "$out" >&2
+    28	        FAIL=$((FAIL + 1))
+    29	        return 1
+    30	    fi
+    31	    return 0
+    32	}
+    33	
+    34	check() { # check <description> <condition...>
+    35	    local desc="$1"
+    36	    shift
+    37	    if "$@"; then
+    38	        PASS=$((PASS + 1))
+    39	    else
+    40	        echo "FAIL: $desc" >&2
+    41	        FAIL=$((FAIL + 1))
+    42	    fi
+    43	}
+    44	
+    45	# --- T001: record writes .cmd and .out, creating the directory --------------
+    46	run_proof 0 selftest -- true
+    47	check "record creates the proof directory" test -d "$WORK/proofs"
+    48	check "record writes selftest.cmd" test -f "$WORK/proofs/selftest.cmd"
+    49	check "record writes selftest.out" test -f "$WORK/proofs/selftest.out"
+    50	check ".cmd holds the exact command" grep -qx 'true' "$WORK/proofs/selftest.cmd"
+    51	check ".out holds the exit-code line" grep -Fqx '[exit code: 0]' "$WORK/proofs/selftest.out"
+    52	
+    53	# Re-running the stored .cmd line regenerates the .out content (FR-039/SC-015).
+    54	cmd="$(cat "$WORK/proofs/selftest.cmd")"
+    55	bash -c "$cmd" > "$WORK/regen" 2>&1
+    56	rc=$?
+    57	{ cat "$WORK/regen"; printf '[exit code: %s]\n' "$rc"; } > "$WORK/regen.out"
+    58	check ".cmd re-run regenerates .out" cmp -s "$WORK/regen.out" "$WORK/proofs/selftest.out"
+    59	
+    60	# Output (stdout+stderr) and a non-zero exit code are both captured.
+    61	run_proof 3 failing -- bash -c 'echo out; echo err >&2; exit 3'
+    62	check "recorded command's exit code is mirrored" test "$LAST_RC" = 3
+    63	grep -q '^out$' "$WORK/proofs/failing.out" && grep -q '^err$' "$WORK/proofs/failing.out"
+    64	check ".out holds combined output" test $? -eq 0
+    65	check ".out holds the failing exit code" grep -Fqx '[exit code: 3]' "$WORK/proofs/failing.out"
+    66	
+    67	# Quoting round-trips: the stored line is re-runnable as written.
+    68	run_proof 0 quoted -- bash -c 'printf "a b\tc"'
+    69	bash -c "$(cat "$WORK/proofs/quoted.cmd")" > "$WORK/quoted.regen" 2>&1
+    70	check "quoted command round-trips" grep -qx 'a b	c' "$WORK/quoted.regen"
+    71	
+    72	# --- T632: replay -------------------------------------------------------------
+    73	run_proof 0 echo-one -- echo one
+    74	run_proof 0 echo-two -- echo two
+    75	run_proof 0 replay echo-
+    76	check "replay reports no difference" grep -q 'no difference' "$WORK/last-output"
+    77	check "replay runs every stored proof in record order" \
+    78	    test "$(grep -c '^ok ' "$WORK/last-output")" = 2
+    79	check "replay keeps record order (one before two)" \
+    80	    test "$(sed -n 's/^ok //p' "$WORK/last-output" | tr '\n' ',')" = "echo-one,echo-two,"
+    81	
+    82	# A stored .out that no longer matches prints the name and exits non-zero.
+    83	cp "$WORK/proofs/echo-one.out" "$WORK/echo-one.bak"
+    84	printf 'tampered\n[exit code: 0]\n' > "$WORK/proofs/echo-one.out"
+    85	run_proof 1 replay echo-
+    86	check "replay names the proof that differs" grep -q '^differ: echo-one$' "$WORK/last-output"
+    87	cp "$WORK/echo-one.bak" "$WORK/proofs/echo-one.out"
+    88	
+    89	# Destructive proofs are skipped unless --all is given.
+    90	run_proof 0 --destructive destructive-proof -- true
+    91	check "record writes the destructive marker" test -f "$WORK/proofs/destructive-proof.destructive"
+    92	run_proof 2 replay destructive-proof
+    93	check "replay skips destructive proofs" grep -q '^skip destructive-proof' "$WORK/last-output"
+    94	run_proof 0 replay destructive-proof --all
+    95	check "replay --all runs destructive proofs" grep -q '^ok destructive-proof' "$WORK/last-output"
+    96	check "replay --all reports no difference" grep -q 'no difference' "$WORK/last-output"
+    97	
+    98	# Ordering: a re-recorded proof takes its latest recording position.
+    99	run_proof 0 ord-a -- echo a
+   100	run_proof 0 ord-b -- echo b
+   101	run_proof 0 ord-a -- echo a
+   102	run_proof 0 replay ord-
+   103	check "re-recorded proof replays last" \
+   104	    test "$(sed -n 's/^ok //p' "$WORK/last-output" | tr '\n' ',')" = "ord-b,ord-a,"
+   105	
+   106	# Refusals.
+   107	run_proof 2 replay no-such-prefix
+   108	check "replay with no matching proof fails loudly" \
+   109	    grep -q 'no stored proofs match' "$WORK/last-output"
+   110	run_proof 2 'bad name' -- true
+   111	run_proof 2 ../escape -- true
+   112	
+   113	echo "proof.sh unit tests: $PASS passed, $FAIL failed"
+   114	if [[ "$FAIL" -gt 0 ]]; then
+   115	    exit 1
+   116	fi

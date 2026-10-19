@@ -1,0 +1,55 @@
+# srv6-supported.yaml — T110 verdicts (pass-10: mac-vrf/evpn not-achievable)
+     1	# srv6-supported.yaml — machine record of the Phase 0/3 spike verdicts for
+     2	# the sonic-vm profile (spec data-model §3, tasks T110).
+     3	#
+     4	# One verdict per service variant, `proven` or `not-achievable` (tasks T110).
+     5	# `proven` means: reproducible on a freshly brought-up lab by replaying the
+     6	# recorded proofs alone (scripts/proof.sh replay <prefix>); anything else —
+     7	# `not-achievable`, missing — is refused by name by the controller
+     8	# (UnsupportedVariant) and the tier, and never half-delivered (spec FR-005).
+     9	#
+    10	# Human record with the full evidence: docs/SRV6_SERVICE_RECIPE.md (§2–§6).
+    11	# Consumers: scripts/lib/capability.sh (derives the srv6-supported capability
+    12	# key — parses `- name:` / `status:`), scripts/provision.sh, pkg/compat/pins.go.
+    13	profile: sonic-vm
+    14	image: local/sonic-vm  # digest pin lives in versions.lock.yaml; do not state it here
+    15	recorded: "phase-3 feasibility spike (proofs/ directory, .record-order order)"
+    16	verdicts:
+    17	  - name: ip-vrf/vpn
+    18	    status: proven
+    19	    proofs: spike-vrf-apply-leaf01 spike-vpn-state-leaf01 spike-vpn-state-leaf02 spike-vpn-ping spike-vpn-capture spike-vpn-readback-leaf01 spike-vpn-readback-leaf02 spike-vpn-clients spike-counters spike-sid-write spike-vpn-rollback spike-persistence
+    20	    note: >
+    21	      Routed L3VPN service over SRv6 on the as-built kernel dataplane
+    22	      (End.DT46 decap + seg6 encap steering); 8900-byte DF client traffic both
+    23	      directions; clean rollback; NOT persistent across config reload (rebuilt
+    24	      by the builder).
+    25	  - name: ip-vrf/evpn
+    26	    status: not-achievable
+    27	    proofs: spike-evpn3-state-leaf01 spike-evpn3-state-leaf02 spike-evpn3-ping spike-evpn3-capture spike-evpn3-kl006 spike-evpn3-rollback
+    28	    note: >
+    29	      EVPN sessions establish, but the zebra->bgpd L3VNI ZAPI handoff never
+    30	      delivers the L3VNI (bgpd reports 0 L3 VNIs) and this bgpd build has no
+    31	      vpnv4/vpnv6 address-families; every EVPN-signalled dataplane attempt
+    32	      shows 100% client loss.
+    33	  - name: mac-vrf/evpn
+    34	    status: not-achievable
+    35	    proofs: spike-evpn2-state-leaf01 spike-evpn2-state-leaf02 spike-evpn2-ping spike-evpn2-capture spike-evpn2-rollback
+    36	    note: >
+    37	      Measured NOT ACHIEVABLE on the as-built lab (owner decision 1 separately
+    38	      permits deferring bridged EVPN; the refused-by-name handling is the same
+    39	      either way). L2VNI + Type-3 IMET signalling works, but no MAC/Type-2
+    40	      learning and no bridged forwarding on the as-built lab; requests are
+    41	      refused by name.
+    42	  - name: steering
+    43	    status: proven
+    44	    proofs: spike-steering-path spike-steering-failover-launcher spike-steering-failover-guest-if spike-steering-failover-bgp spike-steering-return
+    45	    note: >
+    46	      Explicit per-service pin through one spine on the ingress leaf;
+    47	      failover/return measured LOSS-BOUNDED at <=10 lost 1 Hz probes — the
+    48	      SC-007 5 s / <=2-loss bound is NOT met (no BFD; passive detection only).
+    49	honest_negatives:
+    50	  - config reload -y keeps CONFIG_DB but loses all kernel service state and the FRR locator binding (spike-persistence)
+    51	  - no vpnv4/vpnv6 unicast address-families in this bgpd build (spike-vpn-readback-leaf01)
+    52	  - EVPN L3VNI handoff zebra->bgpd broken on this image (spike-evpn3-state-*)
+    53	  - bridged EVPN signals (IMET) but does not forward (spike-evpn2-ping)
+    54	  - CONFIG_DB SRV6_MY_SIDS write class accepted + leafref-checked, programming effect not reproducible in bounded polls; not used as-built (spike-sid-write)
