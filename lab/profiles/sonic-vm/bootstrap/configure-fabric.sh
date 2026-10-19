@@ -62,7 +62,24 @@ for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
     --reassert) REASSERT=1 ;;
-    -h|--help) echo "usage: $0 [--dry-run] [--reassert]"; exit 0 ;;
+    # --nodes=<comma list>: scope this run to a subset of the four nodes.
+    # Default is all four (unchanged). The failure-recovery suite passes
+    # --nodes=leaf02 after rebooting leaf02: re-asserting nodes that never
+    # rebooted factory-cleans the SRv6 services' applied device state on them
+    # and races the controller's drift re-apply out of convergence (measured
+    # live 2026-10-19, feature-004 gate 11: the reload wedged leaf01's
+    # intfmgr so the service's interface rows never programmed again; the
+    # gcu-based drift loop converts to 0 changes and cannot heal it).
+    --nodes=*)
+      IFS=, read -r -a NODES <<< "${arg#--nodes=}"
+      for n in "${NODES[@]}"; do
+        case " spine01 spine02 leaf01 leaf02 " in
+          *" $n "*) ;;
+          *) echo "unknown node in --nodes: $n" >&2; exit 2 ;;
+        esac
+      done
+      ;;
+    -h|--help) echo "usage: $0 [--dry-run] [--reassert] [--nodes=n1,n2]"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done

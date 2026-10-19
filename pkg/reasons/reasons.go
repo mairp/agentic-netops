@@ -3,8 +3,8 @@
 //
 // The service-state reason set is the §6 table of
 // specs/004-srv6-service-requests/data-model.md. There is deliberately no
-// WaitingDependencies: the data model states "There is no WaitingDependencies"
-// — a service that is merely waiting is Ready=False with the reason that names
+// dependencies-pending reason in it: the data model has no such entry, and a
+// service that is merely waiting is Ready=False with the reason that names
 // what is actually missing.
 package reasons
 

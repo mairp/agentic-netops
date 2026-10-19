@@ -321,11 +321,23 @@ print("|")
 }
 
 preflight() { # preflight <node> <peer client ip> <what> — refuse to
-              # measure a dead dataplane (the 2026-10-13 lesson)
-  local cl
+              # measure a dead dataplane (the 2026-10-13 lesson).
+              # The battery runs this suite right after the failure suite,
+              # which reboots leaf02 (containerlab stop/start) — the SRv6
+              # dataplane converges for a few minutes after that, so wait
+              # for it to answer before refusing. Bounded: still dead at
+              # PREFLIGHT_BOUND seconds, refuse exactly as before.
+  local cl waited=0 bound=${PREFLIGHT_BOUND:-420}
   cl=$(client_of "$1")
-  docker exec "$cl" sh -c "ping -c 3 -i 1 -W 2 $2 >/dev/null 2>&1" ||
-    die "PREFLIGHT-FAILED: $cl -> $2 does not pass; $3 refused (dead dataplane)"
+  until docker exec "$cl" sh -c "ping -c 3 -i 1 -W 2 $2 >/dev/null 2>&1"; do
+    (( waited >= bound )) &&
+      die "PREFLIGHT-FAILED: $cl -> $2 does not pass after ${waited}s of waiting; $3 refused (dead dataplane)"
+    (( waited == 0 )) &&
+      echo "--- preflight: dataplane not answering yet; waiting for convergence (bound ${bound}s)"
+    sleep 15
+    waited=$((waited + 15))
+  done
+  (( waited > 0 )) && echo "--- preflight: dataplane answering (after ${waited}s)"
 }
 
 # facts_of <name> -> sets INGRESS PEER PEER_FN PREF_SPINE ALT_SPINE
@@ -540,6 +552,16 @@ name=${2:-}
 case "$mode" in
   --observe|--fail-preferred|--restore-preferred|--fail-both|--assert-alert)
     [[ -n "$name" ]] || { echo "usage: $0 <mode> <srv6service-name>" >&2; exit 2; }
+    require_live "$mode"
+    ;;
+  run) # run_suites.sh suite 9 calls every live suite with a bare `run`; the
+       # other suites need no argument (evpn_traffic pings the standing
+       # clients, srv6_capture_counters reads End.DT46 routes straight from
+       # the kernel and ignores $1). Observe mode needs the steered service's
+       # name, so `run` aliases --observe on the standing default-lab target,
+       # overridable for other labs via SRV6_FAILOVER_TARGET.
+    mode=--observe
+    name="${SRV6_FAILOVER_TARGET:-srv6-ip-vrf-vpn-steered}"
     require_live "$mode"
     ;;
   *) echo "usage: $0 --observe|--fail-preferred|--restore-preferred|--fail-both|--assert-alert <srv6service-name>" >&2; exit 2 ;;

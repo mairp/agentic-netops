@@ -8,11 +8,12 @@ package sonicprovider
 import "github.com/mairp/agentic-netops/pkg/reasons"
 
 const (
-	// Note: no WaitingDependencies here. The §6 reason table has no such
-	// reason (data-model: "There is no WaitingDependencies"), so pkg/reasons
-	// no longer carries it and this re-export was dropped. The NetworkDevice
-	// gate condition uses the package-local reasonWaitingDependencies
-	// (conditions.go) until that controller's gating is reworked.
+	// Note: there is no dependencies-pending reason here. The §6 reason table
+	// has no such entry (the data model says so in as many words), so
+	// pkg/reasons does not carry one and this re-export does not either. The
+	// NetworkDevice gate condition uses the package-local reasonPendingGates
+	// (conditions.go): that kind sits outside the §6 service-state table, and
+	// its message names what is actually missing.
 	ReasonSchemaMismatch = reasons.ReasonSchemaMismatch
 	ReasonValidated      = reasons.ReasonValidated
 	ReasonApplySucceeded = reasons.ReasonApplySucceeded

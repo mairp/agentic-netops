@@ -44,8 +44,101 @@ partial_target_failure_recovery() {
   # Expect aggregate not Ready (Degraded) reflected in provider/SDC/Network status
   kubectl --context "$CTX" -n sdc get target -o wide | tee "$PROOF_DIR/partial-failure.targets.txt" >/dev/null
   assert_aggregate_not_ready
-  # Restore
+  # Restore, then WAIT for the recovery this scenario claims (owner
+  # 2026-10-18 22:52): `containerlab start -n leaf02` returns while the
+  # SONiC VM inside is still booting — measured 2026-10-18, this suite
+  # returned at 22:31:23 and the next suite (traffic) measured 100% loss
+  # client01->client02 at 22:31:40, 17 s later.
   containerlab start -t "$TOPO" -n leaf02 || true
+  wait_leaf02_recovered
+}
+
+# leaf02 (sonic-vm) recovery facts, read-only, the same surface the phase
+# observer probe.py uses: the four unit states, the supervisord FATAL/BACKOFF
+# count, config-vs-applied VRF rows, kernel VRF devices, established BGP.
+LEAF02_IP=${LEAF02_IP:-172.31.0.22}
+LEAF02_BOOT_BOUND=${LEAF02_BOOT_BOUND:-300}
+LEAF02_BGP_BOUND=${LEAF02_BGP_BOUND:-300}
+# As-built established-BGP floor for leaf02 (2 families x 2 peers, the count
+# the phase observer expects on a lab carrying standing services).
+LEAF02_BGP_FLOOR=${LEAF02_BGP_FLOOR:-4}
+
+leaf02_facts() {
+  sshpass -p admin ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+    -o ConnectTimeout=8 -o LogLevel=ERROR "admin@${LEAF02_IP}" '
+      for u in database swss syncd bgp; do echo "unit $u $(systemctl is-active $u)"; done
+      echo "sup $(sudo docker exec swss supervisorctl status 2>/dev/null | grep -cE "FATAL|BACKOFF|STOPPED|UNKNOWN")"
+      echo "cfgvrf $(sudo redis-cli -n 4 --scan --pattern "VRF|*" | wc -l)"
+      echo "applvrf $(sudo redis-cli -n 0 --scan --pattern "VRF_TABLE*" | wc -l)"
+      echo "kvrf $(ip -br link show type vrf | wc -l)"
+      echo "bgpest $(vtysh -c "show bgp summary json" 2>/dev/null | tr -d " \n" | grep -o "\"state\":\"Established\"" | wc -l)"
+    ' </dev/null 2>/dev/null
+}
+
+leaf02_units_clean() { # four units active, no supervisord program wedged
+  local f=$1
+  [[ "$(awk '$1=="unit"{print $3}' <<<"$f" | grep -c '^active$')" -eq 4 ]] || return 1
+  [[ "$(awk '$1=="sup"{print $2}' <<<"$f")" -eq 0 ]] || return 1
+}
+
+wait_leaf02_recovered() {
+  # Recovery is a real, bounded phase this suite waits out itself:
+  #   1. the VM boots (SSH answers, four units active, no supervisor program
+  #      in FATAL/BACKOFF);
+  #   2. the standing cure runs (lab/profiles/sonic-vm/bootstrap/
+  #      configure-fabric.sh --reassert — the phase-10/11 standing rule: the
+  #      EVPN overlay does not come back on its own after a device reboot);
+  #   3. BGP re-establishes to the as-built floor with no config-vs-applied
+  #      VRF wedge.
+  # A node still sick at a bound FAILS the suite: a half-rebooted fabric must
+  # not poison the suites that follow, and a recovery claim with no recovery
+  # behind it is dishonest.
+  command -v sshpass >/dev/null || { echo "[failure] ERROR: sshpass missing; cannot verify leaf02 recovery" >&2; exit 1; }
+  echo "[failure] waiting for leaf02 to boot (bound ${LEAF02_BOOT_BOUND}s)"
+  local waited=0 f
+  f=""
+  while :; do
+    if f=$(leaf02_facts) && [[ -n "$f" ]] && leaf02_units_clean "$f"; then
+      echo "[failure] leaf02 booted: four units active, no supervisor program wedged (after ${waited}s)"
+      break
+    fi
+    if [[ $waited -ge $LEAF02_BOOT_BOUND ]]; then
+      echo "[failure] ERROR: leaf02 not booted after ${waited}s (facts: $(printf '%s' "$f" | tr '\n' ';'))" >&2
+      exit 1
+    fi
+    sleep 10
+    waited=$((waited + 10))
+  done
+  local reassert="$ROOT_DIR/lab/profiles/sonic-vm/bootstrap/configure-fabric.sh"
+  if [[ -f "$reassert" ]]; then
+    # --nodes=leaf02: only the rebooted node is re-asserted. The full-fabric
+    # cure factory-cleans nodes that never rebooted, which wipes the standing
+    # SRv6 services' applied device state on them and races the controller's
+    # drift re-apply out of convergence (measured live 2026-10-19, feature-004
+    # gate 11: the reload wedged leaf01's intfmgr, the gcu drift loop converts
+    # to 0 changes forever, and the service dataplane never returns — so the
+    # SRv6 suites that follow this suite could never pass. Scope the cure to
+    # the node this suite actually rebooted.)
+    echo "[failure] standing cure: re-asserting leaf02 after the leaf02 reboot"
+    bash "$reassert" --reassert --nodes=leaf02 || { echo "[failure] ERROR: fabric re-assert failed" >&2; exit 1; }
+  fi
+  echo "[failure] waiting for leaf02 BGP + VRF convergence (bound ${LEAF02_BGP_BOUND}s)"
+  waited=0
+  while :; do
+    if f=$(leaf02_facts) && [[ -n "$f" ]] && leaf02_units_clean "$f" \
+       && [[ "$(awk '$1=="bgpest"{print $2}' <<<"$f")" -ge $LEAF02_BGP_FLOOR ]] \
+       && { [[ "$(awk '$1=="cfgvrf"{print $2}' <<<"$f")" -eq 0 ]] \
+         || { [[ "$(awk '$1=="applvrf"{print $2}' <<<"$f")" -gt 0 ]] && [[ "$(awk '$1=="kvrf"{print $2}' <<<"$f")" -gt 0 ]]; }; }; then
+      echo "[failure] leaf02 recovered: BGP established, VRFs applied, no wedge (after ${waited}s)"
+      return 0
+    fi
+    if [[ $waited -ge $LEAF02_BGP_BOUND ]]; then
+      echo "[failure] ERROR: leaf02 did not converge after ${waited}s (facts: $(printf '%s' "$f" | tr '\n' ';'))" >&2
+      exit 1
+    fi
+    sleep 10
+    waited=$((waited + 10))
+  done
 }
 
 provider_restart_mid_transaction() {

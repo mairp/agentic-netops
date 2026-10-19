@@ -66,7 +66,8 @@ def main():
         if d["owner_reports"] > prev["owner_reports"]:
             why.append("new OWNER-REPORT in PROGRESS.md")
         if l["yields_this_run"] > pl["yields_this_run"]:
-            why.append(f"yield armed #{l['yields_this_run']}/4: {l.get('yield')}")
+            why.append(f"yield armed #{(l.get('yield') or {}).get('index', '?')}/4 this attempt "
+                       f"(#{l['yields_this_run']} this run): {l.get('yield')}")
         # O-65: a yield that resolves (above all with a failed job) can need a
         # directive; the proposer has already resumed by the time we see it.
         if pl.get("waiting_on_yield") and not l.get("waiting_on_yield"):

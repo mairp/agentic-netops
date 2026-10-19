@@ -111,7 +111,10 @@ def loop_state(now):
             f"{F}/yield-jobs/phase{out['phase']}-attempt*-{out['run_id']}-yield*.rc")
         rc_done = any(os.path.exists(r) and os.path.getmtime(r) >= float(yields[-1]["ts"]) - 5
                       for r in rcs)
-        out["yield"] = {"index": len(yields), "max": YIELD_MAX_PER_ATTEMPT,
+        # yield_index is the harness's own per-attempt counter (proposer.sh YIELD_INDEX);
+        # len(yields) counts the whole run and raised a false last-yield alarm (O-111)
+        idx = int(yields[-1].get("yield_index") or len(yields))
+        out["yield"] = {"index": idx, "max": YIELD_MAX_PER_ATTEMPT,
                         "kind": rw.get("kind"), "rc_done": rc_done,
                         "job_pid": pid, "job_alive": alive(pid), "deadline_left_sec": left}
     return out

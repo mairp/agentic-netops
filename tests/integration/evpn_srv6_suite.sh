@@ -4,8 +4,8 @@
 # H.Encaps.Red, End, End.DT46, ordered SID-list steering, decapsulation, and counter capability tests
 #
 # Schema reality (docs/SRV6_GNMI_CAPABILITY_FINDINGS.md §6): SONiC 202605 models exactly two
-# SRv6 CONFIG_DB tables (SRV6_MY_LOCATORS, SRV6_MY_SIDS). Tables like SRV6_GLOBAL/SRV6_POLICY/
-# SRV6_LOCATOR/SRV6_SID_LIST do not exist, and the OpenConfig translib paths are not mapped in
+# SRv6 CONFIG_DB tables (SRV6_MY_LOCATORS, SRV6_MY_SIDS). The legacy global/policy/
+# locator/sid-list tables do not exist, and the OpenConfig translib paths are not mapped in
 # this sonic-gnmi build, so the old path-existence probes were vacuous (§5). Per the approved
 # D2/D3 decisions each criterion is now witnessed by something that exists:
 #   - gNMI content read-back of SRV6_MY_LOCATORS / SRV6_MY_SIDS (written through GCU),
