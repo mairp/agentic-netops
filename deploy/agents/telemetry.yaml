@@ -1,12 +1,25 @@
-# T035: tier telemetry pipeline — one emission, two sinks (research.md Decision 8).
+# T035: tier telemetry pipeline — one emission, three sinks (research.md Decision 8).
 #
 # Agents emit OTLP exactly ONCE, to this tier-owned collector
 # (http://agent-otel-collector.agentic-netops-agents.svc:4318, OTLP/HTTP). This collector
 # is the single fan-out point: a clickhouse exporter into the tier's agent-analytics
-# store, and an otlp exporter forwarding to feature 001's unmodified collector at
-# otel-collector.agentic-netops-system:4317. No feature-001 file changes.
+# store, an otlp exporter forwarding to feature 001's unmodified collector at
+# otel-collector.agentic-netops-system:4317, and an otlphttp/phoenix exporter forwarding
+# TRACES to the host-side agent-observability-stack collector (Arize Phoenix trace
+# backend, UI on host :3006) — the only sink that sees traces from this tier outside
+# the cluster. No feature-001 file changes.
 #
 # ---------------------------------------------------------------------------
+# NOTE (2026-10-11, Phoenix trace work): the shape below was qualified from
+# isolated SDK entrypoints. Live spans from the running tier are
+# OpenInference-NATIVE (ioa-observe is a rebranded Traceloop SDK):
+# ChatLiteLLM.chat carries gen_ai.prompt/completion + gen_ai.usage.* /
+# llm.usage.* tokens; the agentic-netops.* attributes stamped in
+# agents/common/llm.py do not reach exported spans (SDK context scoping),
+# so source-side redaction is inert. Verified live shape + mapping:
+# prompts/PHOENIX_TRACES_PROMPT.md (Grounding) and the AOS
+# transform/phoenix_agentic_netops.
+#
 # QUALIFIED OTLP SHAPE (T034) — captured live from the pinned
 # ioa-observe-sdk==1.0.24 (agents/.venv) by POSTing the subject's own
 # instrumentation entrypoints (Observe.init, @agent, @graph, session_start)
@@ -118,6 +131,23 @@ data:
         retry_on_failure:
           enabled: true
           max_elapsed_time: 5m
+      otlphttp/phoenix:
+        # Third sink (traces only): the host-side agent-observability-stack collector
+        # (docker compose; Arize Phoenix 20.x + Postgres). From inside kind the docker
+        # host is the bridge gateway, so the default targets its host-published OTLP/HTTP
+        # port; the exporter appends /v1/traces. Override AOS_OTLP_HTTP_ENDPOINT when the
+        # stack runs elsewhere. Same queue/retry posture as T351/T352: a down stack
+        # buffers here and never back-pressures the receiver, so the agents are
+        # unaffected (they only see a failure if THIS collector pod is down, as before).
+        endpoint: ${env:AOS_OTLP_HTTP_ENDPOINT}
+        compression: gzip
+        sending_queue:
+          enabled: true
+          num_consumers: 4
+          queue_size: 5000
+        retry_on_failure:
+          enabled: true
+          max_elapsed_time: 5m
 
     # health_check must exist: the Deployment's liveness AND readiness probes both
     # target port 13133, which is this extension's port. Without it nothing listens
@@ -136,10 +166,12 @@ data:
     service:
       extensions: [health_check]
       pipelines:
+        # Traces fan out to all three sinks; metrics stay on the two established ones
+        # (Phoenix is a trace backend — its metrics pipeline is not fed from this tier).
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [clickhouse, otlp/feature001]
+          exporters: [clickhouse, otlp/feature001, otlphttp/phoenix]
         metrics:
           receivers: [otlp]
           processors: [batch]
@@ -187,6 +219,15 @@ spec:
         - name: CLICKHOUSE_PASSWORD
           valueFrom:
             secretKeyRef: {name: clickhouse-auth, key: password}
+        # The otlphttp/phoenix exporter references ${env:AOS_OTLP_HTTP_ENDPOINT} in the
+        # ConfigMap; if the variable were ever missing the collector would refuse to
+        # start (same failure class as the clickhouse-auth incident above, which took
+        # the whole tier down). The env entry is therefore part of the manifest, with
+        # the lab default inline: from inside kind the docker host is bridge gateway
+        # 172.17.0.1, and the agent-observability-stack stack publishes OTLP/HTTP on
+        # host :4318. Override the value when that stack runs elsewhere.
+        - name: AOS_OTLP_HTTP_ENDPOINT
+          value: "http://172.17.0.1:4318"
         # Nothing else creates this database. The OTLP exporter below targets
         # `database: agent_analytics` and fails its pipeline startup without it --
         # "cannot start pipelines: create database: code: 81, message: Database
